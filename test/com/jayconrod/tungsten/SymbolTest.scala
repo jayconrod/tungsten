@@ -58,4 +58,12 @@ class SymbolTest {
     val sym2 = new Symbol("foo", 2, Nowhere)
     assertEquals(sym1.hashCode, sym2.hashCode)
   }
+
+  @Test
+  def factory = {
+    val factory = new SymbolFactory
+    val sym1 = factory.symbol("foo")
+    val sym2 = factory.symbol("foo")
+    assertTrue(sym1.id != sym2.id)
+  }
 }

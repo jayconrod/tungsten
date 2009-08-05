@@ -49,5 +49,26 @@ class LocationTest {
     val loc = new Location("file.w", 1, 2, 1, 1)
     ()
   }
+
+  @Test
+  def equals = {
+    val l1 = new Location("file.w", 1, 2, 3, 4)
+    val l2 = new Location("file.w", 1, 2, 3, 4)
+    assertEquals(true, l1 == l2)
+  }
+
+  @Test
+  def notEquals = {
+    val l1 = new Location("file.w", 1, 2, 3, 4)
+    val l2 = new Location("other.w", 5, 6, 7, 8)
+    assertEquals(false, l1 == l2)
+  }
+
+  @Test
+  def hash = {
+    val l1 = new Location("file.w", 1, 2, 3, 4)
+    val l2 = new Location("file.w", 1, 2, 3, 4)
+    assertEquals(l1.hashCode, l2.hashCode)
+  }
 }
 

@@ -22,7 +22,7 @@
     </scalac>
   </target>
 
-  <target name="test" depends="pipeline">
+  <target name="test" depends="tungsten">
     <mkdir dir="${lib.dir}"/>
     <scalac srcdir="${test.dir}" destdir="${lib.dir}" target="${jvm-target}"
             force="yes" deprecation="yes">

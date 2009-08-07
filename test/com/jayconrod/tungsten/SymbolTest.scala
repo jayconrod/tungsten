@@ -66,4 +66,12 @@ class SymbolTest {
     val sym2 = factory.symbol("foo")
     assertTrue(sym1.id != sym2.id)
   }
+
+  @Test
+  def strings = {
+    val sym1 = new Symbol(List("foo", "bar", "baz"), 33, Nowhere)
+    assertEquals("foo.bar.baz#33", sym1.toString)
+    val sym2 = new Symbol(List("foo", "bar", "baz"), 0, Nowhere)
+    assertEquals("foo.bar.baz", sym2.toString)
+  }
 }

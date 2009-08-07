@@ -7,4 +7,17 @@ private object Utilities {
   }
   val hashA = 17
   val hashB = 37
+
+  def isPowerOf2(x: Int) = (x & (x - 1)) == 0
+
+  def joinStrings(separator: String, strings: Iterable[String]) = {
+    val builder = new StringBuilder
+    val i = strings.iterator
+    while (i.hasNext) {
+      builder.append(i.next)
+      if (i.hasNext)
+        builder.append(separator)
+    }
+    builder.toString
+  }
 }

@@ -1,5 +1,7 @@
 package com.jayconrod.tungsten
 
+import Utilities._
+
 final case class Symbol(val name: Iterable[String],
                         val id: Int,
                         val location: Location)
@@ -19,7 +21,12 @@ final case class Symbol(val name: Iterable[String],
 
   override def hashCode = {
     val parts = List[Any](name, id, location)
-    parts.foldLeft(0)(Utilities.hash)
+    parts.foldLeft(0)(hash _)
+  }
+
+  override def toString = {
+    val concatenatedName = joinStrings(".", name)
+    if (id == 0) concatenatedName else concatenatedName + "#" + id
   }
 }
 

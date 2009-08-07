@@ -16,9 +16,9 @@ final case class UnitType(loc: Location = Nowhere) extends Type(loc) {
     }
   }
 
-  override val hashCode = hash(0, "unit")
+  override def hashCode = hash(0, "unit")
 
-  override val toString = "unit"
+  override def toString = "unit"
 }
 
 final case class IntType(width: Int, loc: Location = Nowhere) extends Type(loc) {
@@ -34,5 +34,21 @@ final case class IntType(width: Int, loc: Location = Nowhere) extends Type(loc) 
 
   override def hashCode = List[Any]("int", width).foldLeft(0)(Utilities.hash _)
 
-  override val toString = "int" + width
+  override def toString = "int" + width
+}
+
+final case class FloatType(width: Int, loc: Location = Nowhere) extends Type(loc) {
+  if (width != 32 && width != 64)
+    throw new IllegalArgumentException
+
+  override def equals(that: Any) = {
+    that match {
+      case FloatType(w, _) if width == w => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = List[Any]("float", width).foldLeft(0)(hash _)
+
+  override def toString = "float" + width
 }

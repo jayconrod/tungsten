@@ -30,4 +30,24 @@ class TypeTest {
     val i = IntType(33)
     ()
   }
+
+  @Test
+  def floatEquals = {
+    val f1 = FloatType(32)
+    val f2 = FloatType(32)
+    assertTrue(f1 == f2)
+  }
+
+  @Test
+  def floatHash = {
+    val f1 = FloatType(32)
+    val f2 = FloatType(32)
+    assertEquals(f1.hashCode, f2.hashCode)
+  }
+
+  @Test(expected=classOf[IllegalArgumentException])
+  def badFloat = {
+    val f = FloatType(16)
+    ()
+  }
 }

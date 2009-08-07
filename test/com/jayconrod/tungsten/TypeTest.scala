@@ -50,4 +50,20 @@ class TypeTest {
     val f = FloatType(16)
     ()
   }
+
+  @Test
+  def arrayEquals = {
+    val et = IntType(32)
+    val a1 = ArrayType(et)
+    val a2 = ArrayType(et)
+    assertTrue(a1 == a2)
+  }
+
+  @Test
+  def arrayHash = {
+    val et = IntType(32)
+    val a1 = ArrayType(et)
+    val a2 = ArrayType(et)
+    assertEquals(a1.hashCode, a2.hashCode)
+  }
 }

@@ -21,7 +21,7 @@ final case class UnitType(loc: Location = Nowhere) extends Type(loc) {
   override def toString = "unit"
 }
 
-final case class IntType(width: Int, loc: Location = Nowhere) extends Type(loc) {
+final case class IntType(val width: Int, loc: Location = Nowhere) extends Type(loc) {
   if (width < 1 || !isPowerOf2(width) || width > 64)
     throw new IllegalArgumentException
 
@@ -37,7 +37,7 @@ final case class IntType(width: Int, loc: Location = Nowhere) extends Type(loc) 
   override def toString = "int" + width
 }
 
-final case class FloatType(width: Int, loc: Location = Nowhere) extends Type(loc) {
+final case class FloatType(val width: Int, loc: Location = Nowhere) extends Type(loc) {
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
 
@@ -51,4 +51,17 @@ final case class FloatType(width: Int, loc: Location = Nowhere) extends Type(loc
   override def hashCode = List[Any]("float", width).foldLeft(0)(hash _)
 
   override def toString = "float" + width
+}
+
+final case class ArrayType(val elementType: Type, loc: Location = Nowhere) extends Type(loc) {
+  override def equals(that: Any) = {
+    that match {
+      case ArrayType(e, _) if elementType == e => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = List("array", elementType).foldLeft(0)(hash _)
+
+  override def toString = elementType + "[]"
 }

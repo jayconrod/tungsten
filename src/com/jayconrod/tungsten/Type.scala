@@ -65,3 +65,23 @@ final case class ArrayType(val elementType: Type, loc: Location = Nowhere) exten
 
   override def toString = elementType + "[]"
 }
+
+final case class FunctionType(val returnType: Type,
+                              val paramTypes: Iterable[Type], 
+                              loc: Location = Nowhere)
+  extends Type(loc)
+{
+  override def equals(that: Any) = {
+    that match {
+      case FunctionType(rt, pts, _) if returnType == rt && paramTypes.sameElements(pts) => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = {
+    val parts = "function" :: returnType :: paramTypes.asInstanceOf[List[Any]]
+    parts.foldLeft(0)(hash _)
+  }
+
+  override def toString = returnType + "(" + joinStrings(", ", paramTypes) + ")"
+}

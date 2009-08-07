@@ -66,4 +66,18 @@ class TypeTest {
     val a2 = ArrayType(et)
     assertEquals(a1.hashCode, a2.hashCode)
   }
+
+  @Test
+  def functionEquals = {
+    val f1 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
+    val f2 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
+    assertTrue(f1 == f2)
+  }
+
+  @Test
+  def functionHash = {
+    val f1 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
+    val f2 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
+    assertEquals(f1.hashCode, f2.hashCode)
+  }
 }

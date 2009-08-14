@@ -21,7 +21,7 @@ final case class UnitType(loc: Location = Nowhere) extends Type(loc) {
   override def toString = "unit"
 }
 
-final case class IntType(val width: Int, loc: Location = Nowhere) extends Type(loc) {
+final case class IntType(width: Int, loc: Location = Nowhere) extends Type(loc) {
   if (width < 1 || !isPowerOf2(width) || width > 64)
     throw new IllegalArgumentException
 
@@ -37,7 +37,7 @@ final case class IntType(val width: Int, loc: Location = Nowhere) extends Type(l
   override def toString = "int" + width
 }
 
-final case class FloatType(val width: Int, loc: Location = Nowhere) extends Type(loc) {
+final case class FloatType(width: Int, loc: Location = Nowhere) extends Type(loc) {
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
 
@@ -53,7 +53,55 @@ final case class FloatType(val width: Int, loc: Location = Nowhere) extends Type
   override def toString = "float" + width
 }
 
-final case class ArrayType(val elementType: Type, loc: Location = Nowhere) extends Type(loc) {
+final case class UniversalType(parameterTypes: List[Symbol],
+                               baseType: Type,
+                               loc: Location = Nowhere)
+  extends Type(loc)
+{
+  override def equals(that: Any) = {
+    that match {
+      case UniversalType(pts, b, _) if parameterTypes.sameElements(pts) && baseType == b => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = { 
+    val parts = "universal" :: baseType :: parameterTypes.asInstanceOf[List[Any]]
+    parts.foldLeft(0)(hash _)
+  }
+
+  override def toString = {
+    "forall [" + joinStrings(", ", parameterTypes.map(_.toString)) + "] . " + baseType
+  }
+}
+
+final case class ExistentialType(parameterTypes: List[Symbol],
+                                 baseType: Type,
+                                 loc: Location = Nowhere)
+  extends Type(loc)
+{
+  override def equals(that: Any) = {
+    that match {
+      case ExistentialType(pts, b, _) 
+      if parameterTypes.sameElements(pts) && baseType == b => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = {
+    val parts = "existential" :: baseType :: parameterTypes.asInstanceOf[List[Any]]
+    parts.foldLeft(0)(hash _)
+  }
+
+  override def toString = {
+    "forsome [" + joinStrings(", ", parameterTypes.map(_.toString)) + "] . " + baseType
+  }
+}
+
+final case class ArrayType(elementType: Type, 
+                           loc: Location = Nowhere)
+  extends Type(loc)
+{
   override def equals(that: Any) = {
     that match {
       case ArrayType(e, _) if elementType == e => true
@@ -63,25 +111,27 @@ final case class ArrayType(val elementType: Type, loc: Location = Nowhere) exten
 
   override def hashCode = List("array", elementType).foldLeft(0)(hash _)
 
-  override def toString = elementType + "[]"
+  override def toString = "Array[" + elementType + "]"
 }
 
-final case class FunctionType(val returnType: Type,
-                              val paramTypes: Iterable[Type], 
+final case class FunctionType(returnType: Type,
+                              parameterTypes: List[Type], 
                               loc: Location = Nowhere)
   extends Type(loc)
 {
   override def equals(that: Any) = {
     that match {
-      case FunctionType(rt, pts, _) if returnType == rt && paramTypes.sameElements(pts) => true
+      case FunctionType(rt, pts, _) 
+      if returnType == rt && parameterTypes.sameElements(pts) => true
       case _ => false
     }
   }
 
   override def hashCode = {
-    val parts = "function" :: returnType :: paramTypes.asInstanceOf[List[Any]]
+    val parts = "function" :: returnType :: parameterTypes.asInstanceOf[List[Any]]
     parts.foldLeft(0)(hash _)
   }
 
-  override def toString = returnType + "(" + joinStrings(", ", paramTypes) + ")"
+  override def toString = returnType + "(" + joinStrings(", ", parameterTypes) + ")"
 }
+

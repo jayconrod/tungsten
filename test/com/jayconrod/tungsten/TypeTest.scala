@@ -9,6 +9,7 @@ class TypeTest {
     val u1 = UnitType
     val u2 = UnitType
     assertTrue(u1 == u2)
+    assertEquals(u1.hashCode, u2.hashCode)
   }
 
   @Test
@@ -16,12 +17,6 @@ class TypeTest {
     val i1 = IntType(32)
     val i2 = IntType(32)
     assertTrue(i1 == i2)
-  }
-
-  @Test
-  def intHash = {
-    val i1 = IntType(32)
-    val i2 = IntType(32)
     assertEquals(i1.hashCode, i2.hashCode)
   }
 
@@ -36,12 +31,6 @@ class TypeTest {
     val f1 = FloatType(32)
     val f2 = FloatType(32)
     assertTrue(f1 == f2)
-  }
-
-  @Test
-  def floatHash = {
-    val f1 = FloatType(32)
-    val f2 = FloatType(32)
     assertEquals(f1.hashCode, f2.hashCode)
   }
 
@@ -52,18 +41,29 @@ class TypeTest {
   }
 
   @Test
+  def universalEquals = {
+    val p = new Symbol("T")
+    val u1 = UniversalType(List(p), UnitType())
+    val u2 = UniversalType(List(p), UnitType())
+    assertTrue(u1 == u2)
+    assertEquals(u1.hashCode, u2.hashCode)
+  }
+
+  @Test
+  def existentialEquals = {
+    val p = new Symbol("T")
+    val e1 = ExistentialType(List(p), UnitType())
+    val e2 = ExistentialType(List(p), UnitType())
+    assertTrue(e1 == e2)
+    assertEquals(e1.hashCode, e2.hashCode)
+  }
+
+  @Test
   def arrayEquals = {
     val et = IntType(32)
     val a1 = ArrayType(et)
     val a2 = ArrayType(et)
     assertTrue(a1 == a2)
-  }
-
-  @Test
-  def arrayHash = {
-    val et = IntType(32)
-    val a1 = ArrayType(et)
-    val a2 = ArrayType(et)
     assertEquals(a1.hashCode, a2.hashCode)
   }
 
@@ -72,12 +72,6 @@ class TypeTest {
     val f1 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
     val f2 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
     assertTrue(f1 == f2)
-  }
-
-  @Test
-  def functionHash = {
-    val f1 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
-    val f2 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
     assertEquals(f1.hashCode, f2.hashCode)
   }
 }

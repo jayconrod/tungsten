@@ -59,6 +59,15 @@ class TypeTest {
   }
 
   @Test
+  def varEquals = {
+    val varName = new Symbol("T")
+    val v1 = VariableType(varName)
+    val v2 = VariableType(varName)
+    assertTrue(v1 == v2)
+    assertEquals(v1.hashCode, v2.hashCode)
+  }
+
+  @Test
   def arrayEquals = {
     val et = IntType(32)
     val a1 = ArrayType(et)
@@ -85,11 +94,10 @@ class TypeTest {
   }
 
   @Test
-  def varEquals = {
-    val varName = new Symbol("T")
-    val v1 = VariableType(varName)
-    val v2 = VariableType(varName)
-    assertTrue(v1 == v2)
-    assertEquals(v1.hashCode, v2.hashCode)
+  def nullEquals = {
+    val n1 = NullType()
+    val n2 = NullType()
+    assertTrue(n1 == n2)
+    assertEquals(n1.hashCode, n2.hashCode)
   }
 }

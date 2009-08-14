@@ -167,3 +167,19 @@ final case class ClassType(className: Symbol,
   }
 }
 
+final case class NullType(loc: Location = Nowhere) extends Type(loc) {
+  override def equals(that: Any) = {
+    that match {
+      case NullType(_) => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = hash(0, "null")
+
+  override def toString = "Null"
+}
+
+
+
+  

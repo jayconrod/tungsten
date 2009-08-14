@@ -83,4 +83,13 @@ class TypeTest {
     assertTrue(c1 == c2)
     assertEquals(c1.hashCode, c2.hashCode)
   }
+
+  @Test
+  def varEquals = {
+    val varName = new Symbol("T")
+    val v1 = VariableType(varName)
+    val v2 = VariableType(varName)
+    assertTrue(v1 == v2)
+    assertEquals(v1.hashCode, v2.hashCode)
+  }
 }

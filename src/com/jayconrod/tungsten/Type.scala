@@ -98,6 +98,19 @@ final case class ExistentialType(parameterTypes: List[Symbol],
   }
 }
 
+final case class VariableType(name: Symbol, loc: Location = Nowhere) extends Type(loc) {
+  override def equals(that: Any) = {
+    that match {
+      case VariableType(n, _) if name == n => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = List[Any]("variable", name).foldLeft(0)(hash _)
+
+  override def toString = name.toString
+}
+
 final case class ArrayType(elementType: Type, 
                            loc: Location = Nowhere)
   extends Type(loc)
@@ -153,3 +166,4 @@ final case class ClassType(className: Symbol,
     parts.foldLeft(0)(hash _)
   }
 }
+

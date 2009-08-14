@@ -135,3 +135,21 @@ final case class FunctionType(returnType: Type,
   override def toString = returnType + "(" + joinStrings(", ", parameterTypes) + ")"
 }
 
+final case class ClassType(className: Symbol,
+                           typeArguments: List[Type] = Nil,
+                           loc: Location = Nowhere)
+  extends Type(loc)
+{
+  override def equals(that: Any) = {
+    that match {
+      case ClassType(n, args, _)
+      if className == n && typeArguments.sameElements(args) => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = {
+    val parts = "class" :: className :: typeArguments.asInstanceOf[List[Any]]
+    parts.foldLeft(0)(hash _)
+  }
+}

@@ -167,6 +167,25 @@ final case class ClassType(className: Symbol,
   }
 }
 
+final case class InterfaceType(interfaceName: Symbol,
+                               typeArguments: List[Type] = Nil,
+                               loc: Location = Nowhere)
+  extends Type(loc)
+{
+  override def equals(that: Any) = {
+    that match {
+      case InterfaceType(n, args, _)
+      if interfaceName == n && typeArguments.sameElements(args) => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = {
+    val parts = "interface" :: interfaceName :: typeArguments.asInstanceOf[List[Any]]
+    parts.foldLeft(0)(hash _)
+  }
+}
+
 final case class NullType(loc: Location = Nowhere) extends Type(loc) {
   override def equals(that: Any) = {
     that match {

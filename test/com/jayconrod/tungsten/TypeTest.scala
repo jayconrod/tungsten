@@ -94,6 +94,15 @@ class TypeTest {
   }
 
   @Test
+  def interfaceEquals = {
+    val interfaceName = new Symbol("Foo")
+    val i1 = InterfaceType(interfaceName)
+    val i2 = InterfaceType(interfaceName)
+    assertTrue(i1 == i2)
+    assertEquals(i1.hashCode, i2.hashCode)
+  }
+
+  @Test
   def nullEquals = {
     val n1 = NullType()
     val n2 = NullType()

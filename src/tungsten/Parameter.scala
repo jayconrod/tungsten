@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 final class Parameter(name: Symbol, val ty: Type, location: Location = Nowhere)
   extends Definition(name, location)

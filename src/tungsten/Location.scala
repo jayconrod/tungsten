@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 sealed case class Location(val filename: String,
                            val beginLine: Int,

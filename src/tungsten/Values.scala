@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 sealed abstract class Value(val location: Location) {
   def equals(that: Any): Boolean

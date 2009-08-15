@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 import org.junit.Test
 import org.junit.Assert._

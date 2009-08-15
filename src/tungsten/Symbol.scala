@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 import Utilities._
 

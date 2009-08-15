@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap

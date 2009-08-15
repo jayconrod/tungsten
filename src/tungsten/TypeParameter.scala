@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 final class TypeParameter(name: Symbol, 
                           val upperBound: Option[Type] = None,

@@ -1,4 +1,4 @@
-package com.jayconrod.tungsten
+package tungsten
 
 private object Utilities {
   def hash(code: Int, x: Any) = {

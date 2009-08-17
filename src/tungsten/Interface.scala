@@ -14,7 +14,7 @@ final class Interface(name: Symbol,
     val typeParametersStr = if (typeParameters.isEmpty) 
       ""
     else
-      "[" + joinStrings(", ", typeParameters) + "]"
+      typeParameters.mkString("[", ", ", "]")
     val superclassStr = superclass match {
       case None => ""
       case Some(sc) => " extends " + sc
@@ -22,8 +22,8 @@ final class Interface(name: Symbol,
     val interfacesStr = if (interfaces.isEmpty)
       ""
     else
-      " implements " + joinStrings(", ", interfaces)
-    val methodsStr = "methods:\n  " + joinStrings("\n  ", methods) + "\n"
+      " implements " + interfaces.mkString(", ")
+    val methodsStr = methods.mkString("methods:\n  ", "\n  ", "\n")
     "class " + name + typeParametersStr + superclassStr + interfacesStr + "\n{\n" +
       methodsStr + "}"
   }

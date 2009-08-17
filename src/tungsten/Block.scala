@@ -1,7 +1,5 @@
 package tungsten
 
-import Utilities._
-
 final class Block(name: Symbol,
                   val parameters: List[Symbol],
                   val instructions: List[Instruction],
@@ -9,7 +7,8 @@ final class Block(name: Symbol,
   extends Definition(name, location)
 {
   override def toString = {
-    name + "(" + joinStrings(", ", parameters.map(_.toString)) + ")\n{\n  " +
-      joinStrings("\n  ", instructions.map(_.toString)) + "\n}"
+    val parametersStr = parameters.mkString("(", ", ", ")")
+    val instructionsStr = instructions.mkString("\n{\n  ", "\n  ", "\n}")
+    name + parametersStr + instructionsStr
   }
 }

@@ -71,7 +71,7 @@ final case class UniversalType(parameterTypes: List[Symbol],
   }
 
   override def toString = {
-    "forall [" + joinStrings(", ", parameterTypes.map(_.toString)) + "] . " + baseType
+    "forall [" + parameterTypes.mkString(", ") + "] . " + baseType
   }
 }
 
@@ -94,7 +94,7 @@ final case class ExistentialType(parameterTypes: List[Symbol],
   }
 
   override def toString = {
-    "forsome [" + joinStrings(", ", parameterTypes.map(_.toString)) + "] . " + baseType
+    "forsome [" + parameterTypes.mkString(", ") + "] . " + baseType
   }
 }
 
@@ -145,7 +145,7 @@ final case class FunctionType(returnType: Type,
     parts.foldLeft(0)(hash _)
   }
 
-  override def toString = returnType + "(" + joinStrings(", ", parameterTypes) + ")"
+  override def toString = returnType + parameterTypes.mkString("(", ", ", ")")
 }
 
 final case class ClassType(className: Symbol,

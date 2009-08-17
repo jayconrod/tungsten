@@ -8,6 +8,6 @@ final class Struct(name: Symbol,
   extends Definition(name, location)
 {
   override def toString = {
-    "struct " + name + "{\n  " + joinStrings("\n  ", fields) + "\n}"
+    "struct " + name + fields.mkString("{\n  ", "\n  ", "\n}")
   }
 }

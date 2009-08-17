@@ -25,7 +25,7 @@ final case class Symbol(val name: Iterable[String],
   }
 
   override def toString = {
-    val concatenatedName = joinStrings(".", name)
+    val concatenatedName = name.mkString(".")
     if (id == 0) concatenatedName else concatenatedName + "#" + id
   }
 }

@@ -9,16 +9,4 @@ private object Utilities {
   val hashB = 37
 
   def isPowerOf2(x: Int) = (x & (x - 1)) == 0
-
-  def joinStrings(separator: String, objects: Iterable[Any]) = {
-    val strings = objects.map(_.toString)
-    val builder = new StringBuilder
-    val i = strings.iterator
-    while (i.hasNext) {
-      builder.append(i.next)
-      if (i.hasNext)
-        builder.append(separator)
-    }
-    builder.toString
-  }
 }

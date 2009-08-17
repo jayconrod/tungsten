@@ -14,11 +14,4 @@ class UtilitiesTest {
     assertTrue(isPowerOf2(8))
     assertFalse(isPowerOf2(7))
   }
-
-  @Test
-  def joinStringsTest {
-    assertEquals("", joinStrings(",", Nil))
-    assertEquals("foo", joinStrings(",", List("foo")))
-    assertEquals("foo,bar,baz", joinStrings(",", List("foo", "bar", "baz")))
-  }
 }

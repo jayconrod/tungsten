@@ -11,10 +11,10 @@ final class Function(name: Symbol,
   extends Definition(name, location)
 {
   override def toString = {
-    val typeParametersStr = "[" + joinStrings(", ", typeParameters.map(_.toString)) + "]"
-    val parametersStr = "(" + joinStrings(", ", parameters.map(_.toString)) + ")"
+    val typeParametersStr = typeParameters.mkString("[", ", ", "]")
+    val parametersStr = parameters.mkString("(", ", ", ")")
     val returnTypeStr = ": " + returnType
-    val bodyStr = " {\n" + joinStrings("\n", blocks.map(_.toString)) + "\n}"
+    val bodyStr = blocks.mkString("{\n", "\n", "\n}")
     typeParametersStr + parametersStr + returnTypeStr + bodyStr
   }
 }

@@ -1,7 +1,5 @@
 package tungsten
 
-import Utilities._
-
 final class Class(name: Symbol,
                   val typeParameters: List[Symbol],
                   val superclass: Option[ClassType],
@@ -15,7 +13,7 @@ final class Class(name: Symbol,
     val typeParametersStr = if (typeParameters.isEmpty) 
       ""
     else
-      "[" + joinStrings(", ", typeParameters) + "]"
+      typeParameters.mkString("[", ", ", "]")
     val superclassStr = superclass match {
       case None => ""
       case Some(sc) => " extends " + sc
@@ -23,9 +21,9 @@ final class Class(name: Symbol,
     val interfacesStr = if (interfaces.isEmpty)
       ""
     else
-      " implements " + joinStrings(", ", interfaces)
-    val fieldsStr = "fields:\n  " + joinStrings("\n  ", fields) + "\n"
-    val methodsStr = "methods:\n  " + joinStrings("\n  ", methods) + "\n"
+      " implements " + interfaces.mkString(", ")
+    val fieldsStr = fields.mkString("fields:\n  ", "\n  ", "\n")
+    val methodsStr = methods.mkString("methods:\n  ", "\n  ", "\n")
     "class " + name + typeParametersStr + superclassStr + interfacesStr + "\n{\n" +
       fieldsStr + "\n" + methodsStr + "}"
   }

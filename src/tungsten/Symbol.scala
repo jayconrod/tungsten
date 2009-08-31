@@ -2,25 +2,23 @@ package tungsten
 
 import Utilities._
 
-final case class Symbol(val name: Iterable[String],
-                        val id: Int,
-                        val location: Location)
+final case class Symbol(val name: Iterable[String], val id: Int)
 {
   if (name.isEmpty || !name.forall(!_.isEmpty) || id < 0)
     throw new IllegalArgumentException
 
-  def this(simpleName: String) = this(List(simpleName), 0, Nowhere)
-  def this(simpleName: String, id: Int, loc: Location) = this(List(simpleName), id, loc)
+  def this(simpleName: String) = this(List(simpleName), 0)
+  def this(simpleName: String, id: Int) = this(List(simpleName), id)
 
   override def equals(that: Any) = {
     that match {
-      case Symbol(n, i, l) if name == n && id == i && location == l => true
+      case Symbol(n, i) if name == n && id == i => true
       case _ => false
     }
   }
 
   override def hashCode = {
-    val parts = List[Any](name, id, location)
+    val parts = List[Any](name, id)
     parts.foldLeft(0)(hash _)
   }
 
@@ -33,13 +31,13 @@ final case class Symbol(val name: Iterable[String],
 final class SymbolFactory {
   private var currentId = 0
 
-  def complexSymbol(name: Iterable[String], location: Location = Nowhere) = {
+  def complexSymbol(name: Iterable[String]) = {
     currentId += 1
-    new Symbol(name, currentId, location)
+    new Symbol(name, currentId)
   }
 
-  def symbol(simpleName: String, location: Location = Nowhere) = {
-    complexSymbol(List(simpleName), location)
+  def symbol(simpleName: String) = {
+    complexSymbol(List(simpleName))
   }
 
   def nextId = {

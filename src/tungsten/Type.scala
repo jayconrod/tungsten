@@ -2,7 +2,9 @@ package tungsten
 
 import Utilities._
 
-abstract sealed class Type(val location: Location) {
+abstract sealed class Type(location: Location) 
+  extends TungstenObject(location)
+{
   def equals(that: Any): Boolean
   def hashCode: Int
   def toString: String

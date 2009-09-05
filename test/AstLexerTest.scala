@@ -35,4 +35,15 @@ class AstLexerTest {
     assertEquals(expected, token)
     assertEquals(Location("<UNKNOWN>", 1, 1, 1, 2), token.location)
   }
+
+  @Test
+  def reserved = {
+    for (r <- AstLexer.reservedStrings) {
+      val expected = ReservedToken(r)
+      val expectedLocation = Location("<UNKNOWN>", 1, 1, 1, r.length)
+      val token = AstLexer.test(r)
+      assertEquals(expected, token)
+      assertEquals(expectedLocation, token.location)
+    }
+  }
 }

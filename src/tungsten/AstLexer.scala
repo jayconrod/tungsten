@@ -6,7 +6,7 @@ import scala.util.parsing.input._
 object AstLexer extends Parsers {
   type Elem = Char
 
-  private val reservedStrings = Set("()")
+  val reservedStrings = Set("()", ":", "#global")
 
   def whitespaceChar = elem(' ') | elem('\n') | elem('\t')
 
@@ -19,7 +19,7 @@ object AstLexer extends Parsers {
   }
 
   def reserved: Parser[Token] = {
-/*    def parseReserved(r: String): Parser[Token] = {
+    def parseReserved(r: String): Parser[Token] = {
       accept(r.toList) ^^ { s => ReservedToken(s.mkString) }
     }
     val reservedArray = new Array[String](reservedStrings.size)
@@ -28,8 +28,6 @@ object AstLexer extends Parsers {
     val reservedParsers = reservedArray.toList.map(parseReserved)
     val fail: Parser[Token] = failure("no matching reserved string")
     reservedParsers.foldRight(fail)((x: Parser[Token], y: Parser[Token]) => y | x)
-*/
-    accept("()".toList) ^^ { s => ReservedToken("()") }
   }
 
   def token: Parser[Token] = {

@@ -30,8 +30,34 @@ object AstLexer extends Parsers {
     reservedParsers.foldRight(fail)((x: Parser[Token], y: Parser[Token]) => y | x)
   }
 
+  def letter = elem("letter", _.isLetter)
+
+  def digit = elem("digit", _.isDigit)
+
+  def identifierChar: Parser[Char] = letter | digit | elem('_')
+
+  def identifier: Parser[String] = {
+    (letter | elem('_')) ~ rep(identifierChar) ^^ { 
+      case first ~ rest => (first :: rest).mkString
+    }
+  }
+
+  def integer: Parser[Int] = rep(digit) ^^ { _.mkString.toInt }
+
+  def symbol: Parser[Symbol] = {
+    val idNum: Parser[Int] = {
+      opt(elem('#') ~> integer) ^^ {
+        case Some(i) => i
+        case None => 0
+      }
+    }
+    rep1sep(identifier, elem('.')) ~ idNum ^^ {
+      case name ~ id => Symbol(name, id)
+    }
+  }    
+
   def token: Parser[Token] = {
-    reserved | failure("illegal character")
+    reserved | (symbol ^^ { SymbolToken(_) }) | failure("illegal character")
   }
 
   def test(in: String): Token = {

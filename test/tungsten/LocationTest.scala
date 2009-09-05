@@ -51,6 +51,30 @@ class LocationTest {
   }
 
   @Test
+  def combine = {
+    val loc1 = new Location("file.w", 1, 1, 1, 1)
+    val loc2 = new Location("file.w", 2, 2, 2, 2)
+    val combined = loc1 combine loc2
+    assertEquals(new Location("file.w", 1, 1, 2, 2), combined)
+  }
+
+  @Test(expected=classOf[IllegalArgumentException])
+  def combineDifferentFiles = {
+    val loc1 = new Location("foo", 1, 1, 1, 1)
+    val loc2 = new Location("bar", 2, 2, 2, 2)
+    val combined = loc1 combine loc2
+    ()
+  }
+
+  @Test(expected=classOf[IllegalArgumentException])
+  def combineOutOfOrder = {
+    val loc1 = new Location("file.w", 2, 2, 2, 2)
+    val loc2 = new Location("file.w", 1, 1, 1, 1)
+    val combined = loc1 combine loc2
+    ()
+  }
+
+  @Test
   def equals = {
     val l1 = new Location("file.w", 1, 2, 3, 4)
     val l2 = new Location("file.w", 1, 2, 3, 4)

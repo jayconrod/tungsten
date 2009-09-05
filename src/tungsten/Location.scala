@@ -13,6 +13,16 @@ sealed case class Location(val filename: String,
     throw new IllegalArgumentException
   }
 
+  def this(filename: String, line: Int, column: Int) = {
+    this(filename, line, column, line, column)
+  }
+
+  def combine(loc: Location) = {
+    if (filename != loc.filename)
+      throw new IllegalArgumentException
+    new Location(filename, beginLine, beginColumn, loc.endLine, loc.endColumn)
+  }
+
   final override def equals(that: Any) = {
     that match {
       case Location(fn, bl, bc, el, ec) if filename == fn &&
@@ -30,5 +40,5 @@ sealed case class Location(val filename: String,
   }
 }
 
-object Nowhere extends Location("<UNKNOWN>", 1, 1, 1, 1)
+object Nowhere extends Location("<NOWHERE>", 1, 1, 1, 1)
 

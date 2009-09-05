@@ -38,6 +38,10 @@ sealed case class Location(val filename: String,
     val parts = List[Any](filename, beginLine, beginColumn, endLine, endColumn)
     parts.foldLeft(0)(Utilities.hash _)
   }
+
+  final override def toString = {
+    filename + ":" + beginLine + "." + beginColumn + "-" + endLine + "." + endColumn
+  }
 }
 
 object Nowhere extends Location("<NOWHERE>", 1, 1, 1, 1)

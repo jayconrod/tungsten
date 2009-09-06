@@ -78,4 +78,9 @@ class AstLexerTest {
   def symbolToken = {
     testToken("foo.bar#12", SymbolToken(Symbol(List("foo", "bar"), 12)))
   }
+
+  @Test
+  def location = {
+    test("<foo/bar.w>:12.34-56.78", AstLexer.location, Location("foo/bar.w", 12, 34, 56, 78))
+  }
 }

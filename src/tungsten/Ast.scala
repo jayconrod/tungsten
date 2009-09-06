@@ -1,16 +1,13 @@
 package tungsten
 
-sealed abstract class AstDefinition {
-  var location: Location = Nowhere
-}
+sealed abstract class AstDefinition(val location: Location)
+
 
 // Types
 
-sealed abstract class AstType {
-  var location: Location = Nowhere
-}
+sealed abstract class AstType(val location: Location)
 
-final case class AstUnitType() extends AstType
+final case class AstUnitType(override val location: Location) extends AstType(location)
 
 // Instructions
 
@@ -24,8 +21,11 @@ final case class AstTypeParameter(name: Symbol, upperBound: AstType, lowerBound:
 
 // Global
 
-final case class AstGlobal(name: Symbol, ty: AstType, value: Option[Value])
-  extends AstDefinition
+final case class AstGlobal(name: Symbol, 
+                           ty: AstType, 
+                           value: Option[Value], 
+                           override val location: Location)
+  extends AstDefinition(location)
 
 // Data structures
 

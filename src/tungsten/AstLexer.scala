@@ -8,6 +8,10 @@ object AstLexer extends Parsers {
 
   val reservedStrings = Set("()", ":", "#global", "#unit")
 
+  def chrExcept(cs: Char*) = {
+    elem("", c => cs.forall(c != _))
+  }
+
   def whitespaceChar = elem(' ') | elem('\n') | elem('\t')
 
   def whitespace = rep(whitespaceChar)
@@ -54,10 +58,21 @@ object AstLexer extends Parsers {
     rep1sep(identifier, elem('.')) ~ idNum ^^ {
       case name ~ id => Symbol(name, id)
     }
-  }    
+  }
+
+  def location: Parser[Location] = {
+    elem('<') ~ rep1(chrExcept('>')) ~ elem('>') ~ elem(':') ~
+      integer ~ elem('.') ~ integer ~ elem('-') ~ integer ~ elem('.') ~ integer ^^ {
+      case _ ~ filename ~ _ ~ _ ~ beginLine ~ _ ~ beginColumn ~ _ ~ endLine ~ _ ~ endColumn =>
+        Location(filename.mkString, beginLine, beginColumn, endLine, endColumn)
+    }
+  }
 
   def token: Parser[Token] = {
-    reserved | (symbol ^^ { SymbolToken(_) }) | failure("illegal character")
+    reserved | 
+    (symbol ^^ { SymbolToken(_) }) | 
+    (location ^^ { LocationToken(_) }) | 
+    failure("illegal character")
   }
 
   def test(in: String): Token = {

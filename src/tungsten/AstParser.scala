@@ -13,12 +13,25 @@ object AstParser extends Parsers {
     }
   }
 
+  def location: Parser[Location] = {
+    val locParser = elem("location", _.isInstanceOf[LocationToken]) ^^ {
+      case LocationToken(loc) => loc
+      case _ => throw new AssertionError
+    }
+    opt(locParser) ^^ {
+      case Some(l) => l
+      case None => Nowhere
+    }
+  }
+
   def ty: Parser[AstType] = {
-    "#unit" ^^^ AstUnitType()
+    "#unit" ~> location ^^ { AstUnitType(_) }
   }
 
   def global: Parser[AstGlobal] = {
-    "#global" ~ symbol ~ ":" ~ ty ^^ { case _ ~ name ~ _ ~ t => AstGlobal(name, t, None) }
+    "#global" ~ location ~ symbol ~ ":" ~ ty ^^ { 
+      case _ ~ loc ~ name ~ _ ~ t => AstGlobal(name, t, None, loc)
+    }
   }
 
   def definition: Parser[AstDefinition] = global

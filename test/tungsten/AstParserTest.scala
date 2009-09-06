@@ -29,8 +29,14 @@ class AstParserTest {
   }
 
   @Test
+  def typeWithLocation = {
+    testType("#unit <foo.w>:1.2-3.4", AstUnitType(Location("foo.w", 1, 2, 3, 4)))
+  }
+
+  @Test
   def global = {
-    val expected = AstModule(List(AstGlobal(new Symbol("foo"), AstUnitType(), None)))
+    val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, Nowhere)
+    val expected = AstModule(List(global))
     testModule("#global foo: #unit", expected)
   }
 }

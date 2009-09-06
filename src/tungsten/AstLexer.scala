@@ -7,7 +7,7 @@ object AstLexer extends Parsers {
   type Elem = Char
 
   val reservedStrings = Set("()", ":", "=", "#global", "#unit", "#int8", "#int16", "#int32",
-    "#int64")
+    "#int64", "#return")
 
   def chrExcept(cs: Char*) = {
     elem("", c => cs.forall(c != _))

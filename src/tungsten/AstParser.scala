@@ -43,6 +43,10 @@ object AstParser extends Parsers with ImplicitConversions {
     (symbol ~ location ^^ { flatten2(AstSymbolValue(_, _)) })
   }
 
+  def instruction: Parser[AstInstruction] = {
+    ("#return" ~> location ~ value) ^^ { case l ~ v => AstReturnInstruction(v, l) }
+  }
+
   def global: Parser[AstGlobal] = {
     "#global" ~ location ~ symbol ~ ":" ~ ty ~ opt("=" ~> value) ^^ { 
       case _ ~ loc ~ name ~ _ ~ t ~ iv => AstGlobal(name, t, iv, loc)

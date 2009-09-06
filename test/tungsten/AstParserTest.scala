@@ -22,6 +22,10 @@ class AstParserTest {
     test(input, AstParser.value, expected)
   }
 
+  def testInstruction(input: String, expected: AstInstruction) = {
+    test(input, AstParser.instruction, expected)
+  }
+
   @Test
   def empty = {
     testModule("", AstModule(Nil))
@@ -55,6 +59,11 @@ class AstParserTest {
     val location = Location("foo.w", 1, 2, 3, 4)
     val expected = AstUnitValue(location)
     testValue("() <foo.w>:1.2-3.4", expected)
+  }
+
+  @Test
+  def instruction = {
+    testInstruction("#return 123", AstReturnInstruction(AstIntValue(123, Nowhere), Nowhere))
   }
 
   @Test

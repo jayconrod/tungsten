@@ -29,7 +29,10 @@ final case class AstSymbolValue(val value: Symbol, override val location: Locati
 
 // Instructions
 
-sealed abstract class AstInstruction
+sealed abstract class AstInstruction(val location: Location)
+
+final case class AstReturnInstruction(val value: AstValue, override val location: Location)
+  extends AstInstruction(location)
 
 // Function and parameters
 

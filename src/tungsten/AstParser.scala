@@ -39,7 +39,8 @@ object AstParser extends Parsers with ImplicitConversions {
       case _ => throw new AssertionError
     }
     ("()" ~> location ^^ { AstUnitValue(_) }) |
-    (integer ~ location ^^ { flatten2(AstIntValue(_, _)) })
+    (integer ~ location ^^ { flatten2(AstIntValue(_, _)) }) |
+    (symbol ~ location ^^ { flatten2(AstSymbolValue(_, _)) })
   }
 
   def global: Parser[AstGlobal] = {

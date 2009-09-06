@@ -24,6 +24,8 @@ sealed abstract class AstValue(val location: Location)
 final case class AstUnitValue(override val location: Location) extends AstValue(location)
 final case class AstIntValue(val value: Long, override val location: Location)
   extends AstValue(location)
+final case class AstSymbolValue(val value: Symbol, override val location: Location)
+  extends AstValue(location)
 
 // Instructions
 

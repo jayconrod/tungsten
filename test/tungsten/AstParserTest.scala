@@ -47,6 +47,7 @@ class AstParserTest {
   def value = {
     testValue("()", AstUnitValue(Nowhere))
     testValue("123", AstIntValue(123, Nowhere))
+    testValue("foo", AstSymbolValue(new Symbol("foo"), Nowhere))
   }
 
   @Test

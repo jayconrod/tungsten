@@ -18,6 +18,10 @@ class AstParserTest {
     test(input, AstParser.ty, expected)
   }
 
+  def testValue(input: String, expected: AstValue) = {
+    test(input, AstParser.value, expected)
+  }
+
   @Test
   def empty = {
     testModule("", AstModule(Nil))
@@ -34,9 +38,39 @@ class AstParserTest {
   }
 
   @Test
+  def value = {
+    testValue("()", AstUnitValue(Nowhere))
+  }
+
+  @Test
+  def valueWithLocation = {
+    val location = Location("foo.w", 1, 2, 3, 4)
+    val expected = AstUnitValue(location)
+    testValue("() <foo.w>:1.2-3.4", expected)
+  }
+
+  @Test
   def global = {
     val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, Nowhere)
     val expected = AstModule(List(global))
     testModule("#global foo: #unit", expected)
+  }
+
+  @Test
+  def globalWithLocation = {
+    val loc = Location("foo.w", 1, 2, 3, 4)
+    val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, loc)
+    val expected = AstModule(List(global))
+    testModule("#global <foo.w>:1.2-3.4 foo: #unit", expected)
+  }
+
+  @Test
+  def globalWithValue = {
+    val global = AstGlobal(new Symbol("foo"), 
+                           AstUnitType(Nowhere),
+                           Some(AstUnitValue(Nowhere)),
+                           Nowhere)
+    val expected = AstModule(List(global))
+    testModule("#global foo: #unit = ()", expected)
   }
 }

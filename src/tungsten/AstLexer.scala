@@ -6,7 +6,7 @@ import scala.util.parsing.input._
 object AstLexer extends Parsers {
   type Elem = Char
 
-  val reservedStrings = Set("()", ":", "#global", "#unit")
+  val reservedStrings = Set("()", ":", "=", "#global", "#unit")
 
   def chrExcept(cs: Char*) = {
     elem("", c => cs.forall(c != _))

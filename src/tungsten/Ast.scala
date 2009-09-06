@@ -9,6 +9,12 @@ sealed abstract class AstType(val location: Location)
 
 final case class AstUnitType(override val location: Location) extends AstType(location)
 
+// Values
+
+sealed abstract class AstValue(val location: Location)
+
+final case class AstUnitValue(override val location: Location) extends AstValue(location)
+
 // Instructions
 
 sealed abstract class AstInstruction
@@ -23,7 +29,7 @@ final case class AstTypeParameter(name: Symbol, upperBound: AstType, lowerBound:
 
 final case class AstGlobal(name: Symbol, 
                            ty: AstType, 
-                           value: Option[Value], 
+                           value: Option[AstValue], 
                            override val location: Location)
   extends AstDefinition(location)
 

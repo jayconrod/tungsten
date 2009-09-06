@@ -28,9 +28,13 @@ object AstParser extends Parsers {
     "#unit" ~> location ^^ { AstUnitType(_) }
   }
 
+  def value: Parser[AstValue] = {
+    "()" ~> location ^^ { AstUnitValue(_) }
+  }
+
   def global: Parser[AstGlobal] = {
-    "#global" ~ location ~ symbol ~ ":" ~ ty ^^ { 
-      case _ ~ loc ~ name ~ _ ~ t => AstGlobal(name, t, None, loc)
+    "#global" ~ location ~ symbol ~ ":" ~ ty ~ opt("=" ~> value) ^^ { 
+      case _ ~ loc ~ name ~ _ ~ t ~ iv => AstGlobal(name, t, iv, loc)
     }
   }
 

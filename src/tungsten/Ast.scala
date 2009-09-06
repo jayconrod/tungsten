@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 sealed abstract class AstDefinition(val location: Location)
 
 
@@ -8,12 +10,20 @@ sealed abstract class AstDefinition(val location: Location)
 sealed abstract class AstType(val location: Location)
 
 final case class AstUnitType(override val location: Location) extends AstType(location)
+final case class AstIntType(val width: Int, override val location: Location)
+  extends AstType(location)
+{
+  if (width < 8 || width > 64 || !isPowerOf2(width))
+    throw new IllegalArgumentException
+}
 
 // Values
 
 sealed abstract class AstValue(val location: Location)
 
 final case class AstUnitValue(override val location: Location) extends AstValue(location)
+final case class AstIntValue(val value: Long, override val location: Location)
+  extends AstValue(location)
 
 // Instructions
 

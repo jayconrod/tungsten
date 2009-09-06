@@ -33,6 +33,12 @@ class AstParserTest {
   }
 
   @Test
+  def types = {
+    testType("#unit", AstUnitType(Nowhere))
+    testType("#int32", AstIntType(32, Nowhere))
+  }
+
+  @Test
   def typeWithLocation = {
     testType("#unit <foo.w>:1.2-3.4", AstUnitType(Location("foo.w", 1, 2, 3, 4)))
   }
@@ -40,6 +46,7 @@ class AstParserTest {
   @Test
   def value = {
     testValue("()", AstUnitValue(Nowhere))
+    testValue("123", AstIntValue(123, Nowhere))
   }
 
   @Test

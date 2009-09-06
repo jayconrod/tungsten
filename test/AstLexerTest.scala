@@ -52,6 +52,12 @@ class AstLexerTest {
   def integer = {
     test("123", AstLexer.integer, 123)
     test("0", AstLexer.integer, 0)
+    test("10000000000", AstLexer.long, 10000000000L)
+  }
+
+  @Test
+  def integerToken = {
+    testToken("123", IntegerToken(123))
   }
 
   @Test
@@ -72,6 +78,11 @@ class AstLexerTest {
   @Test
   def symbolWithId = {
     test("foo#12", AstLexer.symbol, Symbol(List("foo"), 12))
+  }
+
+  @Test(expected=classOf[RuntimeException])
+  def symbolWithLargeId = {
+    test("foo#10000000000", AstLexer.symbol, Symbol(List("foo"), 0))
   }
 
   @Test

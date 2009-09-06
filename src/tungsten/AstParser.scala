@@ -1,9 +1,10 @@
 package tungsten
 
 import scala.util.parsing.combinator.Parsers
+import scala.util.parsing.combinator.ImplicitConversions
 import scala.util.parsing.input.Reader
 
-object AstParser extends Parsers {
+object AstParser extends Parsers with ImplicitConversions {
   type Elem = Token
 
   def symbol: Parser[Symbol] = {
@@ -25,11 +26,20 @@ object AstParser extends Parsers {
   }
 
   def ty: Parser[AstType] = {
-    "#unit" ~> location ^^ { AstUnitType(_) }
+    ("#unit" ~> location ^^ { AstUnitType(_) }) |
+    ("#int8" ~> location ^^ { AstIntType(8, _) }) |
+    ("#int16" ~> location ^^ { AstIntType(16, _) }) |
+    ("#int32" ~> location ^^ { AstIntType(32, _) }) |
+    ("#int16" ~> location ^^ { AstIntType(64, _) })
   }
 
   def value: Parser[AstValue] = {
-    "()" ~> location ^^ { AstUnitValue(_) }
+    val integer = elem("integer", _.isInstanceOf[IntegerToken]) ^^ {
+      case IntegerToken(i) => i
+      case _ => throw new AssertionError
+    }
+    ("()" ~> location ^^ { AstUnitValue(_) }) |
+    (integer ~ location ^^ { flatten2(AstIntValue(_, _)) })
   }
 
   def global: Parser[AstGlobal] = {

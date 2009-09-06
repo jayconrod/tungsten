@@ -6,7 +6,8 @@ import scala.util.parsing.input._
 object AstLexer extends Parsers {
   type Elem = Char
 
-  val reservedStrings = Set("()", ":", "=", "#global", "#unit")
+  val reservedStrings = Set("()", ":", "=", "#global", "#unit", "#int8", "#int16", "#int32",
+    "#int64")
 
   def chrExcept(cs: Char*) = {
     elem("", c => cs.forall(c != _))
@@ -46,7 +47,8 @@ object AstLexer extends Parsers {
     }
   }
 
-  def integer: Parser[Int] = rep(digit) ^^ { _.mkString.toInt }
+  def integer: Parser[Int] = rep1(digit) ^^ { _.mkString.toInt }
+  def long: Parser[Long] = rep1(digit) ^^ { _.mkString.toLong }
 
   def symbol: Parser[Symbol] = {
     val idNum: Parser[Int] = {
@@ -72,6 +74,7 @@ object AstLexer extends Parsers {
     reserved | 
     (symbol ^^ { SymbolToken(_) }) | 
     (location ^^ { LocationToken(_) }) | 
+    (long ^^ { IntegerToken(_) }) |
     failure("illegal character")
   }
 

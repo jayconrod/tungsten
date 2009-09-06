@@ -6,7 +6,7 @@ import scala.util.parsing.input._
 object AstLexer extends Parsers {
   type Elem = Char
 
-  val reservedStrings = Set("()", ":", "#global")
+  val reservedStrings = Set("()", ":", "#global", "#unit")
 
   def whitespaceChar = elem(' ') | elem('\n') | elem('\t')
 

@@ -92,6 +92,6 @@ class AstLexerTest {
 
   @Test
   def location = {
-    test("<foo/bar.w>:12.34-56.78", AstLexer.location, Location("foo/bar.w", 12, 34, 56, 78))
+    test("<foo/bar.w:12.34-56.78>", AstLexer.location, Location("foo/bar.w", 12, 34, 56, 78))
   }
 }

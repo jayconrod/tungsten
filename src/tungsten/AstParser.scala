@@ -47,6 +47,19 @@ object AstParser extends Parsers with ImplicitConversions {
     ("#return" ~> location ~ value) ^^ { case l ~ v => AstReturnInstruction(v, l) }
   }
 
+  def parameter: Parser[AstParameter] = {
+    symbol ~ location ~ ":" ~ ty ^^ { case name ~ loc ~ _ ~ t => AstParameter(name, t, loc) }
+  }
+
+  def block: Parser[AstBlock] = {
+    "#block" ~ location ~ symbol ~ "(" ~ repsep(parameter, ",") ~ ")" ~ 
+      "{" ~ rep(instruction) ~ "}" ^^ { 
+        case _ ~ loc ~ name ~ _ ~ params ~ _ ~ _ ~ body ~ _ => {
+          AstBlock(name, params, body, loc)
+        }
+      }
+  }
+
   def global: Parser[AstGlobal] = {
     "#global" ~ location ~ symbol ~ ":" ~ ty ~ opt("=" ~> value) ^^ { 
       case _ ~ loc ~ name ~ _ ~ t ~ iv => AstGlobal(name, t, iv, loc)

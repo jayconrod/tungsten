@@ -6,8 +6,10 @@ import scala.util.parsing.input._
 object AstLexer extends Parsers {
   type Elem = Char
 
-  val reservedStrings = Set("()", ":", "=", "#global", "#unit", "#int8", "#int16", "#int32",
-    "#int64", "#return")
+  val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")",
+    "#global", "#block", 
+    "#unit", "#int8", "#int16", "#int32", "#int64", 
+    "#return") 
 
   def chrExcept(cs: Char*) = {
     elem("", c => cs.forall(c != _))
@@ -63,9 +65,9 @@ object AstLexer extends Parsers {
   }
 
   def location: Parser[Location] = {
-    elem('<') ~ rep1(chrExcept('>')) ~ elem('>') ~ elem(':') ~
-      integer ~ elem('.') ~ integer ~ elem('-') ~ integer ~ elem('.') ~ integer ^^ {
-      case _ ~ filename ~ _ ~ _ ~ beginLine ~ _ ~ beginColumn ~ _ ~ endLine ~ _ ~ endColumn =>
+    elem('<') ~ rep1(chrExcept(':')) ~ elem(':') ~
+      integer ~ elem('.') ~ integer ~ elem('-') ~ integer ~ elem('.') ~ integer ~ elem('>') ^^ {
+      case _ ~ filename ~ _ ~ beginLine ~ _ ~ beginColumn ~ _ ~ endLine ~ _ ~ endColumn ~ _ =>
         Location(filename.mkString, beginLine, beginColumn, endLine, endColumn)
     }
   }

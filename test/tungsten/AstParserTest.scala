@@ -91,6 +91,16 @@ class AstParserTest {
   }
 
   @Test
+  def typeParameter = {
+    val param = "foo <foo.w:1.2-3.4> <: #unit >: #unit"
+    val expected = AstTypeParameter(new Symbol("foo"),
+                                    Some(AstUnitType(Nowhere)),
+                                    Some(AstUnitType(Nowhere)),
+                                    Location("foo.w", 1, 2, 3, 4))
+    test(param, AstParser.typeParameter, expected)
+  }
+
+  @Test
   def global = {
     val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, Nowhere)
     val expected = AstModule(List(global))

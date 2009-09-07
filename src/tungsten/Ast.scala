@@ -37,7 +37,10 @@ final case class AstReturnInstruction(val value: AstValue, override val location
 // Function and parameters
 
 final case class AstParameter(val name: Symbol, val ty: AstType, val location: Location)
-final case class AstTypeParameter(name: Symbol, upperBound: AstType, lowerBound: AstType)
+final case class AstTypeParameter(val name: Symbol, 
+                                  val upperBound: Option[AstType], 
+                                  val lowerBound: Option[AstType],  
+                                  val location: Location)
 
 final case class AstBlock(val name: Symbol,
                           val parameters: List[AstParameter],

@@ -74,6 +74,12 @@ final case class AstField(val name: Symbol,
                           override val location: Location)
   extends AstDefinition(location)
 
+final case class AstStruct(val name: Symbol,
+                           val typeParameters: List[AstTypeParameter],
+                           val fields: List[AstField],
+                           override val location: Location)
+  extends AstDefinition(location)
+
 // Module
 
 final case class AstModule(definitions: List[AstDefinition])

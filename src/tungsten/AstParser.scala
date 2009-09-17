@@ -110,7 +110,14 @@ object AstParser extends Parsers with ImplicitConversions {
       }
   }
 
-  def definition: Parser[AstDefinition] = global | function
+  def struct: Parser[AstStruct] = {
+    "#struct" ~> location ~ symbol ~ typeParameterList ~ 
+      ("{" ~> rep1sep(field, ",") <~ "}") ^^ {
+        case loc ~ name ~ tyParams ~ fields => AstStruct(name, tyParams, fields, loc)
+      }
+  }  
+
+  def definition: Parser[AstDefinition] = global | function | struct
 
   def module: Parser[AstModule] = rep(definition) ^^ { AstModule(_) }
 

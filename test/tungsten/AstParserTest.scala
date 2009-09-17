@@ -183,4 +183,19 @@ class AstParserTest {
     val expected = AstField(new Symbol("foo"), AstUnitType(Nowhere), fooLoc)
     test(program, AstParser.field, expected)
   }
+
+  @Test
+  def struct = {
+    val program = "#struct <foo.w:1.2-3.4> Foo[T] {\n" +
+                  "  #field bar: #unit,\n" +
+                  "  #field baz: #unit\n" +
+                  "}"
+    val struct = AstStruct(new Symbol("Foo"),
+                           List(AstTypeParameter(new Symbol("T"), None, None, Nowhere)),
+                           List(AstField(new Symbol("bar"), AstUnitType(Nowhere), Nowhere),
+                                AstField(new Symbol("baz"), AstUnitType(Nowhere), Nowhere)),
+                           fooLoc)
+    val expected = AstModule(List(struct))
+    testModule(program, expected)
+  }                               
 }

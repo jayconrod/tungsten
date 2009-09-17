@@ -6,8 +6,12 @@ import org.junit.Assert._
 class AstParserTest {
   def test[T](input: String, parser: AstParser.Parser[T], expected: T) = {
     val scanner = new AstLexer.Scanner(input)
-    val result = AstParser.phrase(parser)(scanner).get
-    assertEquals(expected, result)
+    val result = AstParser.phrase(parser)(scanner)
+    result match {
+      case AstParser.Success(ast, _) => assertEquals(expected, ast)
+      case AstParser.Failure(message, _) => fail(message)
+      case AstParser.Error(message, _) => fail(message)
+    }
   } 
 
   def testModule(input: String, expected: AstModule) = {
@@ -63,7 +67,12 @@ class AstParserTest {
 
   @Test
   def instruction = {
-    testInstruction("#return 123", AstReturnInstruction(AstIntValue(123, Nowhere), Nowhere))
+    val loc = Location("foo.w", 1, 2, 3, 4)
+    testInstruction("#return <foo.w:1.2-3.4> 123", 
+                    AstReturnInstruction(AstIntValue(123, Nowhere), loc))
+    testInstruction("#branch <foo.w:1.2-3.4> foo(123)",
+                    AstBranchInstruction(AstSymbolValue(new Symbol("foo"), Nowhere),
+                                         List(AstIntValue(123, Nowhere)), loc))
   }
 
   @Test
@@ -123,5 +132,51 @@ class AstParserTest {
                            Nowhere)
     val expected = AstModule(List(global))
     testModule("#global foo: #unit = ()", expected)
+  }
+
+  @Test
+  def functionEmpty = {
+    val program = "#function foo( ): #unit { #block ret( ) { #return () } }"
+    val ret = AstBlock(new Symbol("ret"),
+                       Nil,
+                       List(AstReturnInstruction(AstUnitValue(Nowhere), Nowhere)),
+                       Nowhere)
+    val function = AstFunction(new Symbol("foo"), 
+                               AstUnitType(Nowhere),
+                               Nil,
+                               Nil,
+                               List(ret),
+                               Nowhere)
+    val expected = AstModule(List(function))
+    testModule(program, expected)
+  }
+
+  @Test
+  def function = {
+    val program = "#function <foo.w:1.2-3.4> foo[T1, T2](bar: #unit, baz: #unit): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #branch ret( )\n" + 
+                  "  },\n" +
+                  "  #block ret( ) {\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}"
+    val (t1, t2) = (AstTypeParameter(new Symbol("T1"), None, None, Nowhere),
+                    AstTypeParameter(new Symbol("T2"), None, None, Nowhere))
+    val (p1, p2) = (AstParameter(new Symbol("bar"), AstUnitType(Nowhere), Nowhere),
+                    AstParameter(new Symbol("baz"), AstUnitType(Nowhere), Nowhere))
+    val entry = AstBlock(new Symbol("entry"), Nil,
+                         List(AstBranchInstruction(AstSymbolValue(new Symbol("ret"), Nowhere),
+                                                   Nil, Nowhere)), Nowhere)
+    val ret = AstBlock(new Symbol("ret"), Nil,
+                       List(AstReturnInstruction(AstUnitValue(Nowhere), Nowhere)), Nowhere)
+    val function = AstFunction(new Symbol("foo"),
+                               AstUnitType(Nowhere),
+                               List(t1, t2),
+                               List(p1, p2),
+                               List(entry, ret),
+                               Location("foo.w", 1, 2, 3, 4))
+    val expected = AstModule(List(function))
+    testModule(program, expected)
   }
 }

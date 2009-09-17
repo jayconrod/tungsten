@@ -16,18 +16,18 @@
 
   <target name="tungsten">
     <mkdir dir="${lib.dir}"/>
-    <scalac srcdir="${src.dir}" destdir="${lib.dir}" target="${jvm-target}"
-            force="yes" deprecation="yes">
+    <fsc srcdir="${src.dir}" destdir="${lib.dir}" target="${jvm-target}"
+         force="yes" deprecation="yes">
       <include name="**/*.scala"/>
-    </scalac>
+    </fsc>
   </target>
 
   <target name="test" depends="tungsten">
     <mkdir dir="${lib.dir}"/>
-    <scalac srcdir="${test.dir}" destdir="${lib.dir}" target="${jvm-target}"
-            force="yes" deprecation="yes">
+    <fsc srcdir="${test.dir}" destdir="${lib.dir}" target="${jvm-target}"
+         force="yes" deprecation="yes">
       <include name="**/*.scala"/>
-    </scalac>
+    </fsc>
     <junit>
       <formatter type="brief"/>
       <classpath>

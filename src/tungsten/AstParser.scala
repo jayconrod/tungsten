@@ -43,21 +43,34 @@ object AstParser extends Parsers with ImplicitConversions {
     (symbol ~ location ^^ { flatten2(AstSymbolValue(_, _)) })
   }
 
+  def argumentList: Parser[List[AstValue]] = "(" ~> repsep(value, ",") <~ ")"
+
+  def returnInst: Parser[AstReturnInstruction] = {
+    "#return" ~> location ~ value ^^ { case l ~ v => AstReturnInstruction(v, l) }
+  }
+
+  def branchInst: Parser[AstBranchInstruction] = {
+    "#branch" ~> location ~ value ~ argumentList ^^ {
+      case l ~ v ~ a => AstBranchInstruction(v, a, l)
+    }
+  }
+
   def instruction: Parser[AstInstruction] = {
-    ("#return" ~> location ~ value) ^^ { case l ~ v => AstReturnInstruction(v, l) }
+    returnInst | branchInst
   }
 
   def parameter: Parser[AstParameter] = {
     symbol ~ location ~ ":" ~ ty ^^ { case name ~ loc ~ _ ~ t => AstParameter(name, t, loc) }
   }
 
+  def parameterList: Parser[List[AstParameter]] = {
+    "(" ~> repsep(parameter, ",") <~ ")"
+  }
+
   def block: Parser[AstBlock] = {
-    "#block" ~ location ~ symbol ~ "(" ~ repsep(parameter, ",") ~ ")" ~ 
-      "{" ~ rep(instruction) ~ "}" ^^ { 
-        case _ ~ loc ~ name ~ _ ~ params ~ _ ~ _ ~ body ~ _ => {
-          AstBlock(name, params, body, loc)
-        }
-      }
+    "#block" ~> location ~ symbol ~ parameterList ~ ("{" ~> rep(instruction) <~ "}") ^^ { 
+      case loc ~ name ~ params ~ body => AstBlock(name, params, body, loc)
+    }
   }
 
   def typeParameter: Parser[AstTypeParameter] = {
@@ -66,7 +79,14 @@ object AstParser extends Parsers with ImplicitConversions {
     symbol ~ location ~ subtype ~ supertype ^^ {
       case name ~ loc ~ sub ~ sup => AstTypeParameter(name, sub, sup, loc)
     }
-  }    
+  }
+
+  def typeParameterList: Parser[List[AstTypeParameter]] = {
+    opt("[" ~> rep1sep(typeParameter, ",") <~ "]") ^^ {
+      case Some(params) => params
+      case None => Nil
+    }
+  }
 
   def global: Parser[AstGlobal] = {
     "#global" ~ location ~ symbol ~ ":" ~ ty ~ opt("=" ~> value) ^^ { 
@@ -74,7 +94,17 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
-  def definition: Parser[AstDefinition] = global
+  def function: Parser[AstFunction] = {
+    "#function" ~> location ~ symbol ~ typeParameterList ~ parameterList ~ (":" ~> ty) ~
+      opt("{" ~> rep1sep(block, ",") <~ "}") ^^ {
+        case loc ~ name ~ tyParams ~ params ~ retTy ~ body => {
+          val blocks = body.getOrElse(Nil)
+          AstFunction(name, retTy, tyParams, params, blocks, loc)
+        }
+      }
+  }
+
+  def definition: Parser[AstDefinition] = global | function
 
   def module: Parser[AstModule] = rep(definition) ^^ { AstModule(_) }
 

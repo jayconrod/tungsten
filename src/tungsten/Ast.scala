@@ -51,14 +51,6 @@ final case class AstBlock(val name: Symbol,
                           val instructions: List[AstInstruction],
                           val location: Location)
 
-// Global
-
-final case class AstGlobal(val name: Symbol, 
-                           val ty: AstType, 
-                           val value: Option[AstValue], 
-                           override val location: Location)
-  extends AstDefinition(location)
-
 final case class AstFunction(val name: Symbol,
                              val returnType: AstType,
                              val typeParameters: List[AstTypeParameter],
@@ -67,7 +59,20 @@ final case class AstFunction(val name: Symbol,
                              override val location: Location)
   extends AstDefinition(location)
 
+// Global
+
+final case class AstGlobal(val name: Symbol, 
+                           val ty: AstType, 
+                           val value: Option[AstValue], 
+                           override val location: Location)
+  extends AstDefinition(location)
+
 // Data structures
+
+final case class AstField(val name: Symbol,
+                          val ty: AstType,
+                          override val location: Location)
+  extends AstDefinition(location)
 
 // Module
 

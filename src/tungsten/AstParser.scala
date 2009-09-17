@@ -88,6 +88,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def field: Parser[AstField] = {
+    "#field" ~> location ~ symbol ~ (":" ~> ty) ^^ {
+      case loc ~ name ~ ty => AstField(name, ty, loc)
+    }
+  }
+
   def global: Parser[AstGlobal] = {
     "#global" ~ location ~ symbol ~ ":" ~ ty ~ opt("=" ~> value) ^^ { 
       case _ ~ loc ~ name ~ _ ~ t ~ iv => AstGlobal(name, t, iv, loc)

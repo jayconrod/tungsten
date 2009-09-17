@@ -4,6 +4,8 @@ import org.junit.Test
 import org.junit.Assert._
 
 class AstParserTest {
+  val fooLoc = Location("foo.w", 1, 2, 3, 4)
+
   def test[T](input: String, parser: AstParser.Parser[T], expected: T) = {
     val scanner = new AstLexer.Scanner(input)
     val result = AstParser.phrase(parser)(scanner)
@@ -48,7 +50,7 @@ class AstParserTest {
 
   @Test
   def typeWithLocation = {
-    testType("#unit <foo.w:1.2-3.4>", AstUnitType(Location("foo.w", 1, 2, 3, 4)))
+    testType("#unit <foo.w:1.2-3.4>", AstUnitType(fooLoc))
   }
 
   @Test
@@ -60,26 +62,23 @@ class AstParserTest {
 
   @Test
   def valueWithLocation = {
-    val location = Location("foo.w", 1, 2, 3, 4)
-    val expected = AstUnitValue(location)
+    val expected = AstUnitValue(fooLoc)
     testValue("() <foo.w:1.2-3.4>", expected)
   }
 
   @Test
   def instruction = {
-    val loc = Location("foo.w", 1, 2, 3, 4)
     testInstruction("#return <foo.w:1.2-3.4> 123", 
-                    AstReturnInstruction(AstIntValue(123, Nowhere), loc))
+                    AstReturnInstruction(AstIntValue(123, Nowhere), fooLoc))
     testInstruction("#branch <foo.w:1.2-3.4> foo(123)",
                     AstBranchInstruction(AstSymbolValue(new Symbol("foo"), Nowhere),
-                                         List(AstIntValue(123, Nowhere)), loc))
+                                         List(AstIntValue(123, Nowhere)), fooLoc))
   }
 
   @Test
   def parameter = {
-    val loc = Location("foo.w", 1, 2, 3, 4)
     val tyLoc = Location("foo.w", 5, 6, 7, 8)
-    val expected = AstParameter(new Symbol("foo"), AstIntType(32, tyLoc), loc)
+    val expected = AstParameter(new Symbol("foo"), AstIntType(32, tyLoc), fooLoc)
     test("foo <foo.w:1.2-3.4> : #int32 <foo.w:5.6-7.8>", AstParser.parameter, expected)
   }
 
@@ -89,13 +88,12 @@ class AstParserTest {
                   "                           baz : #int32) {\n" +
                   "  #return 123\n" +
                   "}\n"
-    val loc = Location("foo.w", 1, 2, 3, 4)
     val (p1, p2) = (AstParameter(new Symbol("bar"), new AstIntType(32, Nowhere), Nowhere),
                     AstParameter(new Symbol("baz"), new AstIntType(32, Nowhere), Nowhere))
     val expected = AstBlock(new Symbol("foo"),
                             List(p1, p2),
                             List(AstReturnInstruction(AstIntValue(123, Nowhere), Nowhere)),
-                            loc)
+                            fooLoc)
     test(program, AstParser.block, expected)
   }
 
@@ -105,7 +103,7 @@ class AstParserTest {
     val expected = AstTypeParameter(new Symbol("foo"),
                                     Some(AstUnitType(Nowhere)),
                                     Some(AstUnitType(Nowhere)),
-                                    Location("foo.w", 1, 2, 3, 4))
+                                    fooLoc)
     test(param, AstParser.typeParameter, expected)
   }
 
@@ -118,8 +116,7 @@ class AstParserTest {
 
   @Test
   def globalWithLocation = {
-    val loc = Location("foo.w", 1, 2, 3, 4)
-    val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, loc)
+    val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, fooLoc)
     val expected = AstModule(List(global))
     testModule("#global <foo.w:1.2-3.4> foo: #unit", expected)
   }
@@ -175,8 +172,15 @@ class AstParserTest {
                                List(t1, t2),
                                List(p1, p2),
                                List(entry, ret),
-                               Location("foo.w", 1, 2, 3, 4))
+                               fooLoc)
     val expected = AstModule(List(function))
     testModule(program, expected)
+  }
+
+  @Test
+  def field = {
+    val program = "#field <foo.w:1.2-3.4> foo: #unit"
+    val expected = AstField(new Symbol("foo"), AstUnitType(Nowhere), fooLoc)
+    test(program, AstParser.field, expected)
   }
 }

@@ -9,6 +9,7 @@ final case class Symbol(val name: Iterable[String], val id: Int)
 
   def this(simpleName: String) = this(List(simpleName), 0)
   def this(simpleName: String, id: Int) = this(List(simpleName), id)
+  def this(name: List[String]) = this(name, 0)
 
   override def equals(that: Any) = {
     that match {

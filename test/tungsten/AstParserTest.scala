@@ -1,6 +1,7 @@
 package tungsten
 
 import org.junit.Test
+import org.junit.Ignore
 import org.junit.Assert._
 
 class AstParserTest {
@@ -46,11 +47,17 @@ class AstParserTest {
   def types = {
     testType("#unit", AstUnitType(Nowhere))
     testType("#int32", AstIntType(32, Nowhere))
+    testType("Foo", AstClassType(new Symbol("Foo"), Nil, Nowhere))
+    testType("foo.bar.Baz", AstClassType(Symbol(List("foo", "bar", "Baz"), 0), Nil, Nowhere))
+    testType("Foo[Baz]", AstClassType(new Symbol("Foo"), 
+                                      List(AstClassType(new Symbol("Baz"), Nil, Nowhere)),
+                                      Nowhere))
   }
 
   @Test
   def typeWithLocation = {
     testType("#unit <foo.w:1.2-3.4>", AstUnitType(fooLoc))
+    testType("Foo <foo.w:1.2-3.4>", AstClassType(new Symbol("Foo"), Nil, fooLoc))
   }
 
   @Test
@@ -197,5 +204,68 @@ class AstParserTest {
                            fooLoc)
     val expected = AstModule(List(struct))
     testModule(program, expected)
-  }                               
+  }
+
+  @Test
+  def clasBasic = {
+    val program = "#class Foo {\n" +
+                  "  #fields {\n" +
+                  "  }\n" +
+                  "  #methods {\n" +
+                  "  }\n" +
+                  "}"
+    val clas = AstClass(new Symbol("Foo"),
+                        Nil,
+                        None,
+                        Nil,
+                        Nil,
+                        Nil,
+                        Nowhere)
+    val expected = AstModule(List(clas))
+    testModule(program, expected)
+  }
+
+  @Test
+  def clasFull = {
+    val program = "#class <foo.w:1.2-3.4> Foo[T] <: Bar[T] : Baz, Quux[T] {\n" +
+                  "  #fields {\n" +
+                  "    #field a: #unit,\n" +
+                  "    #field b: #unit\n" +
+                  "  }\n" +
+                  "  #methods {\n" +
+                  "    #function c( ): #unit,\n" +
+                  "    #function d( ): #unit\n" +
+                  "  }\n" +
+                  "}"
+    val clas = AstClass(new Symbol("Foo"),
+                        List(AstTypeParameter(new Symbol("T"), None, None, Nowhere)),
+                        Some(AstClassType(new Symbol("Bar"),
+                                          List(AstClassType(new Symbol("T"), Nil, Nowhere)),
+                                          Nowhere)),
+                        List(AstClassType(new Symbol("Baz"), Nil, Nowhere),
+                             AstClassType(new Symbol("Quux"),
+                                          List(AstClassType(new Symbol("T"), Nil, Nowhere)),
+                                          Nowhere)),
+                        List(AstField(new Symbol("a"),
+                                      AstUnitType(Nowhere),
+                                      Nowhere),
+                             AstField(new Symbol("b"),
+                                      AstUnitType(Nowhere),
+                                      Nowhere)),
+                        List(AstFunction(new Symbol("c"),
+                                         AstUnitType(Nowhere),
+                                         Nil,
+                                         Nil,
+                                         Nil,
+                                         Nowhere),
+                             AstFunction(new Symbol("d"),
+                                         AstUnitType(Nowhere),
+                                         Nil,
+                                         Nil,
+                                         Nil,
+                                         Nowhere)),
+                        fooLoc)
+    val expected = AstModule(List(clas))
+    testModule(program, expected)
+  }
 }

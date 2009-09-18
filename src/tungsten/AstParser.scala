@@ -30,7 +30,17 @@ object AstParser extends Parsers with ImplicitConversions {
     ("#int8" ~> location ^^ { AstIntType(8, _) }) |
     ("#int16" ~> location ^^ { AstIntType(16, _) }) |
     ("#int32" ~> location ^^ { AstIntType(32, _) }) |
-    ("#int16" ~> location ^^ { AstIntType(64, _) })
+    ("#int16" ~> location ^^ { AstIntType(64, _) }) |
+    (symbol ~ typeArguments ~ location ^^ { 
+      case name ~ args ~ loc => AstClassType(name, args, loc)
+    })
+  }
+
+  def typeArguments: Parser[List[AstType]] = {
+    opt("[" ~> rep1sep(ty, ",") <~ "]") ^^ {
+      case Some(types) => types
+      case None => Nil
+    }
   }
 
   def value: Parser[AstValue] = {
@@ -117,7 +127,27 @@ object AstParser extends Parsers with ImplicitConversions {
       }
   }  
 
-  def definition: Parser[AstDefinition] = global | function | struct
+  def clas: Parser[AstClass] = {
+    def superclass: Parser[Option[AstType]] = opt("<:" ~> ty)
+    def interfaces: Parser[List[AstType]] = {
+      opt(":" ~> rep1sep(ty, ",")) ^^ { _.getOrElse(Nil) }
+    }
+    def fields: Parser[List[AstField]] = {
+      "#fields" ~> "{" ~> repsep(field, ",") <~ "}"
+    }
+    def methods: Parser[List[AstFunction]] = {
+      "#methods" ~> "{" ~> repsep(function, ",") <~ "}"
+    }
+    
+    "#class" ~> location ~ symbol ~ typeParameterList ~ superclass ~ interfaces ~ 
+      ("{" ~> fields ~ methods <~ "}") ^^ { 
+        case loc ~ name ~ tyParams ~ sup ~ is ~ (fs ~ ms) => {
+          AstClass(name, tyParams, sup, is, fs, ms, loc)
+        }
+      }
+  }
+
+  def definition: Parser[AstDefinition] = global | function | struct | clas
 
   def module: Parser[AstModule] = rep(definition) ^^ { AstModule(_) }
 

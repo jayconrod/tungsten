@@ -16,6 +16,10 @@ final case class AstIntType(val width: Int, override val location: Location)
   if (width < 8 || width > 64 || !isPowerOf2(width))
     throw new IllegalArgumentException
 }
+final case class AstClassType(val name: Symbol,
+                              val typeArguments: List[AstType],
+                              override val location: Location)
+  extends AstType(location)
 
 // Values
 
@@ -78,6 +82,15 @@ final case class AstStruct(val name: Symbol,
                            val typeParameters: List[AstTypeParameter],
                            val fields: List[AstField],
                            override val location: Location)
+  extends AstDefinition(location)
+
+final case class AstClass(val name: Symbol,
+                          val typeParameters: List[AstTypeParameter],
+                          val superclass: Option[AstType],
+                          val interfaces: List[AstType],
+                          val fields: List[AstField],
+                          val methods: List[AstFunction],
+                          override val location: Location)
   extends AstDefinition(location)
 
 // Module

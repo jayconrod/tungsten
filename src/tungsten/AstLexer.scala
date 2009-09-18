@@ -8,6 +8,7 @@ object AstLexer extends Parsers {
 
   val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
+      "#interface",
     "#unit", "#int8", "#int16", "#int32", "#int64", 
     "#return", "#branch") 
 

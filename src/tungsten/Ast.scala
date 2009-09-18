@@ -93,6 +93,14 @@ final case class AstClass(val name: Symbol,
                           override val location: Location)
   extends AstDefinition(location)
 
+final case class AstInterface(val name: Symbol,
+                              val typeParameters: List[AstTypeParameter],
+                              val superclass: Option[AstType],
+                              val interfaces: List[AstType],
+                              val methods: List[AstFunction],
+                              override val location: Location)
+  extends AstDefinition(location)
+
 // Module
 
 final case class AstModule(definitions: List[AstDefinition])

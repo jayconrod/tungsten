@@ -98,6 +98,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def superclass: Parser[Option[AstType]] = opt("<:" ~> ty)
+
+  def interfaces: Parser[List[AstType]] = {
+    opt(":" ~> rep1sep(ty, ",")) ^^ { _.getOrElse(Nil) }
+  }
+
   def field: Parser[AstField] = {
     "#field" ~> location ~ symbol ~ (":" ~> ty) ^^ {
       case loc ~ name ~ ty => AstField(name, ty, loc)
@@ -128,10 +134,6 @@ object AstParser extends Parsers with ImplicitConversions {
   }  
 
   def clas: Parser[AstClass] = {
-    def superclass: Parser[Option[AstType]] = opt("<:" ~> ty)
-    def interfaces: Parser[List[AstType]] = {
-      opt(":" ~> rep1sep(ty, ",")) ^^ { _.getOrElse(Nil) }
-    }
     def fields: Parser[List[AstField]] = {
       "#fields" ~> "{" ~> repsep(field, ",") <~ "}"
     }
@@ -147,7 +149,16 @@ object AstParser extends Parsers with ImplicitConversions {
       }
   }
 
-  def definition: Parser[AstDefinition] = global | function | struct | clas
+  def iface: Parser[AstInterface] = {
+    "#interface" ~> location ~ symbol ~ typeParameterList ~ superclass ~ interfaces ~
+      ("{" ~> repsep(function, ",") <~ "}") ^^ {
+        case loc ~ name ~ tyParams ~ sup ~ is ~ ms => {
+          AstInterface(name, tyParams, sup, is, ms, loc)
+        }
+      }
+  }
+
+  def definition: Parser[AstDefinition] = global | function | struct | clas | iface
 
   def module: Parser[AstModule] = rep(definition) ^^ { AstModule(_) }
 

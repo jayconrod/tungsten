@@ -6,20 +6,38 @@ sealed abstract class AstDefinition(val location: Location)
 
 
 // Types
+sealed abstract class AstType(val location: Location) {
+  def compile(ctx: AstContext): Type
+}
 
-sealed abstract class AstType(val location: Location)
-
-final case class AstUnitType(override val location: Location) extends AstType(location)
+final case class AstUnitType(override val location: Location) extends AstType(location) {
+  def compile(ctx: AstContext) = UnitType(location)
+}
 final case class AstIntType(val width: Int, override val location: Location)
   extends AstType(location)
 {
   if (width < 8 || width > 64 || !isPowerOf2(width))
     throw new IllegalArgumentException
+  def compile(ctx: AstContext) = IntType(width, location)
 }
 final case class AstClassType(val name: Symbol,
                               val typeArguments: List[AstType],
                               override val location: Location)
   extends AstType(location)
+{
+  def compile(ctx: AstContext) = {
+    ctx.module.get(name) match {
+      case Some(c: Class) => ClassType(c.name, typeArguments.map(_.compile(ctx)), location)
+      case Some(i: Interface) => {
+        InterfaceType(i.name, typeArguments.map(_.compile(ctx)), location)
+      }
+      case Some(other) => {
+        throw InappropriateSymbolException(name, location, other.location, "type")
+      }
+      case None => throw UndefinedSymbolException(name, location)
+    }
+  }
+}
 
 // Values
 

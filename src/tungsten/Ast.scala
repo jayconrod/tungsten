@@ -49,10 +49,28 @@ final case class AstUnitValue(override val location: Location) extends AstValue(
   def compile(ctx: AstContext) = UnitValue(location)
 }
 
-final case class AstIntValue(val value: Long, override val location: Location)
+final case class AstInt8Value(value: Byte, override location: Location)
   extends AstValue(location)
 {
-  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+  def compile(ctx: AstContext) = Int8Value(value, location)
+}
+
+final case class AstInt16Value(value: Short, override location: Location)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = Int16Value(value, location)
+}
+
+final case class AstInt32Value(value: Int, override location: Location)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = Int32Value(value, location)
+}
+
+final case class AstInt64Value(value: Long, override location: Location)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = Int64Value(value, location)
 }
 
 final case class AstSymbolValue(val value: Symbol, override val location: Location)

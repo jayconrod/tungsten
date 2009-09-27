@@ -61,14 +61,19 @@ class AstLexerTest {
 
   @Test
   def integer = {
-    test("123", AstLexer.integer, 123)
-    test("0", AstLexer.integer, 0)
-    test("10000000000", AstLexer.long, 10000000000L)
+    test("12b", AstLexer.byte, 12: Byte)
+    test("12s", AstLexer.short, 12: Short)
+    test("12", AstLexer.int, 12)
+    test("0", AstLexer.int, 0)
+    test("10000000000L", AstLexer.long, 10000000000L)
   }
 
   @Test
   def integerToken = {
-    testToken("123", IntegerToken(123))
+    testToken("12b", ByteToken(12))
+    testToken("12s", ShortToken(12))
+    testToken("12", IntToken(12))
+    testToken("12L", LongToken(12))
   }
 
   @Test

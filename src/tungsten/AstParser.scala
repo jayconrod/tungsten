@@ -44,12 +44,16 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def value: Parser[AstValue] = {
-    val integer = elem("integer", _.isInstanceOf[IntegerToken]) ^^ {
-      case IntegerToken(i) => i
-      case _ => throw new AssertionError
-    }
+    val byte = accept("byte", { case ByteToken(b) => b })
+    val short = accept("short", { case ShortToken(s) => s })
+    val int = accept("int", { case IntToken(i) => i })
+    val long = accept("long", { case LongToken(l) => l })
+
     ("()" ~> location ^^ { AstUnitValue(_) }) |
-    (integer ~ location ^^ { flatten2(AstIntValue(_, _)) }) |
+    (byte ~ location ^^ flatten2(AstInt8Value(_, _))) |
+    (short ~ location ^^ flatten2(AstInt16Value(_, _))) |
+    (int ~ location ^^ flatten2(AstInt32Value(_, _))) |
+    (long ~ location ^^ flatten2(AstInt64Value(_, _))) |
     (symbol ~ location ^^ { flatten2(AstSymbolValue(_, _)) })
   }
 

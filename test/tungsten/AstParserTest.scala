@@ -63,7 +63,10 @@ class AstParserTest {
   @Test
   def value = {
     testValue("()", AstUnitValue(Nowhere))
-    testValue("123", AstIntValue(123, Nowhere))
+    testValue("12b", AstInt8Value(12, Nowhere))
+    testValue("12s", AstInt16Value(12, Nowhere))
+    testValue("12", AstInt32Value(12, Nowhere))
+    testValue("12L", AstInt64Value(12L, Nowhere))
     testValue("foo", AstSymbolValue(new Symbol("foo"), Nowhere))
   }
 
@@ -76,10 +79,10 @@ class AstParserTest {
   @Test
   def instruction = {
     testInstruction("#return <foo.w:1.2-3.4> 123", 
-                    AstReturnInstruction(AstIntValue(123, Nowhere), fooLoc))
+                    AstReturnInstruction(AstInt32Value(123, Nowhere), fooLoc))
     testInstruction("#branch <foo.w:1.2-3.4> foo(123)",
                     AstBranchInstruction(AstSymbolValue(new Symbol("foo"), Nowhere),
-                                         List(AstIntValue(123, Nowhere)), fooLoc))
+                                         List(AstInt32Value(123, Nowhere)), fooLoc))
   }
 
   @Test
@@ -99,7 +102,7 @@ class AstParserTest {
                     AstParameter(new Symbol("baz"), new AstIntType(32, Nowhere), Nowhere))
     val expected = AstBlock(new Symbol("foo"),
                             List(p1, p2),
-                            List(AstReturnInstruction(AstIntValue(123, Nowhere), Nowhere)),
+                            List(AstReturnInstruction(AstInt32Value(123, Nowhere), Nowhere)),
                             fooLoc)
     test(program, AstParser.block, expected)
   }

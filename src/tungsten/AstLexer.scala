@@ -41,6 +41,12 @@ object AstLexer extends Parsers {
   def letter = elem("letter", _.isLetter)
 
   def digit = elem("digit", _.isDigit)
+  def numChars: Parser[Long] = {
+    opt('-') ~ rep1(digit) ^^ { 
+      case None ~ digits => digits.mkString.toLong
+      case Some(_) ~ digits => -digits.mkString.toLong
+    }
+  }
 
   def identifierChar: Parser[Char] = letter | digit | elem('_')
 
@@ -50,12 +56,14 @@ object AstLexer extends Parsers {
     }
   }
 
-  def integer: Parser[Int] = rep1(digit) ^^ { _.mkString.toInt }
-  def long: Parser[Long] = rep1(digit) ^^ { _.mkString.toLong }
+  def byte: Parser[Byte] = numChars <~ 'b' ^^ { _.asInstanceOf[Byte] }
+  def short: Parser[Short] = numChars <~ 's' ^^ { _.asInstanceOf[Short] }
+  def int: Parser[Int] = numChars ^^ { _.asInstanceOf[Int] }
+  def long: Parser[Long] = numChars <~ 'L'
 
   def symbol: Parser[Symbol] = {
     val idNum: Parser[Int] = {
-      opt(elem('#') ~> integer) ^^ {
+      opt(elem('#') ~> int) ^^ {
         case Some(i) => i
         case None => 0
       }
@@ -67,7 +75,7 @@ object AstLexer extends Parsers {
 
   def location: Parser[Location] = {
     elem('<') ~ rep1(chrExcept(':')) ~ elem(':') ~
-      integer ~ elem('.') ~ integer ~ elem('-') ~ integer ~ elem('.') ~ integer ~ elem('>') ^^ {
+      int ~ elem('.') ~ int ~ elem('-') ~ int ~ elem('.') ~ int ~ elem('>') ^^ {
       case _ ~ filename ~ _ ~ beginLine ~ _ ~ beginColumn ~ _ ~ endLine ~ _ ~ endColumn ~ _ =>
         Location(filename.mkString, beginLine, beginColumn, endLine, endColumn)
     }
@@ -77,7 +85,10 @@ object AstLexer extends Parsers {
     reserved | 
     (symbol ^^ { SymbolToken(_) }) | 
     (location ^^ { LocationToken(_) }) | 
-    (long ^^ { IntegerToken(_) }) |
+    (byte ^^ { ByteToken(_) }) |
+    (short ^^ { ShortToken(_) }) |
+    (long ^^ { LongToken(_) }) |
+    (int ^^ { IntToken(_) }) |      // must follow others since it doesn't have a suffix
     failure("illegal character")
   }
 

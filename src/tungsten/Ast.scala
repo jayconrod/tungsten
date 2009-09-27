@@ -41,13 +41,25 @@ final case class AstClassType(val name: Symbol,
 
 // Values
 
-sealed abstract class AstValue(val location: Location)
+sealed abstract class AstValue(val location: Location) {
+  def compile(ctx: AstContext): Value
+}
 
-final case class AstUnitValue(override val location: Location) extends AstValue(location)
+final case class AstUnitValue(override val location: Location) extends AstValue(location) {
+  def compile(ctx: AstContext) = UnitValue(location)
+}
+
 final case class AstIntValue(val value: Long, override val location: Location)
   extends AstValue(location)
+{
+  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+}
+
 final case class AstSymbolValue(val value: Symbol, override val location: Location)
   extends AstValue(location)
+{
+  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+}
 
 // Instructions
 

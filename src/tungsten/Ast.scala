@@ -2,8 +2,9 @@ package tungsten
 
 import Utilities._
 
-sealed abstract class AstDefinition(val location: Location)
-
+sealed abstract class AstDefinition(val location: Location) {
+  def compile(ctx: AstContext): Unit
+}
 
 // Types
 sealed abstract class AstType(val location: Location) {
@@ -110,6 +111,9 @@ final case class AstFunction(val name: Symbol,
                              val blocks: List[AstBlock],
                              override val location: Location)
   extends AstDefinition(location)
+{
+  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+}
 
 // Global
 
@@ -118,6 +122,11 @@ final case class AstGlobal(val name: Symbol,
                            val value: Option[AstValue], 
                            override val location: Location)
   extends AstDefinition(location)
+{
+  def compile(ctx: AstContext) = {
+    ctx.module.add(new Global(name, ty.compile(ctx), value.map(_.compile(ctx)), location))
+  }
+}
 
 // Data structures
 
@@ -125,12 +134,18 @@ final case class AstField(val name: Symbol,
                           val ty: AstType,
                           override val location: Location)
   extends AstDefinition(location)
+{
+  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+}
 
 final case class AstStruct(val name: Symbol,
                            val typeParameters: List[AstTypeParameter],
                            val fields: List[AstField],
                            override val location: Location)
   extends AstDefinition(location)
+{
+  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+}
 
 final case class AstClass(val name: Symbol,
                           val typeParameters: List[AstTypeParameter],
@@ -140,6 +155,9 @@ final case class AstClass(val name: Symbol,
                           val methods: List[AstFunction],
                           override val location: Location)
   extends AstDefinition(location)
+{
+  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+}
 
 final case class AstInterface(val name: Symbol,
                               val typeParameters: List[AstTypeParameter],
@@ -148,7 +166,16 @@ final case class AstInterface(val name: Symbol,
                               val methods: List[AstFunction],
                               override val location: Location)
   extends AstDefinition(location)
+{
+  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+}
 
 // Module
 
-final case class AstModule(definitions: List[AstDefinition])
+final case class AstModule(definitions: List[AstDefinition]) {
+  def compile = {
+    val ctx = new AstContext
+    for (defn <- definitions) defn.compile(ctx)
+    ctx.module
+  }
+}

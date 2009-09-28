@@ -1,9 +1,10 @@
 package tungsten
 
-final class Global(name:      Symbol,
-                   val ty:    Type,
-                   val value: Option[Value],
-                   location:  Location = Nowhere)
+final case class Global(override name: Symbol,
+                        ty: Type,
+                        value: Option[Value],
+                        override location: Location = Nowhere)
+  extends Definition(name, location)
 {
   override def toString = "global " + name + ": " + ty
 }

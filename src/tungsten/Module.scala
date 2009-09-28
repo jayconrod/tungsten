@@ -14,5 +14,14 @@ final class Module {
     }
   }
 
-  def get(name: Symbol) = definitions.get(name)    
+  def get(name: Symbol) = definitions.get(name)
+
+  override def equals(that: Any) = that match {
+    case m: Module => {
+      definitions equals m.definitions
+    }
+    case _ => false
+  }
+
+  override def hashCode = definitions.hashCode
 }

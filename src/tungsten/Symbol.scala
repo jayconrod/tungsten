@@ -11,6 +11,9 @@ final case class Symbol(val name: Iterable[String], val id: Int)
   def this(simpleName: String, id: Int) = this(List(simpleName), id)
   def this(name: List[String]) = this(name, 0)
 
+  def + (right: String) = new Symbol(name ++ List(right), id)
+  def + (right: Symbol) = new Symbol(name ++ right.name, right.id)
+
   override def equals(that: Any) = {
     that match {
       case Symbol(n, i) if name == n && id == i => true

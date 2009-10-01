@@ -73,4 +73,12 @@ class SymbolTest {
     val sym2 = new Symbol(List("foo", "bar", "baz"), 0)
     assertEquals("foo.bar.baz", sym2.toString)
   }
+
+  @Test
+  def concat = {
+    val base = new Symbol("foo")
+    val expected = new Symbol(List("foo", "bar"))
+    val result = base + "bar"
+    assertEquals(expected, result)
+  }
 }

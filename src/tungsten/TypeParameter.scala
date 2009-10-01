@@ -15,6 +15,6 @@ final class TypeParameter(name: Symbol,
       case Some(l) => " >: " + l
       case None    => ""
     }
-    name + upperBoundStr + lowerBoundStr
+    name.toString + upperBoundStr + lowerBoundStr
   }
 }

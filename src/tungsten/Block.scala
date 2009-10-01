@@ -9,6 +9,6 @@ final class Block(name: Symbol,
   override def toString = {
     val parametersStr = parameters.mkString("(", ", ", ")")
     val instructionsStr = instructions.mkString("\n{\n  ", "\n  ", "\n}")
-    name + parametersStr + instructionsStr
+    name.toString + parametersStr + instructionsStr
   }
 }

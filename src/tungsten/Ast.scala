@@ -200,7 +200,17 @@ final case class AstFunction(val name: Symbol,
                              override val location: Location)
   extends AstDefinition(location)
 {
-  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+  def compile(ctx: AstContext) = {
+    ctx.names.push(name)
+    val cRetTy = returnType.compileOrElse(ctx)
+    val cTyParams = typeParameters.map(_.compile(ctx))
+    val cParams = parameters.map(_.compile(ctx))
+    val cBlocks = blocks.map(_.compile(ctx))
+    val cFunction = Function(name, cTyParams, cParams, cRetTy, cBlocks, location)
+    ctx.module.add(cFunction)
+    ctx.names.pop
+    cFunction
+  }
 }
 
 // Global

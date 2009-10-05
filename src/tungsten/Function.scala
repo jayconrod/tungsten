@@ -2,12 +2,12 @@ package tungsten
 
 import Utilities._
 
-final class Function(name: Symbol,
-                     val typeParameters: List[Symbol],
-                     val parameters: List[Symbol],
-                     val returnType: Type,
-                     val blocks: List[Block],
-                     location: Location = Nowhere)
+final case class Function(override name: Symbol,
+                          typeParameters: List[TypeParameter],
+                          parameters: List[Parameter],
+                          returnType: Type,
+                          blocks: List[Block],
+                          override location: Location = Nowhere)
   extends Definition(name, location)
 {
   override def toString = {
@@ -15,6 +15,6 @@ final class Function(name: Symbol,
     val parametersStr = parameters.mkString("(", ", ", ")")
     val returnTypeStr = ": " + returnType
     val bodyStr = blocks.mkString("{\n", "\n", "\n}")
-    typeParametersStr + parametersStr + returnTypeStr + bodyStr
+    "#function " + name + typeParametersStr + parametersStr + returnTypeStr + bodyStr
   }
 }

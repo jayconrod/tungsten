@@ -1,9 +1,9 @@
 package tungsten
 
-final class TypeParameter(name: Symbol, 
-                          val upperBound: Option[Type] = None,
-                          val lowerBound: Option[Type] = None,
-                          location: Location = Nowhere) 
+final case class TypeParameter(override name: Symbol, 
+                               upperBound: Option[Type] = None,
+                               lowerBound: Option[Type] = None,
+                               override location: Location = Nowhere) 
   extends Definition(name, location)
 {
   override def toString = {

@@ -9,6 +9,16 @@ sealed abstract class AstDefinition(val location: Location) {
 // Types
 sealed abstract class AstType(val location: Location) {
   def compile(ctx: AstContext): Type
+  final def compileOrElse(ctx: AstContext, default: Type = UnitType(location)) = {
+    try {
+      compile(ctx)
+    } catch {
+      case exn: CompileException => {
+        ctx.errors += exn
+        default
+      }
+    }
+  }
 }
 
 final case class AstUnitType(override val location: Location) extends AstType(location) {
@@ -93,11 +103,30 @@ final case class AstReturnInstruction(val value: AstValue, override val location
 
 // Function and parameters
 
-final case class AstParameter(val name: Symbol, val ty: AstType, val location: Location)
+final case class AstParameter(val name: Symbol, val ty: AstType, val location: Location) {
+  def compile(ctx: AstContext): Parameter = {
+    val cty = ty.compileOrElse(ctx)
+    val fullName = ctx.names.top + name
+    val cparam = Parameter(fullName, cty, location)
+    ctx.module.add(cparam)
+    cparam
+  }
+}     
+
 final case class AstTypeParameter(val name: Symbol, 
                                   val upperBound: Option[AstType], 
                                   val lowerBound: Option[AstType],  
                                   val location: Location)
+{
+  def compile(ctx: AstContext): TypeParameter = {
+    val fullName = ctx.names.top + name
+    val cUpperBound = upperBound.map(_.compileOrElse(ctx))
+    val cLowerBound = lowerBound.map(_.compileOrElse(ctx))
+    val cTyParam = TypeParameter(fullName, cUpperBound, cLowerBound, location)
+    ctx.module.add(cTyParam)
+    cTyParam
+  }
+}
 
 final case class AstBlock(val name: Symbol,
                           val parameters: List[AstParameter],

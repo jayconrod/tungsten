@@ -6,6 +6,7 @@ import org.junit.Assert._
 
 class AstParserTest {
   val fooLoc = Location("foo.w", 1, 2, 3, 4)
+  val foo = new Symbol("foo")
 
   def test[T](input: String, parser: AstParser.Parser[T], expected: T) = {
     val scanner = new AstLexer.Scanner(input)
@@ -78,11 +79,13 @@ class AstParserTest {
 
   @Test
   def instruction = {
-    testInstruction("#return <foo.w:1.2-3.4> 123", 
-                    AstReturnInstruction(AstInt32Value(123, Nowhere), fooLoc))
-    testInstruction("#branch <foo.w:1.2-3.4> foo(123)",
-                    AstBranchInstruction(AstSymbolValue(new Symbol("foo"), Nowhere),
-                                         List(AstInt32Value(123, Nowhere)), fooLoc))
+    testInstruction("#return <foo.w:1.2-3.4> foo = 123", 
+                    AstReturnInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
+    testInstruction("#branch <foo.w:1.2-3.4> foo = bar(123)",
+                    AstBranchInstruction(foo, 
+                                         AstSymbolValue(new Symbol("bar"), Nowhere),
+                                         List(AstInt32Value(123, Nowhere)),
+                                         fooLoc))
   }
 
   @Test
@@ -96,13 +99,15 @@ class AstParserTest {
   def block = {
     val program = "#block <foo.w:1.2-3.4> foo(bar : #int32,\n" +
                   "                           baz : #int32) {\n" +
-                  "  #return 123\n" +
+                  "  #return quux = 123\n" +
                   "}\n"
     val (p1, p2) = (AstParameter(new Symbol("bar"), new AstIntType(32, Nowhere), Nowhere),
                     AstParameter(new Symbol("baz"), new AstIntType(32, Nowhere), Nowhere))
     val expected = AstBlock(new Symbol("foo"),
                             List(p1, p2),
-                            List(AstReturnInstruction(AstInt32Value(123, Nowhere), Nowhere)),
+                            List(AstReturnInstruction(new Symbol("quux"),
+                                                      AstInt32Value(123, Nowhere),
+                                                      Nowhere)),
                             fooLoc)
     test(program, AstParser.block, expected)
   }
@@ -143,10 +148,12 @@ class AstParserTest {
 
   @Test
   def functionEmpty = {
-    val program = "#function foo( ): #unit { #block ret( ) { #return () } }"
+    val program = "#function foo( ): #unit { #block ret( ) { #return bar = () } }"
     val ret = AstBlock(new Symbol("ret"),
                        Nil,
-                       List(AstReturnInstruction(AstUnitValue(Nowhere), Nowhere)),
+                       List(AstReturnInstruction(new Symbol("bar"),
+                                                 AstUnitValue(Nowhere),
+                                                 Nowhere)),
                        Nowhere)
     val function = AstFunction(new Symbol("foo"), 
                                AstUnitType(Nowhere),
@@ -162,10 +169,10 @@ class AstParserTest {
   def function = {
     val program = "#function <foo.w:1.2-3.4> foo[T1, T2](bar: #unit, baz: #unit): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #branch ret( )\n" + 
+                  "    #branch quux = ret( )\n" + 
                   "  },\n" +
                   "  #block ret( ) {\n" +
-                  "    #return ()\n" +
+                  "    #return xyz = ()\n" +
                   "  }\n" +
                   "}"
     val (t1, t2) = (AstTypeParameter(new Symbol("T1"), None, None, Nowhere),
@@ -173,10 +180,16 @@ class AstParserTest {
     val (p1, p2) = (AstParameter(new Symbol("bar"), AstUnitType(Nowhere), Nowhere),
                     AstParameter(new Symbol("baz"), AstUnitType(Nowhere), Nowhere))
     val entry = AstBlock(new Symbol("entry"), Nil,
-                         List(AstBranchInstruction(AstSymbolValue(new Symbol("ret"), Nowhere),
-                                                   Nil, Nowhere)), Nowhere)
+                         List(AstBranchInstruction(new Symbol("quux"),
+                                                   AstSymbolValue(new Symbol("ret"), Nowhere),
+                                                   Nil, 
+                                                   Nowhere)),
+                         Nowhere)
     val ret = AstBlock(new Symbol("ret"), Nil,
-                       List(AstReturnInstruction(AstUnitValue(Nowhere), Nowhere)), Nowhere)
+                       List(AstReturnInstruction(new Symbol("xyz"),
+                                                 AstUnitValue(Nowhere),
+                                                 Nowhere)),
+                       Nowhere)
     val function = AstFunction(new Symbol("foo"),
                                AstUnitType(Nowhere),
                                List(t1, t2),

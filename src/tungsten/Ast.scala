@@ -107,14 +107,19 @@ final case class AstSymbolValue(val value: Symbol, override val location: Locati
 
 // Instructions
 
-sealed abstract class AstInstruction(val location: Location)
+sealed abstract class AstInstruction(val name: Symbol, val location: Location)
 
-final case class AstBranchInstruction(val target: AstValue,
-                                      val arguments: List[AstValue],
-                                      override val location: Location)
-  extends AstInstruction(location)
-final case class AstReturnInstruction(val value: AstValue, override val location: Location)
-  extends AstInstruction(location)
+final case class AstBranchInstruction(override name: Symbol,
+                                      target: AstValue,
+                                      arguments: List[AstValue],
+                                      override location: Location)
+  extends AstInstruction(name, location)
+
+
+final case class AstReturnInstruction(override name: Symbol,
+                                      value: AstValue,
+                                      override location: Location)
+  extends AstInstruction(name, location)
 
 // Function and parameters
 

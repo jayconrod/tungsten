@@ -60,12 +60,13 @@ object AstParser extends Parsers with ImplicitConversions {
   def argumentList: Parser[List[AstValue]] = "(" ~> repsep(value, ",") <~ ")"
 
   def returnInst: Parser[AstReturnInstruction] = {
-    "#return" ~> location ~ value ^^ { case l ~ v => AstReturnInstruction(v, l) }
+    "#return" ~> location ~ (symbol <~ "=") ~ value ^^ { 
+      case l ~ n ~ v => AstReturnInstruction(n, v, l) }
   }
 
   def branchInst: Parser[AstBranchInstruction] = {
-    "#branch" ~> location ~ value ~ argumentList ^^ {
-      case l ~ v ~ a => AstBranchInstruction(v, a, l)
+    "#branch" ~> location ~ (symbol <~ "=") ~ value ~ argumentList ^^ {
+      case l ~ n ~ v ~ a => AstBranchInstruction(n, v, a, l)
     }
   }
 

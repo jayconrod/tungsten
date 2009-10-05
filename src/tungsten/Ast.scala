@@ -182,7 +182,14 @@ final case class AstBlock(val name: Symbol,
                           override val location: Location)
   extends AstDefinition(location)
 {
-  def compile(ctx: AstContext): Block = throw new UnsupportedOperationException
+  def compile(ctx: AstContext): Block = {
+    val fullName = ctx.names.top + name
+    val cParams = parameters.map(_.compile(ctx))
+    val cInsts = instructions.map(_.compile(ctx))
+    val cBlock = Block(fullName, cParams, cInsts, location)
+    ctx.module.add(cBlock)
+    cBlock
+  }
 }
 
 final case class AstFunction(val name: Symbol,

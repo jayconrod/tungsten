@@ -3,7 +3,7 @@ package tungsten
 import Utilities._
 
 sealed abstract class AstDefinition(val location: Location) {
-  def compile(ctx: AstContext): Unit
+  def compile(ctx: AstContext): Definition
 }
 
 // Types
@@ -24,6 +24,7 @@ sealed abstract class AstType(val location: Location) {
 final case class AstUnitType(override val location: Location) extends AstType(location) {
   def compile(ctx: AstContext) = UnitType(location)
 }
+
 final case class AstIntType(val width: Int, override val location: Location)
   extends AstType(location)
 {
@@ -31,6 +32,7 @@ final case class AstIntType(val width: Int, override val location: Location)
     throw new IllegalArgumentException
   def compile(ctx: AstContext) = IntType(width, location)
 }
+
 final case class AstClassType(val name: Symbol,
                               val typeArguments: List[AstType],
                               override val location: Location)
@@ -107,23 +109,48 @@ final case class AstSymbolValue(val value: Symbol, override val location: Locati
 
 // Instructions
 
-sealed abstract class AstInstruction(val name: Symbol, val location: Location)
+sealed abstract class AstInstruction(val name: Symbol, override val location: Location) 
+  extends AstDefinition(location)
+{
+  def compile(ctx: AstContext): Instruction
+}
 
 final case class AstBranchInstruction(override name: Symbol,
                                       target: AstValue,
                                       arguments: List[AstValue],
                                       override location: Location)
   extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cTarget = target.compileOrElse(ctx)
+    val cArgs = arguments.map(_.compileOrElse(ctx))
+    val cInst = BranchInstruction(fullName, cTarget, cArgs, location)
+    ctx.module.add(cInst)
+    cInst
+  }
+}
 
 
 final case class AstReturnInstruction(override name: Symbol,
                                       value: AstValue,
                                       override location: Location)
   extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    def fullName = ctx.names.top + name
+    val cValue = value.compileOrElse(ctx)
+    val cReturn = ReturnInstruction(fullName, cValue, location)
+    ctx.module.add(cReturn)
+    cReturn
+  }
+}
 
 // Function and parameters
 
-final case class AstParameter(val name: Symbol, val ty: AstType, val location: Location) {
+final case class AstParameter(val name: Symbol, val ty: AstType, override val location: Location)
+  extends AstDefinition(location)
+{
   def compile(ctx: AstContext): Parameter = {
     val cty = ty.compileOrElse(ctx)
     val fullName = ctx.names.top + name
@@ -136,7 +163,8 @@ final case class AstParameter(val name: Symbol, val ty: AstType, val location: L
 final case class AstTypeParameter(val name: Symbol, 
                                   val upperBound: Option[AstType], 
                                   val lowerBound: Option[AstType],  
-                                  val location: Location)
+                                  override val location: Location)
+  extends AstDefinition(location)
 {
   def compile(ctx: AstContext): TypeParameter = {
     val fullName = ctx.names.top + name
@@ -151,7 +179,11 @@ final case class AstTypeParameter(val name: Symbol,
 final case class AstBlock(val name: Symbol,
                           val parameters: List[AstParameter],
                           val instructions: List[AstInstruction],
-                          val location: Location)
+                          override val location: Location)
+  extends AstDefinition(location)
+{
+  def compile(ctx: AstContext): Block = throw new UnsupportedOperationException
+}
 
 final case class AstFunction(val name: Symbol,
                              val returnType: AstType,
@@ -173,7 +205,9 @@ final case class AstGlobal(val name: Symbol,
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext) = {
-    ctx.module.add(new Global(name, ty.compile(ctx), value.map(_.compile(ctx)), location))
+    val global = Global(name, ty.compile(ctx), value.map(_.compile(ctx)), location)
+    ctx.module.add(global)
+    global
   }
 }
 

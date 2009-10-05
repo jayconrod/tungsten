@@ -1,9 +1,9 @@
 package tungsten
 
-final class Block(name: Symbol,
-                  val parameters: List[Symbol],
-                  val instructions: List[Instruction],
-                  location: Location = Nowhere)
+final case class Block(override name: Symbol,
+                       parameters: List[Symbol],
+                       instructions: List[Instruction],
+                       override location: Location = Nowhere)
   extends Definition(name, location)
 {
   override def toString = {

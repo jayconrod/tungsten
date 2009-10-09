@@ -5,12 +5,13 @@ import Utilities._
 abstract sealed class Type(location: Location) 
   extends TungstenObject(location)
 {
+  def validate(module: Module): List[CompileException] = Nil
   def equals(that: Any): Boolean
   def hashCode: Int
   def toString: String
 }
 
-final case class UnitType(loc: Location = Nowhere) extends Type(loc) {
+final case class UnitType(override location: Location = Nowhere) extends Type(location) {
   override def equals(that: Any) = {
     that match {
       case UnitType(_) => true
@@ -23,7 +24,10 @@ final case class UnitType(loc: Location = Nowhere) extends Type(loc) {
   override def toString = "unit"
 }
 
-final case class IntType(width: Int, loc: Location = Nowhere) extends Type(loc) {
+final case class IntType(width: Int, 
+                         override location: Location = Nowhere) 
+  extends Type(location)
+{
   if (width < 1 || !isPowerOf2(width) || width > 64)
     throw new IllegalArgumentException
 
@@ -39,7 +43,10 @@ final case class IntType(width: Int, loc: Location = Nowhere) extends Type(loc) 
   override def toString = "int" + width
 }
 
-final case class FloatType(width: Int, loc: Location = Nowhere) extends Type(loc) {
+final case class FloatType(width: Int, 
+                           override location: Location = Nowhere)
+  extends Type(location)
+{
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
 
@@ -57,9 +64,15 @@ final case class FloatType(width: Int, loc: Location = Nowhere) extends Type(loc
 
 final case class UniversalType(parameterTypes: List[Symbol],
                                baseType: Type,
-                               loc: Location = Nowhere)
-  extends Type(loc)
+                               override location: Location = Nowhere)
+  extends Type(location)
 {
+  override def validate(module: Module) = {
+    val errors = for (paramName <- parameterTypes)
+      yield module.validateName[TypeParameter](paramName, location)
+    errors.flatMap(_.toList)
+  }
+
   override def equals(that: Any) = {
     that match {
       case UniversalType(pts, b, _) if parameterTypes.sameElements(pts) && baseType == b => true
@@ -79,9 +92,15 @@ final case class UniversalType(parameterTypes: List[Symbol],
 
 final case class ExistentialType(parameterTypes: List[Symbol],
                                  baseType: Type,
-                                 loc: Location = Nowhere)
-  extends Type(loc)
+                                 override location: Location = Nowhere)
+  extends Type(location)
 {
+  override def validate(module: Module) = {
+    val errors = for (paramName <- parameterTypes) 
+      yield module.validateName[TypeParameter](paramName, location)
+    errors.flatMap(_.toList)
+  }
+
   override def equals(that: Any) = {
     that match {
       case ExistentialType(pts, b, _) 
@@ -100,7 +119,14 @@ final case class ExistentialType(parameterTypes: List[Symbol],
   }
 }
 
-final case class VariableType(name: Symbol, loc: Location = Nowhere) extends Type(loc) {
+final case class VariableType(name: Symbol, 
+                              override location: Location = Nowhere) 
+  extends Type(location)
+{
+  override def validate(module: Module) = {
+    module.validateName[TypeParameter](name, location).toList
+  }
+
   override def equals(that: Any) = {
     that match {
       case VariableType(n, _) if name == n => true
@@ -114,8 +140,8 @@ final case class VariableType(name: Symbol, loc: Location = Nowhere) extends Typ
 }
 
 final case class ArrayType(elementType: Type, 
-                           loc: Location = Nowhere)
-  extends Type(loc)
+                           override location: Location = Nowhere)
+  extends Type(location)
 {
   override def equals(that: Any) = {
     that match {
@@ -131,8 +157,8 @@ final case class ArrayType(elementType: Type,
 
 final case class FunctionType(returnType: Type,
                               parameterTypes: List[Type], 
-                              loc: Location = Nowhere)
-  extends Type(loc)
+                              override location: Location = Nowhere)
+  extends Type(location)
 {
   override def equals(that: Any) = {
     that match {
@@ -152,9 +178,11 @@ final case class FunctionType(returnType: Type,
 
 final case class ClassType(className: Symbol,
                            typeArguments: List[Type] = Nil,
-                           loc: Location = Nowhere)
-  extends Type(loc)
+                           override location: Location = Nowhere)
+  extends Type(location)
 {
+  override def validate(module: Module) = module.validateName[Class](className, location).toList
+
   override def equals(that: Any) = {
     that match {
       case ClassType(n, args, _)
@@ -171,9 +199,13 @@ final case class ClassType(className: Symbol,
 
 final case class InterfaceType(interfaceName: Symbol,
                                typeArguments: List[Type] = Nil,
-                               loc: Location = Nowhere)
-  extends Type(loc)
+                               override location: Location = Nowhere)
+  extends Type(location)
 {
+  override def validate(module: Module) = {
+    module.validateName[Interface](interfaceName, location).toList
+  }
+
   override def equals(that: Any) = {
     that match {
       case InterfaceType(n, args, _)
@@ -188,7 +220,7 @@ final case class InterfaceType(interfaceName: Symbol,
   }
 }
 
-final case class NullType(loc: Location = Nowhere) extends Type(loc) {
+final case class NullType(override location: Location = Nowhere) extends Type(location) {
   override def equals(that: Any) = {
     that match {
       case NullType(_) => true

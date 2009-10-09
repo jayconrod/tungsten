@@ -200,7 +200,4 @@ final case class NullType(loc: Location = Nowhere) extends Type(loc) {
 
   override def toString = "Null"
 }
-
-
-
   

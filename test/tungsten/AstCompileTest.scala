@@ -73,16 +73,8 @@ class AstCompileTest {
     val param = Parameter(foo + bar, UnitType(Nowhere))
     ctx.module.add(param)
     val ast = AstSymbolValue(bar, loc)
-    val expected = DefinedValue(param, loc)
+    val expected = DefinedValue(param.name, loc)
     assertEquals(expected, ast.compile(ctx))
-  }
-
-  @Test
-  def defaultValue = {
-    val ast = AstSymbolValue(foo, loc)
-    val ty = ast.compileOrElse(ctx)
-    assertFalse(ctx.errors.isEmpty)
-    assertEquals(loc, ty.location)
   }
 
   @Test
@@ -122,7 +114,7 @@ class AstCompileTest {
                                    List(AstInt32Value(12, Nowhere)),
                                    loc)
     val expected = BranchInstruction(foo + bar, 
-                                     DefinedValue(block, Nowhere), 
+                                     DefinedValue(block.name, Nowhere), 
                                      List(Int32Value(12, Nowhere)),
                                      loc)
     testDefinition(expected, ast)
@@ -143,10 +135,7 @@ class AstCompileTest {
                        List(AstParameter(baz, AstUnitType(Nowhere), Nowhere)),
                        List(AstReturnInstruction(quux, AstUnitValue(Nowhere), Nowhere)),
                        loc)
-    val expected = Block(foo + bar,
-                         List(Parameter(foo + baz, UnitType())),
-                         List(ReturnInstruction(foo + quux, UnitValue())),
-                         loc)
+    val expected = Block(foo + bar, List(foo + baz), List(foo + quux), loc)
     testDefinition(expected, ast)
   }
 
@@ -164,15 +153,7 @@ class AstCompileTest {
                                                                   Nowhere)),
                                         Nowhere)),
                           loc)
-    val expected = Function(foo,
-                            List(TypeParameter(foo + a, None, None)),
-                            List(Parameter(foo + b, UnitType())),
-                            UnitType(),
-                            List(Block(foo + bar,
-                                       List(Parameter(foo + c, UnitType())),
-                                       List(ReturnInstruction(foo + baz, UnitValue())),
-                                       Nowhere)),
-                            loc)
+    val expected = Function(foo, List(foo + a), List(foo + b), UnitType(), List(foo + bar), loc)
     testDefinition(expected, ast)
   }   
 }

@@ -1,8 +1,8 @@
 package tungsten
 
 final case class Block(override name: Symbol,
-                       parameters: List[Parameter],
-                       instructions: List[Instruction],
+                       parameters: List[Symbol],
+                       instructions: List[Symbol],
                        override location: Location = Nowhere)
   extends Definition(name, location)
 {

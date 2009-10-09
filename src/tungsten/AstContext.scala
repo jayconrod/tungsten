@@ -8,11 +8,12 @@ final class AstContext {
   val errors = new ArrayBuffer[CompileException]
   val names = new Stack[Symbol]
 
-  def resolve(name: Symbol): Option[Definition] = {
+  def resolve(name: Symbol): Option[Symbol] = {
     for (n <- names) {
       val defn = module.get(n + name)
-      if (defn.isInstanceOf[Some[_]]) return defn
+      if (defn.isInstanceOf[Some[_]]) 
+        return defn.map(_.name)
     }
-    module.get(name)
+    module.get(name).map(_.name)
   }   
 }

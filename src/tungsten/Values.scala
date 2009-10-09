@@ -16,5 +16,5 @@ final case class Int32Value(value: Int, override location: Location = Nowhere)
 final case class Int64Value(value: Long, override location: Location = Nowhere)
   extends Value(location)
 
-final case class DefinedValue(value: Definition, override location: Location = Nowhere)
+final case class DefinedValue(value: Symbol, override location: Location = Nowhere)
   extends Value(location)

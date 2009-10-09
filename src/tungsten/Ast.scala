@@ -96,13 +96,13 @@ final case class AstInt64Value(value: Long, override location: Location)
   def compile(ctx: AstContext) = Int64Value(value, location)
 }
 
-final case class AstSymbolValue(val value: Symbol, override val location: Location)
+final case class AstSymbolValue(value: Symbol, override location: Location)
   extends AstValue(location)
 {
   def compile(ctx: AstContext) = {
     ctx.resolve(value) match {
-      case Some(defn) => DefinedValue(defn, location)
-      case None => throw UndefinedSymbolException(value, location)
+      case Some(name) => DefinedValue(name, location)
+      case None => DefinedValue(value, location)
     }
   }
 }
@@ -148,7 +148,7 @@ final case class AstReturnInstruction(override name: Symbol,
 
 // Function and parameters
 
-final case class AstParameter(val name: Symbol, val ty: AstType, override val location: Location)
+final case class AstParameter(name: Symbol, ty: AstType, override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext): Parameter = {
@@ -160,10 +160,10 @@ final case class AstParameter(val name: Symbol, val ty: AstType, override val lo
   }
 }     
 
-final case class AstTypeParameter(val name: Symbol, 
-                                  val upperBound: Option[AstType], 
-                                  val lowerBound: Option[AstType],  
-                                  override val location: Location)
+final case class AstTypeParameter(name: Symbol, 
+                                  upperBound: Option[AstType], 
+                                  lowerBound: Option[AstType],  
+                                  override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext): TypeParameter = {
@@ -176,36 +176,36 @@ final case class AstTypeParameter(val name: Symbol,
   }
 }
 
-final case class AstBlock(val name: Symbol,
-                          val parameters: List[AstParameter],
-                          val instructions: List[AstInstruction],
-                          override val location: Location)
+final case class AstBlock(name: Symbol,
+                          parameters: List[AstParameter],
+                          instructions: List[AstInstruction],
+                          override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext): Block = {
     val fullName = ctx.names.top + name
-    val cParams = parameters.map(_.compile(ctx))
-    val cInsts = instructions.map(_.compile(ctx))
+    val cParams = parameters.map(_.compile(ctx).name)
+    val cInsts = instructions.map(_.compile(ctx).name)
     val cBlock = Block(fullName, cParams, cInsts, location)
     ctx.module.add(cBlock)
     cBlock
   }
 }
 
-final case class AstFunction(val name: Symbol,
-                             val returnType: AstType,
-                             val typeParameters: List[AstTypeParameter],
-                             val parameters: List[AstParameter],
-                             val blocks: List[AstBlock],
-                             override val location: Location)
+final case class AstFunction(name: Symbol,
+                             returnType: AstType,
+                             typeParameters: List[AstTypeParameter],
+                             parameters: List[AstParameter],
+                             blocks: List[AstBlock],
+                             override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext) = {
     ctx.names.push(name)
     val cRetTy = returnType.compileOrElse(ctx)
-    val cTyParams = typeParameters.map(_.compile(ctx))
-    val cParams = parameters.map(_.compile(ctx))
-    val cBlocks = blocks.map(_.compile(ctx))
+    val cTyParams = typeParameters.map(_.compile(ctx).name)
+    val cParams = parameters.map(_.compile(ctx).name)
+    val cBlocks = blocks.map(_.compile(ctx).name)
     val cFunction = Function(name, cTyParams, cParams, cRetTy, cBlocks, location)
     ctx.module.add(cFunction)
     ctx.names.pop
@@ -215,10 +215,10 @@ final case class AstFunction(val name: Symbol,
 
 // Global
 
-final case class AstGlobal(val name: Symbol, 
-                           val ty: AstType, 
-                           val value: Option[AstValue], 
-                           override val location: Location)
+final case class AstGlobal(name: Symbol, 
+                           ty: AstType, 
+                           value: Option[AstValue], 
+                           override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext) = {
@@ -230,41 +230,41 @@ final case class AstGlobal(val name: Symbol,
 
 // Data structures
 
-final case class AstField(val name: Symbol,
-                          val ty: AstType,
-                          override val location: Location)
+final case class AstField(name: Symbol,
+                          ty: AstType,
+                          override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
-final case class AstStruct(val name: Symbol,
-                           val typeParameters: List[AstTypeParameter],
-                           val fields: List[AstField],
-                           override val location: Location)
+final case class AstStruct(name: Symbol,
+                           typeParameters: List[AstTypeParameter],
+                           fields: List[AstField],
+                           override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
-final case class AstClass(val name: Symbol,
-                          val typeParameters: List[AstTypeParameter],
-                          val superclass: Option[AstType],
-                          val interfaces: List[AstType],
-                          val fields: List[AstField],
-                          val methods: List[AstFunction],
-                          override val location: Location)
+final case class AstClass(name: Symbol,
+                          typeParameters: List[AstTypeParameter],
+                          superclass: Option[AstType],
+                          interfaces: List[AstType],
+                          fields: List[AstField],
+                          methods: List[AstFunction],
+                          override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
-final case class AstInterface(val name: Symbol,
-                              val typeParameters: List[AstTypeParameter],
-                              val superclass: Option[AstType],
-                              val interfaces: List[AstType],
-                              val methods: List[AstFunction],
-                              override val location: Location)
+final case class AstInterface(name: Symbol,
+                              typeParameters: List[AstTypeParameter],
+                              superclass: Option[AstType],
+                              interfaces: List[AstType],
+                              methods: List[AstFunction],
+                              override location: Location)
   extends AstDefinition(location)
 {
   def compile(ctx: AstContext) = throw new UnsupportedOperationException

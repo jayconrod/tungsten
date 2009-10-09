@@ -11,7 +11,7 @@ class AstContextTest {
     val name = new Symbol("foo")
     val global = Global(name, UnitType(), None)
     ctx.module.add(global)
-    assertSame(global, ctx.resolve(name).get)
+    assertSame(global.name, ctx.resolve(name).get)
   }
 
   @Test
@@ -21,7 +21,7 @@ class AstContextTest {
     ctx.module.add(global)
     ctx.names.push(new Symbol("foo"))
     val resolved = ctx.resolve(new Symbol("bar")).get
-    assertSame(global, resolved)
+    assertSame(global.name, resolved)
   }
 
   @Test
@@ -30,7 +30,7 @@ class AstContextTest {
     val global = Global(name, UnitType(), None)
     ctx.module.add(global)
     ctx.names.push(new Symbol("bar"))
-    assertSame(global, ctx.resolve(name).get)
+    assertSame(global.name, ctx.resolve(name).get)
   }
 
   @Test
@@ -41,6 +41,6 @@ class AstContextTest {
     ctx.module.add(bar)
     ctx.names.push(new Symbol("foo"))
     val resolved = ctx.resolve(new Symbol("bar")).get
-    assertSame(foobar, resolved)
+    assertSame(foobar.name, resolved)
   }
 }

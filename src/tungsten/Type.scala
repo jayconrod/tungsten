@@ -62,41 +62,41 @@ final case class FloatType(width: Int,
   override def toString = "float" + width
 }
 
-final case class UniversalType(parameterTypes: List[Symbol],
+final case class UniversalType(typeParameters: List[Symbol],
                                baseType: Type,
                                override location: Location = Nowhere)
   extends Type(location)
 {
   override def validate(module: Module) = {
-    val errors = for (paramName <- parameterTypes)
+    val errors = for (paramName <- typeParameters)
       yield module.validateName[TypeParameter](paramName, location)
     errors.flatMap(_.toList)
   }
 
   override def equals(that: Any) = {
     that match {
-      case UniversalType(pts, b, _) if parameterTypes.sameElements(pts) && baseType == b => true
+      case UniversalType(pts, b, _) if typeParameters.sameElements(pts) && baseType == b => true
       case _ => false
     }
   }
 
   override def hashCode = { 
-    val parts = "universal" :: baseType :: parameterTypes.asInstanceOf[List[Any]]
+    val parts = "universal" :: baseType :: typeParameters.asInstanceOf[List[Any]]
     parts.foldLeft(0)(hash _)
   }
 
   override def toString = {
-    "forall [" + parameterTypes.mkString(", ") + "] . " + baseType
+    "forall [" + typeParameters.mkString(", ") + "] . " + baseType
   }
 }
 
-final case class ExistentialType(parameterTypes: List[Symbol],
+final case class ExistentialType(typeParameters: List[Symbol],
                                  baseType: Type,
                                  override location: Location = Nowhere)
   extends Type(location)
 {
   override def validate(module: Module) = {
-    val errors = for (paramName <- parameterTypes) 
+    val errors = for (paramName <- typeParameters) 
       yield module.validateName[TypeParameter](paramName, location)
     errors.flatMap(_.toList)
   }
@@ -104,18 +104,18 @@ final case class ExistentialType(parameterTypes: List[Symbol],
   override def equals(that: Any) = {
     that match {
       case ExistentialType(pts, b, _) 
-      if parameterTypes.sameElements(pts) && baseType == b => true
+      if typeParameters.sameElements(pts) && baseType == b => true
       case _ => false
     }
   }
 
   override def hashCode = {
-    val parts = "existential" :: baseType :: parameterTypes.asInstanceOf[List[Any]]
+    val parts = "existential" :: baseType :: typeParameters.asInstanceOf[List[Any]]
     parts.foldLeft(0)(hash _)
   }
 
   override def toString = {
-    "forsome [" + parameterTypes.mkString(", ") + "] . " + baseType
+    "forsome [" + typeParameters.mkString(", ") + "] . " + baseType
   }
 }
 
@@ -233,3 +233,12 @@ final case class NullType(override location: Location = Nowhere) extends Type(lo
   override def toString = "Null"
 }
   
+final case class BasicBlockType(override location: Location = Nowhere) extends Type(location) {
+  override def equals(that: Any) = {
+    that.isInstanceOf[BasicBlockType]
+  }
+
+  override def hashCode = hash(0, "bb")
+
+  override def toString = "BBType"
+}

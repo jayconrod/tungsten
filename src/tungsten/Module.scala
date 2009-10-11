@@ -15,7 +15,7 @@ final class Module {
     }
   }
 
-  def get(name: Symbol) = definitions.get(name)
+  def get(name: Symbol): Option[Definition] = definitions.get(name)
 
   private def definitionTypeName[T <: Definition](implicit m: Manifest[T]) = {
     val typeName = m.toString

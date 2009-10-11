@@ -1,8 +1,11 @@
 package tungsten
 
-final class Field(name: Symbol, val ty: Type, location: Location = Nowhere)
+final case class Field(override name: Symbol, ty: Type, override location: Location = Nowhere)
   extends Definition(name, location)
+  with TypedDefinition
 {
+  def ty(module: Module) = ty
+
   override def toString = {
     "field " + name + ": " + ty
   }

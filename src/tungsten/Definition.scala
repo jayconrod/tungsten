@@ -5,3 +5,7 @@ abstract class Definition(val name: Symbol, location: Location = Nowhere)
 {
   def toString: String
 }
+
+trait TypedDefinition extends Definition {
+  def ty(module: Module): Type
+}

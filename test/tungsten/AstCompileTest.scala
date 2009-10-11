@@ -109,12 +109,9 @@ class AstCompileTest {
     ctx.names.push(foo)
     val block = Block(foo + baz, Nil, Nil, Nowhere)
     ctx.module.add(block)
-    val ast = AstBranchInstruction(bar,
-                                   AstSymbolValue(baz, Nowhere),
-                                   List(AstInt32Value(12, Nowhere)),
-                                   loc)
+    val ast = AstBranchInstruction(bar, baz, List(AstInt32Value(12, Nowhere)), loc)
     val expected = BranchInstruction(foo + bar, 
-                                     DefinedValue(block.name, Nowhere), 
+                                     block.name,
                                      List(Int32Value(12, Nowhere)),
                                      loc)
     testDefinition(expected, ast)

@@ -65,7 +65,7 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def branchInst: Parser[AstBranchInstruction] = {
-    "#branch" ~> location ~ (symbol <~ "=") ~ value ~ argumentList ^^ {
+    "#branch" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
       case l ~ n ~ v ~ a => AstBranchInstruction(n, v, a, l)
     }
   }

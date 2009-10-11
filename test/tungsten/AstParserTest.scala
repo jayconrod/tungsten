@@ -83,7 +83,7 @@ class AstParserTest {
                     AstReturnInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
     testInstruction("#branch <foo.w:1.2-3.4> foo = bar(123)",
                     AstBranchInstruction(foo, 
-                                         AstSymbolValue(new Symbol("bar"), Nowhere),
+                                         new Symbol("bar"),
                                          List(AstInt32Value(123, Nowhere)),
                                          fooLoc))
   }
@@ -181,7 +181,7 @@ class AstParserTest {
                     AstParameter(new Symbol("baz"), AstUnitType(Nowhere), Nowhere))
     val entry = AstBlock(new Symbol("entry"), Nil,
                          List(AstBranchInstruction(new Symbol("quux"),
-                                                   AstSymbolValue(new Symbol("ret"), Nowhere),
+                                                   new Symbol("ret"),
                                                    Nil, 
                                                    Nowhere)),
                          Nowhere)

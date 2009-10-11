@@ -116,14 +116,17 @@ sealed abstract class AstInstruction(val name: Symbol, override val location: Lo
 }
 
 final case class AstBranchInstruction(override name: Symbol,
-                                      target: AstValue,
+                                      target: Symbol,
                                       arguments: List[AstValue],
                                       override location: Location)
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
     val fullName = ctx.names.top + name
-    val cTarget = target.compileOrElse(ctx)
+    val cTarget = ctx.resolve(target) match {
+      case Some(t) => t
+      case None => throw new UndefinedSymbolException(target, location)
+    }
     val cArgs = arguments.map(_.compileOrElse(ctx))
     val cInst = BranchInstruction(fullName, cTarget, cArgs, location)
     ctx.module.add(cInst)

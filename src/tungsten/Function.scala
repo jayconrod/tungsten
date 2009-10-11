@@ -20,4 +20,11 @@ final case class Function(override name: Symbol,
     else
       UniversalType(typeParameters, functionType, location)
   }
+
+  def validate(module: Module) = {
+    typeParameters.flatMap(validateComponent[TypeParameter](module, _)) ++
+      parameters.flatMap(validateComponent[Parameter](module, _)) ++
+      returnType.validate(module) ++
+      blocks.flatMap(validateComponent[Block](module, _))
+  }
 }

@@ -17,23 +17,13 @@ final class Module {
 
   def get(name: Symbol): Option[Definition] = definitions.get(name)
 
-  private def definitionTypeName[T <: Definition](implicit m: Manifest[T]) = {
-    val typeName = m.toString
-    typeName.charAt(0).toLowerCase + typeName.tail.map({c => 
-      if (c.isUpperCase) " " + c.toLowerCase else c.toString
-    }).mkString
-  }
-
-  def validateName[T <: Definition](name: Symbol, location: Location)
-                                   (implicit m: Manifest[T]) =
+  def validateName[T <: Definition](name: Symbol,
+                                    location: Location)
+                                   (implicit m: Manifest[T]): List[CompileException] =
   {
     get(name) match {
-      case Some(defn) if m.erasure.isInstance(defn) => None
-      case Some(defn) => {
-        val typeName = definitionTypeName[T]
-        Some(InappropriateSymbolException(name, location, defn.location, typeName))
-      }
-      case None => Some(UndefinedSymbolException(name, location))
+      case Some(defn) => defn.validateType[T](this, location)
+      case None => List(UndefinedSymbolException(name, location))
     }
   }
 

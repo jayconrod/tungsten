@@ -6,6 +6,10 @@ sealed abstract class CompileException(message: String, location: Location) exte
   }
 }
 
+final case class EmptyStructException(symbol: Symbol, location: Location)
+  extends CompileException("struct " + symbol.toString + " must contain at least one field",
+                           location)
+
 final case class InappropriateSymbolException(symbol: Symbol,
                                               location: Location,
                                               defnLocation: Location,

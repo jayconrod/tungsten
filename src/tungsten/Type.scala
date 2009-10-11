@@ -181,7 +181,7 @@ final case class ClassType(className: Symbol,
                            override location: Location = Nowhere)
   extends Type(location)
 {
-  override def validate(module: Module) = module.validateName[Class](className, location).toList
+  override def validate(module: Module) = module.validateName[Class](className, location)
 
   override def equals(that: Any) = {
     that match {

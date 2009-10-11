@@ -9,6 +9,19 @@ final class Class(name: Symbol,
                   location: Location = Nowhere)
   extends Definition(name, location)
 {
+  def validate(module: Module) = {
+    typeParameters.flatMap(validateComponent[TypeParameter](module, _)) ++
+      superclass.toList.flatMap(_.validate(module)) ++
+      interfaces.flatMap(_.validate(module)) ++
+      fields.flatMap(validateComponent[Field](module, _)) ++
+      methods.flatMap(validateComponent[Function](module, _))
+    // TODO: recursive validation of type parameters, superclass type, interfaces, fields, 
+    //   and methods
+    // TODO: superclass may not be Nothing
+    // TODO: superclass must be subclass of Object
+    // TODO: methods start with a supertype parameter
+  }
+
   override def toString = {
     val typeParametersStr = if (typeParameters.isEmpty) 
       ""

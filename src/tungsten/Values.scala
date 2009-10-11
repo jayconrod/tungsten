@@ -2,6 +2,7 @@ package tungsten
 
 sealed abstract class Value(location: Location) extends TungstenObject(location) {
   def ty(module: Module): Type
+  def validate(module: Module): List[CompileException] = Nil
 }
 
 final case class UnitValue(override location: Location = Nowhere) extends Value(location) {
@@ -39,6 +40,17 @@ final case class DefinedValue(value: Symbol, override location: Location = Nowhe
     val defn = module.get(value)
     assert(defn.isDefined)
     defn.get.asInstanceOf[TypedDefinition].ty(module)
+  }
+
+  override def validate(module: Module) = {
+    module.get(value) match {
+      case Some(defn: TypedDefinition) => Nil
+      case Some(defn) => List(InappropriateSymbolException(value, 
+                                                           location,
+                                                           defn.location, 
+                                                           "typed definition"))
+      case None => List(UndefinedSymbolException(value, location))
+    }
   }
 }
 

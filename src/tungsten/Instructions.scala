@@ -5,12 +5,16 @@ sealed abstract class Instruction(name: Symbol, location: Location)
   with TypedDefinition
 
 final case class BranchInstruction(override name: Symbol, 
-                                   target: Value,
+                                   target: Symbol,
                                    arguments: List[Value],
                                    override location: Location = Nowhere)
   extends Instruction(name, location)
 {
   def ty(module: Module) = UnitType(location)
+
+  def validate(module: Module) = {
+    validateComponent[Block](module, target) ++ arguments.flatMap(_.validate(module))
+  }
 }
 
 final case class ReturnInstruction(override name: Symbol,
@@ -19,4 +23,8 @@ final case class ReturnInstruction(override name: Symbol,
   extends Instruction(name, location)
 {
   def ty(module: Module) = UnitType(location)
+
+  def validate(module: Module) = {
+    value.validate(module)
+  }
 }

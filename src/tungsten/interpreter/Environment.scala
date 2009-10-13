@@ -10,6 +10,8 @@ final class Environment(val module: Module) {
 
   var state: State = null
 
+  call(entry, Nil)
+
   def eval = {
     var inst = state.ip.head
     val result = inst match {
@@ -27,24 +29,25 @@ final class Environment(val module: Module) {
     }
   }
 
-  private def blockIp(block: Block) = {
+  def blockIp(block: Block) = {
     block.instructions.toStream.map(module.get(_).get.asInstanceOf[Instruction])
   }
 
-  private def setArguments(paramNames: List[Symbol], arguments: List[Value]) = {
+  def setArguments(paramNames: List[Symbol], arguments: List[Value]) = {
     assert(paramNames.length == arguments.length)
     for ((name, arg) <- paramNames zip arguments)
       state.values += name -> arg
   }         
 
-  private def branch(block: Block, arguments: List[Value]) = {
+  def branch(block: Block, arguments: List[Value]) = {
     state.ip = blockIp(block)
     setArguments(block.parameters, arguments)
   }
 
-  private def call(function: Function, arguments: List[Value]) = {
+  def call(function: Function, arguments: List[Value]) = {
     val block = module.get(function.blocks.head).get.asInstanceOf[Block]
-    stack.push(new State(blockIp(block)))
+    state = new State(blockIp(block))
+    stack.push(state)
     setArguments(function.parameters, arguments)
   }
 }

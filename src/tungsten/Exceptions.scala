@@ -18,12 +18,28 @@ final case class InappropriateSymbolException(symbol: Symbol,
                              " does not refer to a(n) " + expected,
                            location)
 
+final case class FunctionArgumentCountException(symbol: Symbol,
+                                                given: Int,
+                                                required: Int,
+                                                location: Location)
+  extends CompileException(symbol.toString + " was called with " + given + 
+                             " arguments; it expects " + required, 
+                           location)
+
+final case class FunctionTypeException(symbol: Symbol, location: Location)
+  extends CompileException("value cannot be called as a function", location)
+
 final case class RedefinedSymbolException(symbol: Symbol, 
                                           location: Location, 
                                           oldLocation: Location)
   extends CompileException(symbol.toString + " was redefined; original definition was at " + 
                              oldLocation,
                            location)
-                                          
+
+final case class TypeMismatchException(given: String, received: String, location: Location)
+  extends CompileException("type mismatch: " + given + " was given; " +
+                             received + " was received",
+                           location)
+
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)
   extends CompileException(symbol.toString + " is not defined", location)

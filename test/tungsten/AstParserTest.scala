@@ -86,6 +86,11 @@ class AstParserTest {
                                          new Symbol("bar"),
                                          List(AstInt32Value(123, Nowhere)),
                                          fooLoc))
+    testInstruction("#scall <foo.w:1.2-3.4> foo = bar(123)",
+                    AstStaticCallInstruction(foo,
+                                             AstSymbolValue(new Symbol("bar"), Nowhere),
+                                             List(AstInt32Value(123, Nowhere)),
+                                             fooLoc))
   }
 
   @Test

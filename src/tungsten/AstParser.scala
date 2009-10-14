@@ -70,8 +70,14 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def staticCallInst: Parser[AstStaticCallInstruction] = {
+    "#scall" ~> location ~ (symbol <~ "=") ~ value ~ argumentList ^^ {
+      case l ~ n ~ t ~ a => AstStaticCallInstruction(n, t, a, l)
+    }
+  }
+
   def instruction: Parser[AstInstruction] = {
-    returnInst | branchInst
+    returnInst | branchInst | staticCallInst
   }
 
   def parameter: Parser[AstParameter] = {

@@ -141,11 +141,27 @@ final case class AstReturnInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    def fullName = ctx.names.top + name
+    val fullName = ctx.names.top + name
     val cValue = value.compileOrElse(ctx)
     val cReturn = ReturnInstruction(fullName, cValue, location)
     ctx.module.add(cReturn)
     cReturn
+  }
+}
+
+final case class AstStaticCallInstruction(override name: Symbol,
+                                          target: AstValue,
+                                          arguments: List[AstValue],
+                                          override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cTarget = target.compileOrElse(ctx)
+    val cArgs = arguments.map(_.compile(ctx))
+    val cCall = StaticCallInstruction(fullName, cTarget, cArgs, location)
+    ctx.module.add(cCall)
+    cCall
   }
 }
 

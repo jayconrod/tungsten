@@ -70,3 +70,41 @@ final case class ReturnInstruction(override name: Symbol,
   }
 }
 
+final case class StaticCallInstruction(override name: Symbol,
+                                       target: Symbol,
+                                       arguments: List[Value],
+                                       override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = {
+    val function = module.get(target).get.asInstanceOf[Function]
+    val functionTy = function.ty(module).asInstanceOf[FunctionType]
+    functionTy.returnType
+  }
+
+  def validate(module: Module) = {
+    val typeErrors = validateComponent[Function](module, target)
+    if (!typeErrors.isEmpty)
+      typeErrors
+    else {
+      val function = module.get(target).get.asInstanceOf[Function]
+      val functionTy = function.ty(module).asInstanceOf[FunctionType]
+      if (functionTy.parameterTypes.size != arguments.size) {
+        List(FunctionArgumentCountException(target,
+                                            arguments.size,
+                                            functionTy.parameterTypes.size,
+                                            location))
+      } else {
+        def check(arg: (Type, Value), errors: List[CompileException]) = {
+          val (t, a) = arg
+          if (t != a.ty(module)) {
+            val exn = TypeMismatchException(a.ty(module).toString, t.toString, location)
+            exn :: errors
+          } else
+            errors
+        }
+        (functionTy.parameterTypes zip arguments).foldRight(List[CompileException]())(check _)
+      }
+    }
+  }
+}

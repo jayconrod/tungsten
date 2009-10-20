@@ -31,6 +31,11 @@ final class Environment(val module: Module) {
         state.values += ((callInst.name, Value.eval(v, this)))
         state.ip = state.ip.tail
       }
+      case StaticCallInstruction(name, target, arguments, _) => {
+        val function = module.get(target).get.asInstanceOf[Function]
+        val args = arguments.map(Value.eval(_, this))
+        call(function, args)
+      }
     }
   }
 

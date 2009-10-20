@@ -20,16 +20,16 @@ final class Environment(val module: Module) {
         val block = module.get(bbName).get.asInstanceOf[Block]
         branch(block, iargs)
       }
+      case IndirectCallInstruction(name, target, arguments, _) => {
+        val function = Value.eval(target, this).asInstanceOf[FunctionValue].value
+        val args = arguments.map(Value.eval(_, this))
+        call(function, args)
+      }
       case ReturnInstruction(_, v, _) => {
         state = stack.pop
         val callInst = state.ip.head
         state.values += ((callInst.name, Value.eval(v, this)))
         state.ip = state.ip.tail
-      }
-      case StaticCallInstruction(name, target, arguments, _) => {
-        val function = Value.eval(target, this).asInstanceOf[FunctionValue].value
-        val args = arguments.map(Value.eval(_, this))
-        call(function, args)
       }
     }
   }

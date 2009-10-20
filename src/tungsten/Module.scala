@@ -17,6 +17,14 @@ final class Module {
 
   def get(name: Symbol): Option[Definition] = definitions.get(name)
 
+  def validate = {
+    val errors = definitions.valueIterable.flatMap(_.validate(this)).toList
+    definitions.get(new Symbol("main")) match {
+      case Some(_: Function) => errors
+      case _ => MissingMainException() :: errors
+    }
+  }
+
   def validateName[T <: Definition](name: Symbol,
                                     location: Location)
                                    (implicit m: Manifest[T]): List[CompileException] =

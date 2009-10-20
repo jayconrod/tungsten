@@ -26,4 +26,9 @@ private object Utilities {
     reader.close
     buffer.toString 
   }
+
+  def compileString(program: String) = {
+    val ast = AstParser.test(program)
+    ast.compile.left.get
+  }
 }

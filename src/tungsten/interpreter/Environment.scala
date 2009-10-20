@@ -20,6 +20,7 @@ final class Environment(val module: Module) {
   def run = {
     while (state != null)
       eval
+    returnCode
   }
 
   def eval = {

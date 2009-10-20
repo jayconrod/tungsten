@@ -325,9 +325,12 @@ final case class AstInterface(name: Symbol,
 // Module
 
 final case class AstModule(definitions: List[AstDefinition]) {
-  def compile = {
+  def compile: Either[Module, List[CompileException]] = {
     val ctx = new AstContext
     for (defn <- definitions) defn.compile(ctx)
-    ctx.module
+    ctx.errors.toList match {
+      case Nil => Left(ctx.module)
+      case errors => Right(errors)
+    }
   }
 }

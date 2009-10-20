@@ -5,7 +5,15 @@ sealed abstract class CompileException(message: String, location: Location) exte
     location + ": error: " + message
   }
 }
-
+/*
+final case class DuplicateComponentException(symbol: Symbol,
+                                             component: Symbol,
+                                             typeName: String,
+                                             location: Location)
+  extends CompileException("duplicate " + typeName + " " + component + 
+                             " used as part of definition " + symbol,
+                           location)
+*/
 final case class EmptyStructException(symbol: Symbol, location: Location)
   extends CompileException("struct " + symbol.toString + " must contain at least one field",
                            location)
@@ -28,6 +36,9 @@ final case class FunctionArgumentCountException(symbol: Symbol,
 
 final case class FunctionTypeException(symbol: Symbol, location: Location)
   extends CompileException("value cannot be called as a function", location)
+
+final case class MissingMainException()
+  extends CompileException("module does not contain a main function", Nowhere)
 
 final case class RedefinedSymbolException(symbol: Symbol, 
                                           location: Location, 

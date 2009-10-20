@@ -17,7 +17,7 @@
   <target name="tungsten">
     <mkdir dir="${lib.dir}"/>
     <fsc srcdir="${src.dir}" destdir="${lib.dir}" target="${jvm-target}"
-         force="yes" deprecation="yes">
+         force="yes" deprecation="yes" addparams="-g:vars">
       <include name="**/*.scala"/>
     </fsc>
   </target>

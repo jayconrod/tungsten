@@ -5,13 +5,22 @@ import tungsten._
 import Value._
 
 final class Environment(val module: Module) {
-  val entry = module.get(new Symbol("main")).get.asInstanceOf[Function]
+  val init = List(StaticCallInstruction(new Symbol("init"), new Symbol("main"), Nil),
+                  IntrinsicCallInstruction(new Symbol("exit"), 
+                                           Intrinsic.EXIT,
+                                           List(tungsten.Int32Value(0))))
+
   val stack = new Stack[State]
 
-  var state: State = null
+  var state: State = new State(init)
+  stack.push(state)
+
   var returnCode = 0
 
-  call(entry, Nil)
+  def run = {
+    while (state != null)
+      eval
+  }
 
   def eval = {
     var inst = state.ip.head
@@ -27,7 +36,7 @@ final class Environment(val module: Module) {
         call(function, args)
       }
       case IntrinsicCallInstruction(name, intrinsic, arguments, _) => {
-        import Intrinsic._
+        import tungsten.Intrinsic._
         intrinsic match {
           case EXIT => {
             returnCode = Value.eval(arguments(0), this).asInstanceOf[Int32Value].value
@@ -36,7 +45,8 @@ final class Environment(val module: Module) {
         }
       }
       case ReturnInstruction(_, v, _) => {
-        state = stack.pop
+        stack.pop
+        state = stack.head
         val callInst = state.ip.head
         state.values += ((callInst.name, Value.eval(v, this)))
         state.ip = state.ip.tail

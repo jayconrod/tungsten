@@ -165,6 +165,24 @@ final case class AstIndirectCallInstruction(override name: Symbol,
   }
 }
 
+final case class AstIntrinsicCallInstruction(override name: Symbol,
+                                             target: Symbol,
+                                             arguments: List[AstValue],
+                                             override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    import Intrinsic._
+    val cIntrinsic = target.toString match {
+      case "exit" => EXIT
+    }
+    val cArgs = arguments.map(_.compile(ctx))
+    val cCall = IntrinsicCallInstruction(name, cIntrinsic, cArgs, location)
+    ctx.module.add(cCall)
+    cCall
+  }
+}
+
 final case class AstStaticCallInstruction(override name: Symbol,
                                           target: Symbol,
                                           arguments: List[AstValue],

@@ -79,8 +79,6 @@ class AstParserTest {
 
   @Test
   def instruction = {
-    testInstruction("#return <foo.w:1.2-3.4> foo = 123", 
-                    AstReturnInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
     testInstruction("#branch <foo.w:1.2-3.4> foo = bar(123)",
                     AstBranchInstruction(foo, 
                                          new Symbol("bar"),
@@ -91,6 +89,18 @@ class AstParserTest {
                                                AstSymbolValue(new Symbol("bar"), Nowhere),
                                                List(AstInt32Value(123, Nowhere)),
                                                fooLoc))
+    testInstruction("#intrinsic <foo.w:1.2-3.4> foo = exit(1)",
+                    AstIntrinsicCallInstruction(foo,
+                                                new Symbol("exit"),
+                                                List(AstInt32Value(1, Nowhere)),
+                                                fooLoc))
+    testInstruction("#return <foo.w:1.2-3.4> foo = 123", 
+                    AstReturnInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
+    testInstruction("#scall <foo.w:1.2-3.4> foo = bar(123)",
+                    AstStaticCallInstruction(foo,
+                                             new Symbol("bar"),
+                                             List(AstInt32Value(123, Nowhere)),
+                                             fooLoc))
   }
 
   @Test

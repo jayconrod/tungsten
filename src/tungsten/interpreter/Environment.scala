@@ -9,6 +9,7 @@ final class Environment(val module: Module) {
   val stack = new Stack[State]
 
   var state: State = null
+  var returnCode = 0
 
   call(entry, Nil)
 
@@ -24,6 +25,15 @@ final class Environment(val module: Module) {
         val function = Value.eval(target, this).asInstanceOf[FunctionValue].value
         val args = arguments.map(Value.eval(_, this))
         call(function, args)
+      }
+      case IntrinsicCallInstruction(name, intrinsic, arguments, _) => {
+        import Intrinsic._
+        intrinsic match {
+          case EXIT => {
+            returnCode = Value.eval(arguments(0), this).asInstanceOf[Int32Value].value
+            state = null
+          }
+        }
       }
       case ReturnInstruction(_, v, _) => {
         state = stack.pop

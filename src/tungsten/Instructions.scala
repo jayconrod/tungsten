@@ -58,6 +58,27 @@ final case class IndirectCallInstruction(override name: Symbol,
   }
 }
 
+case class IntrinsicFunction(number: Int, 
+                             name: String,
+                             parameterTypes: List[Type],
+                             returnType: Type)
+
+object Intrinsic {
+  val EXIT = IntrinsicFunction(1, "exit", List(IntType(32)), UnitType())
+  val INTRINSICS = List(EXIT)
+}
+
+final case class IntrinsicCallInstruction(override name: Symbol,
+                                          intrinsic: IntrinsicFunction,
+                                          arguments: List[Value],
+                                          override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = intrinsic.returnType
+
+  def validate(module: Module) = throw new UnsupportedOperationException
+}
+
 final case class ReturnInstruction(override name: Symbol,
                                    value: Value,
                                    override location: Location = Nowhere)

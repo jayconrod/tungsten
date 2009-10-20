@@ -82,8 +82,14 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def intrinsicCallInst: Parser[AstIntrinsicCallInstruction] = {
+    "#intrinsic" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
+      case l ~ n ~ t ~ a => AstIntrinsicCallInstruction(n, t, a, l)
+    }
+  }
+
   def instruction: Parser[AstInstruction] = {
-    returnInst | branchInst | indirectCallInst
+    returnInst | branchInst | indirectCallInst | staticCallInst | intrinsicCallInst
   }
 
   def parameter: Parser[AstParameter] = {

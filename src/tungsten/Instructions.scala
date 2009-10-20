@@ -3,6 +3,9 @@ package tungsten
 sealed abstract class Instruction(name: Symbol, location: Location)
   extends Definition(name, location)
   with TypedDefinition
+{
+  def isTerminating = false
+}
 
 final case class BranchInstruction(override name: Symbol, 
                                    target: Symbol,
@@ -10,6 +13,8 @@ final case class BranchInstruction(override name: Symbol,
                                    override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  override def isTerminating = true
+
   def ty(module: Module) = UnitType(location)
 
   def validate(module: Module) = {
@@ -84,6 +89,8 @@ final case class ReturnInstruction(override name: Symbol,
                                    override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  override def isTerminating = true
+
   def ty(module: Module) = UnitType(location)
 
   def validate(module: Module) = {

@@ -5,6 +5,10 @@ sealed abstract class CompileException(message: String, location: Location) exte
     location + ": error: " + message
   }
 }
+
+final case class BlockTerminationException(symbol: Symbol, location: Location)
+  extends CompileException("block " + symbol + " does not terminate", location)
+
 /*
 final case class DuplicateComponentException(symbol: Symbol,
                                              component: Symbol,

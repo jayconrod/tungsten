@@ -18,7 +18,7 @@ final case class BranchInstruction(override name: Symbol,
   def ty(module: Module) = UnitType(location)
 
   def validate(module: Module) = {
-    validateComponent[Block](module, target) ++ arguments.flatMap(_.validate(module))
+    validateComponent[Block](module, target)
   }
 }
 
@@ -93,9 +93,7 @@ final case class ReturnInstruction(override name: Symbol,
 
   def ty(module: Module) = UnitType(location)
 
-  def validate(module: Module) = {
-    value.validate(module)
-  }
+  def validate(module: Module) = Nil    // return value validated in Function
 }
 
 final case class StaticCallInstruction(override name: Symbol,

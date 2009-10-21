@@ -10,8 +10,7 @@ final case class Global(override name: Symbol,
   def ty(module: Module) = ty
 
   def validate(module: Module) = {
-    ty.validate(module) ++ value.toList.flatMap(_.validate(module))
-    // TODO: check value type
+    ty.validate(module) ++ value.toList.flatMap(_.validate(module, ty))
   }
 
   override def toString = "global " + name + ": " + ty

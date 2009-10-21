@@ -10,10 +10,10 @@ final class AstContext {
 
   def resolve(name: Symbol): Option[Symbol] = {
     for (n <- names) {
-      val defn = module.get(n + name)
+      val defn = module.getDefn(n + name)
       if (defn.isInstanceOf[Some[_]]) 
         return defn.map(_.name)
     }
-    module.get(name).map(_.name)
+    module.getDefn(name).map(_.name)
   }   
 }

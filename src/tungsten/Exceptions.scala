@@ -18,6 +18,10 @@ final case class DuplicateComponentException(symbol: Symbol,
                              " used as part of definition " + symbol,
                            location)
 */
+
+final case class EmptyBlockException(symbol: Symbol, location: Location)
+  extends CompileException("block " + symbol + " contains no instructions", location)
+
 final case class EmptyStructException(symbol: Symbol, location: Location)
   extends CompileException("struct " + symbol.toString + " must contain at least one field",
                            location)

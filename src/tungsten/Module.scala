@@ -15,7 +15,14 @@ final class Module {
     }
   }
 
-  def get(name: Symbol): Option[Definition] = definitions.get(name)
+  def getDefn(name: Symbol): Option[Definition] = definitions.get(name)
+
+  def get[T <: Definition](name: Symbol)(implicit m: Manifest[T]): Option[T] = {
+    definitions.get(name) match {
+      case Some(d) if m.erasure.isInstance(d) => Some(d.asInstanceOf[T])
+      case _ => None
+    }
+  }
 
   def validate = {
     val errors = definitions.valueIterable.flatMap(_.validate(this)).toList
@@ -29,7 +36,7 @@ final class Module {
                                     location: Location)
                                    (implicit m: Manifest[T]): List[CompileException] =
   {
-    get(name) match {
+    getDefn(name) match {
       case Some(defn) => defn.validateType[T](this, location)
       case None => List(UndefinedSymbolException(name, location))
     }

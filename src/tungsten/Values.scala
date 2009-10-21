@@ -43,11 +43,11 @@ final case class DefinedValue(value: Symbol, override location: Location = Nowhe
   }
 
   override def validate(module: Module) = {
-    module.get(value) match {
+    module.getDefn(value) match {
       case Some(defn: TypedDefinition) => Nil
       case Some(defn) => List(InappropriateSymbolException(value, 
                                                            location,
-                                                           defn.location, 
+                                                           defn.location,
                                                            "typed definition"))
       case None => List(UndefinedSymbolException(value, location))
     }

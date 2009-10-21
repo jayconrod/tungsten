@@ -9,7 +9,7 @@ abstract class Definition(val name: Symbol, location: Location = Nowhere)
                                                          componentName: Symbol)
                                                         (implicit m: Manifest[T]) =
   {
-    module.get(componentName) match {
+    module.getDefn(componentName) match {
       case Some(defn) => defn.validateType[T](module, location)
       case None => List(UndefinedSymbolException(componentName, location))
     }

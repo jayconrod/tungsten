@@ -24,7 +24,7 @@ object Value {
       case tungsten.Int16Value(v, _) => Int16Value(v)
       case tungsten.Int32Value(v, _) => Int32Value(v)
       case tungsten.Int64Value(v, _) => Int64Value(v)
-      case tungsten.DefinedValue(v, _) => env.module.get(v) match {
+      case tungsten.DefinedValue(v, _) => env.module.getDefn(v) match {
         case Some(p: Parameter) => env.state.values(v)
         case Some(i: Instruction) => env.state.values(v)
         case Some(f: Function) => FunctionValue(f)

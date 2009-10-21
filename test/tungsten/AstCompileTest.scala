@@ -12,7 +12,7 @@ class AstCompileTest {
   val quux = new Symbol("quux")
 
   def get(name: Symbol) = {
-    ctx.module.get(name).get
+    ctx.module.getDefn(name).get
   }
 
   def testDefinition(expected: Definition, ast: AstDefinition) = {

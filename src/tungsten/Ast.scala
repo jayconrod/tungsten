@@ -39,7 +39,7 @@ final case class AstClassType(val name: Symbol,
   extends AstType(location)
 {
   def compile(ctx: AstContext) = {
-    ctx.module.get(name) match {
+    ctx.module.getDefn(name) match {
       case Some(c: Class) => ClassType(c.name, typeArguments.map(_.compile(ctx)), location)
       case Some(i: Interface) => {
         InterfaceType(i.name, typeArguments.map(_.compile(ctx)), location)

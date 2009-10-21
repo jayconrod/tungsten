@@ -61,7 +61,7 @@ final class Environment(val module: Module) {
   }
 
   def blockIp(block: Block) = {
-    block.instructions.toStream.map(module.get(_).get.asInstanceOf[Instruction])
+    block.instructions.toStream.map(module.get[Instruction](_).get)
   }
 
   def setArguments(paramNames: List[Symbol], arguments: List[Value]) = {

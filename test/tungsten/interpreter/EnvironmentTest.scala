@@ -21,7 +21,7 @@ class EnvironmentTest {
 
   @Test
   def blockIp = {
-    val expected = module.get(new Symbol(List("main", "entry", "ret"))).get
+    val expected = module.get[Instruction](new Symbol(List("main", "entry", "ret"))).get
     assertEquals(expected, env.blockIp(entryBlock).head)
   }
 

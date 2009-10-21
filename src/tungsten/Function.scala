@@ -12,7 +12,7 @@ final case class Function(override name: Symbol,
 {
   def ty(module: Module): Type = {
     val paramTypes = for (name <- parameters;
-                          val Some(param: Parameter) = module.get(name))
+                          val Some(param) = module.get[Parameter](name))
       yield param.ty
     val functionType = FunctionType(returnType, paramTypes, location)
     if (typeParameters.isEmpty)

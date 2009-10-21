@@ -5,7 +5,7 @@ import org.junit.Assert._
 import Utilities._
 
 class ValidationTest {
-  def test[T <: CompileException](program: String)(implicit m: Manifest[T]) = {
+  def programContainsError[T <: CompileException](program: String)(implicit m: Manifest[T]) = {
     val errors = compileString(program).validate
     assertTrue(errors.exists(m.erasure.isInstance(_)))
   }
@@ -13,13 +13,13 @@ class ValidationTest {
   @Test
   def emptyBlockTermination = {
     val program = "#function main( ): #unit { #block empty( ) { } }"
-    test[EmptyBlockException](program)
+    programContainsError[EmptyBlockException](program)
   }
 
   @Test
   def blockTermination = {
     val program = "#function main( ): #unit { #block entry( ) { #scall foo = main( ) } }"
-    test[BlockTerminationException](program)
+    programContainsError[BlockTerminationException](program)
   }
 
   @Test
@@ -31,6 +31,12 @@ class ValidationTest {
 
   @Test
   def missingMain = {
-    test[MissingMainException]("")    
+    programContainsError[MissingMainException]("")    
+  }
+
+  @Test
+  def returnTypeMismatch = {
+    val program = "#function main( ): #unit { #block entry( ) { #return r = 12 } }"
+    programContainsError[TypeMismatchException](program)
   }
 }

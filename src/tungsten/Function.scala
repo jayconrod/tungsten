@@ -16,9 +16,32 @@ final case class Function(override name: Symbol,
   }
 
   def validate(module: Module) = {
-    typeParameters.flatMap(validateComponent[TypeParameter](module, _)) ++
-      parameters.flatMap(validateComponent[Parameter](module, _)) ++
-      returnType.validate(module) ++
-      blocks.flatMap(validateComponent[Block](module, _))
+    def validateComponents = {
+      typeParameters.flatMap(validateComponent[TypeParameter](module, _)) ++
+        parameters.flatMap(validateComponent[Parameter](module, _)) ++
+        returnType.validate(module) ++
+        blocks.flatMap(validateComponent[Block](module, _))
+    }
+
+    def validateReturnType = {
+      blocks flatMap { blockName =>
+        val block = module.get[Block](blockName).get
+        block.instructions.lastOption match {
+          case Some(retName) => module.get[ReturnInstruction](retName) match {
+            case Some(ret) => {          
+              val retTy = ret.value.ty(module)
+              if (returnType != retTy)
+                List(TypeMismatchException(retTy.toString, returnType.toString, ret.location))
+              else
+                Nil
+            }
+            case None => Nil
+          }
+          case None => Nil
+        }
+      }
+    }
+
+    validateComponents ++ validateReturnType
   }
 }

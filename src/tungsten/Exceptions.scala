@@ -55,9 +55,9 @@ final case class RedefinedSymbolException(symbol: Symbol,
                              oldLocation,
                            location)
 
-final case class TypeMismatchException(given: String, received: String, location: Location)
+final case class TypeMismatchException(given: String, required: String, location: Location)
   extends CompileException("type mismatch: " + given + " was given; " +
-                             received + " was received",
+                             required + " was required",
                            location)
 
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)

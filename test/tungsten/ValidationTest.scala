@@ -23,6 +23,13 @@ class ValidationTest {
   }
 
   @Test
+  def exitTermination = {
+    val program = "#function main( ): #unit { #block entry( ) { #intrinsic foo = exit(12) } }"
+    val errors = compileString(program).validate
+    assertTrue(errors.isEmpty)
+  }
+
+  @Test
   def missingMain = {
     test[MissingMainException]("")    
   }

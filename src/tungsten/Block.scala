@@ -5,7 +5,13 @@ final case class Block(override name: Symbol,
                        instructions: List[Symbol],
                        override location: Location = Nowhere)
   extends Definition(name, location)
+  with TypedDefinition
 {
+  def ty(module: Module): FunctionType = {
+    val parameterTypes = parameters.map(module.get[Parameter](_).get.ty)
+    FunctionType(UnitType(location), parameterTypes)
+  }
+
   def validate(module: Module) = {
     def validateComponents = {
       parameters.flatMap(validateComponent[Parameter](module, _)) ++

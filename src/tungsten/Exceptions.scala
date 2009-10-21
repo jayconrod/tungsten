@@ -42,7 +42,7 @@ final case class FunctionArgumentCountException(symbol: Symbol,
                              " arguments; it expects " + required, 
                            location)
 
-final case class FunctionTypeException(symbol: Symbol, location: Location)
+final case class FunctionTypeException(value: String, location: Location)
   extends CompileException("value cannot be called as a function", location)
 
 final case class MissingMainException()

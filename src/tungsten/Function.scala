@@ -10,15 +10,9 @@ final case class Function(override name: Symbol,
                           override location: Location = Nowhere)
   extends Definition(name, location)
 {
-  def ty(module: Module): Type = {
-    val paramTypes = for (name <- parameters;
-                          val Some(param) = module.get[Parameter](name))
-      yield param.ty
-    val functionType = FunctionType(returnType, paramTypes, location)
-    if (typeParameters.isEmpty)
-      functionType
-    else
-      UniversalType(typeParameters, functionType, location)
+  def ty(module: Module): FunctionType = {
+    FunctionType(returnType, parameters.map(module.get[Parameter](_).get.ty))
+    // TODO: include type parameters
   }
 
   def validate(module: Module) = {

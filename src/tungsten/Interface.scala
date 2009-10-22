@@ -11,10 +11,10 @@ final class Interface(name: Symbol,
   extends Definition(name, location)
 {
   def validate(module: Module) = {
-    typeParameters.flatMap(validateComponent[TypeParameter](module, _)) ++
-      superclass.toList.flatMap(_.validate(module)) ++
-      interfaces.flatMap(_.validate(module)) ++
-      methods.flatMap(validateComponent(module, _))
+    stage(validateComponents[TypeParameter](module, typeParameters),
+          superclass.toList.flatMap(_.validate(module)),
+          interfaces.flatMap(_.validate(module)),
+          validateComponents[Function](module, methods))
     // TODO: superclass may not implement this interface
     // TODO: superclass may not be Nothing
     // TODO: superclass must be subclass of Object

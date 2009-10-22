@@ -37,7 +37,13 @@ final class Module {
                                    (implicit m: Manifest[T]): List[CompileException] =
   {
     getDefn(name) match {
-      case Some(defn) => defn.validateType[T](this, location)
+      case Some(defn) if m.erasure.isInstance(name) => Nil
+      case Some(defn) => {
+        List(InappropriateSymbolException(name, 
+                                          location, 
+                                          defn.location, 
+                                          humanReadableClassName[T]))
+      }
       case None => List(UndefinedSymbolException(name, location))
     }
   }

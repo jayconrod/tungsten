@@ -16,13 +16,6 @@ final case class Function(override name: Symbol,
   }
 
   def validate(module: Module) = {
-    def validateComponents = {
-      typeParameters.flatMap(validateComponent[TypeParameter](module, _)) ++
-        parameters.flatMap(validateComponent[Parameter](module, _)) ++
-        returnType.validate(module) ++
-        blocks.flatMap(validateComponent[Block](module, _))
-    }
-
     def validateReturnType = {
       blocks flatMap { blockName =>
         val block = module.get[Block](blockName).get
@@ -42,6 +35,10 @@ final case class Function(override name: Symbol,
       }
     }
 
-    validateComponents ++ validateReturnType
+    stage(validateComponents[TypeParameter](module, typeParameters),
+          validateComponents[Parameter](module, parameters),
+          returnType.validate(module),
+          validateComponents[Block](module, blocks),
+          validateReturnType)
   }
 }

@@ -1,36 +1,35 @@
 package tungsten
 
+import Utilities._
+
 abstract class Definition(val name: Symbol, location: Location = Nowhere) 
   extends TungstenObject(location)
 {
   def validate(module: Module): List[CompileException]
 
-  protected final def validateComponent[T <: Definition](module: Module,
-                                                         componentName: Symbol)
-                                                        (implicit m: Manifest[T]) =
+  protected def validateComponents[T <: Definition](module: Module,
+                                                    componentNames: List[Symbol])
+                                                   (implicit m: Manifest[T]) =
   {
-    module.getDefn(componentName) match {
-      case Some(defn) => defn.validateType[T](module, location)
-      case None => List(UndefinedSymbolException(componentName, location))
+    componentNames flatMap { n =>
+      module.get[T](n) match {
+        case Some(defn) if m.erasure.isInstance(defn) => Nil
+        case Some(defn) => { 
+          List(InappropriateSymbolException(n, 
+                                            location, 
+                                            defn.location,
+                                            humanReadableClassName[T]))
+        }
+        case None => List(UndefinedSymbolException(n, location))
+      }
     }
   }
 
-  final def validateType[T <: Definition](module: Module,
-                                          parentLoc: Location)
-                                         (implicit m: Manifest[T]) =
+  protected def validateComponent[T <: Definition](module: Module,
+                                                   componentName: Symbol)
+                                                  (implicit m: Manifest[T]) =
   {
-    val typeName = m.toString.charAt(0).toLowerCase + m.toString.tail.map({c => 
-      if (c.isUpperCase) " " + c.toLowerCase else c.toString
-    }).mkString
-
-    if (m.erasure.isInstance(this))
-      Nil
-    else
-      List(InappropriateSymbolException(name, parentLoc, location, typeName))
-  }
-
-  def checkName(module: Module) = {
-    assert(module.get(name) eq this)
+    validateComponents[T](module, List(componentName))
   }
 
   def toString: String

@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 final case class Block(override name: Symbol,
                        parameters: List[Symbol],
                        instructions: List[Symbol],
@@ -13,11 +15,6 @@ final case class Block(override name: Symbol,
   }
 
   def validate(module: Module) = {
-    def validateComponents = {
-      parameters.flatMap(validateComponent[Parameter](module, _)) ++
-        instructions.flatMap(validateComponent[Instruction](module, _))
-    }
-
     def validateTermination = {
       if (instructions.isEmpty)
         List(EmptyBlockException(name, location))
@@ -29,7 +26,9 @@ final case class Block(override name: Symbol,
       }
     }
 
-    validateComponents ++ validateTermination
+    stage(validateComponents[Parameter](module, parameters),
+          validateComponents[Instruction](module, instructions),
+          validateTermination)
   }
 
   override def toString = {

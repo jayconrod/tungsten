@@ -4,12 +4,23 @@ import java.io.File
 import java.io.FileReader
 
 private object Utilities {
+  def compileString(program: String) = {
+    val ast = AstParser.test(program)
+    ast.compile.left.get
+  }
+
   def hash(code: Int, x: Any) = {
     val c = if (x == null) 0 else x.hashCode
     c * hashA + hashB
   }
   val hashA = 17
   val hashB = 37
+
+  def humanReadableClassName[T <: Definition](implicit m: Manifest[T]) = {
+    m.toString.charAt(0).toLowerCase + m.toString.tail.map({c =>
+      if (c.isUpperCase) " " + c.toLowerCase else c.toString
+    }).mkString
+  }
 
   def isPowerOf2(x: Int) = (x & (x - 1)) == 0
 
@@ -27,8 +38,19 @@ private object Utilities {
     buffer.toString 
   }
 
-  def compileString(program: String) = {
-    val ast = AstParser.test(program)
-    ast.compile.left.get
+  def stage[T](a: List[T], b: => List[T]): List[T] = {
+    if (!a.isEmpty) a else b
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T]): List[T] = {
+    if (!a.isEmpty) a else stage(b, c)
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T]): List[T] = {
+    if (!a.isEmpty) a else stage(b, c, d)
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T], e: => List[T]): List[T] = {
+    if (!a.isEmpty) a else stage(b, c, d, e)
   }
 }

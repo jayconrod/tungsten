@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 final class Class(name: Symbol,
                   val typeParameters: List[Symbol],
                   val superclass: Option[ClassType],
@@ -10,13 +12,11 @@ final class Class(name: Symbol,
   extends Definition(name, location)
 {
   def validate(module: Module) = {
-    typeParameters.flatMap(validateComponent[TypeParameter](module, _)) ++
-      superclass.toList.flatMap(_.validate(module)) ++
-      interfaces.flatMap(_.validate(module)) ++
-      fields.flatMap(validateComponent[Field](module, _)) ++
-      methods.flatMap(validateComponent[Function](module, _))
-    // TODO: recursive validation of type parameters, superclass type, interfaces, fields, 
-    //   and methods
+    stage(validateComponents[TypeParameter](module, typeParameters),
+          superclass.toList.flatMap(_.validate(module)),
+          interfaces.flatMap(_.validate(module)),
+          validateComponents[Field](module, fields),
+          validateComponents[Function](module, methods))
     // TODO: superclass may not be Nothing
     // TODO: superclass must be subclass of Object
     // TODO: methods start with a supertype parameter

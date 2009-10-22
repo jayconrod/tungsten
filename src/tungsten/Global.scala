@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 final case class Global(override name: Symbol,
                         ty: Type,
                         value: Option[Value],
@@ -10,7 +12,7 @@ final case class Global(override name: Symbol,
   def ty(module: Module) = ty
 
   def validate(module: Module) = {
-    ty.validate(module) ++ value.toList.flatMap(_.validate(module, ty))
+    stage(ty.validate(module), value.toList.flatMap(_.validate(module, ty)))
   }
 
   override def toString = "global " + name + ": " + ty

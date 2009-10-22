@@ -11,18 +11,36 @@ abstract class Definition(val name: Symbol, location: Location = Nowhere)
                                                     componentNames: List[Symbol])
                                                    (implicit m: Manifest[T]) =
   {
-    componentNames flatMap { n =>
-      module.get[T](n) match {
-        case Some(defn) if m.erasure.isInstance(defn) => Nil
-        case Some(defn) => { 
-          List(InappropriateSymbolException(n, 
-                                            location, 
-                                            defn.location,
-                                            humanReadableClassName[T]))
+    val className = humanReadableClassName[T]
+
+    def check(componentNames: List[Symbol], 
+              seen: Set[Symbol],
+              errors: List[CompileException]): List[CompileException] =
+    {
+      componentNames match {
+        case Nil => errors
+        case n :: ns => {
+          val newErrors = if (seen.contains(n))
+            DuplicateComponentException(name, n, className, location) :: errors
+          else {
+            module.get[T](n) match {
+              case Some(defn) if m.erasure.isInstance(defn) => errors
+              case Some(defn) => { 
+                InappropriateSymbolException(n, 
+                                             location,
+                                             defn.location,
+                                             className) :: errors
+              }
+              case None => UndefinedSymbolException(n, location) :: errors
+            }
+          }
+
+          check(ns, seen + n, newErrors)
         }
-        case None => List(UndefinedSymbolException(n, location))
       }
     }
+
+    check(componentNames, Set(), Nil)
   }
 
   protected def validateComponent[T <: Definition](module: Module,

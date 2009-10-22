@@ -9,15 +9,13 @@ sealed abstract class CompileException(message: String, location: Location) exte
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 
-/*
 final case class DuplicateComponentException(symbol: Symbol,
                                              component: Symbol,
-                                             typeName: String,
+                                             className: String,
                                              location: Location)
-  extends CompileException("duplicate " + typeName + " " + component + 
+  extends CompileException("duplicate " + className + " " + component + 
                              " used as part of definition " + symbol,
                            location)
-*/
 
 final case class EmptyBlockException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " contains no instructions", location)

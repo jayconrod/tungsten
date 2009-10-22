@@ -7,6 +7,12 @@ import Utilities._
 class ValidationTest {
   def programContainsError[T <: CompileException](program: String)(implicit m: Manifest[T]) = {
     val errors = compileString(program).validate
+    containsError[T](errors)
+  }
+
+  def containsError[T <: CompileException](errors: List[CompileException])
+                                          (implicit m: Manifest[T]) =
+  {
     assertTrue(errors.exists(m.erasure.isInstance(_)))
   }
 
@@ -38,5 +44,14 @@ class ValidationTest {
   def returnTypeMismatch = {
     val program = "#function main( ): #unit { #block entry( ) { #return r = 12 } }"
     programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def duplicateComponent = {
+    val inst = ReturnInstruction(new Symbol("ret"), UnitValue())
+    val block = Block(new Symbol("block"), Nil, List(inst.name, inst.name))
+    val module = new Module
+    List(inst, block).foreach(module.add(_))
+    containsError[DuplicateComponentException](block.validate(module))
   }
 }

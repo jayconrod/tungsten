@@ -78,24 +78,46 @@ class AstParserTest {
   }
 
   @Test
-  def instruction = {
+  def assignInst = {
+    testInstruction("#assign <foo.w:1.2-3.4> foo = 123",
+                    AstAssignInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
+  }
+
+  @Test
+  def branchInst = {
     testInstruction("#branch <foo.w:1.2-3.4> foo = bar(123)",
                     AstBranchInstruction(foo, 
                                          new Symbol("bar"),
                                          List(AstInt32Value(123, Nowhere)),
                                          fooLoc))
+  }
+
+  @Test
+  def indirectCallInst = {
     testInstruction("#icall <foo.w:1.2-3.4> foo = bar(123)",
                     AstIndirectCallInstruction(foo,
                                                AstSymbolValue(new Symbol("bar"), Nowhere),
                                                List(AstInt32Value(123, Nowhere)),
                                                fooLoc))
+  }
+
+  @Test
+  def intrinsicInst = {
     testInstruction("#intrinsic <foo.w:1.2-3.4> foo = exit(1)",
                     AstIntrinsicCallInstruction(foo,
                                                 new Symbol("exit"),
                                                 List(AstInt32Value(1, Nowhere)),
                                                 fooLoc))
+  }
+
+  @Test
+  def returnInst = {
     testInstruction("#return <foo.w:1.2-3.4> foo = 123", 
                     AstReturnInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
+  }
+
+  @Test
+  def staticCallInst = {
     testInstruction("#scall <foo.w:1.2-3.4> foo = bar(123)",
                     AstStaticCallInstruction(foo,
                                              new Symbol("bar"),

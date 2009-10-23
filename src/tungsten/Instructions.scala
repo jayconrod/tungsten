@@ -7,6 +7,30 @@ sealed abstract class Instruction(name: Symbol, location: Location)
   def isTerminating = false
 }
 
+final case class AssignInstruction(override name: Symbol,
+                                   value: Value,
+                                   override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = value.ty(module)
+
+  def validate(module: Module) = {
+    value match {
+      case DefinedValue(valueName, _) => {
+        module.getDefn(valueName) match {
+          case Some(_: Instruction) | Some(_: Parameter) => Nil
+          case Some(defn) => {
+            List(InappropriateSymbolException(valueName, location, defn.location, 
+                                              "local variable, parameter, or literal"))
+          }
+          case None => List(UndefinedSymbolException(valueName, location))
+        }
+      }
+      case _ => Nil
+    }
+  }
+}
+
 sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], location: Location)
   extends Instruction(name, location)
 {

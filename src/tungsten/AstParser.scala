@@ -64,6 +64,12 @@ object AstParser extends Parsers with ImplicitConversions {
       case l ~ n ~ v => AstReturnInstruction(n, v, l) }
   }
 
+  def assignInst: Parser[AstAssignInstruction] = {
+    "#assign" ~> location ~ (symbol <~ "=") ~ value ^^ {
+      case l ~ n ~ v => AstAssignInstruction(n, v, l)
+    }
+  }
+
   def branchInst: Parser[AstBranchInstruction] = {
     "#branch" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
       case l ~ n ~ v ~ a => AstBranchInstruction(n, v, a, l)
@@ -89,7 +95,12 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def instruction: Parser[AstInstruction] = {
-    returnInst | branchInst | indirectCallInst | staticCallInst | intrinsicCallInst
+    assignInst |
+    returnInst |
+    branchInst |
+    indirectCallInst |
+    staticCallInst |
+    intrinsicCallInst
   }
 
   def parameter: Parser[AstParameter] = {

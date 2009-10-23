@@ -105,6 +105,14 @@ class AstCompileTest {
   }
 
   @Test
+  def assignInst = {
+    ctx.names.push(foo)
+    val ast = AstAssignInstruction(bar, AstUnitValue(Nowhere), loc)
+    val expected = AssignInstruction(foo + bar, UnitValue(), loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def branchInst = {
     ctx.names.push(foo)
     val block = Block(foo + baz, Nil, Nil, Nowhere)

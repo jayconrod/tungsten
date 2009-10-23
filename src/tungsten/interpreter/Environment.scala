@@ -26,6 +26,10 @@ final class Environment(val module: Module) {
   def eval = {
     var inst = state.ip.head
     val result = inst match {
+      case AssignInstruction(name, value, _) => {
+        val ival = Value.eval(value, this)
+        state.values += ((name, ival))
+      }
       case BranchInstruction(_, bbName, args, _) => {
         val iargs = args.map(Value.eval(_, this))
         val block = module.get(bbName).get.asInstanceOf[Block]

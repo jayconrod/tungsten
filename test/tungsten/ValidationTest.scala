@@ -54,4 +54,15 @@ class ValidationTest {
     List(inst, block).foreach(module.add(_))
     containsError[DuplicateComponentException](block.validate(module))
   }
+
+  @Test
+  def nonLocalAssign = {
+    val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
+    val global = Global(foo, UnitType(), None)
+    val inst = AssignInstruction(bar, DefinedValue(foo))
+    val module = new Module
+    module.add(global)
+    module.add(inst)
+    containsError[InappropriateSymbolException](inst.validate(module))
+  }
 }

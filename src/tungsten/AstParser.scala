@@ -152,7 +152,7 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def function: Parser[AstFunction] = {
     "#function" ~> location ~ symbol ~ typeParameterList ~ parameterList ~ (":" ~> ty) ~
-      opt("{" ~> rep1sep(block, ",") <~ "}") ^^ {
+      opt("{" ~> rep(block) <~ "}") ^^ {
         case loc ~ name ~ tyParams ~ params ~ retTy ~ body => {
           val blocks = body.getOrElse(Nil)
           AstFunction(name, retTy, tyParams, params, blocks, loc)
@@ -201,6 +201,9 @@ object AstParser extends Parsers with ImplicitConversions {
   def test(input: String) = {
     val reader = new AstLexer.Scanner(input)
     val result = phrase(module)(reader)
-    result.get
+    result match {
+      case Success(ast, _) => ast
+      case error: NoSuccess => throw new RuntimeException(error.msg)
+    }
   }
 }

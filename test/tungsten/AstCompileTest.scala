@@ -140,7 +140,7 @@ class AstCompileTest {
                        List(AstParameter(baz, AstUnitType(Nowhere), Nowhere)),
                        List(AstReturnInstruction(quux, AstUnitValue(Nowhere), Nowhere)),
                        loc)
-    val expected = Block(foo + bar, List(foo + baz), List(foo + quux), loc)
+    val expected = Block(foo + bar, List(foo + bar + baz), List(foo + bar + quux), loc)
     testDefinition(expected, ast)
   }
 

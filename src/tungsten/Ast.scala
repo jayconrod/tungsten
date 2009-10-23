@@ -250,10 +250,12 @@ final case class AstBlock(name: Symbol,
 {
   def compile(ctx: AstContext): Block = {
     val fullName = ctx.names.top + name
+    ctx.names.push(fullName)
     val cParams = parameters.map(_.compile(ctx).name)
     val cInsts = instructions.map(_.compile(ctx).name)
     val cBlock = Block(fullName, cParams, cInsts, location)
     ctx.module.add(cBlock)
+    ctx.names.pop
     cBlock
   }
 }

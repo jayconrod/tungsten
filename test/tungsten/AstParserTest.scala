@@ -207,7 +207,7 @@ class AstParserTest {
     val program = "#function <foo.w:1.2-3.4> foo[T1, T2](bar: #unit, baz: #unit): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #branch quux = ret( )\n" + 
-                  "  },\n" +
+                  "  }\n" +
                   "  #block ret( ) {\n" +
                   "    #return xyz = ()\n" +
                   "  }\n" +

@@ -13,32 +13,37 @@ final class Environment(val module: Module) {
   val stack = new Stack[State]
 
   var state: State = new State(init)
-  stack.push(state)
 
   var returnCode = 0
 
   def run = {
     while (state != null)
-      eval
+      step
     returnCode
   }
 
-  def eval = {
-    var inst = state.ip.head
-    val result = inst match {
-      case AssignInstruction(name, value, _) => {
-        val ival = Value.eval(value, this)
-        state.values += ((name, ival))
-      }
+  def step = {
+    val frame = state
+    val inst = frame.ip.head
+    val result = eval(inst)
+    frame.values += ((inst.name, result))
+    frame.ip = frame.ip.tail
+  }
+
+  def eval(inst: Instruction): Value = {
+    inst match {
+      case AssignInstruction(name, value, _) => Value.eval(value, this)
       case BranchInstruction(_, bbName, args, _) => {
         val iargs = args.map(Value.eval(_, this))
         val block = module.get(bbName).get.asInstanceOf[Block]
         branch(block, iargs)
+        UnitValue
       }
       case IndirectCallInstruction(name, target, arguments, _) => {
         val function = Value.eval(target, this).asInstanceOf[FunctionValue].value
         val args = arguments.map(Value.eval(_, this))
         call(function, args)
+        UnitValue
       }
       case IntrinsicCallInstruction(name, intrinsic, arguments, _) => {
         import tungsten.Intrinsic._
@@ -48,18 +53,20 @@ final class Environment(val module: Module) {
             state = null
           }
         }
+        UnitValue
       }
       case ReturnInstruction(_, v, _) => {
-        stack.pop
-        state = stack.head
-        val callInst = state.ip.head
-        state.values += ((callInst.name, Value.eval(v, this)))
+        val ret = Value.eval(v, this)
+        state = stack.pop
+        state.values += ((state.ip.head.name, ret))
         state.ip = state.ip.tail
+        UnitValue   // gets assigned to the actual return instruction
       }
       case StaticCallInstruction(name, target, arguments, _) => {
         val function = module.get(target).get.asInstanceOf[Function]
         val args = arguments.map(Value.eval(_, this))
         call(function, args)
+        UnitValue
       }
     }
   }
@@ -81,8 +88,8 @@ final class Environment(val module: Module) {
 
   def call(function: Function, arguments: List[Value]) = {
     val block = module.get(function.blocks.head).get.asInstanceOf[Block]
-    state = new State(blockIp(block))
     stack.push(state)
+    state = new State(blockIp(block))
     setArguments(function.parameters, arguments)
   }
 }

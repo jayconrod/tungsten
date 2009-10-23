@@ -4,7 +4,7 @@ import java.io.File
 import java.io.FileReader
 
 private object Utilities {
-  def compileString(program: String) = {
+  def compileString(program: String): Module = {
     val ast = AstParser.test(program)
     ast.compile.left.get
   }

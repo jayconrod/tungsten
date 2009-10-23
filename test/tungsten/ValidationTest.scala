@@ -29,6 +29,12 @@ class ValidationTest {
   }
 
   @Test
+  def earlyTermination = {
+    val program = "#function main( ): #unit { #block entry( ) { #return a = () #return b = () } }"
+    programContainsError[EarlyTerminationException](program)
+  }
+
+  @Test
   def exitTermination = {
     val program = "#function main( ): #unit { #block entry( ) { #intrinsic foo = exit(12) } }"
     val errors = compileString(program).validate

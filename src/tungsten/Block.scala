@@ -16,14 +16,25 @@ final case class Block(override name: Symbol,
 
   def validate(module: Module) = {
     def validateTermination = {
-      if (instructions.isEmpty)
-        List(EmptyBlockException(name, location))
-      else {
-        module.get[Instruction](instructions.last) match {
-          case Some(inst) if inst.isTerminating => Nil
-          case _ => List(BlockTerminationException(name, location))
+      def check(insts: List[Instruction]): List[CompileException] = {
+        insts match {
+          case Nil => List(EmptyBlockException(name, location))
+          case i :: Nil => {
+            if (i.isTerminating) 
+              Nil
+            else
+              List(BlockTerminationException(name, location))
+          }
+          case i :: is => {
+            if (!i.isTerminating) 
+              check(is)
+            else
+              List(EarlyTerminationException(name, i.name, location))
+          }
         }
       }
+
+      check(instructions.map(module.get[Instruction](_).get))
     }
 
     stage(validateComponents[Parameter](module, parameters),

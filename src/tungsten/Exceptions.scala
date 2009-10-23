@@ -17,6 +17,13 @@ final case class DuplicateComponentException(symbol: Symbol,
                              " used as part of definition " + symbol,
                            location)
 
+final case class EarlyTerminationException(blockName: Symbol,
+                                           instName: Symbol,
+                                           location: Location)
+  extends CompileException("block " + instName + " terminates early on instruction " + 
+                             instName,
+                           location)
+
 final case class EmptyBlockException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " contains no instructions", location)
 

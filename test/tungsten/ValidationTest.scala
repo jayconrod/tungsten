@@ -17,6 +17,13 @@ class ValidationTest {
   }
 
   @Test
+  def stagedValidation = {
+    def f(x: Int) = if (x > 0) List(1, 2, 3) else throw new RuntimeException("stage failed")
+    stage(f(1), f(-1))
+    ()
+  }
+
+  @Test
   def emptyBlockTermination = {
     val program = "#function main( ): #unit { #block empty( ) { } }"
     programContainsError[EmptyBlockException](program)
@@ -30,7 +37,12 @@ class ValidationTest {
 
   @Test
   def earlyTermination = {
-    val program = "#function main( ): #unit { #block entry( ) { #return a = () #return b = () } }"
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #return a = ()\n" +
+                  "    #return b = ()\n" +
+                  "  }\n" +
+                  "}\n"
     programContainsError[EarlyTerminationException](program)
   }
 

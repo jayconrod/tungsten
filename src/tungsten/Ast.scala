@@ -3,6 +3,7 @@ package tungsten
 import Utilities._
 
 sealed abstract class AstDefinition(val location: Location) {
+  def compileDeclaration(ctx: AstContext): Unit
   def compile(ctx: AstContext): Definition
 }
 
@@ -112,6 +113,12 @@ final case class AstSymbolValue(value: Symbol, override location: Location)
 sealed abstract class AstInstruction(val name: Symbol, override val location: Location) 
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = {
+    val fullName: Symbol = ctx.names.top + name
+    val cInst = AssignInstruction(fullName, UnitValue(), location)
+    ctx.module.add(cInst)
+  }
+
   def compile(ctx: AstContext): Instruction
 }
 
@@ -124,7 +131,7 @@ final case class AstAssignInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cTarget = target.compile(ctx)
     val cInst = AssignInstruction(fullName, cTarget, location)
-    ctx.module.add(cInst)
+    ctx.module.update(cInst)
     cInst
   }
 }
@@ -143,7 +150,7 @@ final case class AstBranchInstruction(override name: Symbol,
     }
     val cArgs = arguments.map(_.compileOrElse(ctx))
     val cInst = BranchInstruction(fullName, cTarget, cArgs, location)
-    ctx.module.add(cInst)
+    ctx.module.update(cInst)
     cInst
   }
 }
@@ -158,7 +165,7 @@ final case class AstReturnInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cValue = value.compileOrElse(ctx)
     val cReturn = ReturnInstruction(fullName, cValue, location)
-    ctx.module.add(cReturn)
+    ctx.module.update(cReturn)
     cReturn
   }
 }
@@ -174,7 +181,7 @@ final case class AstIndirectCallInstruction(override name: Symbol,
     val cTarget = target.compileOrElse(ctx)
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = IndirectCallInstruction(fullName, cTarget, cArgs, location)
-    ctx.module.add(cCall)
+    ctx.module.update(cCall)
     cCall
   }
 }
@@ -192,7 +199,7 @@ final case class AstIntrinsicCallInstruction(override name: Symbol,
     }
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = IntrinsicCallInstruction(name, cIntrinsic, cArgs, location)
-    ctx.module.add(cCall)
+    ctx.module.update(cCall)
     cCall
   }
 }
@@ -207,7 +214,7 @@ final case class AstStaticCallInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = StaticCallInstruction(fullName, target, cArgs, location)
-    ctx.module.add(cCall)
+    ctx.module.update(cCall)
     cCall
   }
 }
@@ -217,12 +224,18 @@ final case class AstStaticCallInstruction(override name: Symbol,
 final case class AstParameter(name: Symbol, ty: AstType, override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cParam = Parameter(fullName, UnitType(), location)
+    ctx.module.add(cParam)
+  }
+
   def compile(ctx: AstContext): Parameter = {
     val cty = ty.compileOrElse(ctx)
     val fullName = ctx.names.top + name
-    val cparam = Parameter(fullName, cty, location)
-    ctx.module.add(cparam)
-    cparam
+    val cParam = Parameter(fullName, cty, location)
+    ctx.module.update(cParam)
+    cParam
   }
 }     
 
@@ -232,12 +245,18 @@ final case class AstTypeParameter(name: Symbol,
                                   override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cTyParam = TypeParameter(fullName, None, None, location)
+    ctx.module.add(cTyParam)
+  }
+
   def compile(ctx: AstContext): TypeParameter = {
     val fullName = ctx.names.top + name
     val cUpperBound = upperBound.map(_.compileOrElse(ctx))
     val cLowerBound = lowerBound.map(_.compileOrElse(ctx))
     val cTyParam = TypeParameter(fullName, cUpperBound, cLowerBound, location)
-    ctx.module.add(cTyParam)
+    ctx.module.update(cTyParam)
     cTyParam
   }
 }
@@ -248,13 +267,23 @@ final case class AstBlock(name: Symbol,
                           override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    ctx.names.push(fullName)
+    parameters.foreach(_.compileDeclaration(ctx))
+    instructions.foreach(_.compileDeclaration(ctx))
+    val cBlock = Block(fullName, Nil, Nil, location)
+    ctx.names.pop
+    ctx.module.add(cBlock)
+  }
+
   def compile(ctx: AstContext): Block = {
     val fullName = ctx.names.top + name
     ctx.names.push(fullName)
     val cParams = parameters.map(_.compile(ctx).name)
     val cInsts = instructions.map(_.compile(ctx).name)
     val cBlock = Block(fullName, cParams, cInsts, location)
-    ctx.module.add(cBlock)
+    ctx.module.update(cBlock)
     ctx.names.pop
     cBlock
   }
@@ -268,6 +297,16 @@ final case class AstFunction(name: Symbol,
                              override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = {
+    ctx.names.push(name)
+    typeParameters.foreach(_.compileDeclaration(ctx))
+    parameters.foreach(_.compileDeclaration(ctx))
+    blocks.foreach(_.compileDeclaration(ctx))
+    val cFunction = Function(name, Nil, Nil, UnitType(), Nil, location)
+    ctx.names.pop
+    ctx.module.add(cFunction)
+  }
+
   def compile(ctx: AstContext) = {
     ctx.names.push(name)
     val cRetTy = returnType.compileOrElse(ctx)
@@ -275,7 +314,7 @@ final case class AstFunction(name: Symbol,
     val cParams = parameters.map(_.compile(ctx).name)
     val cBlocks = blocks.map(_.compile(ctx).name)
     val cFunction = Function(name, cTyParams, cParams, cRetTy, cBlocks, location)
-    ctx.module.add(cFunction)
+    ctx.module.update(cFunction)
     ctx.names.pop
     cFunction
   }
@@ -289,9 +328,14 @@ final case class AstGlobal(name: Symbol,
                            override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = {
+    val cGlobal = Global(name, UnitType(), None, location)
+    ctx.module.add(cGlobal)
+  }
+
   def compile(ctx: AstContext) = {
     val global = Global(name, ty.compile(ctx), value.map(_.compile(ctx)), location)
-    ctx.module.add(global)
+    ctx.module.update(global)
     global
   }
 }
@@ -303,6 +347,8 @@ final case class AstField(name: Symbol,
                           override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
+
   def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
@@ -312,6 +358,8 @@ final case class AstStruct(name: Symbol,
                            override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
+
   def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
@@ -324,6 +372,8 @@ final case class AstClass(name: Symbol,
                           override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
+
   def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
@@ -335,6 +385,8 @@ final case class AstInterface(name: Symbol,
                               override location: Location)
   extends AstDefinition(location)
 {
+  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
+
   def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
@@ -343,7 +395,8 @@ final case class AstInterface(name: Symbol,
 final case class AstModule(definitions: List[AstDefinition]) {
   def compile: Either[Module, List[CompileException]] = {
     val ctx = new AstContext
-    for (defn <- definitions) defn.compile(ctx)
+    definitions.foreach(_.compileDeclaration(ctx))
+    definitions.foreach(_.compile(ctx))
     ctx.errors.toList match {
       case Nil => Left(ctx.module)
       case errors => Right(errors)

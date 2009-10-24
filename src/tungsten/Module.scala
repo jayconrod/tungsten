@@ -13,6 +13,11 @@ final class Module {
       case Some(d) => throw new RedefinedSymbolException(defn.name, defn.location, d.location)
       case None => definitions += defn.name -> defn
     }
+    ()
+  }
+
+  def update(defn: Definition) = {
+    definitions += defn.name -> defn
   }
 
   def getDefn(name: Symbol): Option[Definition] = definitions.get(name)

@@ -1,18 +1,20 @@
 package tungsten.interpreter
 
-import scala.collection.mutable._
+import scala.collection.immutable.Stack
 import tungsten._
 import Value._
 
 final class Environment(val module: Module) {
-  val init = List(StaticCallInstruction(new Symbol("init"), new Symbol("main"), Nil),
-                  IntrinsicCallInstruction(new Symbol("exit"), 
-                                           Intrinsic.EXIT,
-                                           List(tungsten.Int32Value(0))))
+  val init = Array[Instruction](StaticCallInstruction(new Symbol("init"), 
+                                                      new Symbol("main"),
+                                                      Nil),
+                                IntrinsicCallInstruction(new Symbol("exit"), 
+                                                      Intrinsic.EXIT,
+                                                      List(tungsten.Int32Value(0))))
 
-  val stack = new Stack[State]
+  var stack = new Stack[State]
 
-  var state: State = new State(init)
+  var state = new State(new Symbol("init"), init, 0, Map[Symbol, Value]())
 
   var returnCode = 0
 
@@ -23,20 +25,20 @@ final class Environment(val module: Module) {
   }
 
   def step = {
-    val frame = state
-    val inst = frame.ip.head
-    val result = eval(inst)
-    frame.values += ((inst.name, result))
-    frame.ip = frame.ip.tail
+    val oldState = state
+    val result = eval(state.inst)
+    if (state == oldState)  // normal non-control instruction
+      state = state.add(result).next
   }
 
   def eval(inst: Instruction): Value = {
     inst match {
       case AssignInstruction(name, value, _) => Value.eval(value, this)
-      case BranchInstruction(_, bbName, args, _) => {
+      case BranchInstruction(name, bbName, args, _) => {
         val iargs = args.map(Value.eval(_, this))
-        val block = module.get(bbName).get.asInstanceOf[Block]
+        val block = module.get[Block](bbName).get
         branch(block, iargs)
+        state = state.add(name, UnitValue)
         UnitValue
       }
       case IndirectCallInstruction(name, target, arguments, _) => {
@@ -57,13 +59,13 @@ final class Environment(val module: Module) {
       }
       case ReturnInstruction(_, v, _) => {
         val ret = Value.eval(v, this)
-        state = stack.pop
-        state.values += ((state.ip.head.name, ret))
-        state.ip = state.ip.tail
+        state = stack.head
+        stack = stack.pop
+        state = state.add(state.inst.name, ret).next
         UnitValue   // gets assigned to the actual return instruction
       }
       case StaticCallInstruction(name, target, arguments, _) => {
-        val function = module.get(target).get.asInstanceOf[Function]
+        val function = module.get[Function](target).get
         val args = arguments.map(Value.eval(_, this))
         call(function, args)
         UnitValue
@@ -71,25 +73,22 @@ final class Environment(val module: Module) {
     }
   }
 
-  def blockIp(block: Block) = {
-    block.instructions.toStream.map(module.get[Instruction](_).get)
-  }
-
   def setArguments(paramNames: List[Symbol], arguments: List[Value]) = {
     assert(paramNames.length == arguments.length)
-    for ((name, arg) <- paramNames zip arguments)
-      state.values += name -> arg
+    state = (paramNames zip arguments).foldLeft(state) { (st, arg) =>
+      val (k, v) = arg
+      st.add(k, v)
+    }
   }         
 
   def branch(block: Block, arguments: List[Value]) = {
-    state.ip = blockIp(block)
+    state = new State(block, module)
     setArguments(block.parameters, arguments)
   }
 
   def call(function: Function, arguments: List[Value]) = {
-    val block = module.get(function.blocks.head).get.asInstanceOf[Block]
-    stack.push(state)
-    state = new State(blockIp(block))
+    stack = stack.push(state)
+    state = new State(function, module)
     setArguments(function.parameters, arguments)
   }
 }

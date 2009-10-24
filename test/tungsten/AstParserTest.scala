@@ -93,6 +93,12 @@ class AstParserTest {
   }
 
   @Test
+  def globalLoadInst = {
+    testInstruction("#gload <foo.w:1.2-3.4> foo = bar",
+                    AstGlobalLoadInstruction(foo, new Symbol("bar"), fooLoc))
+  }
+
+  @Test
   def indirectCallInst = {
     testInstruction("#icall <foo.w:1.2-3.4> foo = bar(123)",
                     AstIndirectCallInstruction(foo,

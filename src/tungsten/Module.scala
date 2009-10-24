@@ -6,32 +6,34 @@ import scala.reflect.Manifest
 import Utilities._
 
 final class Module {
-  private val definitions: Map[Symbol, Definition] = new HashMap[Symbol, Definition]
+  private val _definitions: Map[Symbol, Definition] = new HashMap[Symbol, Definition]
+
+  def definitions = _definitions
 
   def add(defn: Definition) = {
-    definitions.get(defn.name) match {
+    _definitions.get(defn.name) match {
       case Some(d) => throw new RedefinedSymbolException(defn.name, defn.location, d.location)
-      case None => definitions += defn.name -> defn
+      case None => _definitions += defn.name -> defn
     }
     ()
   }
 
   def update(defn: Definition) = {
-    definitions += defn.name -> defn
+    _definitions += defn.name -> defn
   }
 
-  def getDefn(name: Symbol): Option[Definition] = definitions.get(name)
+  def getDefn(name: Symbol): Option[Definition] = _definitions.get(name)
 
   def get[T <: Definition](name: Symbol)(implicit m: Manifest[T]): Option[T] = {
-    definitions.get(name) match {
+    _definitions.get(name) match {
       case Some(d) if m.erasure.isInstance(d) => Some(d.asInstanceOf[T])
       case _ => None
     }
   }
 
   def validate = {
-    val errors = definitions.valueIterable.flatMap(_.validate(this)).toList
-    definitions.get(new Symbol("main")) match {
+    val errors = _definitions.valueIterable.flatMap(_.validate(this)).toList
+    _definitions.get(new Symbol("main")) match {
       case Some(_: Function) => errors
       case _ => MissingMainException() :: errors
     }
@@ -55,10 +57,10 @@ final class Module {
 
   override def equals(that: Any) = that match {
     case m: Module => {
-      definitions equals m.definitions
+      _definitions equals m._definitions
     }
     case _ => false
   }
 
-  override def hashCode = definitions.hashCode
+  override def hashCode = _definitions.hashCode
 }

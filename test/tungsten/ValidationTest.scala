@@ -83,4 +83,15 @@ class ValidationTest {
     module.add(inst)
     containsError[InappropriateSymbolException](inst.validate(module))
   }
+
+  @Test
+  def nonLiteralGlobal = {
+    val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
+    val gfoo = Global(foo, UnitType(), Some(UnitValue()))
+    val gbar = Global(bar, UnitType(), Some(DefinedValue(foo)))
+    val module = new Module
+    module.add(gfoo)
+    module.add(gbar)
+    containsError[GlobalValueNonLiteralException](gbar.validate(module))
+  }
 }

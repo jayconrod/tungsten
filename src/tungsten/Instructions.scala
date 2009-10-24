@@ -75,6 +75,20 @@ final case class BranchInstruction(override name: Symbol,
   }
 }
 
+final case class GlobalLoadInstruction(override name: Symbol,
+                                       globalName: Symbol,
+                                       override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = {
+    module.get[Global](globalName).get.ty
+  }
+
+  def validate(module: Module) = {
+    module.validateName[Global](globalName, location)
+  }
+}
+
 final case class IndirectCallInstruction(override name: Symbol,
                                          target: Value,
                                          arguments: List[Value],

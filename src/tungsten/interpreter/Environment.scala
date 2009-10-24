@@ -16,6 +16,14 @@ final class Environment(val module: Module) {
 
   var state = new State(new Symbol("init"), init, 0, Map[Symbol, Value]())
 
+  var globalState = module.definitions.valueIterable.foldLeft(Map[Symbol, Value]()) { (st, d) =>
+    d match {
+      case Global(name, _, Some(value), _) => st + (name -> Value.eval(value, this))
+      case Global(name, ty, None, _) => st + (name -> Value.eval(ty.defaultValue, this))
+      case _ => st
+    }
+  }
+
   var returnCode = 0
 
   def run = {
@@ -41,6 +49,7 @@ final class Environment(val module: Module) {
         state = state.add(name, UnitValue)
         UnitValue
       }
+      case GlobalLoadInstruction(name, globalName, _) => globalState(globalName)
       case IndirectCallInstruction(name, target, arguments, _) => {
         val function = Value.eval(target, this).asInstanceOf[FunctionValue].value
         val args = arguments.map(Value.eval(_, this))

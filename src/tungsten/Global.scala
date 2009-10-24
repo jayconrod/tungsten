@@ -12,7 +12,16 @@ final case class Global(override name: Symbol,
   def ty(module: Module) = ty
 
   def validate(module: Module) = {
-    stage(ty.validate(module), value.toList.flatMap(_.validate(module, ty)))
+    def validateValue = {
+      value match {
+        case Some(DefinedValue(_, _)) => List(GlobalValueNonLiteralException(name, location))
+        case _ => Nil
+      }
+    }
+
+    stage(ty.validate(module), 
+          validateValue,
+          value.toList.flatMap(_.validate(module, ty)))
   }
 
   override def toString = "global " + name + ": " + ty

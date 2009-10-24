@@ -126,6 +126,16 @@ class AstCompileTest {
   }
 
   @Test
+  def globalLoadInst = {
+    val global = Global(foo, UnitType(), None)
+    ctx.module.add(global)
+    ctx.names.push(bar)
+    val ast = AstGlobalLoadInstruction(baz, foo, loc)
+    val expected = GlobalLoadInstruction(bar + baz, foo, loc)
+    testDefinition(expected, ast)
+  } 
+
+  @Test
   def returnInst = {
     ctx.names.push(foo)
     val ast = AstReturnInstruction(bar, AstUnitValue(Nowhere), loc)

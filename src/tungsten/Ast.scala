@@ -155,6 +155,18 @@ final case class AstBranchInstruction(override name: Symbol,
   }
 }
 
+final case class AstGlobalLoadInstruction(override name: Symbol,
+                                          globalName: Symbol,
+                                          override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cRead = GlobalLoadInstruction(fullName, globalName, location)
+    ctx.module.update(cRead)
+    cRead
+  }
+}
 
 final case class AstReturnInstruction(override name: Symbol,
                                       value: AstValue,

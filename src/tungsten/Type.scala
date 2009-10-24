@@ -6,12 +6,15 @@ abstract sealed class Type(location: Location)
   extends TungstenObject(location)
 {
   def validate(module: Module): List[CompileException] = Nil
+  def defaultValue: Value
   def equals(that: Any): Boolean
   def hashCode: Int
   def toString: String
 }
 
 final case class UnitType(override location: Location = Nowhere) extends Type(location) {
+  def defaultValue = UnitValue(location)
+
   override def equals(that: Any) = {
     that match {
       case UnitType(_) => true
@@ -31,6 +34,15 @@ final case class IntType(width: Int,
   if (width < 1 || !isPowerOf2(width) || width > 64)
     throw new IllegalArgumentException
 
+  def defaultValue = {
+    width match {
+      case 8 => Int8Value(0, location)
+      case 16 => Int16Value(0, location)
+      case 32 => Int32Value(0, location)
+      case 64 => Int64Value(0, location)
+    }
+  }
+
   override def equals(that: Any) = {
     that match {
       case IntType(w, _) if width == w => true
@@ -49,6 +61,8 @@ final case class FloatType(width: Int,
 {
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
+
+  def defaultValue = throw new UnsupportedOperationException
 
   override def equals(that: Any) = {
     that match {
@@ -72,6 +86,8 @@ final case class UniversalType(typeParameters: List[Symbol],
       yield module.validateName[TypeParameter](paramName, location)
     errors.flatMap(_.toList)
   }
+
+  def defaultValue = throw new UnsupportedOperationException
 
   override def equals(that: Any) = {
     that match {
@@ -101,6 +117,8 @@ final case class ExistentialType(typeParameters: List[Symbol],
     errors.flatMap(_.toList)
   }
 
+  def defaultValue = throw new UnsupportedOperationException
+
   override def equals(that: Any) = {
     that match {
       case ExistentialType(pts, b, _) 
@@ -127,6 +145,8 @@ final case class VariableType(name: Symbol,
     module.validateName[TypeParameter](name, location).toList
   }
 
+  def defaultValue = throw new UnsupportedOperationException
+
   override def equals(that: Any) = {
     that match {
       case VariableType(n, _) if name == n => true
@@ -143,6 +163,8 @@ final case class ArrayType(elementType: Type,
                            override location: Location = Nowhere)
   extends Type(location)
 {
+  def defaultValue = throw new UnsupportedOperationException
+
   override def equals(that: Any) = {
     that match {
       case ArrayType(e, _) if elementType == e => true
@@ -160,6 +182,8 @@ final case class FunctionType(returnType: Type,
                               override location: Location = Nowhere)
   extends Type(location)
 {
+  def defaultValue = throw new UnsupportedOperationException
+
   override def equals(that: Any) = {
     that match {
       case FunctionType(rt, pts, _) 
@@ -182,6 +206,8 @@ final case class ClassType(className: Symbol,
   extends Type(location)
 {
   override def validate(module: Module) = module.validateName[Class](className, location)
+
+  def defaultValue = throw new UnsupportedOperationException
 
   override def equals(that: Any) = {
     that match {
@@ -206,6 +232,8 @@ final case class InterfaceType(interfaceName: Symbol,
     module.validateName[Interface](interfaceName, location).toList
   }
 
+  def defaultValue = throw new UnsupportedOperationException
+
   override def equals(that: Any) = {
     that match {
       case InterfaceType(n, args, _)
@@ -221,6 +249,8 @@ final case class InterfaceType(interfaceName: Symbol,
 }
 
 final case class NullType(override location: Location = Nowhere) extends Type(location) {
+  def defaultValue = throw new UnsupportedOperationException
+
   override def equals(that: Any) = {
     that match {
       case NullType(_) => true
@@ -233,12 +263,3 @@ final case class NullType(override location: Location = Nowhere) extends Type(lo
   override def toString = "Null"
 }
   
-final case class BasicBlockType(override location: Location = Nowhere) extends Type(location) {
-  override def equals(that: Any) = {
-    that.isInstanceOf[BasicBlockType]
-  }
-
-  override def hashCode = hash(0, "bb")
-
-  override def toString = "BBType"
-}

@@ -82,8 +82,6 @@ class EnvironmentTest {
     env.step
     val r2 = module.get[Instruction](new Symbol(List("main", "b2", "r2"))).get
     assertEquals(r2, env.state.inst)
-    println("branchInst test state:")
-    println(env.state)
     assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "b2", "x"))))
   }
 
@@ -92,6 +90,21 @@ class EnvironmentTest {
     val (module, env) = prepareCode("#intrinsic x = exit(12)")
     env.step
     assertEquals(12, env.returnCode)
+  }
+
+  @Test
+  def globalLoadInst = {
+    val program = "#global foo: #int32 = 12\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #gload bar = foo\n" +
+                  "    #return r = ()\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    assertEquals(Int32Value(12), env.globalState(new Symbol("foo")))
+    env.step
+    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "bar"))))
   }
 
   @Test

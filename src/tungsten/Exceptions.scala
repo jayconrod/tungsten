@@ -50,6 +50,9 @@ final case class FunctionArgumentCountException(symbol: Symbol,
 final case class FunctionTypeException(value: String, location: Location)
   extends CompileException("value cannot be called as a function", location)
 
+final case class GlobalValueNonLiteralException(symbol: Symbol, location: Location)
+  extends CompileException("global " + symbol + " has a non-literal initial value", location)
+
 final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)
 

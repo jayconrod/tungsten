@@ -84,9 +84,7 @@ final case class GlobalLoadInstruction(override name: Symbol,
     module.get[Global](globalName).get.ty
   }
 
-  def validate(module: Module) = {
-    module.validateName[Global](globalName, location)
-  }
+  def validate(module: Module) = module.validateName[Global](globalName, location)
 }
 
 final case class IndirectCallInstruction(override name: Symbol,

@@ -133,7 +133,21 @@ class AstCompileTest {
     val ast = AstGlobalLoadInstruction(baz, foo, loc)
     val expected = GlobalLoadInstruction(bar + baz, foo, loc)
     testDefinition(expected, ast)
-  } 
+  }
+
+  @Test
+  def indirectCallInst = {
+    ctx.names.push(foo)
+    val ast = AstIndirectCallInstruction(bar, 
+                                         AstSymbolValue(baz, Nowhere), 
+                                         List(AstInt32Value(12, Nowhere)),
+                                         loc)
+    val expected = IndirectCallInstruction(foo + bar, 
+                                           DefinedValue(baz),
+                                           List(Int32Value(12)),
+                                           loc)
+    testDefinition(expected, ast)
+  }
 
   @Test
   def returnInst = {

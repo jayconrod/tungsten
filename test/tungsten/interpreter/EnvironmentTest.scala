@@ -108,6 +108,30 @@ class EnvironmentTest {
   }
 
   @Test
+  def indirectCallInst = {
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #assign g = f\n" +
+                  "    #icall res = g(12)\n" +
+                  "    #return r = res\n" +
+                  "  }\n" +
+                  "}\n" +
+                  "#function f(x: #int32): #int32 {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #return r = x\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    env.step    // assign
+    val f = module.get[Function](new Symbol("f")).get
+    assertEquals(FunctionValue(f), env.state.get(new Symbol(List("main", "entry", "g"))))
+    env.step    // call
+    val r = module.get[Instruction](new Symbol(List("f", "entry", "r"))).get
+    assertEquals(r, env.state.inst)
+    assertEquals(Int32Value(12), env.state.get(new Symbol(List("f", "x"))))
+  }
+
+  @Test
   def staticCallAndReturnInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

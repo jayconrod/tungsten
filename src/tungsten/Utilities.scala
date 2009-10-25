@@ -17,7 +17,8 @@ private object Utilities {
   val hashB = 37
 
   def humanReadableClassName[T <: Definition](implicit m: Manifest[T]) = {
-    m.toString.charAt(0).toLowerCase + m.toString.tail.map({c =>
+    val className = m.toString.split("\\.").last
+    className.charAt(0).toLowerCase + className.tail.map({c =>
       if (c.isUpperCase) " " + c.toLowerCase else c.toString
     }).mkString
   }

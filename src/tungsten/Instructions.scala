@@ -86,7 +86,7 @@ final case class GlobalLoadInstruction(override name: Symbol,
     module.get[Global](globalName).get.ty
   }
 
-  def validate(module: Module) = module.validateName[Global](globalName, location)
+  def validate(module: Module) = validateComponent[Global](module, globalName)
 }
 
 final case class GlobalStoreInstruction(override name: Symbol,
@@ -98,16 +98,8 @@ final case class GlobalStoreInstruction(override name: Symbol,
   def ty(module: Module) = UnitType()
 
   def validate(module: Module) = {
-    def validateType = {
-      val global = module.get[Global](globalName).get
-      val valueTy = value.ty(module)
-      if (global.ty != valueTy)
-        List(TypeMismatchException(valueTy.toString, global.ty.toString, location))
-      else
-        Nil
-    }
     stage(validateComponent[Global](module, globalName),
-          validateType)
+          value.validate(module, module.get[Global](globalName).get.ty))
   }
 }
 

@@ -82,6 +82,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def gstoreInst: Parser[AstGlobalStoreInstruction] = {
+    "#gstore" ~> location ~ (symbol <~ "=") ~ (symbol <~ "<-") ~ value ^^ {
+      case l ~ n ~ g ~ v => AstGlobalStoreInstruction(n, g, v, l)
+    }
+  }
+
   def indirectCallInst: Parser[AstIndirectCallInstruction] = {
     "#icall" ~> location ~ (symbol <~ "=") ~ value ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstIndirectCallInstruction(n, t, a, l)
@@ -105,6 +111,7 @@ object AstParser extends Parsers with ImplicitConversions {
     returnInst |
     branchInst |
     gloadInst |
+    gstoreInst |
     indirectCallInst |
     staticCallInst |
     intrinsicCallInst

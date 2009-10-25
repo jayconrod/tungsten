@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 sealed abstract class Instruction(name: Symbol, location: Location)
   extends Definition(name, location)
   with TypedDefinition
@@ -85,6 +87,28 @@ final case class GlobalLoadInstruction(override name: Symbol,
   }
 
   def validate(module: Module) = module.validateName[Global](globalName, location)
+}
+
+final case class GlobalStoreInstruction(override name: Symbol,
+                                        globalName: Symbol,
+                                        value: Value,
+                                        override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = UnitType()
+
+  def validate(module: Module) = {
+    def validateType = {
+      val global = module.get[Global](globalName).get
+      val valueTy = value.ty(module)
+      if (global.ty != valueTy)
+        List(TypeMismatchException(valueTy.toString, global.ty.toString, location))
+      else
+        Nil
+    }
+    stage(validateComponent[Global](module, globalName),
+          validateType)
+  }
 }
 
 final case class IndirectCallInstruction(override name: Symbol,

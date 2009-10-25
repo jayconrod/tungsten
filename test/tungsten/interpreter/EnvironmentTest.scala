@@ -108,6 +108,20 @@ class EnvironmentTest {
   }
 
   @Test
+  def globalStoreInst = {
+    val program = "#global foo: #int32\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #gstore bar = foo <- 12\n" +
+                  "    #return r = ()\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    env.step
+    assertEquals(Int32Value(12), env.globalState(new Symbol("foo")))
+  }
+
+  @Test
   def indirectCallInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

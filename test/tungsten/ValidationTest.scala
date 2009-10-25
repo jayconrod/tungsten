@@ -94,4 +94,15 @@ class ValidationTest {
     module.add(gbar)
     containsError[GlobalValueNonLiteralException](gbar.validate(module))
   }
+
+  @Test
+  def globalTypeMismatch = {
+    val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
+    val gfoo = Global(foo, UnitType(), None)
+    val ibar = GlobalStoreInstruction(bar, foo, Int32Value(12))
+    val module = new Module
+    module.add(gfoo)
+    module.add(ibar)
+    containsError[TypeMismatchException](ibar.validate(module))
+  }
 }

@@ -50,6 +50,10 @@ final class Environment(val module: Module) {
         UnitValue
       }
       case GlobalLoadInstruction(name, globalName, _) => globalState(globalName)
+      case GlobalStoreInstruction(name, globalName, value, _) => {
+        globalState = globalState + (globalName -> Value.eval(value, this))
+        UnitValue
+      }
       case IndirectCallInstruction(name, target, arguments, _) => {
         val function = Value.eval(target, this).asInstanceOf[FunctionValue].value
         val args = arguments.map(Value.eval(_, this))

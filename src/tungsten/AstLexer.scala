@@ -6,11 +6,11 @@ import scala.util.parsing.input._
 object AstLexer extends Parsers {
   type Elem = Char
 
-  val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:",
+  val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:", "<-",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",
     "#unit", "#int8", "#int16", "#int32", "#int64", 
-    "#assign", "#return", "#branch", "#gload", "#icall", "#scall", "#intrinsic") 
+    "#assign", "#return", "#branch", "#gload", "#gstore", "#icall", "#scall", "#intrinsic") 
 
   def chrExcept(cs: Char*) = {
     elem("", c => cs.forall(c != _))

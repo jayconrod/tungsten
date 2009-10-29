@@ -136,6 +136,23 @@ final case class AstAssignInstruction(override name: Symbol,
   }
 }
 
+final case class AstBinaryOperatorInstruction(override name: Symbol,
+                                              operator: BinaryOperator,
+                                              left: AstValue,
+                                              right: AstValue,
+                                              override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cLeft = left.compile(ctx)
+    val cRight = right.compile(ctx)
+    val cBinop = BinaryOperatorInstruction(fullName, operator, cLeft, cRight, location)
+    ctx.module.update(cBinop)
+    cBinop
+  }
+}
+
 final case class AstBranchInstruction(override name: Symbol,
                                       target: Symbol,
                                       arguments: List[AstValue],

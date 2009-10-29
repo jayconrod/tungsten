@@ -56,6 +56,9 @@ final case class GlobalValueNonLiteralException(symbol: Symbol, location: Locati
 final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)
 
+final case class NumericTypeException(ty: String, location: Location)
+  extends CompileException("type " + ty + " must be numeric", location)
+
 final case class RedefinedSymbolException(symbol: Symbol, 
                                           location: Location, 
                                           oldLocation: Location)

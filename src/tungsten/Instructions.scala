@@ -33,6 +33,54 @@ final case class AssignInstruction(override name: Symbol,
   }
 }
 
+case class BinaryOperator(name: String)
+
+object BinaryOperator {
+  val MULTIPLY = BinaryOperator("*")
+  val DIVIDE = BinaryOperator("/")
+  val REMAINDER = BinaryOperator("/")
+  val ADD = BinaryOperator("+")
+  val SUBTRACT = BinaryOperator("-")
+  val LEFT_SHIFT = BinaryOperator("<<")
+  val RIGHT_SHIFT_ARITHMETIC = BinaryOperator(">>")
+  val RIGHT_SHIFT_LOGICAL = BinaryOperator(">>>")
+  val AND = BinaryOperator("&")
+  val XOR = BinaryOperator("^")
+  val OR = BinaryOperator("|")
+
+  def fromString(name: String) = {
+    name match {
+      case "*" => MULTIPLY
+      case "/" => DIVIDE
+      case "%" => REMAINDER
+      case "+" => ADD
+      case "-" => SUBTRACT
+      case "<<" => LEFT_SHIFT
+      case ">>" => RIGHT_SHIFT_ARITHMETIC
+      case ">>>" => RIGHT_SHIFT_LOGICAL
+      case "&" => AND
+      case "^" => XOR
+      case "|" => OR
+      case _ => throw new RuntimeException("invalid binary operator")
+    }
+  }
+}
+
+final case class BinaryOperatorInstruction(override name: Symbol,
+                                           operator: BinaryOperator,
+                                           left: Value,
+                                           right: Value,
+                                           override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = left.ty(module)
+
+  def validate(module: Module) = throw new UnsupportedOperationException
+    // values are valid
+    // type is numeric
+    // left and right have same type
+}
+
 sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], location: Location)
   extends Instruction(name, location)
 {

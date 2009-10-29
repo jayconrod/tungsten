@@ -84,6 +84,16 @@ class AstParserTest {
   }
 
   @Test
+  def binopInst = {
+    testInstruction("#binop <foo.w:1.2-3.4> foo = 12 + 34",
+                    AstBinaryOperatorInstruction(foo,
+                                                 BinaryOperator.ADD,
+                                                 AstInt32Value(12, Nowhere),
+                                                 AstInt32Value(34, Nowhere),
+                                                 fooLoc))
+  }
+
+  @Test
   def branchInst = {
     testInstruction("#branch <foo.w:1.2-3.4> foo = bar(123)",
                     AstBranchInstruction(foo, 

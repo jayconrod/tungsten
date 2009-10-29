@@ -7,6 +7,7 @@ abstract sealed class Type(location: Location)
 {
   def validate(module: Module): List[CompileException] = Nil
   def defaultValue: Value
+  def isNumeric: Boolean
   def equals(that: Any): Boolean
   def hashCode: Int
   def toString: String
@@ -29,6 +30,8 @@ abstract sealed class Type(location: Location)
 
 final case class UnitType(override location: Location = Nowhere) extends Type(location) {
   def defaultValue = UnitValue(location)
+
+  def isNumeric = false
 
   override def equals(that: Any) = {
     that match {
@@ -58,6 +61,8 @@ final case class IntType(width: Int,
     }
   }
 
+  def isNumeric = true
+
   override def equals(that: Any) = {
     that match {
       case IntType(w, _) if width == w => true
@@ -78,6 +83,8 @@ final case class FloatType(width: Int,
     throw new IllegalArgumentException
 
   def defaultValue = throw new UnsupportedOperationException
+
+  def isNumeric = true
 
   override def equals(that: Any) = {
     that match {
@@ -103,6 +110,8 @@ final case class UniversalType(typeParameters: List[Symbol],
   }
 
   def defaultValue = throw new UnsupportedOperationException
+
+  def isNumeric = false
 
   override def equals(that: Any) = {
     that match {
@@ -134,6 +143,8 @@ final case class ExistentialType(typeParameters: List[Symbol],
 
   def defaultValue = throw new UnsupportedOperationException
 
+  def isNumeric = false
+
   override def equals(that: Any) = {
     that match {
       case ExistentialType(pts, b, _) 
@@ -160,6 +171,8 @@ final case class VariableType(name: Symbol,
 
   def defaultValue = throw new UnsupportedOperationException
 
+  def isNumeric = false
+
   override def equals(that: Any) = {
     that match {
       case VariableType(n, _) if name == n => true
@@ -177,6 +190,8 @@ final case class ArrayType(elementType: Type,
   extends Type(location)
 {
   def defaultValue = throw new UnsupportedOperationException
+
+  def isNumeric = false
 
   override def equals(that: Any) = {
     that match {
@@ -196,6 +211,8 @@ final case class FunctionType(returnType: Type,
   extends Type(location)
 {
   def defaultValue = throw new UnsupportedOperationException
+
+  def isNumeric = false
 
   override def equals(that: Any) = {
     that match {
@@ -222,6 +239,8 @@ final case class ClassType(className: Symbol,
 
   def defaultValue = throw new UnsupportedOperationException
 
+  def isNumeric = false
+
   override def equals(that: Any) = {
     that match {
       case ClassType(n, args, _)
@@ -245,6 +264,8 @@ final case class InterfaceType(interfaceName: Symbol,
 
   def defaultValue = throw new UnsupportedOperationException
 
+  def isNumeric = false
+
   override def equals(that: Any) = {
     that match {
       case InterfaceType(n, args, _)
@@ -261,6 +282,8 @@ final case class InterfaceType(interfaceName: Symbol,
 
 final case class NullType(override location: Location = Nowhere) extends Type(location) {
   def defaultValue = throw new UnsupportedOperationException
+
+  def isNumeric = false
 
   override def equals(that: Any) = {
     that match {

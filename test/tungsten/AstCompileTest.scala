@@ -113,6 +113,22 @@ class AstCompileTest {
   }
 
   @Test
+  def binopInst = {
+    ctx.names.push(foo)
+    val ast = AstBinaryOperatorInstruction(bar,
+                                           BinaryOperator.ADD,
+                                           AstInt32Value(12, Nowhere),
+                                           AstInt32Value(34, Nowhere),
+                                           loc)
+    val expected = BinaryOperatorInstruction(foo + bar,
+                                             BinaryOperator.ADD,
+                                             Int32Value(12),
+                                             Int32Value(34),
+                                             loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def branchInst = {
     ctx.names.push(foo)
     val block = Block(foo + baz, Nil, Nil, Nowhere)

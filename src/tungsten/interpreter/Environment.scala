@@ -2,6 +2,7 @@ package tungsten.interpreter
 
 import scala.collection.immutable.Stack
 import tungsten._
+import tungsten.BinaryOperator._
 import Value._
 
 final class Environment(val module: Module) {
@@ -42,6 +43,11 @@ final class Environment(val module: Module) {
   def eval(inst: Instruction): Value = {
     inst match {
       case AssignInstruction(name, value, _) => Value.eval(value, this)
+      case BinaryOperatorInstruction(name, op, left, right, _) => {
+        val l = Value.eval(left, this)
+        val r = Value.eval(right, this)
+        evalBinop(op, l, r)
+      }
       case BranchInstruction(name, bbName, args, _) => {
         val iargs = args.map(Value.eval(_, this))
         val block = module.get[Block](bbName).get
@@ -104,4 +110,66 @@ final class Environment(val module: Module) {
     state = new State(function, module)
     setArguments(function.parameters, arguments)
   }
+
+  def evalBinop(op: BinaryOperator, left: Value, right: Value) = {
+    System.err.println(left + " " + op + " " + right)
+    (op, left, right) match {
+      case (MULTIPLY, Int8Value(l), Int8Value(r)) => Int8Value((l * r).asInstanceOf[Byte])
+      case (MULTIPLY, Int16Value(l), Int16Value(r)) => Int16Value((l * r).asInstanceOf[Short])
+      case (MULTIPLY, Int32Value(l), Int32Value(r)) => Int32Value(l * r)
+      case (MULTIPLY, Int64Value(l), Int64Value(r)) => Int64Value(l * r)
+
+      case (DIVIDE, Int8Value(l), Int8Value(r)) => Int8Value((l / r).asInstanceOf[Byte])
+      case (DIVIDE, Int16Value(l), Int16Value(r)) => Int16Value((l / r).asInstanceOf[Short])
+      case (DIVIDE, Int32Value(l), Int32Value(r)) => Int32Value(l / r)
+      case (DIVIDE, Int64Value(l), Int64Value(r)) => Int64Value(l / r)
+
+      case (REMAINDER, Int8Value(l), Int8Value(r)) => Int8Value((l % r).asInstanceOf[Byte])
+      case (REMAINDER, Int16Value(l), Int16Value(r)) => Int16Value((l % r).asInstanceOf[Short])
+      case (REMAINDER, Int32Value(l), Int32Value(r)) => Int32Value(l % r)
+      case (REMAINDER, Int64Value(l), Int64Value(r)) => Int64Value(l % r)
+
+      case (ADD, Int8Value(l), Int8Value(r)) => Int8Value((l + r).asInstanceOf[Byte])
+      case (ADD, Int16Value(l), Int16Value(r)) => Int16Value((l + r).asInstanceOf[Short])
+      case (ADD, Int32Value(l), Int32Value(r)) => Int32Value(l + r)
+      case (ADD, Int64Value(l), Int64Value(r)) => Int64Value(l + r)
+
+      case (SUBTRACT, Int8Value(l), Int8Value(r)) => Int8Value((l - r).asInstanceOf[Byte])
+      case (SUBTRACT, Int16Value(l), Int16Value(r)) => Int16Value((l - r).asInstanceOf[Short])
+      case (SUBTRACT, Int32Value(l), Int32Value(r)) => Int32Value(l - r)
+      case (SUBTRACT, Int64Value(l), Int64Value(r)) => Int64Value(l - r)
+
+      case (LEFT_SHIFT, Int8Value(l), Int8Value(r)) => Int8Value((l << r).asInstanceOf[Byte])
+      case (LEFT_SHIFT, Int16Value(l), Int16Value(r)) => Int16Value((l << r).asInstanceOf[Short])
+      case (LEFT_SHIFT, Int32Value(l), Int32Value(r)) => Int32Value(l << r)
+      case (LEFT_SHIFT, Int64Value(l), Int64Value(r)) => Int64Value(l << r)
+
+      case (RIGHT_SHIFT_ARITHMETIC, Int8Value(l), Int8Value(r)) => Int8Value((l >> r).asInstanceOf[Byte])
+      case (RIGHT_SHIFT_ARITHMETIC, Int16Value(l), Int16Value(r)) => Int16Value((l >> r).asInstanceOf[Short])
+      case (RIGHT_SHIFT_ARITHMETIC, Int32Value(l), Int32Value(r)) => Int32Value(l >> r)
+      case (RIGHT_SHIFT_ARITHMETIC, Int64Value(l), Int64Value(r)) => Int64Value(l >> r)
+
+      case (RIGHT_SHIFT_LOGICAL, Int8Value(l), Int8Value(r)) => Int8Value((l >>> r).asInstanceOf[Byte])
+      case (RIGHT_SHIFT_LOGICAL, Int16Value(l), Int16Value(r)) => Int16Value((l >>> r).asInstanceOf[Short])
+      case (RIGHT_SHIFT_LOGICAL, Int32Value(l), Int32Value(r)) => Int32Value(l >>> r)
+      case (RIGHT_SHIFT_LOGICAL, Int64Value(l), Int64Value(r)) => Int64Value(l >>> r)
+
+      case (AND, Int8Value(l), Int8Value(r)) => Int8Value((l & r).asInstanceOf[Byte])
+      case (AND, Int16Value(l), Int16Value(r)) => Int16Value((l & r).asInstanceOf[Short])
+      case (AND, Int32Value(l), Int32Value(r)) => Int32Value(l & r)
+      case (AND, Int64Value(l), Int64Value(r)) => Int64Value(l & r)
+
+      case (XOR, Int8Value(l), Int8Value(r)) => Int8Value((l ^ r).asInstanceOf[Byte])
+      case (XOR, Int16Value(l), Int16Value(r)) => Int16Value((l ^ r).asInstanceOf[Short])
+      case (XOR, Int32Value(l), Int32Value(r)) => Int32Value(l ^ r)
+      case (XOR, Int64Value(l), Int64Value(r)) => Int64Value(l ^ r)
+
+      case (OR, Int8Value(l), Int8Value(r)) => Int8Value((l | r).asInstanceOf[Byte])
+      case (OR, Int16Value(l), Int16Value(r)) => Int16Value((l | r).asInstanceOf[Short])
+      case (OR, Int32Value(l), Int32Value(r)) => Int32Value(l | r)
+      case (OR, Int64Value(l), Int64Value(r)) => Int64Value(l | r)
+
+      case _ => throw new RuntimeException
+    }
+  }   
 }

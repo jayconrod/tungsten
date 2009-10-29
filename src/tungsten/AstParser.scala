@@ -59,6 +59,12 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def argumentList: Parser[List[AstValue]] = "(" ~> repsep(value, ",") <~ ")"
 
+  def binop: Parser[BinaryOperator] = {
+    ("*" | "/" | "%" | "+" | "-" | "<<" | ">>" | ">>>" | "&" | "^" | "|") ^^ {
+      BinaryOperator.fromString(_)
+    }
+  }
+
   def returnInst: Parser[AstReturnInstruction] = {
     "#return" ~> location ~ (symbol <~ "=") ~ value ^^ { 
       case l ~ n ~ v => AstReturnInstruction(n, v, l) }
@@ -67,6 +73,12 @@ object AstParser extends Parsers with ImplicitConversions {
   def assignInst: Parser[AstAssignInstruction] = {
     "#assign" ~> location ~ (symbol <~ "=") ~ value ^^ {
       case l ~ n ~ v => AstAssignInstruction(n, v, l)
+    }
+  }
+
+  def binopInst: Parser[AstBinaryOperatorInstruction] = {
+    "#binop" ~> location ~ (symbol <~ "=") ~ value ~ binop ~ value ^^ {
+      case loc ~ n ~ l ~ op ~ r => AstBinaryOperatorInstruction(n, op, l, r, loc)
     }
   }
 
@@ -109,6 +121,7 @@ object AstParser extends Parsers with ImplicitConversions {
   def instruction: Parser[AstInstruction] = {
     assignInst |
     returnInst |
+    binopInst |
     branchInst |
     gloadInst |
     gstoreInst |
@@ -210,7 +223,7 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def module: Parser[AstModule] = rep(definition) ^^ { AstModule(_) }
 
-  implicit def reserved(r: String): Parser[Token] = elem(ReservedToken(r))
+  implicit def reserved(r: String): Parser[String] = elem(ReservedToken(r)) ^^^ r
 
   def test(input: String) = {
     val reader = new AstLexer.Scanner(input)

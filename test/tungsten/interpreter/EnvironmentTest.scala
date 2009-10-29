@@ -73,6 +73,13 @@ class EnvironmentTest {
   }
 
   @Test
+  def binopInst = {
+    val (module, env) = prepareCode("#binop a = 1 + 2")
+    env.step
+    assertEquals(Int32Value(3), env.state.get(prefix + "a"))
+  }
+
+  @Test
   def branchInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block b1( ) { #branch b = b2(12, 34) }\n" +

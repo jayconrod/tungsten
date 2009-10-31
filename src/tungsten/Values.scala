@@ -3,11 +3,7 @@ package tungsten
 sealed abstract class Value(location: Location) extends TungstenObject(location) {
   def ty(module: Module): Type
  
-  def validate(module: Module, expectedType: Type): List[CompileException] = {
-    validateType(module, expectedType)
-  }
-    
-  protected def validateType(module: Module, expectedType: Type) = {
+  def validateType(module: Module, expectedType: Type): List[CompileException] = {
     val actualType = ty(module)
     if (actualType != expectedType)
       List(TypeMismatchException(actualType.toString, expectedType.toString, location))
@@ -51,16 +47,5 @@ final case class DefinedValue(value: Symbol, override location: Location = Nowhe
     val defn = module.get(value)
     assert(defn.isDefined)
     defn.get.asInstanceOf[TypedDefinition].ty(module)
-  }
-
-  override def validate(module: Module, expectedType: Type) = {
-    module.getDefn(value) match {
-      case Some(_: Instruction) | Some(_: Parameter) => validateType(module, expectedType)
-      case Some(defn) => List(InappropriateSymbolException(value, 
-                                                           location,
-                                                           defn.location,
-                                                           "instruction or parameter"))
-      case None => List(UndefinedSymbolException(value, location))
-    }
   }
 }

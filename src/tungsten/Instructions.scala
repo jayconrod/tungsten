@@ -131,7 +131,7 @@ sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], loca
     } else {
       (arguments zip targetType(module).parameterTypes) flatMap { at => 
         val (a, t) = at
-        a.validate(module, t)
+        a.validateType(module, t)
       }
     }
   }
@@ -192,7 +192,7 @@ final case class GlobalStoreInstruction(override name: Symbol,
 
   def validate(module: Module) = {
     stage(validateComponent[Global](module, globalName),
-          value.validate(module, module.get[Global](globalName).get.ty))
+          value.validateType(module, module.get[Global](globalName).get.ty))
   }
 }
 

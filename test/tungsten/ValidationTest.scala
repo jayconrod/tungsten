@@ -129,4 +129,16 @@ class ValidationTest {
                "#assign b = ()"
     codeContainsError[InstructionOrderException](code)
   }
+
+  @Test
+  def relopMismatch = {
+    val code = "#relop a = 12 == ()"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def relopNonNumeric = {
+    val code = "#relop a = () < ()"
+    codeContainsError[TypeMismatchException](code)
+  }
 }

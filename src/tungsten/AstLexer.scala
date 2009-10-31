@@ -8,12 +8,13 @@ object AstLexer extends Parsers {
 
   val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:", "<-",
     "*", "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|",
+    "<", "<=", ">", ">=", "==", "!=",
     "#true", "#false",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",
     "#unit", "#boolean", "#int8", "#int16", "#int32", "#int64", 
-    "#assign", "#return", "#binop", "#branch", "#gload", "#gstore", "#icall", "#scall", 
-      "#intrinsic") 
+    "#assign", "#binop", "#branch", "#gload", "#gstore", "#icall", "#intrinsic",
+      "#relop", "#return", "#scall")
 
   def chrExcept(cs: Char*) = {
     elem("", c => cs.forall(c != _))
@@ -77,17 +78,24 @@ object AstLexer extends Parsers {
   }
 
   def location: Parser[Location] = {
-    elem('<') ~ rep1(chrExcept(':')) ~ elem(':') ~
-      int ~ elem('.') ~ int ~ elem('-') ~ int ~ elem('.') ~ int ~ elem('>') ^^ {
-      case _ ~ filename ~ _ ~ beginLine ~ _ ~ beginColumn ~ _ ~ endLine ~ _ ~ endColumn ~ _ =>
-        Location(filename.mkString, beginLine, beginColumn, endLine, endColumn)
+    val filename: Parser[String] = {
+      val filenameChar: Parser[Char] = elem("letter", _.isLetter) |
+                                       elem("digit", _.isDigit) |
+                                       elem('_') | elem('-') | elem('.') | elem('/')
+      rep1(filenameChar) ^^ { _.mkString }
     }
+    (elem('<') ~> filename) ~ 
+      (elem(':') ~> int) ~ (elem('.') ~> int) ~
+      (elem('-') ~> int) ~ (elem('.') ~> int) <~ elem('>') ^^ {
+      case filename ~ beginLine ~ beginColumn ~ endLine ~ endColumn =>
+        Location(filename, beginLine, beginColumn, endLine, endColumn)
+      }
   }
 
   def token: Parser[Token] = {
+    (location ^^ { LocationToken(_) }) | 
     reserved | 
     (symbol ^^ { SymbolToken(_) }) | 
-    (location ^^ { LocationToken(_) }) | 
     (byte ^^ { ByteToken(_) }) |
     (short ^^ { ShortToken(_) }) |
     (long ^^ { LongToken(_) }) |

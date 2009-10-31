@@ -153,6 +153,13 @@ class EnvironmentTest {
   }
 
   @Test
+  def relopInst = {
+    val (module, env) = prepareCode("#relop a = 1 == 2")
+    env.step
+    assertEquals(BooleanValue(false), env.state.get(prefix + "a"))
+  }
+
+  @Test
   def staticCallAndReturnInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

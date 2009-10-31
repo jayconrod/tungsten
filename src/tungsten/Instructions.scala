@@ -51,7 +51,7 @@ final case class AssignInstruction(override name: Symbol,
   def validate(module: Module) = validateOperands(module)
 }
 
-case class BinaryOperator(name: String)
+final case class BinaryOperator(name: String)
 
 object BinaryOperator {
   val MULTIPLY = BinaryOperator("*")
@@ -239,6 +239,62 @@ final case class IntrinsicCallInstruction(override name: Symbol,
   def validate(module: Module) = {
     stage(validateOperands(module),
           validateCall(module))
+  }
+}
+
+final case class RelationalOperator(name: String)
+
+object RelationalOperator {
+  val LESS_THAN = RelationalOperator("<")
+  val LESS_EQUAL = RelationalOperator("<=")
+  val GREATER_THAN = RelationalOperator(">")
+  val GREATER_EQUAL = RelationalOperator(">=")
+  val EQUAL = RelationalOperator("==")
+  val NOT_EQUAL = RelationalOperator("!=")
+
+  def fromString(name: String) = {
+    name match {
+      case "<" => LESS_THAN
+      case "<=" => LESS_EQUAL
+      case ">" => GREATER_THAN
+      case ">=" => GREATER_EQUAL
+      case "==" => EQUAL
+      case "!=" => NOT_EQUAL
+    }
+  }
+}
+
+final case class RelationalOperatorInstruction(override name: Symbol,
+                                               operator: RelationalOperator,
+                                               left: Value,
+                                               right: Value,
+                                               override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def operands = List(left, right)
+
+  def ty(module: Module) = BooleanType(location)
+
+  def validate(module: Module) = {
+    import RelationalOperator._
+    def validateType = {
+      val lty = left.ty(module)
+      val rty = right.ty(module)
+      if ((operator == LESS_THAN ||
+           operator == LESS_EQUAL ||
+           operator == GREATER_THAN ||
+           operator == GREATER_EQUAL) &&
+          !lty.isNumeric)
+      {
+        List(TypeMismatchException(lty.toString, "numeric type", left.location))
+      } else if (lty != rty)
+        List(TypeMismatchException(rty.toString, lty.toString, right.location))
+      else
+        Nil
+    }
+
+    stage(validateOperands(module),
+          validateType)
   }
 }
 

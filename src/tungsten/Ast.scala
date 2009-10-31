@@ -212,20 +212,6 @@ final case class AstGlobalStoreInstruction(override name: Symbol,
   }
 }
 
-final case class AstReturnInstruction(override name: Symbol,
-                                      value: AstValue,
-                                      override location: Location)
-  extends AstInstruction(name, location)
-{
-  def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
-    val cValue = value.compileOrElse(ctx)
-    val cReturn = ReturnInstruction(fullName, cValue, location)
-    ctx.module.update(cReturn)
-    cReturn
-  }
-}
-
 final case class AstIndirectCallInstruction(override name: Symbol,
                                             target: AstValue,
                                             arguments: List[AstValue],
@@ -257,6 +243,37 @@ final case class AstIntrinsicCallInstruction(override name: Symbol,
     val cCall = IntrinsicCallInstruction(name, cIntrinsic, cArgs, location)
     ctx.module.update(cCall)
     cCall
+  }
+}
+
+final case class AstRelationalOperatorInstruction(override name: Symbol,
+                                                  operator: RelationalOperator,
+                                                  left: AstValue,
+                                                  right: AstValue,
+                                                  override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cLeft = left.compile(ctx)
+    val cRight = right.compile(ctx)
+    val cRelop = RelationalOperatorInstruction(fullName, operator, cLeft, cRight, location)
+    ctx.module.update(cRelop)
+    cRelop
+  }
+}
+
+final case class AstReturnInstruction(override name: Symbol,
+                                      value: AstValue,
+                                      override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cValue = value.compileOrElse(ctx)
+    val cReturn = ReturnInstruction(fullName, cValue, location)
+    ctx.module.update(cReturn)
+    cReturn
   }
 }
 

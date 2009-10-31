@@ -186,6 +186,22 @@ class AstCompileTest {
   }
 
   @Test
+  def relopInst = {
+    ctx.names.push(foo)
+    val ast = AstRelationalOperatorInstruction(bar,
+                                               RelationalOperator.EQUAL,
+                                               AstInt32Value(12, Nowhere),
+                                               AstInt32Value(34, Nowhere),
+                                               loc)
+    val expected = RelationalOperatorInstruction(foo + bar,
+                                                 RelationalOperator.EQUAL,
+                                                 Int32Value(12),
+                                                 Int32Value(34),
+                                                 loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def returnInst = {
     ctx.names.push(foo)
     val ast = AstReturnInstruction(bar, AstUnitValue(Nowhere), loc)

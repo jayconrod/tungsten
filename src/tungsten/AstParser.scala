@@ -68,9 +68,8 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
-  def returnInst: Parser[AstReturnInstruction] = {
-    "#return" ~> location ~ (symbol <~ "=") ~ value ^^ { 
-      case l ~ n ~ v => AstReturnInstruction(n, v, l) }
+  def relop: Parser[RelationalOperator] = {
+    ("<" | "<=" | ">" | ">=" | "==" | "!=") ^^ { RelationalOperator.fromString(_) }
   }
 
   def assignInst: Parser[AstAssignInstruction] = {
@@ -109,28 +108,40 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
-  def staticCallInst: Parser[AstStaticCallInstruction] = {
-    "#scall" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
-      case l ~ n ~ t ~ a => AstStaticCallInstruction(n, t, a, l)
-    }
-  }
-
   def intrinsicCallInst: Parser[AstIntrinsicCallInstruction] = {
     "#intrinsic" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstIntrinsicCallInstruction(n, t, a, l)
     }
   }
 
+  def relopInst: Parser[AstRelationalOperatorInstruction] = {
+    "#relop" ~> location ~ (symbol <~ "=") ~ value ~ relop ~ value ^^ {
+      case loc ~ n ~ l ~ op ~ r => AstRelationalOperatorInstruction(n, op, l, r, loc)
+    }
+  }
+
+  def returnInst: Parser[AstReturnInstruction] = {
+    "#return" ~> location ~ (symbol <~ "=") ~ value ^^ { 
+      case l ~ n ~ v => AstReturnInstruction(n, v, l) }
+  }
+
+  def staticCallInst: Parser[AstStaticCallInstruction] = {
+    "#scall" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
+      case l ~ n ~ t ~ a => AstStaticCallInstruction(n, t, a, l)
+    }
+  }
+
   def instruction: Parser[AstInstruction] = {
     assignInst |
-    returnInst |
     binopInst |
     branchInst |
     gloadInst |
     gstoreInst |
     indirectCallInst |
-    staticCallInst |
-    intrinsicCallInst
+    intrinsicCallInst |
+    relopInst |
+    returnInst |
+    staticCallInst
   }
 
   def parameter: Parser[AstParameter] = {

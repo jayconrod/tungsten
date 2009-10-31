@@ -138,6 +138,16 @@ class AstParserTest {
   }
 
   @Test
+  def relopInst = {
+    testInstruction("#relop <foo.w:1.2-3.4> foo = 12 == 34",
+                    AstRelationalOperatorInstruction(foo,
+                                                     RelationalOperator("=="),
+                                                     AstInt32Value(12, Nowhere),
+                                                     AstInt32Value(34, Nowhere),
+                                                     fooLoc))
+  }
+
+  @Test
   def returnInst = {
     testInstruction("#return <foo.w:1.2-3.4> foo = 123", 
                     AstReturnInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))

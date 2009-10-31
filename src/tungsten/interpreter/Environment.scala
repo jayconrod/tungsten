@@ -3,6 +3,7 @@ package tungsten.interpreter
 import scala.collection.immutable.Stack
 import tungsten._
 import tungsten.BinaryOperator._
+import tungsten.RelationalOperator._
 import Value._
 
 final class Environment(val module: Module) {
@@ -76,6 +77,11 @@ final class Environment(val module: Module) {
         }
         UnitValue
       }
+      case RelationalOperatorInstruction(name, op, left, right, _) => {
+        val l = Value.eval(left, this)
+        val r = Value.eval(right, this)
+        evalRelop(op, l, r)
+      }
       case ReturnInstruction(_, v, _) => {
         val ret = Value.eval(v, this)
         state = stack.head
@@ -112,7 +118,6 @@ final class Environment(val module: Module) {
   }
 
   def evalBinop(op: BinaryOperator, left: Value, right: Value) = {
-    System.err.println(left + " " + op + " " + right)
     (op, left, right) match {
       case (MULTIPLY, Int8Value(l), Int8Value(r)) => Int8Value((l * r).asInstanceOf[Byte])
       case (MULTIPLY, Int16Value(l), Int16Value(r)) => Int16Value((l * r).asInstanceOf[Short])
@@ -171,5 +176,45 @@ final class Environment(val module: Module) {
 
       case _ => throw new RuntimeException
     }
-  }   
+  }
+
+  def evalRelop(op: RelationalOperator, left: Value, right: Value): Value = {
+    (op, left, right) match {
+      case (LESS_THAN, Int8Value(l), Int8Value(r)) => BooleanValue(l < r)
+      case (LESS_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l < r)
+      case (LESS_THAN, Int32Value(l), Int32Value(r)) => BooleanValue(l < r)
+      case (LESS_THAN, Int64Value(l), Int64Value(r)) => BooleanValue(l < r)
+      
+      case (LESS_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l <= r)
+      case (LESS_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l <= r)
+      case (LESS_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l <= r)
+      case (LESS_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l <= r)
+      
+      case (GREATER_THAN, Int8Value(l), Int8Value(r)) => BooleanValue(l > r)
+      case (GREATER_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l > r)
+      case (GREATER_THAN, Int32Value(l), Int32Value(r)) => BooleanValue(l > r)
+      case (GREATER_THAN, Int64Value(l), Int64Value(r)) => BooleanValue(l > r)
+      
+      case (GREATER_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l >= r)
+      case (GREATER_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l >= r)
+      case (GREATER_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l >= r)
+      case (GREATER_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l >= r)
+
+      case (EQUAL, UnitValue, UnitValue) => BooleanValue(true)
+      case (EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l == r)      
+      case (EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l == r)
+      case (EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l == r)
+      case (EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l == r)
+      case (EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l == r)
+      
+      case (NOT_EQUAL, UnitValue, UnitValue) => BooleanValue(false)
+      case (NOT_EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l != r)
+      case (NOT_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l != r)
+      case (NOT_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l != r)
+      case (NOT_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l != r)
+      case (NOT_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l != r)
+
+      case _ => throw new RuntimeException
+    }
+  }
 }

@@ -7,6 +7,36 @@ sealed abstract class Instruction(name: Symbol, location: Location)
   with TypedDefinition
 {
   def isTerminating = false
+
+  def operands: List[Value]
+
+  def operandSymbols = {
+    def collectSymbols(ops: List[Value], syms: List[Symbol]): List[Symbol] = {
+      ops match {
+        case DefinedValue(value, _) :: rest => collectSymbols(rest, value :: syms)
+        case o :: rest => collectSymbols(rest, syms)
+        case Nil => syms
+      }
+    }
+    collectSymbols(operands, Nil).reverse
+  }
+
+  def usedSymbols = operandSymbols
+
+  protected def validateOperands(module: Module) = {
+    operandSymbols flatMap { sym =>
+      module.getDefn(sym) match {
+        case Some(_: Parameter) | Some(_: Instruction) => Nil
+        case Some(defn) => {
+          List(InappropriateSymbolException(sym,
+                                            location,
+                                            defn.location,
+                                            "parameter or instruction"))
+        }
+        case None => List(UndefinedSymbolException(sym, location))
+      }
+    }
+  }
 }
 
 final case class AssignInstruction(override name: Symbol,
@@ -14,23 +44,11 @@ final case class AssignInstruction(override name: Symbol,
                                    override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  def operands = List(value)
+
   def ty(module: Module) = value.ty(module)
 
-  def validate(module: Module) = {
-    value match {
-      case DefinedValue(valueName, _) => {
-        module.getDefn(valueName) match {
-          case Some(_: Instruction) | Some(_: Parameter) => Nil
-          case Some(defn) => {
-            List(InappropriateSymbolException(valueName, location, defn.location, 
-                                              "local variable, parameter, or literal"))
-          }
-          case None => List(UndefinedSymbolException(valueName, location))
-        }
-      }
-      case _ => Nil
-    }
-  }
+  def validate(module: Module) = validateOperands(module)
 }
 
 case class BinaryOperator(name: String)
@@ -73,12 +91,25 @@ final case class BinaryOperatorInstruction(override name: Symbol,
                                            override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  def operands = List(left, right)
+
   def ty(module: Module) = left.ty(module)
 
-  def validate(module: Module) = throw new UnsupportedOperationException
-    // values are valid
-    // type is numeric
-    // left and right have same type
+  def validate(module: Module) = {
+    def validateType = {
+      val lty = left.ty(module)
+      val rty = right.ty(module)
+      if (!lty.isNumeric)
+        List(TypeMismatchException(lty.toString, "numeric type", left.location))
+      else if (lty != rty)
+        List(TypeMismatchException(rty.toString, lty.toString, right.location))
+      else
+        Nil
+    }
+
+    stage(validateOperands(module),
+          validateType)
+  }
 }
 
 sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], location: Location)
@@ -112,6 +143,10 @@ final case class BranchInstruction(override name: Symbol,
                                    override location: Location = Nowhere)
   extends CallInstruction(name, arguments, location)
 {
+  def operands = arguments
+
+  override def usedSymbols = target :: operandSymbols
+
   override def isTerminating = true
 
   protected def targetName = target
@@ -121,7 +156,9 @@ final case class BranchInstruction(override name: Symbol,
   }
 
   def validate(module: Module) = {
-    validateComponent[Block](module, target) ++ validateCall(module)
+    stage(validateComponent[Block](module, target),
+          validateOperands(module),
+          validateCall(module))
   }
 }
 
@@ -130,6 +167,10 @@ final case class GlobalLoadInstruction(override name: Symbol,
                                        override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  def operands = Nil
+
+  override def usedSymbols = List(globalName)
+
   def ty(module: Module) = {
     module.get[Global](globalName).get.ty
   }
@@ -143,6 +184,10 @@ final case class GlobalStoreInstruction(override name: Symbol,
                                         override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  def operands = List(value)
+
+  override def usedSymbols = globalName :: operandSymbols
+
   def ty(module: Module) = UnitType()
 
   def validate(module: Module) = {
@@ -157,25 +202,14 @@ final case class IndirectCallInstruction(override name: Symbol,
                                          override location: Location = Nowhere)
   extends CallInstruction(name, arguments, location)
 {
+  def operands = target :: arguments
+
   protected def targetName = target.asInstanceOf[DefinedValue].value
 
   protected def targetType(module: Module) = target.ty(module).asInstanceOf[FunctionType]
 
   def validate(module: Module): List[CompileException] = {
-    target match {
-      case DefinedValue(value, _) => {
-        val errors = validateComponent[TypedDefinition](module, value)
-        if (!errors.isEmpty)
-          errors
-        else {
-          module.get[TypedDefinition](value).get.ty(module) match {
-            case _: FunctionType => validateCall(module)
-            case _ => List(FunctionTypeException(value.toString, location))
-          }
-        }
-      }
-      case _ => List(FunctionTypeException(target.toString, location))
-    }
+    throw new UnsupportedOperationException
   }
 }
 
@@ -194,13 +228,18 @@ final case class IntrinsicCallInstruction(override name: Symbol,
                                           override location: Location = Nowhere)
   extends CallInstruction(name, arguments, location)
 {
+  def operands = arguments
+
   override def isTerminating = intrinsic == Intrinsic.EXIT
 
   def targetName = new Symbol(intrinsic.name)
 
   def targetType(module: Module) = intrinsic.ty
 
-  def validate(module: Module) = validateCall(module)    
+  def validate(module: Module) = {
+    stage(validateOperands(module),
+          validateCall(module))
+  }
 }
 
 final case class ReturnInstruction(override name: Symbol,
@@ -208,11 +247,13 @@ final case class ReturnInstruction(override name: Symbol,
                                    override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  def operands = List(value)
+
   override def isTerminating = true
 
   def ty(module: Module) = UnitType(location)
 
-  def validate(module: Module) = Nil    // return value validated in Function
+  def validate(module: Module) = validateOperands(module) // return type validated in Function
 }
 
 final case class StaticCallInstruction(override name: Symbol,
@@ -221,14 +262,17 @@ final case class StaticCallInstruction(override name: Symbol,
                                        override location: Location = Nowhere)
   extends CallInstruction(name, arguments, location)
 {
+  def operands = arguments
+
+  override def usedSymbols = target :: operandSymbols
+
   protected def targetName = target
 
   protected def targetType(module: Module) = module.get[Function](target).get.ty(module)
 
   def validate(module: Module) = {
-    validateComponent[Function](module, target) match {
-      case Nil => validateCall(module)
-      case errors => errors
-    }
+    stage(validateComponent[Function](module, target),
+          validateOperands(module),
+          validateCall(module))
   }
 }

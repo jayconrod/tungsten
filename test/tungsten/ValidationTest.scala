@@ -10,6 +10,11 @@ class ValidationTest {
     containsError[T](errors)
   }
 
+  def codeContainsError[T <: CompileException](code: String)(implicit m: Manifest[T]) = {
+    val program = "#function main( ): #unit { #block entry( ) { %s } }".format(code)
+    programContainsError[T](program)
+  }
+
   def containsError[T <: CompileException](errors: List[CompileException])
                                           (implicit m: Manifest[T]) =
   {
@@ -104,5 +109,24 @@ class ValidationTest {
     module.add(gfoo)
     module.add(ibar)
     containsError[TypeMismatchException](ibar.validate(module))
+  }
+
+  @Test
+  def binopNonNumeric = {
+    val code = "#binop a = () + ()"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def binopMismatch = {
+    val code = "#binop a = 12 + 34b"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def assignOutOfOrder = {
+    val code = "#assign a = b\n" +
+               "#assign b = ()"
+    codeContainsError[InstructionOrderException](code)
   }
 }

@@ -31,14 +31,6 @@ final case class EmptyStructException(symbol: Symbol, location: Location)
   extends CompileException("struct " + symbol.toString + " must contain at least one field",
                            location)
 
-final case class InappropriateSymbolException(symbol: Symbol,
-                                              location: Location,
-                                              defnLocation: Location,
-                                              expected: String)
-  extends CompileException(symbol.toString + " defined at " + defnLocation + 
-                             " does not refer to a(n) " + expected,
-                           location)
-
 final case class FunctionArgumentCountException(symbol: Symbol,
                                                 given: Int,
                                                 required: Int,
@@ -52,6 +44,20 @@ final case class FunctionTypeException(value: String, location: Location)
 
 final case class GlobalValueNonLiteralException(symbol: Symbol, location: Location)
   extends CompileException("global " + symbol + " has a non-literal initial value", location)
+
+final case class InappropriateSymbolException(symbol: Symbol,
+                                              location: Location,
+                                              defnLocation: Location,
+                                              expected: String)
+  extends CompileException(symbol.toString + " defined at " + defnLocation + 
+                             " does not refer to a(n) " + expected,
+                           location)
+
+final case class InstructionOrderException(symbol: Symbol,
+                                           location: Location)
+  extends CompileException("the symbol " + symbol + 
+                             " is not valid at the point where it is used",
+                           location)
 
 final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)

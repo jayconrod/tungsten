@@ -16,6 +16,12 @@ final case class UnitValue(override location: Location = Nowhere) extends Value(
   def ty(module: Module): UnitType = UnitType(location)
 }
 
+final case class BooleanValue(value: Boolean, override location: Location = Nowhere)
+  extends Value(location)
+{
+  def ty(module: Module): BooleanType = BooleanType(location)
+}
+
 final case class Int8Value(value: Byte, override location: Location = Nowhere) 
   extends Value(location)
 {

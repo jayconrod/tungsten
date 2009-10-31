@@ -47,6 +47,7 @@ class AstParserTest {
   @Test
   def types = {
     testType("#unit", AstUnitType(Nowhere))
+    testType("#boolean", AstBooleanType(Nowhere))
     testType("#int32", AstIntType(32, Nowhere))
     testType("Foo", AstClassType(new Symbol("Foo"), Nil, Nowhere))
     testType("foo.bar.Baz", AstClassType(Symbol(List("foo", "bar", "Baz"), 0), Nil, Nowhere))
@@ -64,6 +65,7 @@ class AstParserTest {
   @Test
   def value = {
     testValue("()", AstUnitValue(Nowhere))
+    testValue("#true", AstBooleanValue(true, Nowhere))
     testValue("12b", AstInt8Value(12, Nowhere))
     testValue("12s", AstInt16Value(12, Nowhere))
     testValue("12", AstInt32Value(12, Nowhere))

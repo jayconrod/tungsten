@@ -26,6 +26,10 @@ final case class AstUnitType(override val location: Location) extends AstType(lo
   def compile(ctx: AstContext) = UnitType(location)
 }
 
+final case class AstBooleanType(override val location: Location) extends AstType(location) {
+  def compile(ctx: AstContext) = BooleanType(location)
+}
+
 final case class AstIntType(val width: Int, override val location: Location)
   extends AstType(location)
 {
@@ -71,6 +75,12 @@ sealed abstract class AstValue(val location: Location) {
 
 final case class AstUnitValue(override val location: Location) extends AstValue(location) {
   def compile(ctx: AstContext) = UnitValue(location)
+}
+
+final case class AstBooleanValue(value: Boolean, override location: Location)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = BooleanValue(value, location)
 }
 
 final case class AstInt8Value(value: Byte, override location: Location)

@@ -6,6 +6,8 @@ abstract class Value
 
 final case object UnitValue extends Value
 
+final case class BooleanValue(value: Boolean) extends Value
+
 final case class Int8Value(value: Byte) extends Value
 
 final case class Int16Value(value: Short) extends Value
@@ -20,6 +22,7 @@ object Value {
   def eval(value: tungsten.Value, env: Environment): Value = {
     value match {
       case tungsten.UnitValue(_) => UnitValue
+      case tungsten.BooleanValue(v, _) => BooleanValue(v)
       case tungsten.Int8Value(v, _) => Int8Value(v)
       case tungsten.Int16Value(v, _) => Int16Value(v)
       case tungsten.Int32Value(v, _) => Int32Value(v)

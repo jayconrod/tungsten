@@ -45,6 +45,21 @@ final case class UnitType(override location: Location = Nowhere) extends Type(lo
   override def toString = "unit"
 }
 
+final case class BooleanType(override location: Location = Nowhere) extends Type(location) {
+  def defaultValue = BooleanValue(false, location)
+
+  def isNumeric = false
+
+  override def equals(that: Any) = {
+    that match {
+      case BooleanType(_) => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = hash(0, "boolean")
+}
+
 final case class IntType(width: Int, 
                          override location: Location = Nowhere) 
   extends Type(location)

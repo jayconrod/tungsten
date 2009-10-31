@@ -8,9 +8,10 @@ object AstLexer extends Parsers {
 
   val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:", "<-",
     "*", "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|",
+    "#true", "#false",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",
-    "#unit", "#int8", "#int16", "#int32", "#int64", 
+    "#unit", "#boolean", "#int8", "#int16", "#int32", "#int64", 
     "#assign", "#return", "#binop", "#branch", "#gload", "#gstore", "#icall", "#scall", 
       "#intrinsic") 
 

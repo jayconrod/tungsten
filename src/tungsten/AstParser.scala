@@ -27,6 +27,7 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def ty: Parser[AstType] = {
     ("#unit" ~> location ^^ { AstUnitType(_) }) |
+    ("#boolean" ~> location ^^ { AstBooleanType(_) }) |
     ("#int8" ~> location ^^ { AstIntType(8, _) }) |
     ("#int16" ~> location ^^ { AstIntType(16, _) }) |
     ("#int32" ~> location ^^ { AstIntType(32, _) }) |
@@ -50,11 +51,13 @@ object AstParser extends Parsers with ImplicitConversions {
     val long = accept("long", { case LongToken(l) => l })
 
     ("()" ~> location ^^ { AstUnitValue(_) }) |
+    ("#true" ~> location ^^ { AstBooleanValue(true, _) }) |
+    ("#false" ~> location ^^ { AstBooleanValue(false, _) }) |
     (byte ~ location ^^ flatten2(AstInt8Value(_, _))) |
     (short ~ location ^^ flatten2(AstInt16Value(_, _))) |
     (int ~ location ^^ flatten2(AstInt32Value(_, _))) |
     (long ~ location ^^ flatten2(AstInt64Value(_, _))) |
-    (symbol ~ location ^^ { flatten2(AstSymbolValue(_, _)) })
+    (symbol ~ location ^^ flatten2(AstSymbolValue(_, _)))
   }
 
   def argumentList: Parser[List[AstValue]] = "(" ~> repsep(value, ",") <~ ")"

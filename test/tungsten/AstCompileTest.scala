@@ -28,6 +28,11 @@ class AstCompileTest {
   }
 
   @Test
+  def booleanType = {
+    assertEquals(BooleanType(loc), AstBooleanType(loc).compile(ctx))
+  }
+
+  @Test
   def intType = {
     assertEquals(IntType(32, loc), AstIntType(32, loc).compile(ctx))
   }
@@ -57,6 +62,11 @@ class AstCompileTest {
   @Test
   def unitValue = {
     assertEquals(UnitValue(loc), AstUnitValue(loc).compile(ctx))
+  }
+
+  @Test
+  def booleanValue = {
+    assertEquals(BooleanValue(true, loc), AstBooleanValue(true, loc).compile(ctx))
   }
 
   @Test

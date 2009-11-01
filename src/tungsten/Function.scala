@@ -44,6 +44,19 @@ final case class Function(override name: Symbol,
             blocks flatMap validateParameters)
     }
 
+    def validateEntryParameters = {
+      blocks match {
+        case Nil => Nil
+        case entryName :: _ => {
+          val entry = module.get[Block](entryName).get
+          if (parameters == entry.parameters)
+            Nil
+          else
+            List(EntryParametersException(name, location))
+        }
+      }
+    }
+
     def validateBranches = {
       blocks flatMap { blockName =>
         val block = module.get[Block](blockName).get
@@ -72,6 +85,7 @@ final case class Function(override name: Symbol,
           validateComponents[Parameter](module, parameters),
           returnType.validate(module),
           validateBlocks,
+          validateEntryParameters,
           validateBranches,
           validateReturnType)
   }

@@ -31,6 +31,11 @@ final case class EmptyStructException(symbol: Symbol, location: Location)
   extends CompileException("struct " + symbol.toString + " must contain at least one field",
                            location)
 
+final case class EntryParametersException(functionName: Symbol, location: Location)
+  extends CompileException("parameters for function " + functionName + 
+                             " don't match the entry block",
+                           location)
+
 final case class FunctionArgumentCountException(symbol: Symbol,
                                                 given: Int,
                                                 required: Int,

@@ -264,11 +264,12 @@ final case class AstIntrinsicCallInstruction(override name: Symbol,
 {
   def compile(ctx: AstContext) = {
     import Intrinsic._
+    val fullName = ctx.names.top + name
     val cIntrinsic = target.toString match {
       case "exit" => EXIT
     }
     val cArgs = arguments.map(_.compile(ctx))
-    val cCall = IntrinsicCallInstruction(name, cIntrinsic, cArgs, location)
+    val cCall = IntrinsicCallInstruction(fullName, cIntrinsic, cArgs, location)
     ctx.module.update(cCall)
     cCall
   }
@@ -413,7 +414,17 @@ final case class AstFunction(name: Symbol,
     val cRetTy = returnType.compileOrElse(ctx)
     val cTyParams = typeParameters.map(_.compile(ctx).name)
     val cParams = parameters.map(_.compile(ctx).name)
-    val cBlocks = blocks.map(_.compile(ctx).name)
+    var cBlocks = blocks.map(_.compile(ctx).name)
+    cBlocks match {
+      case entryName :: _ => {
+        val entry = ctx.module.get[Block](entryName).get
+        if (entry.parameters.isEmpty) {
+          val newEntry = Block(entry.name, cParams, entry.instructions, entry.location) 
+          ctx.module.update(newEntry)
+        }
+      }
+      case _ => ()
+    }
     val cFunction = Function(name, cTyParams, cParams, cRetTy, cBlocks, location)
     ctx.module.update(cFunction)
     ctx.names.pop

@@ -198,4 +198,25 @@ class ValidationTest {
                   "}\n"
     programContainsError[DuplicateComponentException](program)
   }
+
+  @Test
+  def staticCallMissingFunction = {
+    val code = "#scall c = foo( )"
+    codeContainsError[UndefinedSymbolException](code)
+  }
+
+  @Test
+  def entryBlockWrongParameters = {
+    val inst = ReturnInstruction(new Symbol("r"), UnitValue())
+    val param = Parameter(new Symbol("p"), UnitType())
+    val block = Block(new Symbol("b"), Nil, List(inst.name))
+    val function = Function(new Symbol("f"), Nil, List(param.name), 
+                            UnitType(), List(block.name))
+    val module = new Module
+    module.add(inst)
+    module.add(param)
+    module.add(block)
+    module.add(function)
+    containsError[EntryParametersException](module.validate)
+  }
 }

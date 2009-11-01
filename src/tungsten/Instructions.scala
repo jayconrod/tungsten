@@ -325,7 +325,6 @@ final case class RelationalOperatorInstruction(override name: Symbol,
 
   def validate(module: Module) = {
     import RelationalOperator._
-    System.err.println("validating relational instruction " + this)
     def validateType = {
       val lty = left.ty(module)
       val rty = right.ty(module)

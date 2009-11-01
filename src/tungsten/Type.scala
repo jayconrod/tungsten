@@ -42,7 +42,7 @@ final case class UnitType(override location: Location = Nowhere) extends Type(lo
 
   override def hashCode = hash(0, "unit")
 
-  override def toString = "unit"
+  override def toString = "#unit"
 }
 
 final case class BooleanType(override location: Location = Nowhere) extends Type(location) {
@@ -58,6 +58,8 @@ final case class BooleanType(override location: Location = Nowhere) extends Type
   }
 
   override def hashCode = hash(0, "boolean")
+
+  override def toString = "#boolean"
 }
 
 final case class IntType(width: Int, 
@@ -87,7 +89,7 @@ final case class IntType(width: Int,
 
   override def hashCode = List[Any]("int", width).foldLeft(0)(Utilities.hash _)
 
-  override def toString = "int" + width
+  override def toString = "#int" + width
 }
 
 final case class FloatType(width: Int, 
@@ -110,7 +112,7 @@ final case class FloatType(width: Int,
 
   override def hashCode = List[Any]("float", width).foldLeft(0)(hash _)
 
-  override def toString = "float" + width
+  override def toString = "#float" + width
 }
 
 final case class UniversalType(typeParameters: List[Symbol],
@@ -311,4 +313,3 @@ final case class NullType(override location: Location = Nowhere) extends Type(lo
 
   override def toString = "Null"
 }
-  

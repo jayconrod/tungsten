@@ -93,6 +93,22 @@ class EnvironmentTest {
   }
 
   @Test
+  def condInst = {
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #cond c = #false ? foo : bar (12)\n" +
+                  "  }\n" +
+                  "  #block foo(x: #int32) { #return r = () }\n" +
+                  "  #block bar(x: #int32) { #return r = () }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    env.step
+    val barInst = module.get[Instruction](new Symbol(List("main", "bar", "r"))).get
+    assertEquals(barInst, env.state.inst)
+    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "bar", "x"))))
+  }
+
+  @Test
   def exitInst = {
     val (module, env) = prepareCode("#intrinsic x = exit(12)")
     env.step

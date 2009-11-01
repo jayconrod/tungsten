@@ -7,13 +7,13 @@ object AstLexer extends Parsers {
   type Elem = Char
 
   val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:", "<-",
-    "*", "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|",
+    "*", "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|", "?",
     "<", "<=", ">", ">=", "==", "!=",
     "#true", "#false",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",
     "#unit", "#boolean", "#int8", "#int16", "#int32", "#int64", 
-    "#assign", "#binop", "#branch", "#gload", "#gstore", "#icall", "#intrinsic",
+    "#assign", "#binop", "#branch", "#cond", "#gload", "#gstore", "#icall", "#intrinsic",
       "#relop", "#return", "#scall")
 
   def chrExcept(cs: Char*) = {

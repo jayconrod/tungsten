@@ -56,6 +56,14 @@ final class Environment(val module: Module) {
         state = state.add(name, UnitValue)
         UnitValue
       }
+      case ConditionalBranchInstruction(name, cond, trueTarget, falseTarget, args, _) => {
+        val BooleanValue(icond) = Value.eval(cond, this)
+        val iargs = args.map(Value.eval(_, this))
+        val target = if (icond) trueTarget else falseTarget
+        val block = module.get[Block](target).get
+        branch(block, iargs)
+        UnitValue
+      }        
       case GlobalLoadInstruction(name, globalName, _) => globalState(globalName)
       case GlobalStoreInstruction(name, globalName, value, _) => {
         globalState = globalState + (globalName -> Value.eval(value, this))

@@ -11,7 +11,12 @@ class ValidationTest {
   }
 
   def codeContainsError[T <: CompileException](code: String)(implicit m: Manifest[T]) = {
-    val program = "#function main( ): #unit { #block entry( ) { %s } }".format(code)
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    " + code + "\n" +
+                  "    #return r = ()\n" +
+                  "  }\n" +
+                  "}\n"
     programContainsError[T](program)
   }
 
@@ -140,5 +145,57 @@ class ValidationTest {
   def relopNonNumeric = {
     val code = "#relop a = () < ()"
     codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def nonExistantCondition = {
+    val code = "#cond a = #true ? foo : bar ( )"
+    codeContainsError[UndefinedSymbolException](code)
+  }
+
+  @Test
+  def nonBooleanCondition = {
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #cond a = 12 ? foo : bar ( )\n" +
+                  "  }\n" +
+                  "  #block foo( ) { #return a = () }\n" +
+                  "  #block bar( ) { #return a = () }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def conditionArgumentCount = {
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #cond a = #true ? foo : bar (12)\n" +
+                  "  }\n" +
+                  "  #block foo(x: #int32) { #return r = () }\n" +
+                  "  #block bar( ) { #return r = () }\n" +
+                  "}\n"
+    programContainsError[FunctionArgumentCountException](program)
+  }
+
+  @Test
+  def conditionTypeMismatch = {
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #cond a = #true ? foo : bar (12)\n" +
+                  "  }\n" +
+                  "  #block foo(x: #int32) { #return r = () }\n" +
+                  "  #block bar(x: #boolean) { #return r = () }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def conditionDuplicateBlock = {
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #cond a = #true ? entry : entry ( )\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[DuplicateComponentException](program)
   }
 }

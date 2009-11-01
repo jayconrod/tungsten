@@ -51,7 +51,41 @@ private object Utilities {
     if (!a.isEmpty) a else stage(b, c, d)
   }
 
-  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T], e: => List[T]): List[T] = {
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T], 
+               e: => List[T]): List[T] =
+  {
     if (!a.isEmpty) a else stage(b, c, d, e)
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T],
+               e: => List[T], f: => List[T]): List[T] =
+  {
+    if (!a.isEmpty) a else stage(b, c, d, e, f)
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T],
+               e: => List[T], f: => List[T], g: => List[T]): List[T] =
+  {
+    if (!a.isEmpty) a else stage(b, c, d, e, f, g)
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T],
+               e: => List[T], f: => List[T], g: => List[T], h: => List[T]): List[T] =
+  {
+    if (!a.isEmpty) a else stage(b, c, d, e, f, g, h)
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T],
+               e: => List[T], f: => List[T], g: => List[T], h: => List[T],
+               i: => List[T]): List[T] =
+  {
+    if (!a.isEmpty) a else stage(b, c, d, e, f, g, h, i)
+  }
+
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T],
+               e: => List[T], f: => List[T], g: => List[T], h: => List[T],
+               i: => List[T], j: => List[T]): List[T] =
+  {
+    if (!a.isEmpty) a else stage(b, c, d, e, f, g, h, i, j)
   }
 }

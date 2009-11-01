@@ -62,6 +62,13 @@ final case class InstructionOrderException(symbol: Symbol,
 final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)
 
+final case class NonLocalBranchException(functionName: Symbol,
+                                         blockName: Symbol,
+                                         location: Location)
+  extends CompileException("function " + functionName + 
+                             " branches to non-local block " + blockName,
+                           location)
+
 final case class NumericTypeException(ty: String, location: Location)
   extends CompileException("type " + ty + " must be numeric", location)
 

@@ -173,10 +173,38 @@ final case class AstBranchInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cTarget = ctx.resolve(target) match {
       case Some(t) => t
-      case None => throw new UndefinedSymbolException(target, location)
+      case None => target
     }
     val cArgs = arguments.map(_.compileOrElse(ctx))
     val cInst = BranchInstruction(fullName, cTarget, cArgs, location)
+    ctx.module.update(cInst)
+    cInst
+  }
+}
+
+final case class AstConditionalBranchInstruction(override name: Symbol,
+                                                 condition: AstValue,
+                                                 trueTarget: Symbol,
+                                                 falseTarget: Symbol,
+                                                 arguments: List[AstValue],
+                                                 override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    def resolveTarget(target: Symbol) = {
+      ctx.resolve(target) match {
+        case Some(resolved) => resolved
+        case None => target
+      }
+    }
+
+    val fullName = ctx.names.top + name
+    val cCond = condition.compile(ctx)
+    val cTrueTarget = resolveTarget(trueTarget)
+    val cFalseTarget = resolveTarget(falseTarget)
+    val cArgs = arguments.map(_.compile(ctx))
+    val cInst = ConditionalBranchInstruction(fullName, cCond, cTrueTarget, cFalseTarget, 
+                                             cArgs, location)
     ctx.module.update(cInst)
     cInst
   }

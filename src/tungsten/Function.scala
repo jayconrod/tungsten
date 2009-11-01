@@ -35,10 +35,44 @@ final case class Function(override name: Symbol,
       }
     }
 
+    def validateBlocks = {
+      def validateParameters(blockName: Symbol) = {
+        val block = module.get[Block](blockName).get
+        validateComponents[Parameter](module, block.parameters)
+      }
+      stage(validateComponents[Block](module, blocks),
+            blocks flatMap validateParameters)
+    }
+
+    def validateBranches = {
+      blocks flatMap { blockName =>
+        val block = module.get[Block](blockName).get
+        block.instructions flatMap { instName =>
+          val inst = module.get[Instruction](instName)
+          val blockNames = inst match {
+            case Some(BranchInstruction(_, target, _, _)) => List(target)
+            case Some(ConditionalBranchInstruction(_, _, trueTarget, falseTarget, _, _)) =>
+              List(trueTarget, falseTarget)
+            case _ => Nil
+          }
+          blockNames flatMap { n =>
+            if (!blocks.contains(n)) {
+              module.getDefn(n) match {
+                case Some(_) => List(NonLocalBranchException(name, n, inst.get.location))
+                case None => List(UndefinedSymbolException(n, inst.get.location))
+              }
+            } else
+              Nil
+          }
+        }
+      }
+    }
+
     stage(validateComponents[TypeParameter](module, typeParameters),
           validateComponents[Parameter](module, parameters),
           returnType.validate(module),
-          validateComponents[Block](module, blocks),
+          validateBlocks,
+          validateBranches,
           validateReturnType)
   }
 }

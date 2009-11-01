@@ -39,6 +39,35 @@ sealed abstract class Instruction(name: Symbol, location: Location)
   }
 }
 
+sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], location: Location)
+  extends Instruction(name, location)
+{
+  protected def targetName: Symbol
+
+  protected def targetType(module: Module): FunctionType
+
+  def ty(module: Module) = targetType(module).returnType
+
+  def validateCall(module: Module): List[CompileException] = {
+    validateCall(module, targetType(module).parameterTypes)
+  }
+
+  def validateCall(module: Module, parameterTypes: List[Type]): List[CompileException] = 
+  {
+    if (arguments.size != parameterTypes.size) {
+      List(FunctionArgumentCountException(targetName, 
+                                          arguments.size,
+                                          parameterTypes.size,
+                                          location))
+    } else {
+      (arguments zip parameterTypes) flatMap { at => 
+        val (a, t) = at
+        a.validateType(module, t)
+      }
+    }
+  }
+}   
+
 final case class AssignInstruction(override name: Symbol,
                                    value: Value,
                                    override location: Location = Nowhere)
@@ -112,31 +141,6 @@ final case class BinaryOperatorInstruction(override name: Symbol,
   }
 }
 
-sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], location: Location)
-  extends Instruction(name, location)
-{
-  protected def targetName: Symbol
-
-  protected def targetType(module: Module): FunctionType
-
-  def ty(module: Module) = targetType(module).returnType
-
-  def validateCall(module: Module) = {
-    val parameterTypes = targetType(module).parameterTypes
-    if (arguments.size != parameterTypes.size) {
-      List(FunctionArgumentCountException(targetName, 
-                                          arguments.size,
-                                          parameterTypes.size,
-                                          location))
-    } else {
-      (arguments zip targetType(module).parameterTypes) flatMap { at => 
-        val (a, t) = at
-        a.validateType(module, t)
-      }
-    }
-  }
-}   
-
 final case class BranchInstruction(override name: Symbol, 
                                    target: Symbol,
                                    arguments: List[Value],
@@ -149,7 +153,7 @@ final case class BranchInstruction(override name: Symbol,
 
   override def isTerminating = true
 
-  protected def targetName = target
+  protected def targetName = throw new UnsupportedOperationException
 
   protected def targetType(module: Module) = {
     module.get[Block](target).get.ty(module)
@@ -159,6 +163,50 @@ final case class BranchInstruction(override name: Symbol,
     stage(validateComponent[Block](module, target),
           validateOperands(module),
           validateCall(module))
+  }
+}
+
+final case class ConditionalBranchInstruction(override name: Symbol,
+                                              condition: Value,
+                                              trueTarget: Symbol,
+                                              falseTarget: Symbol,
+                                              arguments: List[Value],
+                                              override location: Location = Nowhere)
+  extends CallInstruction(name, arguments, location)
+{
+  def operands = condition :: arguments
+
+  override def usedSymbols = trueTarget :: falseTarget :: operandSymbols
+
+  override def isTerminating = true
+
+  protected def targetName = trueTarget
+
+  protected def targetType(module: Module) = {
+    module.get[Block](trueTarget).get.ty(module)
+  }
+
+  def validate(module: Module) = {
+    // We assume that both of the branch targets refer to local blocks and that the block
+    // parameters are validated. This should be done by Function.validate and Block.validate.
+
+    def validateDistinctTargets = {
+      if (trueTarget != falseTarget)
+        Nil
+      else
+        List(DuplicateComponentException(name, trueTarget, "block", location))
+    }
+
+    def validateBranch(target: Symbol) = {
+      val block = module.get[Block](target).get
+      val parameterTypes = block.parameters.map(module.get[Parameter](_).get.ty)
+      validateCall(module, parameterTypes)
+    }
+
+    stage(validateDistinctTargets,
+          validateBranch(trueTarget),
+          validateBranch(falseTarget),
+          condition.validateType(module, BooleanType()))
   }
 }
 
@@ -277,6 +325,7 @@ final case class RelationalOperatorInstruction(override name: Symbol,
 
   def validate(module: Module) = {
     import RelationalOperator._
+    System.err.println("validating relational instruction " + this)
     def validateType = {
       val lty = left.ty(module)
       val rty = right.ty(module)

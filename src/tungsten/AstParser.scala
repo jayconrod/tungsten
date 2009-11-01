@@ -90,6 +90,13 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def condInst: Parser[AstConditionalBranchInstruction] = {
+    "#cond" ~> location ~ (symbol <~ "=") ~ 
+      (value <~ "?") ~ (symbol <~ ":") ~ symbol ~ argumentList ^^ {
+      case l ~ n ~ c ~ t ~ f ~ a => AstConditionalBranchInstruction(n, c, t, f, a, l)
+    }
+  }
+
   def gloadInst: Parser[AstGlobalLoadInstruction] = {
     "#gload" ~> location ~ (symbol <~ "=") ~ symbol ^^ {
       case l ~ n ~ v => AstGlobalLoadInstruction(n, v, l)
@@ -135,6 +142,7 @@ object AstParser extends Parsers with ImplicitConversions {
     assignInst |
     binopInst |
     branchInst |
+    condInst |
     gloadInst |
     gstoreInst |
     indirectCallInst |

@@ -32,11 +32,28 @@ final class Module {
   }
 
   def validate = {
-    val errors = _definitions.valueIterable.flatMap(_.validate(this)).toList
-    _definitions.get(new Symbol("main")) match {
-      case Some(_: Function) => errors
-      case _ => MissingMainException() :: errors
+    def validateComponents[T <: Definition](implicit m: Manifest[T]) = {
+      val components = _definitions.valueIterable.filter(m.erasure.isInstance(_))
+      components.flatMap(_.validate(this)).toList
     }
+
+    def validateMain = {
+      _definitions.get(new Symbol("main")) match {
+        case Some(_: Function) => Nil
+        case _ => List(MissingMainException())
+      }
+    }
+
+    stage(validateComponents[Function],
+          validateComponents[Class],
+          validateComponents[Interface],
+          validateComponents[Global],
+          validateComponents[Parameter],
+          validateComponents[TypeParameter],
+          validateComponents[Struct],
+          validateComponents[Block],
+          validateComponents[Instruction],
+          validateMain)
   }
 
   override def equals(that: Any) = that match {

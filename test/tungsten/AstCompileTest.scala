@@ -38,6 +38,12 @@ class AstCompileTest {
   }
 
   @Test
+  def floatType = {
+    assertEquals(FloatType(32, loc), AstFloatType(32, loc).compile(ctx))
+    assertEquals(FloatType(64, loc), AstFloatType(64, loc).compile(ctx))
+  }
+
+  @Test
   def classType = {
     val clas = new Class(foo, Nil, None, Nil, Nil, Nil, Nowhere)
     ctx.module.add(clas)
@@ -75,6 +81,12 @@ class AstCompileTest {
     assertEquals(Int16Value(12, loc), AstInt16Value(12, loc).compile(ctx))
     assertEquals(Int32Value(12, loc), AstInt32Value(12, loc).compile(ctx))
     assertEquals(Int64Value(12, loc), AstInt64Value(12, loc).compile(ctx))
+  }
+
+  @Test
+  def floatValues = {
+    assertEquals(Float32Value(12.3f, loc), AstFloat32Value(12.3f, loc).compile(ctx))
+    assertEquals(Float64Value(12.3, loc), AstFloat64Value(12.3, loc).compile(ctx))
   }
 
   @Test

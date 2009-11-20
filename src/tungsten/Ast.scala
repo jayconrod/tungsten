@@ -38,6 +38,14 @@ final case class AstIntType(val width: Int, override val location: Location)
   def compile(ctx: AstContext) = IntType(width, location)
 }
 
+final case class AstFloatType(val width: Int, override val location: Location)
+  extends AstType(location)
+{
+  if (width != 32 && width != 64)
+    throw new IllegalArgumentException
+  def compile(ctx: AstContext) = FloatType(width, location)
+}
+
 final case class AstClassType(val name: Symbol,
                               val typeArguments: List[AstType],
                               override val location: Location)
@@ -105,6 +113,18 @@ final case class AstInt64Value(value: Long, override location: Location)
   extends AstValue(location)
 {
   def compile(ctx: AstContext) = Int64Value(value, location)
+}
+
+final case class AstFloat32Value(value: Float, override location: Location)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = Float32Value(value, location)
+}
+
+final case class AstFloat64Value(value: Double, override location: Location)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = Float64Value(value, location)
 }
 
 final case class AstSymbolValue(value: Symbol, override location: Location)

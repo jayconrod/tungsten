@@ -47,6 +47,7 @@ final class Environment(val module: Module) {
       case BinaryOperatorInstruction(name, op, left, right, _) => {
         val l = Value.eval(left, this)
         val r = Value.eval(right, this)
+        System.err.println("evaluating binary operator: %s %s %s".format(l, op, r))
         evalBinop(op, l, r)
       }
       case BranchInstruction(name, bbName, args, _) => {
@@ -131,26 +132,36 @@ final class Environment(val module: Module) {
       case (MULTIPLY, Int16Value(l), Int16Value(r)) => Int16Value((l * r).asInstanceOf[Short])
       case (MULTIPLY, Int32Value(l), Int32Value(r)) => Int32Value(l * r)
       case (MULTIPLY, Int64Value(l), Int64Value(r)) => Int64Value(l * r)
+      case (MULTIPLY, Float32Value(l), Float32Value(r)) => Float32Value(l * r)
+      case (MULTIPLY, Float64Value(l), Float64Value(r)) => Float64Value(l * r)
 
       case (DIVIDE, Int8Value(l), Int8Value(r)) => Int8Value((l / r).asInstanceOf[Byte])
       case (DIVIDE, Int16Value(l), Int16Value(r)) => Int16Value((l / r).asInstanceOf[Short])
       case (DIVIDE, Int32Value(l), Int32Value(r)) => Int32Value(l / r)
       case (DIVIDE, Int64Value(l), Int64Value(r)) => Int64Value(l / r)
+      case (DIVIDE, Float32Value(l), Float32Value(r)) => Float32Value(l / r)
+      case (DIVIDE, Float64Value(l), Float64Value(r)) => Float64Value(l / r)
 
       case (REMAINDER, Int8Value(l), Int8Value(r)) => Int8Value((l % r).asInstanceOf[Byte])
       case (REMAINDER, Int16Value(l), Int16Value(r)) => Int16Value((l % r).asInstanceOf[Short])
       case (REMAINDER, Int32Value(l), Int32Value(r)) => Int32Value(l % r)
       case (REMAINDER, Int64Value(l), Int64Value(r)) => Int64Value(l % r)
+      case (REMAINDER, Float32Value(l), Float32Value(r)) => Float32Value(l % r)
+      case (REMAINDER, Float64Value(l), Float64Value(r)) => Float64Value(l % r)
 
       case (ADD, Int8Value(l), Int8Value(r)) => Int8Value((l + r).asInstanceOf[Byte])
       case (ADD, Int16Value(l), Int16Value(r)) => Int16Value((l + r).asInstanceOf[Short])
       case (ADD, Int32Value(l), Int32Value(r)) => Int32Value(l + r)
       case (ADD, Int64Value(l), Int64Value(r)) => Int64Value(l + r)
+      case (ADD, Float32Value(l), Float32Value(r)) => Float32Value(l + r)
+      case (ADD, Float64Value(l), Float64Value(r)) => Float64Value(l + r)
 
       case (SUBTRACT, Int8Value(l), Int8Value(r)) => Int8Value((l - r).asInstanceOf[Byte])
       case (SUBTRACT, Int16Value(l), Int16Value(r)) => Int16Value((l - r).asInstanceOf[Short])
       case (SUBTRACT, Int32Value(l), Int32Value(r)) => Int32Value(l - r)
       case (SUBTRACT, Int64Value(l), Int64Value(r)) => Int64Value(l - r)
+      case (SUBTRACT, Float32Value(l), Float32Value(r)) => Float32Value(l - r)
+      case (SUBTRACT, Float64Value(l), Float64Value(r)) => Float64Value(l - r)
 
       case (LEFT_SHIFT, Int8Value(l), Int8Value(r)) => Int8Value((l << r).asInstanceOf[Byte])
       case (LEFT_SHIFT, Int16Value(l), Int16Value(r)) => Int16Value((l << r).asInstanceOf[Short])
@@ -192,21 +203,29 @@ final class Environment(val module: Module) {
       case (LESS_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l < r)
       case (LESS_THAN, Int32Value(l), Int32Value(r)) => BooleanValue(l < r)
       case (LESS_THAN, Int64Value(l), Int64Value(r)) => BooleanValue(l < r)
+      case (LESS_THAN, Float32Value(l), Float32Value(r)) => BooleanValue(l < r)
+      case (LESS_THAN, Float64Value(l), Float64Value(r)) => BooleanValue(l < r)
       
       case (LESS_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l <= r)
       case (LESS_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l <= r)
       case (LESS_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l <= r)
       case (LESS_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l <= r)
+      case (LESS_EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l <= r)
+      case (LESS_EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l <= r)
       
       case (GREATER_THAN, Int8Value(l), Int8Value(r)) => BooleanValue(l > r)
       case (GREATER_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l > r)
       case (GREATER_THAN, Int32Value(l), Int32Value(r)) => BooleanValue(l > r)
       case (GREATER_THAN, Int64Value(l), Int64Value(r)) => BooleanValue(l > r)
+      case (GREATER_THAN, Float32Value(l), Float32Value(r)) => BooleanValue(l > r)
+      case (GREATER_THAN, Float64Value(l), Float64Value(r)) => BooleanValue(l > r)
       
       case (GREATER_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l >= r)
       case (GREATER_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l >= r)
       case (GREATER_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l >= r)
       case (GREATER_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l >= r)
+      case (GREATER_EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l >= r)
+      case (GREATER_EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l >= r)
 
       case (EQUAL, UnitValue, UnitValue) => BooleanValue(true)
       case (EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l == r)      
@@ -214,6 +233,8 @@ final class Environment(val module: Module) {
       case (EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l == r)
       case (EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l == r)
       case (EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l == r)
+      case (EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l == r)
+      case (EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l == r)
       
       case (NOT_EQUAL, UnitValue, UnitValue) => BooleanValue(false)
       case (NOT_EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l != r)
@@ -221,6 +242,8 @@ final class Environment(val module: Module) {
       case (NOT_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l != r)
       case (NOT_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l != r)
       case (NOT_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l != r)
+      case (NOT_EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l != r)
+      case (NOT_EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l != r)
 
       case _ => throw new RuntimeException
     }

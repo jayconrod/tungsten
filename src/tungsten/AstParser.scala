@@ -31,7 +31,9 @@ object AstParser extends Parsers with ImplicitConversions {
     ("#int8" ~> location ^^ { AstIntType(8, _) }) |
     ("#int16" ~> location ^^ { AstIntType(16, _) }) |
     ("#int32" ~> location ^^ { AstIntType(32, _) }) |
-    ("#int16" ~> location ^^ { AstIntType(64, _) }) |
+    ("#int64" ~> location ^^ { AstIntType(64, _) }) |
+    ("#float32" ~> location ^^ { AstFloatType(32, _) }) |
+    ("#float64" ~> location ^^ { AstFloatType(64, _) }) |
     (symbol ~ typeArguments ~ location ^^ { 
       case name ~ args ~ loc => AstClassType(name, args, loc)
     })
@@ -49,6 +51,8 @@ object AstParser extends Parsers with ImplicitConversions {
     val short = accept("short", { case ShortToken(s) => s })
     val int = accept("int", { case IntToken(i) => i })
     val long = accept("long", { case LongToken(l) => l })
+    val float = accept("float", { case Float32Token(f) => f })
+    val double = accept("double", { case Float64Token(d) => d })
 
     ("()" ~> location ^^ { AstUnitValue(_) }) |
     ("#true" ~> location ^^ { AstBooleanValue(true, _) }) |
@@ -57,6 +61,8 @@ object AstParser extends Parsers with ImplicitConversions {
     (short ~ location ^^ flatten2(AstInt16Value(_, _))) |
     (int ~ location ^^ flatten2(AstInt32Value(_, _))) |
     (long ~ location ^^ flatten2(AstInt64Value(_, _))) |
+    (float ~ location ^^ flatten2(AstFloat32Value(_, _))) |
+    (double ~ location ^^ flatten2(AstFloat64Value(_, _))) |
     (symbol ~ location ^^ flatten2(AstSymbolValue(_, _)))
   }
 

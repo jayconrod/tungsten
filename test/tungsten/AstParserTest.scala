@@ -49,6 +49,9 @@ class AstParserTest {
     testType("#unit", AstUnitType(Nowhere))
     testType("#boolean", AstBooleanType(Nowhere))
     testType("#int32", AstIntType(32, Nowhere))
+    testType("#int64", AstIntType(64, Nowhere))
+    testType("#float32", AstFloatType(32, Nowhere))
+    testType("#float64", AstFloatType(64, Nowhere))
     testType("Foo", AstClassType(new Symbol("Foo"), Nil, Nowhere))
     testType("foo.bar.Baz", AstClassType(Symbol(List("foo", "bar", "Baz"), 0), Nil, Nowhere))
     testType("Foo[Baz]", AstClassType(new Symbol("Foo"), 
@@ -70,6 +73,8 @@ class AstParserTest {
     testValue("12s", AstInt16Value(12, Nowhere))
     testValue("12", AstInt32Value(12, Nowhere))
     testValue("12L", AstInt64Value(12L, Nowhere))
+    testValue("1.5f", AstFloat32Value(1.5f, Nowhere))
+    testValue("1.5", AstFloat64Value(1.5, Nowhere))
     testValue("foo", AstSymbolValue(new Symbol("foo"), Nowhere))
   }
 

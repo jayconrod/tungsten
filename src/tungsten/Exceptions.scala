@@ -36,6 +36,10 @@ final case class EntryParametersException(functionName: Symbol, location: Locati
                              " don't match the entry block",
                            location)
 
+final case class FloatBitOperationException(location: Location)
+  extends CompileException("bit operations are not supported on floating point values",
+                           location)
+
 final case class FunctionArgumentCountException(symbol: Symbol,
                                                 given: Int,
                                                 required: Int,

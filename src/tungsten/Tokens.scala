@@ -18,3 +18,6 @@ final case class ShortToken(value: Short) extends IntegerToken
 final case class IntToken(value: Int) extends IntegerToken
 final case class LongToken(value: Long) extends IntegerToken
 
+sealed abstract class FloatToken extends Token
+final case class Float32Token(value: Float) extends FloatToken
+final case class Float64Token(value: Double) extends FloatToken

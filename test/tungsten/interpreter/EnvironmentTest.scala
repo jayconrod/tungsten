@@ -80,6 +80,13 @@ class EnvironmentTest {
   }
 
   @Test
+  def floatBinopInst = {
+    val (module, env) = prepareCode("#binop a = 1. + 2.")
+    env.step
+    assertEquals(Float64Value(3.), env.state.get(prefix + "a"))
+  }
+
+  @Test
   def branchInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block b1( ) { #branch b = b2(12, 34) }\n" +

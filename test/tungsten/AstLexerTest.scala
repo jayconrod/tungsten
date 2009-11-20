@@ -66,6 +66,7 @@ class AstLexerTest {
     test("12", AstLexer.int, 12)
     test("0", AstLexer.int, 0)
     test("10000000000L", AstLexer.long, 10000000000L)
+    test("-12", AstLexer.int, -12)
   }
 
   @Test
@@ -74,6 +75,30 @@ class AstLexerTest {
     testToken("12s", ShortToken(12))
     testToken("12", IntToken(12))
     testToken("12L", LongToken(12))
+  }
+
+  @Test
+  def floatToken = {
+    testToken("1.", Float64Token(1.))
+    testToken("-1.", Float64Token(-1.))
+    testToken("+1.", Float64Token(+1.))
+    testToken("1.5", Float64Token(1.5))
+    testToken("1.5e2", Float64Token(1.5e2))
+    testToken("1.5E2", Float64Token(1.5E2))
+    testToken("1.5e-2", Float64Token(1.5e-2))
+    testToken("1.5e+2", Float64Token(1.5e+2))
+    testToken("1.5e2f", Float32Token(1.5e2f))
+    testToken("1.5f", Float32Token(1.5f))
+    testToken("1.f", Float32Token(1.f))
+    testToken(".5", Float64Token(.5))
+    testToken("-.5", Float64Token(-.5))
+    testToken(".5e2", Float64Token(.5e2))
+    testToken(".5f", Float32Token(.5f))
+    testToken("1e2", Float64Token(1e2))
+    testToken("1e2f", Float32Token(1e2f))
+    testToken("-1e2f", Float32Token(-1e2f))
+    testToken("1f", Float32Token(1f))
+    testToken("-1f", Float32Token(-1f))
   }
 
   @Test

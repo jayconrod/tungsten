@@ -111,6 +111,11 @@ object BinaryOperator {
       case _ => throw new RuntimeException("invalid binary operator")
     }
   }
+
+  def isBitOperation(op: BinaryOperator) = {
+    op == LEFT_SHIFT || op == RIGHT_SHIFT_ARITHMETIC || op == RIGHT_SHIFT_LOGICAL ||
+      op == AND || op == XOR || op == OR
+  }
 }
 
 final case class BinaryOperatorInstruction(override name: Symbol,
@@ -136,7 +141,16 @@ final case class BinaryOperatorInstruction(override name: Symbol,
         Nil
     }
 
+    def validateFloatBitOp = {
+      val lty = left.ty(module)
+      if (lty.isInstanceOf[FloatType] && BinaryOperator.isBitOperation(operator))
+        List(FloatBitOperationException(location))
+      else
+        Nil
+    }
+
     stage(validateOperands(module),
+          validateFloatBitOp,
           validateType)
   }
 }

@@ -219,4 +219,10 @@ class ValidationTest {
     module.add(function)
     containsError[EntryParametersException](module.validate)
   }
+
+  @Test
+  def floatBitOp = {
+    val code = "#binop a = 1. & 2."
+    codeContainsError[FloatBitOperationException](code)
+  }
 }

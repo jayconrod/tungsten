@@ -46,6 +46,18 @@ final case class Int64Value(value: Long, override location: Location = Nowhere)
   def ty(module: Module): IntType = IntType(64, location)
 }
 
+final case class Float32Value(value: Float, override location: Location = Nowhere)
+  extends Value(location)
+{
+  def ty(module: Module): FloatType = FloatType(32, location)
+}
+
+final case class Float64Value(value: Double, override location: Location = Nowhere)
+  extends Value(location)
+{
+  def ty(module: Module): FloatType = FloatType(64, location)
+}
+
 final case class DefinedValue(value: Symbol, override location: Location = Nowhere)
   extends Value(location)
 {

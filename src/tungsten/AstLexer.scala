@@ -12,7 +12,7 @@ object AstLexer extends Parsers {
     "#true", "#false",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",
-    "#unit", "#boolean", "#int8", "#int16", "#int32", "#int64", 
+    "#unit", "#boolean", "#int8", "#int16", "#int32", "#int64", "#float32", "#float64",
     "#assign", "#binop", "#branch", "#cond", "#gload", "#gstore", "#icall", "#intrinsic",
       "#relop", "#return", "#scall")
 
@@ -65,6 +65,48 @@ object AstLexer extends Parsers {
   def int: Parser[Int] = numChars ^^ { _.asInstanceOf[Int] }
   def long: Parser[Long] = numChars <~ 'L'
 
+  def float: Parser[FloatToken] = {
+    def optSign: Parser[String] = opt(elem('-') | elem('+')) ^^ {
+      case Some(c) => c.toString
+      case None => ""
+    }
+    def numPart: Parser[String] = rep1(digit) ^^ { _.mkString }
+    def optNumPart: Parser[String] = opt(numPart) ^^ { _.getOrElse("") }
+    def expPart: Parser[String] = (elem('e') | elem('E')) ~ optSign ~ numPart ^^ {
+      case e ~ s ~ n => e + s + n
+    }
+    def optExpPart: Parser[String] = opt(expPart) ^^ { _.getOrElse("") }
+    def optTypePart: Parser[String] = opt('f') ^^ { 
+      case Some(_) => "f"
+      case None => ""
+    }
+    
+    def float1: Parser[String] = {
+      optSign ~ numPart ~ '.' ~ optNumPart ~ optExpPart ~ optTypePart ^^ {
+        case s ~ n ~ _ ~ f ~ e ~ t => s + n + "." + f + e + t
+      }
+    }
+    def float2: Parser[String] = {
+      optSign ~ '.' ~ numPart ~ optExpPart ~ optTypePart ^^ {
+        case s ~ _ ~ f ~ e ~ t => s + "." + f + e + t
+      }
+    }
+    def float3: Parser[String] = {
+      optSign ~ numPart ~ expPart ~ optTypePart ^^ {
+        case s ~ n ~ e ~ t => s + n + e + t
+      }
+    }
+    def float4: Parser[String] = {
+      optSign ~ numPart ~ 'f' ^^ {
+        case s ~ n ~ _ => s + n + "f"
+      }
+    }
+
+    (float1 | float2 | float3 | float4) ^^ { case s =>
+      if (s.endsWith("f")) Float32Token(s.toFloat) else Float64Token(s.toDouble)
+    }
+  }
+
   def symbol: Parser[Symbol] = {
     val idNum: Parser[Int] = {
       opt(elem('#') ~> int) ^^ {
@@ -94,12 +136,13 @@ object AstLexer extends Parsers {
 
   def token: Parser[Token] = {
     (location ^^ { LocationToken(_) }) | 
-    reserved | 
     (symbol ^^ { SymbolToken(_) }) | 
+    float |
     (byte ^^ { ByteToken(_) }) |
     (short ^^ { ShortToken(_) }) |
     (long ^^ { LongToken(_) }) |
     (int ^^ { IntToken(_) }) |      // must follow others since it doesn't have a suffix
+    reserved | 
     failure("illegal character")
   }
 

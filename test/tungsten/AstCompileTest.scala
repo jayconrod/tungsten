@@ -44,6 +44,17 @@ class AstCompileTest {
   }
 
   @Test
+  def pointerType = {
+    assertEquals(PointerType(UnitType(), loc), 
+                 AstPointerType(AstUnitType(Nowhere), loc).compile(ctx))
+  }
+
+  @Test
+  def nullType = {
+    assertEquals(NullType(loc), AstNullType(loc).compile(ctx))
+  }
+
+  @Test
   def classType = {
     val clas = new Class(foo, Nil, None, Nil, Nil, Nil, Nowhere)
     ctx.module.add(clas)

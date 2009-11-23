@@ -58,6 +58,12 @@ final case class Float64Value(value: Double, override location: Location = Nowhe
   def ty(module: Module): FloatType = FloatType(64, location)
 }
 
+final case class NullValue(override location: Location = Nowhere)
+  extends Value(location)
+{
+  def ty(module: Module): NullType = NullType(location)
+}
+
 final case class DefinedValue(value: Symbol, override location: Location = Nowhere)
   extends Value(location)
 {

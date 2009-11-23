@@ -20,6 +20,8 @@ final case class Float32Value(value: Float) extends Value
 
 final case class Float64Value(value: Double) extends Value
 
+final case object NullValue extends Value
+
 final case class FunctionValue(value: Function) extends Value
 
 object Value {
@@ -33,6 +35,7 @@ object Value {
       case tungsten.Int64Value(v, _) => Int64Value(v)
       case tungsten.Float32Value(v, _) => Float32Value(v)
       case tungsten.Float64Value(v, _) => Float64Value(v)
+      case tungsten.NullValue(_) => NullValue
       case tungsten.DefinedValue(v, _) => env.module.getDefn(v) match {
         case Some(p: Parameter) => env.state.values(v)
         case Some(i: Instruction) => env.state.values(v)

@@ -26,17 +26,33 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def ty: Parser[AstType] = {
-    ("#unit" ~> location ^^ { AstUnitType(_) }) |
-    ("#boolean" ~> location ^^ { AstBooleanType(_) }) |
-    ("#int8" ~> location ^^ { AstIntType(8, _) }) |
-    ("#int16" ~> location ^^ { AstIntType(16, _) }) |
-    ("#int32" ~> location ^^ { AstIntType(32, _) }) |
-    ("#int64" ~> location ^^ { AstIntType(64, _) }) |
-    ("#float32" ~> location ^^ { AstFloatType(32, _) }) |
-    ("#float64" ~> location ^^ { AstFloatType(64, _) }) |
-    (symbol ~ typeArguments ~ location ^^ { 
-      case name ~ args ~ loc => AstClassType(name, args, loc)
-    })
+    def elementTy: Parser[AstType] = {
+      ("#unit" ~> location ^^ { AstUnitType(_) }) |
+      ("#boolean" ~> location ^^ { AstBooleanType(_) }) |
+      ("#int8" ~> location ^^ { AstIntType(8, _) }) |
+      ("#int16" ~> location ^^ { AstIntType(16, _) }) |
+      ("#int32" ~> location ^^ { AstIntType(32, _) }) |
+      ("#int64" ~> location ^^ { AstIntType(64, _) }) |
+      ("#float32" ~> location ^^ { AstFloatType(32, _) }) |
+      ("#float64" ~> location ^^ { AstFloatType(64, _) }) |
+      (symbol ~ typeArguments ~ location ^^ { 
+        case name ~ args ~ loc => AstClassType(name, args, loc)
+      })
+    }
+    def makePointerType(ety: AstType, stars: List[Location]): AstType = {
+      stars match {
+        case Nil => ety
+        case l :: ls => {
+          val pty = AstPointerType(ety, l)
+          makePointerType(pty, ls)
+        }
+        case _ => throw new RuntimeException("token must be location")
+      }
+    }
+
+    elementTy ~ rep("*" ~> location) ^^ { 
+      case ety ~ stars => makePointerType(ety, stars)
+    }   
   }
 
   def typeArguments: Parser[List[AstType]] = {
@@ -63,6 +79,7 @@ object AstParser extends Parsers with ImplicitConversions {
     (long ~ location ^^ flatten2(AstInt64Value(_, _))) |
     (float ~ location ^^ flatten2(AstFloat32Value(_, _))) |
     (double ~ location ^^ flatten2(AstFloat64Value(_, _))) |
+    ("#null" ~> location ^^ { AstNullValue(_) }) |
     (symbol ~ location ^^ flatten2(AstSymbolValue(_, _)))
   }
 

@@ -115,6 +115,42 @@ final case class FloatType(width: Int,
   override def toString = "#float" + width
 }
 
+final case class PointerType(elementType: Type,
+                             override location: Location = Nowhere)
+  extends Type(location)
+{
+  override def validate(module: Module) = elementType.validate(module)
+
+  def defaultValue = NullValue()
+
+  def isNumeric = false
+
+  override def equals(that: Any) = {
+    that match {
+      case PointerType(et, _) if elementType == et => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = List[Any]("pointer", elementType).foldLeft(0)(hash _)
+
+  override def toString = elementType + "*"
+}
+
+final case class NullType(override location: Location = Nowhere)
+  extends Type(location)
+{
+  def defaultValue = NullValue()
+
+  def isNumeric = false
+
+  override def equals(that: Any) = that.isInstanceOf[NullType]
+
+  override def hashCode = hash(0, "null")
+
+  override def toString = "#null"
+}
+
 final case class UniversalType(typeParameters: List[Symbol],
                                baseType: Type,
                                override location: Location = Nowhere)
@@ -295,21 +331,4 @@ final case class InterfaceType(interfaceName: Symbol,
     val parts = "interface" :: interfaceName :: typeArguments.asInstanceOf[List[Any]]
     parts.foldLeft(0)(hash _)
   }
-}
-
-final case class NullType(override location: Location = Nowhere) extends Type(location) {
-  def defaultValue = throw new UnsupportedOperationException
-
-  def isNumeric = false
-
-  override def equals(that: Any) = {
-    that match {
-      case NullType(_) => true
-      case _ => false
-    }
-  }
-
-  override def hashCode = hash(0, "null")
-
-  override def toString = "Null"
 }

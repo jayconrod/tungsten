@@ -46,6 +46,18 @@ final case class AstFloatType(val width: Int, override val location: Location)
   def compile(ctx: AstContext) = FloatType(width, location)
 }
 
+final case class AstPointerType(elementType: AstType, override location: Location)
+  extends AstType(location)
+{
+  def compile(ctx: AstContext) = PointerType(elementType.compile(ctx), location)
+}
+
+final case class AstNullType(override location: Location)
+  extends AstType(location)
+{
+  def compile(ctx: AstContext) = NullType(location)
+}
+
 final case class AstClassType(val name: Symbol,
                               val typeArguments: List[AstType],
                               override val location: Location)
@@ -125,6 +137,12 @@ final case class AstFloat64Value(value: Double, override location: Location)
   extends AstValue(location)
 {
   def compile(ctx: AstContext) = Float64Value(value, location)
+}
+
+final case class AstNullValue(override location: Location)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = NullValue(location)
 }
 
 final case class AstSymbolValue(value: Symbol, override location: Location)

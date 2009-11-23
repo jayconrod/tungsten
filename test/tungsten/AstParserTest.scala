@@ -66,6 +66,20 @@ class AstParserTest {
   }
 
   @Test
+  def pointerType = {
+    testType("#unit**", AstPointerType(AstPointerType(AstUnitType(Nowhere), Nowhere), Nowhere))
+  }
+
+  @Test
+  def pointerTypeWithLocations = {
+    val l1 = Location("foo.w", 1, 2, 3, 4)
+    val l2 = Location("foo.w", 1, 2, 3, 5)
+    val l3 = Location("foo.w", 1, 2, 3, 6)
+    testType("#unit <foo.w:1.2-3.4> * <foo.w:1.2-3.5> * <foo.w:1.2-3.6>",
+             AstPointerType(AstPointerType(AstUnitType(l1), l2), l3))
+  }
+
+  @Test
   def value = {
     testValue("()", AstUnitValue(Nowhere))
     testValue("#true", AstBooleanValue(true, Nowhere))
@@ -75,6 +89,7 @@ class AstParserTest {
     testValue("12L", AstInt64Value(12L, Nowhere))
     testValue("1.5f", AstFloat32Value(1.5f, Nowhere))
     testValue("1.5", AstFloat64Value(1.5, Nowhere))
+    testValue("#null", AstNullValue(Nowhere))
     testValue("foo", AstSymbolValue(new Symbol("foo"), Nowhere))
   }
 

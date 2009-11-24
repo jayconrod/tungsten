@@ -109,4 +109,32 @@ class TypeTest {
     assertTrue(n1 == n2)
     assertEquals(n1.hashCode, n2.hashCode)
   }
+
+  @Test
+  def defaultSubtypeSelf = {
+    val t1 = UnitType()
+    val t2 = UnitType()
+    assertTrue(t1 isSubtypeOf t2)
+  }
+
+  @Test
+  def defaultSubtypeOther = {
+    val t1 = UnitType()
+    val t2 = IntType(32)
+    assertFalse(t1 isSubtypeOf t2)
+  }
+
+  @Test
+  def nullSubtypePointer = {
+    val t1 = NullType()
+    val t2 = PointerType(UnitType())
+    assertTrue(t1 isSubtypeOf t2)
+  }
+
+  @Test
+  def subtypeOperator = {
+    val t1 = NullType()
+    val t2 = PointerType(UnitType())
+    assertTrue(t1 <<: t2)
+  }
 }

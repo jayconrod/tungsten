@@ -8,6 +8,9 @@ abstract sealed class Type(location: Location)
   def validate(module: Module): List[CompileException] = Nil
   def defaultValue: Value
   def isNumeric: Boolean
+  def isPointer: Boolean = false
+  def isSubtypeOf(ty: Type): Boolean = ty == this
+  final def <<:(ty: Type): Boolean = ty isSubtypeOf this
   def equals(that: Any): Boolean
   def hashCode: Int
   def toString: String
@@ -125,6 +128,8 @@ final case class PointerType(elementType: Type,
 
   def isNumeric = false
 
+  override def isPointer = true
+
   override def equals(that: Any) = {
     that match {
       case PointerType(et, _) if elementType == et => true
@@ -143,6 +148,10 @@ final case class NullType(override location: Location = Nowhere)
   def defaultValue = NullValue()
 
   def isNumeric = false
+
+  override def isPointer = true
+
+  override def isSubtypeOf(ty: Type) = ty.isInstanceOf[NullType] || ty.isInstanceOf[PointerType]
 
   override def equals(that: Any) = that.isInstanceOf[NullType]
 

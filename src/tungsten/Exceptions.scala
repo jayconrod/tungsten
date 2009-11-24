@@ -95,3 +95,10 @@ final case class TypeMismatchException(given: String, required: String, location
 
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)
   extends CompileException(symbol.toString + " is not defined", location)
+
+final case class UpcastException(fromTy: String,
+                                 toTy: String,
+                                 location: Location)
+  extends CompileException("value cannot be upcast from type " +
+                             fromTy + " to type " + toTy,
+                           location)

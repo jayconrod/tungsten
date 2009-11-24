@@ -359,6 +359,22 @@ final case class AstStaticCallInstruction(override name: Symbol,
   }
 }
 
+final case class AstUpcastInstruction(override name: Symbol,
+                                      value: AstValue,
+                                      ty: AstType,
+                                      override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = UpcastInstruction(fullName, cValue, cTy, location)
+    ctx.module.update(cCast)
+    cCast
+  }
+}
+
 // Function and parameters
 
 final case class AstParameter(name: Symbol, ty: AstType, override location: Location)

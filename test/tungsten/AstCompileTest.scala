@@ -233,6 +233,14 @@ class AstCompileTest {
   }
 
   @Test
+  def upcastInst = {
+    ctx.names.push(foo)
+    val ast = AstUpcastInstruction(bar, AstNullValue(Nowhere), AstNullType(Nowhere), loc)
+    val expected = UpcastInstruction(foo + bar, NullValue(), NullType(), loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def block = {
     ctx.names.push(foo)
     val ast = AstBlock(bar,

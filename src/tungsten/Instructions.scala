@@ -394,3 +394,26 @@ final case class StaticCallInstruction(override name: Symbol,
           validateCall(module))
   }
 }
+
+final case class UpcastInstruction(override name: Symbol,
+                                   value: Value,
+                                   ty: Type,
+                                   override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def operands = List(value)
+
+  def ty(module: Module) = ty
+
+  def validate(module: Module) = {
+    def validateCast = {
+      val valueTy = value.ty(module)
+      if (!valueTy.isPointer || !ty.isPointer || !(valueTy <<: ty))
+        List(UpcastException(valueTy.toString, ty.toString, location))
+      else
+        Nil
+    }
+    stage(validateOperands(module),
+          validateCast)
+  }
+}

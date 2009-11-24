@@ -225,4 +225,23 @@ class ValidationTest {
     val code = "#binop a = 1. & 2."
     codeContainsError[FloatBitOperationException](code)
   }
+
+  @Test
+  def upcastToNonPointer = {
+    val code = "#upcast a = #null : #int32"
+    codeContainsError[UpcastException](code)
+  }
+
+  @Test
+  def upcastFromNonPointer = {
+    val code = "#upcast a = 12 : #int32*"
+    codeContainsError[UpcastException](code)
+  }
+
+  @Test
+  def upcastDown = {
+    val code = "#upcast a = #null : #int32*" + 
+               "#upcast b = a : #null"
+    codeContainsError[UpcastException](code)
+  }
 }

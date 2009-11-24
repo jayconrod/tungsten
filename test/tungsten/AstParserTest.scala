@@ -52,6 +52,7 @@ class AstParserTest {
     testType("#int64", AstIntType(64, Nowhere))
     testType("#float32", AstFloatType(32, Nowhere))
     testType("#float64", AstFloatType(64, Nowhere))
+    testType("#null", AstNullType(Nowhere))
     testType("Foo", AstClassType(new Symbol("Foo"), Nil, Nowhere))
     testType("foo.bar.Baz", AstClassType(Symbol(List("foo", "bar", "Baz"), 0), Nil, Nowhere))
     testType("Foo[Baz]", AstClassType(new Symbol("Foo"), 
@@ -180,6 +181,15 @@ class AstParserTest {
                                              new Symbol("bar"),
                                              List(AstInt32Value(123, Nowhere)),
                                              fooLoc))
+  }
+
+  @Test
+  def upcastInst = {
+    testInstruction("#upcast <foo.w:1.2-3.4> foo = #null : #null",
+                    AstUpcastInstruction(foo,
+                                         AstNullValue(Nowhere),
+                                         AstNullType(Nowhere),
+                                         fooLoc))
   }
 
   @Test

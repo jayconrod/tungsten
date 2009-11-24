@@ -35,6 +35,7 @@ object AstParser extends Parsers with ImplicitConversions {
       ("#int64" ~> location ^^ { AstIntType(64, _) }) |
       ("#float32" ~> location ^^ { AstFloatType(32, _) }) |
       ("#float64" ~> location ^^ { AstFloatType(64, _) }) |
+      ("#null" ~> location ^^ { AstNullType(_) }) |
       (symbol ~ typeArguments ~ location ^^ { 
         case name ~ args ~ loc => AstClassType(name, args, loc)
       })
@@ -161,6 +162,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def upcastInst: Parser[AstUpcastInstruction] = {
+    "#upcast" ~> location ~ (symbol <~ "=") ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstUpcastInstruction(n, v, t, l)
+    }
+  }
+
   def instruction: Parser[AstInstruction] = {
     assignInst |
     binopInst |
@@ -172,7 +179,8 @@ object AstParser extends Parsers with ImplicitConversions {
     intrinsicCallInst |
     relopInst |
     returnInst |
-    staticCallInst
+    staticCallInst |
+    upcastInst
   }
 
   def parameter: Parser[AstParameter] = {

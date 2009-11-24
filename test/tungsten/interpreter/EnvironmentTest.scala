@@ -204,4 +204,11 @@ class EnvironmentTest {
     assertEquals(stackSize - 1, env.stack.size)
     assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "i1"))))
   }
+
+  @Test
+  def upcastInst = {
+    val (module, env) = prepareCode("#upcast a = #null : #null")
+    env.step
+    assertEquals(NullValue, env.state.get(prefix + "a"))
+  }
 }

@@ -104,6 +104,7 @@ final class Environment(val module: Module) {
         call(function, args)
         UnitValue
       }
+      case UpcastInstruction(_, value, _, _) => Value.eval(value, this)
     }
   }
 

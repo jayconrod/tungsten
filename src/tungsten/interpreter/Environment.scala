@@ -213,6 +213,7 @@ final class Environment(val module: Module) {
   }
 
   def evalRelop(op: RelationalOperator, left: Value, right: Value): Value = {
+    import tungsten.interpreter.{NullValue => NV}
     (op, left, right) match {
       case (LESS_THAN, Int8Value(l), Int8Value(r)) => BooleanValue(l < r)
       case (LESS_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l < r)
@@ -250,6 +251,10 @@ final class Environment(val module: Module) {
       case (EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l == r)
       case (EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l == r)
       case (EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l == r)
+      case (EQUAL, NV, NV) => BooleanValue(true)
+      case (EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(false)
+      case (EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(false)
+      case (EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l eq r)
       
       case (NOT_EQUAL, UnitValue, UnitValue) => BooleanValue(false)
       case (NOT_EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l != r)
@@ -259,6 +264,10 @@ final class Environment(val module: Module) {
       case (NOT_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l != r)
       case (NOT_EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l != r)
       case (NOT_EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l != r)
+      case (NOT_EQUAL, NV, NV) => BooleanValue(false)
+      case (NOT_EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(true)
+      case (NOT_EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(true)
+      case (NOT_EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l ne r)
 
       case _ => throw new RuntimeException
     }

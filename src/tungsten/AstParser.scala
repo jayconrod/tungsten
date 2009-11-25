@@ -7,6 +7,8 @@ import scala.util.parsing.input.Reader
 object AstParser extends Parsers with ImplicitConversions {
   type Elem = Token
 
+  private val symbolFactory = new SymbolFactory
+
   def symbol: Parser[Symbol] = {
     elem("symbol", _.isInstanceOf[SymbolToken]) ^^ { 
       case SymbolToken(sym) => sym
@@ -86,6 +88,11 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def argumentList: Parser[List[AstValue]] = "(" ~> repsep(value, ",") <~ ")"
 
+  def optName: Parser[Symbol] = opt(symbol <~ "=") ^^ {
+    case Some(name) => name
+    case None => symbolFactory.symbol("tmp$")
+  }
+
   def binop: Parser[BinaryOperator] = {
     ("*" | "/" | "%" | "+" | "-" | "<<" | ">>" | ">>>" | "&" | "^" | "|") ^^ {
       BinaryOperator.fromString(_)
@@ -97,68 +104,68 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def assignInst: Parser[AstAssignInstruction] = {
-    "#assign" ~> location ~ (symbol <~ "=") ~ value ^^ {
+    "#assign" ~> location ~ optName ~ value ^^ {
       case l ~ n ~ v => AstAssignInstruction(n, v, l)
     }
   }
 
   def binopInst: Parser[AstBinaryOperatorInstruction] = {
-    "#binop" ~> location ~ (symbol <~ "=") ~ value ~ binop ~ value ^^ {
+    "#binop" ~> location ~ optName ~ value ~ binop ~ value ^^ {
       case loc ~ n ~ l ~ op ~ r => AstBinaryOperatorInstruction(n, op, l, r, loc)
     }
   }
 
   def branchInst: Parser[AstBranchInstruction] = {
-    "#branch" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
+    "#branch" ~> location ~ optName ~ symbol ~ argumentList ^^ {
       case l ~ n ~ v ~ a => AstBranchInstruction(n, v, a, l)
     }
   }
 
   def condInst: Parser[AstConditionalBranchInstruction] = {
-    "#cond" ~> location ~ (symbol <~ "=") ~ 
+    "#cond" ~> location ~ optName ~ 
       (value <~ "?") ~ (symbol <~ ":") ~ symbol ~ argumentList ^^ {
       case l ~ n ~ c ~ t ~ f ~ a => AstConditionalBranchInstruction(n, c, t, f, a, l)
     }
   }
 
   def gloadInst: Parser[AstGlobalLoadInstruction] = {
-    "#gload" ~> location ~ (symbol <~ "=") ~ symbol ^^ {
+    "#gload" ~> location ~ optName ~ symbol ^^ {
       case l ~ n ~ v => AstGlobalLoadInstruction(n, v, l)
     }
   }
 
   def gstoreInst: Parser[AstGlobalStoreInstruction] = {
-    "#gstore" ~> location ~ (symbol <~ "=") ~ (symbol <~ "<-") ~ value ^^ {
+    "#gstore" ~> location ~ optName ~ (symbol <~ "<-") ~ value ^^ {
       case l ~ n ~ g ~ v => AstGlobalStoreInstruction(n, g, v, l)
     }
   }
 
   def indirectCallInst: Parser[AstIndirectCallInstruction] = {
-    "#icall" ~> location ~ (symbol <~ "=") ~ value ~ argumentList ^^ {
+    "#icall" ~> location ~ optName ~ value ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstIndirectCallInstruction(n, t, a, l)
     }
   }
 
   def intrinsicCallInst: Parser[AstIntrinsicCallInstruction] = {
-    "#intrinsic" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
+    "#intrinsic" ~> location ~ optName ~ symbol ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstIntrinsicCallInstruction(n, t, a, l)
     }
   }
 
   def loadInst: Parser[AstLoadInstruction] = {
-    "#load" ~> location ~ (symbol <~ "=") ~ ("*" ~> value) ^^ {
+    "#load" ~> location ~ optName ~ ("*" ~> value) ^^ {
       case l ~ n ~ v => AstLoadInstruction(n, v, l)
     }
   }
 
   def relopInst: Parser[AstRelationalOperatorInstruction] = {
-    "#relop" ~> location ~ (symbol <~ "=") ~ value ~ relop ~ value ^^ {
+    "#relop" ~> location ~ optName ~ value ~ relop ~ value ^^ {
       case loc ~ n ~ l ~ op ~ r => AstRelationalOperatorInstruction(n, op, l, r, loc)
     }
   }
 
   def returnInst: Parser[AstReturnInstruction] = {
-    "#return" ~> location ~ (symbol <~ "=") ~ value ^^ { 
+    "#return" ~> location ~ optName ~ value ^^ { 
       case l ~ n ~ v => AstReturnInstruction(n, v, l) }
   }
 
@@ -169,19 +176,19 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def staticCallInst: Parser[AstStaticCallInstruction] = {
-    "#scall" ~> location ~ (symbol <~ "=") ~ symbol ~ argumentList ^^ {
+    "#scall" ~> location ~ optName ~ symbol ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstStaticCallInstruction(n, t, a, l)
     }
   }
 
   def storeInst: Parser[AstStoreInstruction] = {
-    "#store" ~> location ~ (symbol <~ "=") ~ ("*" ~> value) ~ ("<-" ~> value) ^^ {
+    "#store" ~> location ~ optName ~ ("*" ~> value) ~ ("<-" ~> value) ^^ {
       case l ~ n ~ p ~ v => AstStoreInstruction(n, p, v, l)
     }
   }
 
   def upcastInst: Parser[AstUpcastInstruction] = {
-    "#upcast" ~> location ~ (symbol <~ "=") ~ value ~ (":" ~> ty) ^^ {
+    "#upcast" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
       case l ~ n ~ v ~ t => AstUpcastInstruction(n, v, t, l)
     }
   }

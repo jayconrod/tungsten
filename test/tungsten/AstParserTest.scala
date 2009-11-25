@@ -159,6 +159,12 @@ class AstParserTest {
   }
 
   @Test
+  def loadInst = {
+    testInstruction("#load <foo.w:1.2-3.4> foo = *()",
+                    AstLoadInstruction(foo, AstUnitValue(Nowhere), fooLoc))
+  }
+
+  @Test
   def relopInst = {
     testInstruction("#relop <foo.w:1.2-3.4> foo = 12 == 34",
                     AstRelationalOperatorInstruction(foo,
@@ -190,6 +196,15 @@ class AstParserTest {
                                              new Symbol("bar"),
                                              List(AstInt32Value(123, Nowhere)),
                                              fooLoc))
+  }
+
+  @Test
+  def storeInst = {
+    testInstruction("#store <foo.w:1.2-3.4> foo = *() <- ()",
+                    AstStoreInstruction(foo,
+                                        AstUnitValue(Nowhere),
+                                        AstUnitValue(Nowhere),
+                                        fooLoc))
   }
 
   @Test

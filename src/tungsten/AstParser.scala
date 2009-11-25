@@ -145,6 +145,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def loadInst: Parser[AstLoadInstruction] = {
+    "#load" ~> location ~ (symbol <~ "=") ~ ("*" ~> value) ^^ {
+      case l ~ n ~ v => AstLoadInstruction(n, v, l)
+    }
+  }
+
   def relopInst: Parser[AstRelationalOperatorInstruction] = {
     "#relop" ~> location ~ (symbol <~ "=") ~ value ~ relop ~ value ^^ {
       case loc ~ n ~ l ~ op ~ r => AstRelationalOperatorInstruction(n, op, l, r, loc)
@@ -168,6 +174,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def storeInst: Parser[AstStoreInstruction] = {
+    "#store" ~> location ~ (symbol <~ "=") ~ ("*" ~> value) ~ ("<-" ~> value) ^^ {
+      case l ~ n ~ p ~ v => AstStoreInstruction(n, p, v, l)
+    }
+  }
+
   def upcastInst: Parser[AstUpcastInstruction] = {
     "#upcast" ~> location ~ (symbol <~ "=") ~ value ~ (":" ~> ty) ^^ {
       case l ~ n ~ v ~ t => AstUpcastInstruction(n, v, t, l)
@@ -183,10 +195,12 @@ object AstParser extends Parsers with ImplicitConversions {
     gstoreInst |
     indirectCallInst |
     intrinsicCallInst |
+    loadInst |
     relopInst |
     returnInst |
     stackAllocateInst |
     staticCallInst |
+    storeInst |
     upcastInst
   }
 

@@ -304,6 +304,31 @@ final case class IntrinsicCallInstruction(override name: Symbol,
   }
 }
 
+final case class LoadInstruction(override name: Symbol,
+                                 pointer: Value,
+                                 override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def operands = List(pointer)
+
+  def ty(module: Module) = {
+    val pointerType = pointer.ty(module).asInstanceOf[PointerType]
+    pointerType.elementType
+  }
+  
+  def validate(module: Module) = {
+    def validatePointerType = {
+      val pointerType = pointer.ty(module)
+      if (!pointerType.isInstanceOf[PointerType])
+        List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
+      else
+        Nil
+    }
+    stage(validateOperands(module),
+          validatePointerType)
+  } 
+}
+
 final case class RelationalOperator(name: String)
 
 object RelationalOperator {
@@ -355,6 +380,36 @@ final case class RelationalOperatorInstruction(override name: Symbol,
         Nil
     }
 
+    stage(validateOperands(module),
+          validateType)
+  }
+}
+
+final case class StoreInstruction(override name: Symbol,
+                                  pointer: Value,
+                                  value: Value,
+                                  override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def operands = List(pointer, value)
+
+  def ty(module: Module) = UnitType(location)
+
+  def validate(module: Module) = {
+    def validateType = {
+      val pointerType = pointer.ty(module)
+      pointerType match {
+        case PointerType(elementType, _) => {
+          val valueType = value.ty(module)
+          if (valueType != elementType)
+            List(TypeMismatchException(valueType.toString, elementType.toString, location))
+          else
+            Nil
+        }
+        case _ => 
+          List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
+      }
+    }
     stage(validateOperands(module),
           validateType)
   }

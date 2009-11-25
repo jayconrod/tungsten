@@ -256,4 +256,28 @@ class ValidationTest {
     val code = "#stack a : #null"
     codeContainsError[TypeMismatchException](code)
   }
+
+  @Test
+  def loadInt = {
+    val code = "#load a = *12"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def loadNull = {
+    val code = "#load a = *#null"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def storeInt = {
+    val code = "#store a = *12 <- 34"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def storeNull = {
+    val code = "#store a = *#null <- 34"
+    codeContainsError[TypeMismatchException](code)
+  }
 }

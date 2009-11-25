@@ -47,7 +47,6 @@ final class Environment(val module: Module) {
       case BinaryOperatorInstruction(name, op, left, right, _) => {
         val l = Value.eval(left, this)
         val r = Value.eval(right, this)
-        System.err.println("evaluating binary operator: %s %s %s".format(l, op, r))
         evalBinop(op, l, r)
       }
       case BranchInstruction(name, bbName, args, _) => {
@@ -86,6 +85,10 @@ final class Environment(val module: Module) {
         }
         UnitValue
       }
+      case LoadInstruction(_, pointer, _) => {
+        val scalar = Value.eval(pointer, this).asInstanceOf[ScalarReferenceValue]
+        scalar.value
+      }
       case RelationalOperatorInstruction(name, op, left, right, _) => {
         val l = Value.eval(left, this)
         val r = Value.eval(right, this)
@@ -109,6 +112,12 @@ final class Environment(val module: Module) {
         call(function, args)
         UnitValue
       }
+      case StoreInstruction(_, pointer, value, _) => {
+        val scalar = Value.eval(pointer, this).asInstanceOf[ScalarReferenceValue]
+        val v = Value.eval(value, this)
+        scalar.value = v
+        UnitValue
+      }        
       case UpcastInstruction(_, value, _, _) => Value.eval(value, this)
     }
   }

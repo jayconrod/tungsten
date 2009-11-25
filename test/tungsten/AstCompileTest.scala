@@ -209,6 +209,14 @@ class AstCompileTest {
   }
 
   @Test
+  def loadInst = {
+    ctx.names.push(foo)
+    val ast = AstLoadInstruction(bar, AstUnitValue(Nowhere), loc)
+    val expected = LoadInstruction(foo + bar, UnitValue(), loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def relopInst = {
     ctx.names.push(foo)
     val ast = AstRelationalOperatorInstruction(bar,
@@ -247,6 +255,14 @@ class AstCompileTest {
                                          baz,
                                          List(Int32Value(12), Int32Value(34)),
                                          loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def storeInst = {
+    ctx.names.push(foo)
+    val ast = AstStoreInstruction(bar, AstUnitValue(Nowhere), AstUnitValue(Nowhere), loc)
+    val expected = StoreInstruction(foo + bar, UnitValue(), UnitValue(), loc)
     testDefinition(expected, ast)
   }
 

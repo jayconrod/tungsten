@@ -313,6 +313,20 @@ final case class AstIntrinsicCallInstruction(override name: Symbol,
   }
 }
 
+final case class AstLoadInstruction(override name: Symbol,
+                                    pointer: AstValue,
+                                    override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cPointer = pointer.compileOrElse(ctx)
+    val cLoad = LoadInstruction(fullName, cPointer, location)
+    ctx.module.update(cLoad)
+    cLoad
+  }
+}
+
 final case class AstRelationalOperatorInstruction(override name: Symbol,
                                                   operator: RelationalOperator,
                                                   left: AstValue,
@@ -370,6 +384,22 @@ final case class AstStaticCallInstruction(override name: Symbol,
     val cCall = StaticCallInstruction(fullName, target, cArgs, location)
     ctx.module.update(cCall)
     cCall
+  }
+}
+
+final case class AstStoreInstruction(override name: Symbol,
+                                     pointer: AstValue,
+                                     value: AstValue,
+                                     override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cPointer = pointer.compileOrElse(ctx)
+    val cValue = value.compileOrElse(ctx)
+    val cStore = StoreInstruction(fullName, cPointer, cValue, location)
+    ctx.module.update(cStore)
+    cStore
   }
 }
 

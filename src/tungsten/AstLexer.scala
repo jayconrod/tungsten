@@ -14,7 +14,7 @@ object AstLexer extends Parsers {
       "#interface",
     "#unit", "#boolean", "#int8", "#int16", "#int32", "#int64", "#float32", "#float64", "#null",
     "#assign", "#binop", "#branch", "#cond", "#gload", "#gstore", "#icall", "#intrinsic",
-      "#relop", "#return", "#scall", "#stack", "#upcast")
+      "#load", "#relop", "#return", "#scall", "#stack", "#store", "#upcast")
 
   def chrExcept(cs: Char*) = {
     elem("", c => cs.forall(c != _))

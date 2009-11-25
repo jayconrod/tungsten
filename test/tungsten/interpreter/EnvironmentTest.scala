@@ -176,6 +176,17 @@ class EnvironmentTest {
   }
 
   @Test
+  def loadInst = {
+    val code = "#stack a : #int32*\n" +
+               "#load b = *a"
+    val (module, env) = prepareCode(code)
+    env.step
+    env.step
+    val a = new Symbol(List("main", "entry", "b"))
+    assertEquals(Int32Value(0), env.state.get(a))
+  }
+
+  @Test
   def relopInst = {
     val (module, env) = prepareCode("#relop a = 1 == 2")
     env.step
@@ -210,6 +221,19 @@ class EnvironmentTest {
     env.step // return
     assertEquals(stackSize - 1, env.stack.size)
     assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "i1"))))
+  }
+
+  @Test
+  def storeInst = {
+    val code = "#stack a : #int32*\n" +
+               "#store b = *a <- 12"
+    val (module, env) = prepareCode(code)
+    env.step
+    env.step
+    val a = new Symbol(List("main", "entry", "a"))
+    val b = new Symbol(List("main", "entry", "b"))
+    assertEquals(ScalarReferenceValue(Int32Value(12)), env.state.get(a))
+    assertEquals(UnitValue, env.state.get(b))
   }
 
   @Test

@@ -26,6 +26,16 @@ class ValidationTest {
     assertTrue(errors.exists(m.erasure.isInstance(_)))
   }
 
+  def programIsCorrect(program: String) = {
+    val errors = compileString(program).validate
+    assertTrue(errors.isEmpty)
+  }
+
+  def codeIsCorrect(code: String) = {
+    val program = "#function main( ): #unit { #block entry( ) { %s } }".format(code)
+    programIsCorrect(program)
+  }
+
   @Test
   def stagedValidation = {
     def f(x: Int) = if (x > 0) List(1, 2, 3) else throw new RuntimeException("stage failed")
@@ -206,18 +216,9 @@ class ValidationTest {
   }
 
   @Test
-  def entryBlockWrongParameters = {
-    val inst = ReturnInstruction(new Symbol("r"), UnitValue())
-    val param = Parameter(new Symbol("p"), UnitType())
-    val block = Block(new Symbol("b"), Nil, List(inst.name))
-    val function = Function(new Symbol("f"), Nil, List(param.name), 
-                            UnitType(), List(block.name))
-    val module = new Module
-    module.add(inst)
-    module.add(param)
-    module.add(block)
-    module.add(function)
-    containsError[EntryParametersException](module.validate)
+  def entryBlockWithParameters = {
+    val program = "#function main( ): #unit { #block entry(u: #unit) { #return r = () } }"
+    programContainsError[EntryParametersException](program)
   }
 
   @Test
@@ -279,5 +280,31 @@ class ValidationTest {
   def storeNull = {
     val code = "#store a = *#null <- 34"
     codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def paramsInNonEntryBlockCorrect = {
+    val program = "#function main( ): #unit { #block entry( ) { #return r = () } }\n" +
+                  "#function f(x: #unit): #unit {\n" +
+                  "  #block b1( ) {\n" +
+                  "    #branch t1 = b2( )\n" +
+                  "  }\n" +
+                  "  #block b2( ) {\n" +
+                  "    #return r = x\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def mainWithParameters = {
+    val program = "#function main(x: #unit): #unit { #block entry( ) { #return r = () } }"
+    programContainsError[MainNonEmptyParametersException](program)
+  }
+
+  @Test
+  def mainReturnType = {
+    val program = "#function main( ): #int32 { #block entry( ) { #return r = 12 } }"
+    programContainsError[MainReturnTypeException](program)
   }
 }

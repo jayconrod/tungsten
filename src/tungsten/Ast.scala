@@ -513,16 +513,6 @@ final case class AstFunction(name: Symbol,
     val cTyParams = typeParameters.map(_.compile(ctx).name)
     val cParams = parameters.map(_.compile(ctx).name)
     var cBlocks = blocks.map(_.compile(ctx).name)
-    cBlocks match {
-      case entryName :: _ => {
-        val entry = ctx.module.get[Block](entryName).get
-        if (entry.parameters.isEmpty) {
-          val newEntry = Block(entry.name, cParams, entry.instructions, entry.location) 
-          ctx.module.update(newEntry)
-        }
-      }
-      case _ => ()
-    }
     val cFunction = Function(name, cTyParams, cParams, cRetTy, cBlocks, location)
     ctx.module.update(cFunction)
     ctx.names.pop

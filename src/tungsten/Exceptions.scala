@@ -31,9 +31,11 @@ final case class EmptyStructException(symbol: Symbol, location: Location)
   extends CompileException("struct " + symbol.toString + " must contain at least one field",
                            location)
 
-final case class EntryParametersException(functionName: Symbol, location: Location)
-  extends CompileException("parameters for function " + functionName + 
-                             " don't match the entry block",
+final case class EntryParametersException(functionName: Symbol, 
+                                          blockName: Symbol,
+                                          location: Location)
+  extends CompileException("the entry block " + blockName + " for function " + functionName +
+                             " must not have any parameters",
                            location)
 
 final case class FloatBitOperationException(location: Location)
@@ -67,6 +69,12 @@ final case class InstructionOrderException(symbol: Symbol,
   extends CompileException("the symbol " + symbol + 
                              " is not valid at the point where it is used",
                            location)
+
+final case class MainNonEmptyParametersException(location: Location)
+  extends CompileException("main function must not have parameters", location)
+
+final case class MainReturnTypeException(location: Location)
+  extends CompileException("main function must have unit return type", location)
 
 final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)

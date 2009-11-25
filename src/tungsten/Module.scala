@@ -39,7 +39,14 @@ final class Module {
 
     def validateMain = {
       _definitions.get(new Symbol("main")) match {
-        case Some(_: Function) => Nil
+        case Some(main: Function) => {
+          if (!main.parameters.isEmpty)
+            List(MainNonEmptyParametersException(main.location))
+          else if (main.returnType != UnitType())
+            List(MainReturnTypeException(main.location))
+          else
+            Nil
+        }
         case _ => List(MissingMainException())
       }
     }
@@ -64,4 +71,6 @@ final class Module {
   }
 
   override def hashCode = _definitions.hashCode
+
+  override def toString = _definitions.toString
 }

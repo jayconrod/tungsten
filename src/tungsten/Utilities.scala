@@ -9,12 +9,13 @@ private object Utilities {
     ast.compile.left.get
   }
 
-  def hash(code: Int, x: Any) = {
+  def hash(code: Int, x: Any): Int = {
+    val hashA = 17
+    val hashB = 37
     val c = if (x == null) 0 else x.hashCode
     c * hashA + hashB
   }
-  val hashA = 17
-  val hashB = 37
+  def hash(elements: Any*): Int = elements.foldLeft(0)(hash _)
 
   def humanReadableClassName[T <: Definition](implicit m: Manifest[T]) = {
     val className = m.toString.split("\\.").last

@@ -35,24 +35,15 @@ final case class Function(override name: Symbol,
       }
     }
 
-    def validateBlocks = {
-      def validateParameters(blockName: Symbol) = {
-        val block = module.get[Block](blockName).get
-        validateComponents[Parameter](module, block.parameters)
-      }
-      stage(validateComponents[Block](module, blocks),
-            blocks flatMap validateParameters)
-    }
-
     def validateEntryParameters = {
       blocks match {
         case Nil => Nil
         case entryName :: _ => {
           val entry = module.get[Block](entryName).get
-          if (parameters == entry.parameters)
+          if (entry.parameters.isEmpty)
             Nil
           else
-            List(EntryParametersException(name, location))
+            List(EntryParametersException(name, entry.name, location))
         }
       }
     }
@@ -81,11 +72,35 @@ final case class Function(override name: Symbol,
       }
     }
 
+    def validateInstructionOrder = {
+      def checkOrder(insts: List[Instruction],
+                     validNames: Set[Symbol],
+                     errors: List[CompileException]): List[CompileException] =
+      {
+        insts match {
+          case Nil => errors
+          case i :: is => {
+            val instNames = i.operandSymbols
+            val invalidNames = instNames.diff(validNames.toList)
+            val newErrors = invalidNames.map(InstructionOrderException(_, i.location))
+            checkOrder(is, validNames + i.name, newErrors ++ errors)
+          }
+        }
+      }
+      def checkBlock(blockName: Symbol) = {
+        val block = module.get[Block](blockName).get
+        val validNames = (parameters ++ block.parameters).toSet
+        val insts = block.instructions.map(module.get[Instruction](_).get)
+        checkOrder(insts, validNames, Nil)
+      }
+      blocks.flatMap(checkBlock _)
+    }
+    
     stage(validateComponents[TypeParameter](module, typeParameters),
           validateComponents[Parameter](module, parameters),
           returnType.validate(module),
-          validateBlocks,
           validateEntryParameters,
+          validateInstructionOrder,
           validateBranches,
           validateReturnType)
   }

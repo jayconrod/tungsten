@@ -22,6 +22,8 @@ final case class Float64Value(value: Double) extends Value
 
 final case object NullValue extends Value
 
+final case class ScalarReferenceValue(var value: Value) extends Value
+
 final case class FunctionValue(value: Function) extends Value
 
 object Value {

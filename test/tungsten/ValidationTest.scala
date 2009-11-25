@@ -244,4 +244,16 @@ class ValidationTest {
                "#upcast b = a : #null"
     codeContainsError[UpcastException](code)
   }
+
+  @Test
+  def stackAllocateInt = {
+    val code = "#stack a : #int32"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def stackAllocateNull = {
+    val code = "#stack a : #null"
+    codeContainsError[TypeMismatchException](code)
+  }
 }

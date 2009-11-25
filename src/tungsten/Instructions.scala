@@ -374,6 +374,23 @@ final case class ReturnInstruction(override name: Symbol,
   def validate(module: Module) = validateOperands(module) // return type validated in Function
 }
 
+final case class StackAllocateInstruction(override name: Symbol,
+                                          ty: Type,
+                                          override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def operands = Nil
+
+  def ty(module: Module) = ty
+
+  def validate(module: Module) = {
+    if (!ty.isPointer || ty.isInstanceOf[NullType])
+      List(TypeMismatchException(ty.toString, "non-null pointer type", location))
+    else
+      Nil
+  }
+}
+
 final case class StaticCallInstruction(override name: Symbol,
                                        target: Symbol,
                                        arguments: List[Value],

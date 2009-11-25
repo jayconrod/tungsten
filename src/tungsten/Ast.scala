@@ -344,6 +344,20 @@ final case class AstReturnInstruction(override name: Symbol,
   }
 }
 
+final case class AstStackAllocateInstruction(override name: Symbol,
+                                             ty: AstType,
+                                             override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cTy = ty.compile(ctx)
+    val cAlloc = StackAllocateInstruction(fullName, cTy, location)
+    ctx.module.update(cAlloc)
+    cAlloc
+  }
+}
+
 final case class AstStaticCallInstruction(override name: Symbol,
                                           target: Symbol,
                                           arguments: List[AstValue],

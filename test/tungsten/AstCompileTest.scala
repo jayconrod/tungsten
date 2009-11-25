@@ -225,6 +225,32 @@ class AstCompileTest {
   }
 
   @Test
+  def stackAllocateInst = {
+    ctx.names.push(foo)
+    val ast = AstStackAllocateInstruction(bar, 
+                                          AstPointerType(AstUnitType(Nowhere), Nowhere), 
+                                          loc)
+    val expected = StackAllocateInstruction(foo + bar, PointerType(UnitType()), loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def staticCallInst = {
+    ctx.names.push(foo)
+    val baz = new Symbol("baz")
+    val ast = AstStaticCallInstruction(bar, 
+                                       baz,
+                                       List(AstInt32Value(12, Nowhere), 
+                                            AstInt32Value(34, Nowhere)),
+                                       loc)
+    val expected = StaticCallInstruction(foo + bar,
+                                         baz,
+                                         List(Int32Value(12), Int32Value(34)),
+                                         loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def returnInst = {
     ctx.names.push(foo)
     val ast = AstReturnInstruction(bar, AstUnitValue(Nowhere), loc)

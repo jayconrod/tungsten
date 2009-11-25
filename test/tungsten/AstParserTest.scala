@@ -175,6 +175,15 @@ class AstParserTest {
   }
 
   @Test
+  def stackAllocateInst = {
+    testInstruction("#stack <foo.w:1.2-3.4> foo : #int32*",
+                    AstStackAllocateInstruction(foo, 
+                                                AstPointerType(AstIntType(32, Nowhere),
+                                                               Nowhere),
+                                                fooLoc))
+  }
+
+  @Test
   def staticCallInst = {
     testInstruction("#scall <foo.w:1.2-3.4> foo = bar(123)",
                     AstStaticCallInstruction(foo,

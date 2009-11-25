@@ -98,6 +98,11 @@ final class Environment(val module: Module) {
         state = state.add(state.inst.name, ret).next
         UnitValue   // gets assigned to the actual return instruction
       }
+      case StackAllocateInstruction(_, ty, _) => {
+        val elementType = ty.asInstanceOf[PointerType].elementType
+        val defaultValue = Value.eval(elementType.defaultValue, this)
+        new ScalarReferenceValue(defaultValue)
+      }
       case StaticCallInstruction(name, target, arguments, _) => {
         val function = module.get[Function](target).get
         val args = arguments.map(Value.eval(_, this))

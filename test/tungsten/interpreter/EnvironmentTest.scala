@@ -183,6 +183,13 @@ class EnvironmentTest {
   }
 
   @Test
+  def stackAllocateInst = {
+    val (module, env) = prepareCode("#stack a : #int32*")
+    env.step
+    assertEquals(ScalarReferenceValue(Int32Value(0)), env.state.get(prefix + "a"))
+  }
+
+  @Test
   def staticCallAndReturnInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

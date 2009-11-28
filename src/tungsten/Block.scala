@@ -14,32 +14,31 @@ final case class Block(override name: Symbol,
     FunctionType(UnitType(location), parameterTypes)
   }
 
+  def validateComponents(module: Module) = {
+    stage(validateComponentsOfClass[Parameter](module, parameters),
+          validateNonEmptyComponentsOfClass[Instruction](module, instructions))
+  }
+
   def validate(module: Module) = {
-    def validateTermination = {
-      def check(insts: List[Instruction]): List[CompileException] = {
-        insts match {
-          case Nil => List(EmptyBlockException(name, location))
-          case i :: Nil => {
-            if (i.isTerminating) 
-              Nil
-            else
-              List(BlockTerminationException(name, location))
-          }
-          case i :: is => {
-            if (!i.isTerminating) 
-              check(is)
-            else
-              List(EarlyTerminationException(name, i.name, location))
-          }
+    def checkTermination(insts: List[Instruction]): List[CompileException] = {
+      insts match {
+        case Nil => throw new RuntimeException("instructions must be non-empty")
+        case i :: Nil => {
+          if (i.isTerminating) 
+            Nil
+          else
+            List(BlockTerminationException(name, location))
+        }
+        case i :: is => {
+          if (!i.isTerminating) 
+            checkTermination(is)
+          else
+            List(EarlyTerminationException(name, i.name, location))
         }
       }
-
-      check(instructions.map(module.get[Instruction](_).get))
     }
 
-    stage(validateComponents[Parameter](module, parameters),
-          validateComponents[Instruction](module, instructions),
-          validateTermination)
+    checkTermination(module.getInstructions(instructions))
   }
 
   override def toString = {

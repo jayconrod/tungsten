@@ -7,7 +7,9 @@ final case class Parameter(override name: Symbol,
 {
   def ty(module: Module) = ty
 
-  def validate(module: Module) = ty.validate(module)
+  def validateComponents(module: Module) = ty.validate(module)
+
+  def validate(module: Module) = Nil
 
   override def equals(that: Any) = {
     that match {

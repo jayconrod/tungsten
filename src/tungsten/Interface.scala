@@ -10,16 +10,20 @@ final class Interface(name: Symbol,
                       location: Location = Nowhere)
   extends Definition(name, location)
 {
-  def validate(module: Module) = {
-    stage(validateComponents[TypeParameter](module, typeParameters),
+  def validateComponents(module: Module) = {
+    stage(validateComponentsOfClass[TypeParameter](module, typeParameters),
           superclass.toList.flatMap(_.validate(module)),
           interfaces.flatMap(_.validate(module)),
-          validateComponents[Function](module, methods))
+          validateComponentsOfClass[Function](module, methods))
+  }
+
+  def validate(module: Module) = {
     // TODO: superclass may not implement this interface
     // TODO: superclass may not be Nothing
     // TODO: superclass must be subclass of Object
     // TODO: methods start with a supertype parameter
     // TODO: interfaces should not be defined recursively
+    Nil
   }
 
   override def toString = {

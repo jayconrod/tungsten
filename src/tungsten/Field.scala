@@ -6,9 +6,11 @@ final case class Field(override name: Symbol, ty: Type, override location: Locat
 {
   def ty(module: Module) = ty
 
-  def validate(module: Module) = {
+  def validateComponents(module: Module) = {
     ty.validate(module)
   }
+
+  def validate(module: Module) = Nil
 
   override def toString = {
     "field " + name + ": " + ty

@@ -11,8 +11,15 @@ final case class Function(override name: Symbol,
   extends Definition(name, location)
 {
   def ty(module: Module): FunctionType = {
-    FunctionType(returnType, parameters.map(module.get[Parameter](_).get.ty))
+    FunctionType(returnType, module.getParameters(parameters).map(_.ty))
     // TODO: include type parameters
+  }
+
+  def validateComponents(module: Module) = {
+    stage(validateComponentsOfClass[TypeParameter](module, typeParameters),
+          validateComponentsOfClass[Parameter](module, parameters),
+          returnType.validate(module),
+          validateComponentsOfClass[Block](module, blocks))
   }
 
   def validate(module: Module) = {
@@ -96,10 +103,7 @@ final case class Function(override name: Symbol,
       blocks.flatMap(checkBlock _)
     }
     
-    stage(validateComponents[TypeParameter](module, typeParameters),
-          validateComponents[Parameter](module, parameters),
-          returnType.validate(module),
-          validateEntryParameters,
+    stage(validateEntryParameters,
           validateInstructionOrder,
           validateBranches,
           validateReturnType)

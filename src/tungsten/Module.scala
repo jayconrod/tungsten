@@ -31,10 +31,24 @@ final class Module {
     }
   }
 
+  def getBlock(name: Symbol) = get[Block](name).get
+  def getBlocks(names: List[Symbol]) = names.map(getBlock _)
+  def getInstruction(name: Symbol) = get[Instruction](name).get
+  def getInstructions(names: List[Symbol]) = names.map(getInstruction _)
+  def getParameter(name: Symbol) = get[Parameter](name).get
+  def getParameters(names: List[Symbol]) = names.map(getParameter _)
+
   def validate = {
-    def validateComponents[T <: Definition](implicit m: Manifest[T]) = {
-      val components = _definitions.valueIterable.filter(m.erasure.isInstance(_))
-      components.flatMap(_.validate(this)).toList
+    def validateDependencies = {
+      val allErrors = for (defn <- _definitions.valueIterable)
+        yield defn.validateComponents(this)
+      allErrors.flatten.toList
+    }
+
+    def validateDefinitions = {
+      val allErrors = for (defn <- _definitions.valueIterable)
+        yield defn.validate(this)
+      allErrors.flatten.toList
     }
 
     def validateMain = {
@@ -51,15 +65,8 @@ final class Module {
       }
     }
 
-    stage(validateComponents[Function],
-          validateComponents[Class],
-          validateComponents[Interface],
-          validateComponents[Global],
-          validateComponents[Parameter],
-          validateComponents[TypeParameter],
-          validateComponents[Struct],
-          validateComponents[Block],
-          validateComponents[Instruction],
+    stage(validateDependencies,
+          validateDefinitions,
           validateMain)
   }
 

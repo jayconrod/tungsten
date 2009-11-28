@@ -23,7 +23,11 @@ sealed abstract class Instruction(name: Symbol, location: Location)
 
   def usedSymbols = operandSymbols
 
-  protected def validateOperands(module: Module) = {
+  def validateComponents(module: Module): List[CompileException] = validateOperands(module)
+
+  def validate(module: Module): List[CompileException] = Nil
+
+  protected final def validateOperands(module: Module) = {
     operandSymbols flatMap { sym =>
       module.getDefn(sym) match {
         case Some(_: Parameter) | Some(_: Instruction) => Nil
@@ -48,11 +52,12 @@ sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], loca
 
   def ty(module: Module) = targetType(module).returnType
 
-  def validateCall(module: Module): List[CompileException] = {
+  override def validate(module: Module) = { 
     validateCall(module, targetType(module).parameterTypes)
   }
 
-  def validateCall(module: Module, parameterTypes: List[Type]): List[CompileException] = 
+  protected def validateCall(module: Module, 
+                             parameterTypes: List[Type]): List[CompileException] = 
   {
     if (arguments.size != parameterTypes.size) {
       List(FunctionArgumentCountException(targetName, 
@@ -76,8 +81,6 @@ final case class AssignInstruction(override name: Symbol,
   def operands = List(value)
 
   def ty(module: Module) = value.ty(module)
-
-  def validate(module: Module) = validateOperands(module)
 }
 
 final case class BinaryOperator(name: String)
@@ -129,7 +132,7 @@ final case class BinaryOperatorInstruction(override name: Symbol,
 
   def ty(module: Module) = left.ty(module)
 
-  def validate(module: Module) = {
+  override def validate(module: Module) = {
     def validateType = {
       val lty = left.ty(module)
       val rty = right.ty(module)
@@ -149,9 +152,8 @@ final case class BinaryOperatorInstruction(override name: Symbol,
         Nil
     }
 
-    stage(validateOperands(module),
-          validateFloatBitOp,
-          validateType)
+    stage(validateType,
+          validateFloatBitOp)
   }
 }
 
@@ -173,10 +175,9 @@ final case class BranchInstruction(override name: Symbol,
     module.get[Block](target).get.ty(module)
   }
 
-  def validate(module: Module) = {
-    stage(validateComponent[Block](module, target),
-          validateOperands(module),
-          validateCall(module))
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          validateComponentOfClass[Block](module, target))
   }
 }
 
@@ -200,25 +201,22 @@ final case class ConditionalBranchInstruction(override name: Symbol,
     module.get[Block](trueTarget).get.ty(module)
   }
 
-  def validate(module: Module) = {
-    // We assume that both of the branch targets refer to local blocks and that the block
-    // parameters are validated. This should be done by Function.validate and Block.validate.
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          validateComponentsOfClass[Block](module, List(trueTarget, falseTarget)))
+  }
 
-    def validateDistinctTargets = {
-      if (trueTarget != falseTarget)
-        Nil
-      else
-        List(DuplicateComponentException(name, trueTarget, "block", location))
-    }
+  override def validate(module: Module) = {
+    // We assume that both of the branch targets refer to local blocks and that the block
+    // parameters are validated. This should be done by Block and Function validation
 
     def validateBranch(target: Symbol) = {
-      val block = module.get[Block](target).get
-      val parameterTypes = block.parameters.map(module.get[Parameter](_).get.ty)
+      val block = module.getBlock(target)
+      val parameterTypes = module.getParameters(block.parameters).map(_.ty)
       validateCall(module, parameterTypes)
     }
 
-    stage(validateDistinctTargets,
-          validateBranch(trueTarget),
+    stage(validateBranch(trueTarget),
           validateBranch(falseTarget),
           condition.validateType(module, BooleanType()))
   }
@@ -237,7 +235,9 @@ final case class GlobalLoadInstruction(override name: Symbol,
     module.get[Global](globalName).get.ty
   }
 
-  def validate(module: Module) = validateComponent[Global](module, globalName)
+  override def validateComponents(module: Module) = {
+    validateComponentOfClass[Global](module, globalName)
+  }
 }
 
 final case class GlobalStoreInstruction(override name: Symbol,
@@ -252,9 +252,12 @@ final case class GlobalStoreInstruction(override name: Symbol,
 
   def ty(module: Module) = UnitType()
 
-  def validate(module: Module) = {
-    stage(validateComponent[Global](module, globalName),
-          value.validateType(module, module.get[Global](globalName).get.ty))
+  override def validateComponents(module: Module) = {
+    validateComponentOfClass[Global](module, globalName)
+  }
+
+  override def validate(module: Module) = {
+    value.validateType(module, module.get[Global](globalName).get.ty)
   }
 }
 
@@ -270,7 +273,7 @@ final case class IndirectCallInstruction(override name: Symbol,
 
   protected def targetType(module: Module) = target.ty(module).asInstanceOf[FunctionType]
 
-  def validate(module: Module): List[CompileException] = {
+  override def validate(module: Module): List[CompileException] = {
     throw new UnsupportedOperationException
   }
 }
@@ -297,11 +300,6 @@ final case class IntrinsicCallInstruction(override name: Symbol,
   def targetName = new Symbol(intrinsic.name)
 
   def targetType(module: Module) = intrinsic.ty
-
-  def validate(module: Module) = {
-    stage(validateOperands(module),
-          validateCall(module))
-  }
 }
 
 final case class LoadInstruction(override name: Symbol,
@@ -316,17 +314,13 @@ final case class LoadInstruction(override name: Symbol,
     pointerType.elementType
   }
   
-  def validate(module: Module) = {
-    def validatePointerType = {
-      val pointerType = pointer.ty(module)
-      if (!pointerType.isInstanceOf[PointerType])
-        List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
-      else
-        Nil
-    }
-    stage(validateOperands(module),
-          validatePointerType)
-  } 
+  override def validate(module: Module) = {
+    val pointerType = pointer.ty(module)
+    if (!pointerType.isInstanceOf[PointerType])
+      List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
+    else
+      Nil
+  }
 }
 
 final case class RelationalOperator(name: String)
@@ -362,26 +356,21 @@ final case class RelationalOperatorInstruction(override name: Symbol,
 
   def ty(module: Module) = BooleanType(location)
 
-  def validate(module: Module) = {
+  override def validate(module: Module) = {
     import RelationalOperator._
-    def validateType = {
-      val lty = left.ty(module)
-      val rty = right.ty(module)
-      if ((operator == LESS_THAN ||
-           operator == LESS_EQUAL ||
-           operator == GREATER_THAN ||
-           operator == GREATER_EQUAL) &&
-          !lty.isNumeric)
-      {
-        List(TypeMismatchException(lty.toString, "numeric type", left.location))
-      } else if (lty != rty)
-        List(TypeMismatchException(rty.toString, lty.toString, right.location))
-      else
-        Nil
-    }
-
-    stage(validateOperands(module),
-          validateType)
+    val lty = left.ty(module)
+    val rty = right.ty(module)
+    if ((operator == LESS_THAN ||
+         operator == LESS_EQUAL ||
+         operator == GREATER_THAN ||
+         operator == GREATER_EQUAL) &&
+        !lty.isNumeric)
+    {
+      List(TypeMismatchException(lty.toString, "numeric type", left.location))
+    } else if (lty != rty)
+      List(TypeMismatchException(rty.toString, lty.toString, right.location))
+    else
+      Nil
   }
 }
 
@@ -395,23 +384,19 @@ final case class StoreInstruction(override name: Symbol,
 
   def ty(module: Module) = UnitType(location)
 
-  def validate(module: Module) = {
-    def validateType = {
-      val pointerType = pointer.ty(module)
-      pointerType match {
-        case PointerType(elementType, _) => {
-          val valueType = value.ty(module)
-          if (valueType != elementType)
-            List(TypeMismatchException(valueType.toString, elementType.toString, location))
-          else
-            Nil
-        }
-        case _ => 
-          List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
+  override def validate(module: Module) = {
+    val pointerType = pointer.ty(module)
+    pointerType match {
+      case PointerType(elementType, _) => {
+        val valueType = value.ty(module)
+        if (valueType != elementType)
+          List(TypeMismatchException(valueType.toString, elementType.toString, location))
+        else
+          Nil
       }
+      case _ => 
+        List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
     }
-    stage(validateOperands(module),
-          validateType)
   }
 }
 
@@ -425,8 +410,6 @@ final case class ReturnInstruction(override name: Symbol,
   override def isTerminating = true
 
   def ty(module: Module) = UnitType(location)
-
-  def validate(module: Module) = validateOperands(module) // return type validated in Function
 }
 
 final case class StackAllocateInstruction(override name: Symbol,
@@ -438,7 +421,12 @@ final case class StackAllocateInstruction(override name: Symbol,
 
   def ty(module: Module) = ty
 
-  def validate(module: Module) = {
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          ty.validate(module))
+  }
+
+  override def validate(module: Module) = {
     if (!ty.isPointer || ty.isInstanceOf[NullType])
       List(TypeMismatchException(ty.toString, "non-null pointer type", location))
     else
@@ -460,10 +448,9 @@ final case class StaticCallInstruction(override name: Symbol,
 
   protected def targetType(module: Module) = module.get[Function](target).get.ty(module)
 
-  def validate(module: Module) = {
-    stage(validateComponent[Function](module, target),
-          validateOperands(module),
-          validateCall(module))
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          validateComponentOfClass[Function](module, target))
   }
 }
 
@@ -477,15 +464,11 @@ final case class UpcastInstruction(override name: Symbol,
 
   def ty(module: Module) = ty
 
-  def validate(module: Module) = {
-    def validateCast = {
-      val valueTy = value.ty(module)
-      if (!valueTy.isPointer || !ty.isPointer || !(valueTy <<: ty))
-        List(UpcastException(valueTy.toString, ty.toString, location))
-      else
-        Nil
-    }
-    stage(validateOperands(module),
-          validateCast)
+  override def validate(module: Module) = {
+    val valueTy = value.ty(module)
+    if (!valueTy.isPointer || !ty.isPointer || !(valueTy <<: ty))
+      List(UpcastException(valueTy.toString, ty.toString, location))
+    else
+      Nil
   }
 }

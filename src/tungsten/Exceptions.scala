@@ -24,11 +24,10 @@ final case class EarlyTerminationException(blockName: Symbol,
                              instName,
                            location)
 
-final case class EmptyBlockException(symbol: Symbol, location: Location)
-  extends CompileException("block " + symbol + " contains no instructions", location)
-
-final case class EmptyStructException(symbol: Symbol, location: Location)
-  extends CompileException("struct " + symbol.toString + " must contain at least one field",
+final case class EmptyComponentsException(symbol: Symbol,
+                                          componentName: String,
+                                          location: Location)
+  extends CompileException(symbol.toString + " must contain at least one " + componentName, 
                            location)
 
 final case class EntryParametersException(functionName: Symbol, 

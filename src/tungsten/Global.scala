@@ -11,16 +11,19 @@ final case class Global(override name: Symbol,
 {
   def ty(module: Module) = ty
 
+  def validateComponents(module: Module) = {
+    ty.validate(module)
+  }
+
   def validate(module: Module) = {
-    def validateValue = {
+    def validateValueLiteral = {
       value match {
         case Some(DefinedValue(_, _)) => List(GlobalValueNonLiteralException(name, location))
         case _ => Nil
       }
     }
 
-    stage(ty.validate(module), 
-          validateValue,
+    stage(validateValueLiteral,
           value.toList.flatMap(_.validateType(module, ty)))
   }
 

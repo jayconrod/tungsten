@@ -1,11 +1,18 @@
 package tungsten
 
+import Utilities._
+
 final case class TypeParameter(override name: Symbol, 
                                upperBound: Option[Type] = None,
                                lowerBound: Option[Type] = None,
                                override location: Location = Nowhere) 
   extends Definition(name, location)
 {
+  def validateComponents(module: Module) = {
+    stage(upperBound.toList.flatMap(_.validate(module)),
+          lowerBound.toList.flatMap(_.validate(module)))
+  }
+
   def validate(module: Module) = {
     // TODO: check lower bound is subtype of upper bound
     Nil

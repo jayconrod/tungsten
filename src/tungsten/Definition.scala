@@ -5,11 +5,13 @@ import Utilities._
 abstract class Definition(val name: Symbol, location: Location = Nowhere) 
   extends TungstenObject(location)
 {
+  def validateComponents(module: Module): List[CompileException]
+
   def validate(module: Module): List[CompileException]
 
-  protected def validateComponents[T <: Definition](module: Module,
-                                                    componentNames: List[Symbol])
-                                                   (implicit m: Manifest[T]) =
+  protected def validateComponentsOfClass[T <: Definition](module: Module,
+                                                           componentNames: List[Symbol])
+                                                          (implicit m: Manifest[T]) =
   {
     val className = humanReadableClassName[T]
 
@@ -43,11 +45,22 @@ abstract class Definition(val name: Symbol, location: Location = Nowhere)
     check(componentNames, Set(), Nil)
   }
 
-  protected def validateComponent[T <: Definition](module: Module,
-                                                   componentName: Symbol)
-                                                  (implicit m: Manifest[T]) =
+  protected def validateComponentOfClass[T <: Definition](module: Module,
+                                                          componentName: Symbol)
+                                                         (implicit m: Manifest[T]) =
   {
-    validateComponents[T](module, List(componentName))
+    validateComponentsOfClass[T](module, List(componentName))
+  }
+
+  protected def validateNonEmptyComponentsOfClass[T <: Definition](module: Module,
+                                                                   componentNames: List[Symbol])
+                                                                   (implicit m: Manifest[T]) =
+  {
+    val className = humanReadableClassName[T]
+    if (componentNames.isEmpty)
+      List(EmptyComponentsException(name, className, location))
+    else
+      validateComponentsOfClass[T](module, componentNames)
   }
 
   def toString: String

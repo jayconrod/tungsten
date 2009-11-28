@@ -46,7 +46,7 @@ class ValidationTest {
   @Test
   def emptyBlockTermination = {
     val program = "#function main( ): #unit { #block empty( ) { } }"
-    programContainsError[EmptyBlockException](program)
+    programContainsError[EmptyComponentsException](program)
   }
 
   @Test
@@ -86,22 +86,26 @@ class ValidationTest {
 
   @Test
   def duplicateComponent = {
-    val inst = ReturnInstruction(new Symbol("ret"), UnitValue())
-    val block = Block(new Symbol("block"), Nil, List(inst.name, inst.name))
+    val (instName, blockName) = (new Symbol("ret"), new Symbol("block"))
+    val inst = ReturnInstruction(instName, UnitValue())
+    val block = Block(blockName, Nil, List(instName, instName))
+    val function = Function(new Symbol("main"), Nil, Nil, UnitType(), List(blockName))
     val module = new Module
-    List(inst, block).foreach(module.add(_))
-    containsError[DuplicateComponentException](block.validate(module))
+    for (defn <- List(inst, block, function))
+      module.add(defn)
+    containsError[DuplicateComponentException](module.validate)
   }
 
   @Test
   def nonLocalAssign = {
-    val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
-    val global = Global(foo, UnitType(), None)
-    val inst = AssignInstruction(bar, DefinedValue(foo))
-    val module = new Module
-    module.add(global)
-    module.add(inst)
-    containsError[InappropriateSymbolException](inst.validate(module))
+    val program = "#global foo: #unit\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #assign a = foo\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[InappropriateSymbolException](program)
   }
 
   @Test

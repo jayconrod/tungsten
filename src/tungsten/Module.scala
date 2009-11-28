@@ -33,10 +33,24 @@ final class Module {
 
   def getBlock(name: Symbol) = get[Block](name).get
   def getBlocks(names: List[Symbol]) = names.map(getBlock _)
+  def getClass(name: Symbol) = get[Class](name).get
+  def getClasses(names: List[Symbol]) = names.map(getClass _)
+  def getField(name: Symbol) = get[Field](name).get
+  def getFields(names: List[Symbol]) = names.map(getField _)
+  def getFunction(name: Symbol) = get[Function](name).get
+  def getFunctions(names: List[Symbol]) = names.map(getFunction _)
+  def getGlobal(name: Symbol) = get[Global](name).get
+  def getGlobals(names: List[Symbol]) = names.map(getGlobal _)
   def getInstruction(name: Symbol) = get[Instruction](name).get
   def getInstructions(names: List[Symbol]) = names.map(getInstruction _)
+  def getInterface(name: Symbol) = get[Interface](name).get
+  def getInterfaces(names: List[Symbol]) = names.map(getInterface _)
   def getParameter(name: Symbol) = get[Parameter](name).get
   def getParameters(names: List[Symbol]) = names.map(getParameter _)
+  def getStruct(name: Symbol) = get[Struct](name).get
+  def getStructs(names: List[Symbol]) = names.map(getStruct _)
+  def getTypeParameter(name: Symbol) = get[TypeParameter](name).get
+  def getTypeParameters(names: List[Symbol]) = names.map(getTypeParameter _)
 
   def validate = {
     def validateDependencies = {

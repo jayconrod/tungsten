@@ -172,7 +172,7 @@ final case class BranchInstruction(override name: Symbol,
   protected def targetName = throw new UnsupportedOperationException
 
   protected def targetType(module: Module) = {
-    module.get[Block](target).get.ty(module)
+    module.getBlock(target).ty(module)
   }
 
   override def validateComponents(module: Module) = {
@@ -198,7 +198,7 @@ final case class ConditionalBranchInstruction(override name: Symbol,
   protected def targetName = trueTarget
 
   protected def targetType(module: Module) = {
-    module.get[Block](trueTarget).get.ty(module)
+    module.getBlock(trueTarget).ty(module)
   }
 
   override def validateComponents(module: Module) = {
@@ -232,7 +232,7 @@ final case class GlobalLoadInstruction(override name: Symbol,
   override def usedSymbols = List(globalName)
 
   def ty(module: Module) = {
-    module.get[Global](globalName).get.ty
+    module.getGlobal(globalName).ty
   }
 
   override def validateComponents(module: Module) = {
@@ -257,7 +257,7 @@ final case class GlobalStoreInstruction(override name: Symbol,
   }
 
   override def validate(module: Module) = {
-    value.validateType(module, module.get[Global](globalName).get.ty)
+    value.validateType(module, module.getGlobal(globalName).ty)
   }
 }
 
@@ -446,7 +446,7 @@ final case class StaticCallInstruction(override name: Symbol,
 
   protected def targetName = target
 
-  protected def targetType(module: Module) = module.get[Function](target).get.ty(module)
+  protected def targetType(module: Module) = module.getFunction(target).ty(module)
 
   override def validateComponents(module: Module) = {
     stage(super.validateComponents(module),

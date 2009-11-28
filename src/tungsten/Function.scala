@@ -25,7 +25,7 @@ final case class Function(override name: Symbol,
   def validate(module: Module) = {
     def validateReturnType = {
       blocks flatMap { blockName =>
-        val block = module.get[Block](blockName).get
+        val block = module.getBlock(blockName)
         block.instructions.lastOption match {
           case Some(retName) => module.get[ReturnInstruction](retName) match {
             case Some(ret) => {          
@@ -46,7 +46,7 @@ final case class Function(override name: Symbol,
       blocks match {
         case Nil => Nil
         case entryName :: _ => {
-          val entry = module.get[Block](entryName).get
+          val entry = module.getBlock(entryName)
           if (entry.parameters.isEmpty)
             Nil
           else
@@ -57,20 +57,20 @@ final case class Function(override name: Symbol,
 
     def validateBranches = {
       blocks flatMap { blockName =>
-        val block = module.get[Block](blockName).get
+        val block = module.getBlock(blockName)
         block.instructions flatMap { instName =>
-          val inst = module.get[Instruction](instName)
+          val inst = module.getInstruction(instName)
           val blockNames = inst match {
-            case Some(BranchInstruction(_, target, _, _)) => List(target)
-            case Some(ConditionalBranchInstruction(_, _, trueTarget, falseTarget, _, _)) =>
+            case BranchInstruction(_, target, _, _) => List(target)
+            case ConditionalBranchInstruction(_, _, trueTarget, falseTarget, _, _) =>
               List(trueTarget, falseTarget)
             case _ => Nil
           }
           blockNames flatMap { n =>
             if (!blocks.contains(n)) {
               module.getDefn(n) match {
-                case Some(_) => List(NonLocalBranchException(name, n, inst.get.location))
-                case None => List(UndefinedSymbolException(n, inst.get.location))
+                case Some(_) => List(NonLocalBranchException(name, n, inst.location))
+                case None => List(UndefinedSymbolException(n, inst.location))
               }
             } else
               Nil
@@ -95,9 +95,9 @@ final case class Function(override name: Symbol,
         }
       }
       def checkBlock(blockName: Symbol) = {
-        val block = module.get[Block](blockName).get
+        val block = module.getBlock(blockName)
         val validNames = (parameters ++ block.parameters).toSet
-        val insts = block.instructions.map(module.get[Instruction](_).get)
+        val insts = module.getInstructions(block.instructions)
         checkOrder(insts, validNames, Nil)
       }
       blocks.flatMap(checkBlock _)

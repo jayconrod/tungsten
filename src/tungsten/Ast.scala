@@ -347,6 +347,22 @@ final case class AstLoadInstruction(override name: Symbol,
   }
 }
 
+final case class AstLoadElementInstruction(override name: Symbol,
+                                           base: AstValue,
+                                           indices: List[AstValue],
+                                           override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cBase = base.compileOrElse(ctx)
+    val cIndices = indices.map(_.compileOrElse(ctx))
+    val cLoad = LoadElementInstruction(fullName, cBase, cIndices, location)
+    ctx.module.update(cLoad)
+    cLoad
+  }
+}
+
 final case class AstRelationalOperatorInstruction(override name: Symbol,
                                                   operator: RelationalOperator,
                                                   left: AstValue,
@@ -422,6 +438,24 @@ final case class AstStoreInstruction(override name: Symbol,
     cStore
   }
 }
+
+final case class AstStoreElementInstruction(override name: Symbol,
+                                            base: AstValue,
+                                            indices: List[AstValue],
+                                            value: AstValue,
+                                            override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cBase = base.compileOrElse(ctx)
+    val cIndices = indices.map(_.compileOrElse(ctx))
+    val cValue = value.compileOrElse(ctx)
+    val cStore = StoreElementInstruction(fullName, cBase, cIndices, cValue, location)
+    ctx.module.update(cStore)
+    cStore
+  }
+}   
 
 final case class AstUpcastInstruction(override name: Symbol,
                                       value: AstValue,

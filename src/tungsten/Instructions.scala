@@ -73,6 +73,48 @@ sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], loca
   }
 }   
 
+sealed trait ElementInstruction extends Instruction {
+  protected final def getElementType(baseType: Type, indices: List[Value]): Type = {
+    indices match {
+      case Nil => baseType
+      case i :: is => {
+        baseType match {
+          case ArrayType(_, elementType, _) => getElementType(elementType, is)
+          case _ => baseType  // bogus, but we'll catch it in validation
+        }
+      }
+    }
+  }       
+
+  protected final def validateIndices(module: Module,
+                                      baseType: Type, 
+                                      indices: List[Value]): List[CompileException] =
+  {
+    def check(baseType: Type, 
+              indices: List[Value],
+              errors: List[CompileException]): List[CompileException] =
+    {
+      var newErrors = errors
+      indices match {
+        case Nil => newErrors
+        case i :: is => {
+          if (i.ty(module) != IntType(64)) {
+            val exn = InvalidIndexException(i.toString, baseType.toString, location)
+            newErrors = exn :: newErrors
+          }
+
+          baseType match {
+            case ArrayType(size, elementType, _) => 
+              check(elementType, is, newErrors)
+            case _ => InvalidIndexException(i.toString, baseType.toString, location) :: newErrors
+          }
+        }
+      }
+    }
+    check(baseType, indices, Nil)
+  }
+}
+
 final case class AssignInstruction(override name: Symbol,
                                    value: Value,
                                    override location: Location = Nowhere)
@@ -323,6 +365,22 @@ final case class LoadInstruction(override name: Symbol,
   }
 }
 
+final case class LoadElementInstruction(override name: Symbol,
+                                        base: Value,
+                                        indices: List[Value],
+                                        override location: Location = Nowhere)
+  extends Instruction(name, location) with ElementInstruction
+{
+  if (indices.isEmpty)
+    throw new IllegalArgumentException
+
+  def operands = base :: indices
+
+  def ty(module: Module) = getElementType(base.ty(module), indices)
+
+  override def validate(module: Module) = validateIndices(module, base.ty(module), indices)
+}
+
 final case class RelationalOperator(name: String)
 
 object RelationalOperator {
@@ -397,6 +455,30 @@ final case class StoreInstruction(override name: Symbol,
       case _ => 
         List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
     }
+  }
+}
+
+final case class StoreElementInstruction(override name: Symbol,
+                                         base: Value,
+                                         indices: List[Value],
+                                         value: Value,
+                                         override location: Location = Nowhere)
+  extends Instruction(name, location) with ElementInstruction
+{
+  if (indices.isEmpty)
+    throw new IllegalArgumentException
+
+  def operands = base :: value :: indices
+
+  def ty(module: Module) = UnitType(location)
+
+  override def validate(module: Module) = {
+    def validateValueType = {
+      val elementType = getElementType(base.ty(module), indices)
+      value.validateType(module, elementType)
+    }
+    stage(validateIndices(module, base.ty(module), indices),
+          validateValueType)
   }
 }
 

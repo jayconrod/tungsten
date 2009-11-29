@@ -180,6 +180,15 @@ class AstParserTest {
   }
 
   @Test
+  def loadElementInst = {
+    testInstruction("#loadelement <foo.w:1.2-3.4> foo = (), (), ()",
+                    AstLoadElementInstruction(foo,
+                                              AstUnitValue(Nowhere),
+                                              List(AstUnitValue(Nowhere), AstUnitValue(Nowhere)),
+                                              fooLoc))
+  }
+
+  @Test
   def relopInst = {
     testInstruction("#relop <foo.w:1.2-3.4> foo = 12 == 34",
                     AstRelationalOperatorInstruction(foo,
@@ -220,6 +229,16 @@ class AstParserTest {
                                         AstUnitValue(Nowhere),
                                         AstUnitValue(Nowhere),
                                         fooLoc))
+  }
+
+  @Test
+  def storeElementInst = {
+    testInstruction("#storeelement <foo.w:1.2-3.4> foo = (), (), () <- ()",
+                    AstStoreElementInstruction(foo,
+                                               AstUnitValue(Nowhere),
+                                               List(AstUnitValue(Nowhere), AstUnitValue(Nowhere)),
+                                               AstUnitValue(Nowhere),
+                                               fooLoc))
   }
 
   @Test

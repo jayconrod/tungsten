@@ -89,6 +89,21 @@ final class Environment(val module: Module) {
         val scalar = Value.eval(pointer, this).asInstanceOf[ScalarReferenceValue]
         scalar.value
       }
+      case LoadElementInstruction(_, base, indices, _) => {
+        def loadElement(ptr: Value, indices: List[Value]): Value = {
+          indices match {
+            case Nil => ptr
+            case i :: is => {
+              val index = i.asInstanceOf[Int64Value].value.asInstanceOf[Int]
+              ptr match {
+                case ArrayValue(array) => array(index)
+                case _ => throw new RuntimeException("indexed non-array value")
+              }
+            }
+          }
+        }
+        loadElement(Value.eval(base, this), indices.map(Value.eval(_, this)))
+      }
       case RelationalOperatorInstruction(name, op, left, right, _) => {
         val l = Value.eval(left, this)
         val r = Value.eval(right, this)
@@ -117,7 +132,31 @@ final class Environment(val module: Module) {
         val v = Value.eval(value, this)
         scalar.value = v
         UnitValue
-      }        
+      }
+      case StoreElementInstruction(_, base, indices, value, _) => {
+        val v = Value.eval(value, this)
+        def storeElement(ptr: Value, indices: List[Value]): Unit = {
+          indices match {
+            case i :: Nil => {
+              val index = i.asInstanceOf[Int64Value].value.asInstanceOf[Int]
+              ptr match {
+                case ArrayValue(array) => array(index) = v
+                case _ => throw new RuntimeException("indexed non-array value")
+              }
+            }
+            case i :: is => {
+              val index = i.asInstanceOf[Int64Value].value.asInstanceOf[Int]
+              ptr match {
+                case ArrayValue(array) => storeElement(array(index), is)
+                case _ => throw new RuntimeException("indexed non-array value")
+              }
+            }
+            case _ => throw new RuntimeException("can't have empty index list")
+          }
+        }
+        storeElement(Value.eval(base, this), indices.map(Value.eval(_, this)))
+        UnitValue
+      }
       case UpcastInstruction(_, value, _, _) => Value.eval(value, this)
     }
   }

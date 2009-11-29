@@ -321,4 +321,28 @@ class ValidationTest {
     val code = "#upcast a = [#int32: 12, 34] : [? * #int32]"
     codeIsCorrect(code)
   }
+
+  @Test
+  def loadArrayOutOfBounds = {
+    val code = "#loadelement a = [#int32: 12, 34], 5L"
+    codeIsCorrect(code)
+  }
+
+  @Test
+  def loadBadIndexType = {
+    val code = "#loadelement a = [#int32: 12, 34], 5"
+    codeContainsError[InvalidIndexException](code)
+  }
+
+  @Test
+  def loadTooManyIndices = {
+    val code = "#loadelement a = [#int32: 12, 34], 5, 6"
+    codeContainsError[InvalidIndexException](code)
+  }
+
+  @Test
+  def storeType = {
+    val code = "#storeelement [#int32: 12, 34], 0L <- ()"
+    codeContainsError[TypeMismatchException](code)
+  }
 }

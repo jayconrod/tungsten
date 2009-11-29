@@ -231,6 +231,20 @@ class AstCompileTest {
   }
 
   @Test
+  def loadElementInst = {
+    ctx.names.push(foo)
+    val ast = AstLoadElementInstruction(bar,
+                                        AstUnitValue(Nowhere),
+                                        List(AstUnitValue(Nowhere), AstUnitValue(Nowhere)),
+                                        loc)
+    val expected = LoadElementInstruction(foo + bar,
+                                          UnitValue(), 
+                                          List(UnitValue(), UnitValue()),
+                                          loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def relopInst = {
     ctx.names.push(foo)
     val ast = AstRelationalOperatorInstruction(bar,
@@ -277,6 +291,22 @@ class AstCompileTest {
     ctx.names.push(foo)
     val ast = AstStoreInstruction(bar, AstUnitValue(Nowhere), AstUnitValue(Nowhere), loc)
     val expected = StoreInstruction(foo + bar, UnitValue(), UnitValue(), loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def storeElementInst = {
+    ctx.names.push(foo)
+    val ast = AstStoreElementInstruction(bar,
+                                         AstUnitValue(Nowhere),
+                                         List(AstUnitValue(Nowhere), AstUnitValue(Nowhere)),
+                                         AstUnitValue(Nowhere),
+                                         loc)
+    val expected = StoreElementInstruction(foo + bar,
+                                           UnitValue(),
+                                           List(UnitValue(), UnitValue()),
+                                           UnitValue(),
+                                           loc)
     testDefinition(expected, ast)
   }
 

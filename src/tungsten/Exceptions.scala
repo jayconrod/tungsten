@@ -69,6 +69,11 @@ final case class InstructionOrderException(symbol: Symbol,
                              " is not valid at the point where it is used",
                            location)
 
+final case class InvalidIndexException(value: String, ty: String, location: Location)
+  extends CompileException("The value " + value + 
+                             " cannot be used as an index into type " + ty,
+                           location)
+
 final case class MainNonEmptyParametersException(location: Location)
   extends CompileException("main function must not have parameters", location)
 

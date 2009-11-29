@@ -53,6 +53,8 @@ class AstParserTest {
     testType("#float32", AstFloatType(32, Nowhere))
     testType("#float64", AstFloatType(64, Nowhere))
     testType("#null", AstNullType(Nowhere))
+    testType("[12 * #int32]", AstArrayType(Some(12), AstIntType(32, Nowhere), Nowhere))
+    testType("[? * #int32]", AstArrayType(None, AstIntType(32, Nowhere), Nowhere))
     testType("Foo", AstClassType(new Symbol("Foo"), Nil, Nowhere))
     testType("foo.bar.Baz", AstClassType(Symbol(List("foo", "bar", "Baz"), 0), Nil, Nowhere))
     testType("Foo[Baz]", AstClassType(new Symbol("Foo"), 
@@ -91,6 +93,9 @@ class AstParserTest {
     testValue("1.5f", AstFloat32Value(1.5f, Nowhere))
     testValue("1.5", AstFloat64Value(1.5, Nowhere))
     testValue("#null", AstNullValue(Nowhere))
+    testValue("[#unit:]", AstArrayValue(AstUnitType(Nowhere), Nil, Nowhere))
+    testValue("[#unit: ()]", 
+              AstArrayValue(AstUnitType(Nowhere), List(AstUnitValue(Nowhere)), Nowhere))
     testValue("foo", AstSymbolValue(new Symbol("foo"), Nowhere))
   }
 
@@ -114,6 +119,16 @@ class AstParserTest {
                                                  AstInt32Value(12, Nowhere),
                                                  AstInt32Value(34, Nowhere),
                                                  fooLoc))
+  }
+
+  @Test
+  def binopRemainder = {
+    testInstruction("#binop foo = 12 % 34",
+                    AstBinaryOperatorInstruction(foo,
+                                                 BinaryOperator.REMAINDER,
+                                                 AstInt32Value(12, Nowhere),
+                                                 AstInt32Value(34, Nowhere),
+                                                 Nowhere))
   }
 
   @Test

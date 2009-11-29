@@ -58,6 +58,14 @@ final case class AstNullType(override location: Location)
   def compile(ctx: AstContext) = NullType(location)
 }
 
+final case class AstArrayType(size: Option[Int],
+                              elementType: AstType,
+                              override val location: Location)
+  extends AstType(location)
+{
+  def compile(ctx: AstContext) = ArrayType(size, elementType.compile(ctx), location)
+}
+
 final case class AstClassType(val name: Symbol,
                               val typeArguments: List[AstType],
                               override val location: Location)
@@ -143,6 +151,18 @@ final case class AstNullValue(override location: Location)
   extends AstValue(location)
 {
   def compile(ctx: AstContext) = NullValue(location)
+}
+
+final case class AstArrayValue(elementType: AstType, 
+                               elements: List[AstValue],
+                               override location: Location = Nowhere)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = {
+    val cElementType = elementType.compile(ctx)
+    val cElements = elements.map(_.compile(ctx))
+    ArrayValue(cElementType, cElements, location)
+  }
 }
 
 final case class AstSymbolValue(value: Symbol, override location: Location)

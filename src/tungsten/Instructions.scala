@@ -88,7 +88,7 @@ final case class BinaryOperator(name: String)
 object BinaryOperator {
   val MULTIPLY = BinaryOperator("*")
   val DIVIDE = BinaryOperator("/")
-  val REMAINDER = BinaryOperator("/")
+  val REMAINDER = BinaryOperator("%")
   val ADD = BinaryOperator("+")
   val SUBTRACT = BinaryOperator("-")
   val LEFT_SHIFT = BinaryOperator("<<")

@@ -64,6 +64,26 @@ final case class NullValue(override location: Location = Nowhere)
   def ty(module: Module): NullType = NullType(location)
 }
 
+final case class ArrayValue(elementType: Type,
+                            elements: List[Value],
+                            override location: Location = Nowhere)
+  extends Value(location)
+{
+  def ty(module: Module) = ArrayType(Some(elements.size), elementType, location)
+
+  override def validateType(module: Module, expectedType: Type) = {
+    val actualType = ty(module)
+    val errors: List[CompileException] = if (actualType != expectedType)
+      List(TypeMismatchException(actualType.toString, expectedType.toString, location))
+    else
+      Nil
+
+    elements.foldLeft(errors) { (errors, elem) => 
+      elem.validateType(module, elementType) ++ errors
+    }
+  }
+}      
+
 final case class DefinedValue(value: Symbol, override location: Location = Nowhere)
   extends Value(location)
 {

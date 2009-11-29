@@ -24,6 +24,8 @@ final case object NullValue extends Value
 
 final case class ScalarReferenceValue(var value: Value) extends Value
 
+final case class ArrayValue(value: Array[Value]) extends Value
+
 final case class FunctionValue(value: Function) extends Value
 
 object Value {
@@ -38,6 +40,10 @@ object Value {
       case tungsten.Float32Value(v, _) => Float32Value(v)
       case tungsten.Float64Value(v, _) => Float64Value(v)
       case tungsten.NullValue(_) => NullValue
+      case tungsten.ArrayValue(_, vs, _) => {
+        val values = vs.map(eval(_, env)).toArray
+        ArrayValue(values)
+      }
       case tungsten.DefinedValue(v, _) => env.module.getDefn(v) match {
         case Some(p: Parameter) => env.state.values(v)
         case Some(i: Instruction) => env.state.values(v)

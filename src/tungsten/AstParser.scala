@@ -28,6 +28,14 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def ty: Parser[AstType] = {
+    def arrayTy: Parser[AstType] = {
+      def size: Parser[Option[Int]] = {
+        accept("int", { case IntToken(i) => Some(i) }) | ("?" ^^^ None)
+      }
+      "[" ~> (size <~ "*") ~ (ty <~ "]") ~ location ^^ { 
+        case s ~ t ~ l => AstArrayType(s, t, l)
+      }
+    }
     def elementTy: Parser[AstType] = {
       ("#unit" ~> location ^^ { AstUnitType(_) }) |
       ("#boolean" ~> location ^^ { AstBooleanType(_) }) |
@@ -38,6 +46,7 @@ object AstParser extends Parsers with ImplicitConversions {
       ("#float32" ~> location ^^ { AstFloatType(32, _) }) |
       ("#float64" ~> location ^^ { AstFloatType(64, _) }) |
       ("#null" ~> location ^^ { AstNullType(_) }) |
+      arrayTy |
       (symbol ~ typeArguments ~ location ^^ { 
         case name ~ args ~ loc => AstClassType(name, args, loc)
       })
@@ -66,12 +75,17 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def value: Parser[AstValue] = {
-    val byte = accept("byte", { case ByteToken(b) => b })
-    val short = accept("short", { case ShortToken(s) => s })
-    val int = accept("int", { case IntToken(i) => i })
-    val long = accept("long", { case LongToken(l) => l })
-    val float = accept("float", { case Float32Token(f) => f })
-    val double = accept("double", { case Float64Token(d) => d })
+    def byte = accept("byte", { case ByteToken(b) => b })
+    def short = accept("short", { case ShortToken(s) => s })
+    def int = accept("int", { case IntToken(i) => i })
+    def long = accept("long", { case LongToken(l) => l })
+    def float = accept("float", { case Float32Token(f) => f })
+    def double = accept("double", { case Float64Token(d) => d })
+
+    def array = {
+      "[" ~> (ty <~ ":") ~ (repsep(value, ",") <~"]") ~ location ^^ 
+        flatten3(AstArrayValue(_, _, _))
+    }
 
     ("()" ~> location ^^ { AstUnitValue(_) }) |
     ("#true" ~> location ^^ { AstBooleanValue(true, _) }) |
@@ -83,6 +97,7 @@ object AstParser extends Parsers with ImplicitConversions {
     (float ~ location ^^ flatten2(AstFloat32Value(_, _))) |
     (double ~ location ^^ flatten2(AstFloat64Value(_, _))) |
     ("#null" ~> location ^^ { AstNullValue(_) }) |
+    array |
     (symbol ~ location ^^ flatten2(AstSymbolValue(_, _)))
   }
 

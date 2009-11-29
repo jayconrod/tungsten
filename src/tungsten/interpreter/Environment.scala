@@ -212,8 +212,21 @@ final class Environment(val module: Module) {
     }
   }
 
-  def evalRelop(op: RelationalOperator, left: Value, right: Value): Value = {
+  def evalRelop(op: RelationalOperator, left: Value, right: Value): BooleanValue = {
     import tungsten.interpreter.{NullValue => NV}
+    def and(l: BooleanValue, r: BooleanValue): BooleanValue = {
+      (l, r) match {
+        case (BooleanValue(true), BooleanValue(true)) => BooleanValue(true)
+        case _ => BooleanValue(false)
+      }
+    }
+    def or(l: BooleanValue, r: BooleanValue): BooleanValue = {
+      (l, r) match {
+        case (BooleanValue(false), BooleanValue(false)) => BooleanValue(false)
+        case _ => BooleanValue(true)
+      }
+    }
+
     (op, left, right) match {
       case (LESS_THAN, Int8Value(l), Int8Value(r)) => BooleanValue(l < r)
       case (LESS_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l < r)
@@ -255,6 +268,13 @@ final class Environment(val module: Module) {
       case (EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(false)
       case (EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(false)
       case (EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l eq r)
+      case (EQUAL, l: ArrayValue, r: ArrayValue) => {
+        (l.value zip r.value).foldLeft(BooleanValue(true)) { (b, lr) =>
+          val (l, r) = lr
+          val cmp = evalRelop(EQUAL, l, r)
+          and(b, cmp)
+        }
+      }
       
       case (NOT_EQUAL, UnitValue, UnitValue) => BooleanValue(false)
       case (NOT_EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l != r)
@@ -268,6 +288,13 @@ final class Environment(val module: Module) {
       case (NOT_EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(true)
       case (NOT_EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(true)
       case (NOT_EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l ne r)
+      case (NOT_EQUAL, l: ArrayValue, r: ArrayValue) => {
+        (l.value zip r.value).foldLeft(BooleanValue(false)) { (b, lr) =>
+          val (l, r) = lr
+          val cmp = evalRelop(NOT_EQUAL, l, r)
+          or(b, cmp)
+        }
+      }
 
       case _ => throw new RuntimeException
     }

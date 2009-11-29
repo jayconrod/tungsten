@@ -160,6 +160,37 @@ final case class NullType(override location: Location = Nowhere)
   override def toString = "#null"
 }
 
+final case class ArrayType(size: Option[Int],
+                           elementType: Type,
+                           override location: Location = Nowhere)
+  extends Type(location)
+{
+  size match {
+    case Some(s) if s < 0 => throw new IllegalArgumentException
+    case _ => ()
+  }
+
+  override def validate(module: Module) = elementType.validate(module)
+
+  def defaultValue = ArrayValue(elementType, Nil, location)
+
+  def isNumeric = false
+
+  override def equals(that: Any) = {
+    that match {
+      case ArrayType(s, et, _) if size == s && elementType == et => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = hash("array", size, elementType)
+
+  override def toString = {
+    val sizeStr = size.getOrElse("?")
+    "[" + sizeStr + " * " + elementType + "]"
+  }
+}
+
 final case class UniversalType(typeParameters: List[Symbol],
                                baseType: Type,
                                override location: Location = Nowhere)
@@ -245,26 +276,6 @@ final case class VariableType(name: Symbol,
   override def hashCode = List[Any]("variable", name).foldLeft(0)(hash _)
 
   override def toString = name.toString
-}
-
-final case class ArrayType(elementType: Type, 
-                           override location: Location = Nowhere)
-  extends Type(location)
-{
-  def defaultValue = throw new UnsupportedOperationException
-
-  def isNumeric = false
-
-  override def equals(that: Any) = {
-    that match {
-      case ArrayType(e, _) if elementType == e => true
-      case _ => false
-    }
-  }
-
-  override def hashCode = List("array", elementType).foldLeft(0)(hash _)
-
-  override def toString = "Array[" + elementType + "]"
 }
 
 final case class FunctionType(returnType: Type,

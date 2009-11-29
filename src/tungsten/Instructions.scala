@@ -466,9 +466,9 @@ final case class UpcastInstruction(override name: Symbol,
 
   override def validate(module: Module) = {
     val valueTy = value.ty(module)
-    if (!valueTy.isPointer || !ty.isPointer || !(valueTy <<: ty))
-      List(UpcastException(valueTy.toString, ty.toString, location))
-    else
+    if (valueTy <<: ty)
       Nil
+    else
+      List(UpcastException(valueTy.toString, ty.toString, location))
   }
 }

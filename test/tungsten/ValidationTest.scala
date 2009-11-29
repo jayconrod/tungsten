@@ -5,18 +5,22 @@ import org.junit.Assert._
 import Utilities._
 
 class ValidationTest {
+  def programFromCode(code: String): String = {
+    "#function main( ): #unit {\n" +
+    "  #block entry( ) {\n" +
+    "    " + code + "\n" +
+    "    #return ()\n" +
+    "  }\n" +
+    "}\n"
+  }
+
   def programContainsError[T <: CompileException](program: String)(implicit m: Manifest[T]) = {
     val errors = compileString(program).validate
     containsError[T](errors)
   }
 
   def codeContainsError[T <: CompileException](code: String)(implicit m: Manifest[T]) = {
-    val program = "#function main( ): #unit {\n" +
-                  "  #block entry( ) {\n" +
-                  "    " + code + "\n" +
-                  "    #return r = ()\n" +
-                  "  }\n" +
-                  "}\n"
+    val program = programFromCode(code)
     programContainsError[T](program)
   }
 
@@ -32,7 +36,7 @@ class ValidationTest {
   }
 
   def codeIsCorrect(code: String) = {
-    val program = "#function main( ): #unit { #block entry( ) { %s } }".format(code)
+    val program = programFromCode(code)
     programIsCorrect(program)
   }
 
@@ -310,5 +314,11 @@ class ValidationTest {
   def mainReturnType = {
     val program = "#function main( ): #int32 { #block entry( ) { #return r = 12 } }"
     programContainsError[MainReturnTypeException](program)
+  }
+
+  @Test
+  def upcastSizelessArray = {
+    val code = "#upcast a = [#int32: 12, 34] : [? * #int32]"
+    codeIsCorrect(code)
   }
 }

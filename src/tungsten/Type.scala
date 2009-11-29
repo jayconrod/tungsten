@@ -176,6 +176,20 @@ final case class ArrayType(size: Option[Int],
 
   def isNumeric = false
 
+  override def isSubtypeOf(ty: Type) = {
+    ty match {
+      case ArrayType(otherSize, otherElementType, _) if elementType == otherElementType => {
+        (size, otherSize) match {
+          case (Some(n), Some(m)) => n == m
+          case (Some(_), None) => true
+          case (None, Some(_)) => false
+          case (None, None) => true
+        }
+      }
+      case _ => false
+    }
+  }
+
   override def equals(that: Any) = {
     that match {
       case ArrayType(s, et, _) if size == s && elementType == et => true

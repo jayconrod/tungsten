@@ -189,6 +189,30 @@ class AstCompileTest {
   }
 
   @Test
+  def condBranchInst = {
+    ctx.names.push(foo)
+    val bazBlock = Block(foo + baz, Nil, Nil, Nowhere)
+    ctx.module.add(bazBlock)
+    val quuxBlock = Block(foo + quux, Nil, Nil, Nowhere)
+    ctx.module.add(quuxBlock)
+    val ast = AstConditionalBranchInstruction(bar,
+                                              AstUnitValue(Nowhere),
+                                              baz,
+                                              List(AstInt32Value(12, Nowhere)),
+                                              quux,
+                                              List(AstInt32Value(34, Nowhere)),
+                                              loc)
+    val expected = ConditionalBranchInstruction(foo + bar,
+                                                UnitValue(),
+                                                bazBlock.name,
+                                                List(Int32Value(12)),
+                                                quuxBlock.name,
+                                                List(Int32Value(34)),
+                                                loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def globalLoadInst = {
     val global = Global(foo, UnitType(), None)
     ctx.module.add(global)

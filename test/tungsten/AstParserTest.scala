@@ -141,6 +141,18 @@ class AstParserTest {
   }
 
   @Test
+  def condBranchInst = {
+    testInstruction("#cond <foo.w:1.2-3.4> foo = () ? bar(12) : baz(34)",
+                    AstConditionalBranchInstruction(foo,
+                                                    AstUnitValue(Nowhere),
+                                                    new Symbol("bar"),
+                                                    List(AstInt32Value(12, Nowhere)),
+                                                    new Symbol("baz"),
+                                                    List(AstInt32Value(34, Nowhere)),
+                                                    fooLoc))
+  }
+
+  @Test
   def globalLoadInst = {
     testInstruction("#gload <foo.w:1.2-3.4> foo = bar",
                     AstGlobalLoadInstruction(foo, new Symbol("bar"), fooLoc))

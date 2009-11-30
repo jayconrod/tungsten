@@ -43,21 +43,11 @@ sealed abstract class Instruction(name: Symbol, location: Location)
   }
 }
 
-sealed abstract class CallInstruction(name: Symbol, arguments: List[Value], location: Location)
-  extends Instruction(name, location)
-{
-  protected def targetName: Symbol
-
-  protected def targetType(module: Module): FunctionType
-
-  def ty(module: Module) = targetType(module).returnType
-
-  override def validate(module: Module) = { 
-    validateCall(module, targetType(module).parameterTypes)
-  }
-
-  protected def validateCall(module: Module, 
-                             parameterTypes: List[Type]): List[CompileException] = 
+trait CallInstruction extends Instruction {
+  protected def validateCall(module: Module,
+                             targetName: Symbol,
+                             parameterTypes: List[Type],
+                             arguments: List[Value]): List[CompileException] = 
   {
     if (arguments.size != parameterTypes.size) {
       List(FunctionArgumentCountException(targetName, 
@@ -203,45 +193,45 @@ final case class BranchInstruction(override name: Symbol,
                                    target: Symbol,
                                    arguments: List[Value],
                                    override location: Location = Nowhere)
-  extends CallInstruction(name, arguments, location)
+  extends Instruction(name, location) with CallInstruction
 {
+  override def isTerminating = true
+
+  def ty(module: Module) = UnitType(location)
+
   def operands = arguments
 
   override def usedSymbols = target :: operandSymbols
 
-  override def isTerminating = true
-
-  protected def targetName = throw new UnsupportedOperationException
-
-  protected def targetType(module: Module) = {
-    module.getBlock(target).ty(module)
-  }
-
   override def validateComponents(module: Module) = {
     stage(super.validateComponents(module),
           validateComponentOfClass[Block](module, target))
+  }
+
+  override def validate(module: Module) = {
+    val block = module.getBlock(target)
+    val parameters = module.getParameters(block.parameters)
+    val parameterTypes = parameters.map(_.ty)
+    validateCall(module, target, parameterTypes, arguments)
   }
 }
 
 final case class ConditionalBranchInstruction(override name: Symbol,
                                               condition: Value,
                                               trueTarget: Symbol,
+                                              trueArguments: List[Value],
                                               falseTarget: Symbol,
-                                              arguments: List[Value],
+                                              falseArguments: List[Value],
                                               override location: Location = Nowhere)
-  extends CallInstruction(name, arguments, location)
+  extends Instruction(name, location) with CallInstruction
 {
-  def operands = condition :: arguments
-
-  override def usedSymbols = trueTarget :: falseTarget :: operandSymbols
+  def ty(module: Module) = UnitType(location)
 
   override def isTerminating = true
 
-  protected def targetName = trueTarget
+  def operands = condition :: trueArguments ++ falseArguments
 
-  protected def targetType(module: Module) = {
-    module.getBlock(trueTarget).ty(module)
-  }
+  override def usedSymbols = trueTarget :: falseTarget :: operandSymbols
 
   override def validateComponents(module: Module) = {
     stage(super.validateComponents(module),
@@ -252,14 +242,14 @@ final case class ConditionalBranchInstruction(override name: Symbol,
     // We assume that both of the branch targets refer to local blocks and that the block
     // parameters are validated. This should be done by Block and Function validation
 
-    def validateBranch(target: Symbol) = {
+    def validateBranch(target: Symbol, arguments: List[Value]) = {
       val block = module.getBlock(target)
       val parameterTypes = module.getParameters(block.parameters).map(_.ty)
-      validateCall(module, parameterTypes)
+      validateCall(module, target, parameterTypes, arguments)
     }
 
-    stage(validateBranch(trueTarget),
-          validateBranch(falseTarget),
+    stage(validateBranch(trueTarget, trueArguments),
+          validateBranch(falseTarget, falseArguments),
           condition.validateType(module, BooleanType()))
   }
 }
@@ -269,13 +259,13 @@ final case class GlobalLoadInstruction(override name: Symbol,
                                        override location: Location = Nowhere)
   extends Instruction(name, location)
 {
-  def operands = Nil
-
-  override def usedSymbols = List(globalName)
-
   def ty(module: Module) = {
     module.getGlobal(globalName).ty
   }
+
+  def operands = Nil
+
+  override def usedSymbols = List(globalName)
 
   override def validateComponents(module: Module) = {
     validateComponentOfClass[Global](module, globalName)
@@ -288,11 +278,11 @@ final case class GlobalStoreInstruction(override name: Symbol,
                                         override location: Location = Nowhere)
   extends Instruction(name, location)
 {
+  def ty(module: Module) = UnitType()
+
   def operands = List(value)
 
   override def usedSymbols = globalName :: operandSymbols
-
-  def ty(module: Module) = UnitType()
 
   override def validateComponents(module: Module) = {
     validateComponentOfClass[Global](module, globalName)
@@ -307,15 +297,18 @@ final case class IndirectCallInstruction(override name: Symbol,
                                          target: Value,
                                          arguments: List[Value],
                                          override location: Location = Nowhere)
-  extends CallInstruction(name, arguments, location)
+  extends Instruction(name, location) with CallInstruction
 {
+  def ty(module: Module) = targetType(module).returnType
+
   def operands = target :: arguments
 
-  protected def targetName = target.asInstanceOf[DefinedValue].value
+  private def targetName = target.asInstanceOf[DefinedValue].value
 
-  protected def targetType(module: Module) = target.ty(module).asInstanceOf[FunctionType]
+  private def targetType(module: Module) = target.ty(module).asInstanceOf[FunctionType]
 
   override def validate(module: Module): List[CompileException] = {
+    // TODO: implement or delete
     throw new UnsupportedOperationException
   }
 }
@@ -333,15 +326,17 @@ final case class IntrinsicCallInstruction(override name: Symbol,
                                           intrinsic: IntrinsicFunction,
                                           arguments: List[Value],
                                           override location: Location = Nowhere)
-  extends CallInstruction(name, arguments, location)
+  extends Instruction(name, location) with CallInstruction
 {
-  def operands = arguments
+  def ty(module: Module) = intrinsic.ty.returnType
 
   override def isTerminating = intrinsic == Intrinsic.EXIT
 
-  def targetName = new Symbol(intrinsic.name)
+  def operands = arguments
 
-  def targetType(module: Module) = intrinsic.ty
+  override def validate(module: Module) = {
+    validateCall(module, new Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments)
+  }
 }
 
 final case class LoadInstruction(override name: Symbol,
@@ -520,20 +515,26 @@ final case class StaticCallInstruction(override name: Symbol,
                                        target: Symbol,
                                        arguments: List[Value],
                                        override location: Location = Nowhere)
-  extends CallInstruction(name, arguments, location)
+  extends Instruction(name, location) with CallInstruction
 {
+  def ty(module: Module) = targetType(module).returnType
+
   def operands = arguments
 
   override def usedSymbols = target :: operandSymbols
-
-  protected def targetName = target
-
-  protected def targetType(module: Module) = module.getFunction(target).ty(module)
 
   override def validateComponents(module: Module) = {
     stage(super.validateComponents(module),
           validateComponentOfClass[Function](module, target))
   }
+
+  override def validate(module: Module) = {
+    validateCall(module, target, targetType(module).parameterTypes, arguments)
+  }
+
+  private def targetName = target
+
+  private def targetType(module: Module) = module.getFunction(target).ty(module)
 }
 
 final case class UpcastInstruction(override name: Symbol,

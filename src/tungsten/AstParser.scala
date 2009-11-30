@@ -137,9 +137,9 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def condInst: Parser[AstConditionalBranchInstruction] = {
-    "#cond" ~> location ~ optName ~ 
-      (value <~ "?") ~ (symbol <~ ":") ~ symbol ~ argumentList ^^ {
-      case l ~ n ~ c ~ t ~ f ~ a => AstConditionalBranchInstruction(n, c, t, f, a, l)
+    "#cond" ~> location ~ optName ~ (value <~ "?") ~
+      symbol ~ (argumentList <~ ":") ~ symbol ~ argumentList ^^ {
+      case l ~ n ~ c ~ t ~ ta ~ f ~ fa => AstConditionalBranchInstruction(n, c, t, ta, f, fa, l)
     }
   }
 

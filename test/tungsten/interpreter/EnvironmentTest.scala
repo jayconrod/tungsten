@@ -50,6 +50,29 @@ class EnvironmentTest {
   }
 
   @Test
+  def branchKeepsParameters = {
+    val program = "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #scall f(12)\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n" +
+                  "#function f(x: #int32): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #branch g( )\n" +
+                  "  }\n" +
+                  "  #block g( ) {\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    env.step    // call
+    env.step    // branch
+    val x = env.state.get(new Symbol(List("f", "x")))
+    assertEquals(Int32Value(12), x)
+  }
+
+  @Test
   def call = {
     val program = "#function main( ): #unit { #block entry( ) { #return r = () } }\n" +
                   "#function f(x: #int32): #unit { #block entry( ) { #return r = () } }\n"
@@ -103,7 +126,7 @@ class EnvironmentTest {
   def condInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #cond c = #false ? foo : bar (12)\n" +
+                  "    #cond c = #false ? foo(12) : bar(12)\n" +
                   "  }\n" +
                   "  #block foo(x: #int32) { #return r = () }\n" +
                   "  #block bar(x: #int32) { #return r = () }\n" +

@@ -56,12 +56,19 @@ final class Environment(val module: Module) {
         state = state.add(name, UnitValue)
         UnitValue
       }
-      case ConditionalBranchInstruction(name, cond, trueTarget, falseTarget, args, _) => {
+      case ConditionalBranchInstruction(_, cond, 
+                                        trueTarget, trueArgs, 
+                                        falseTarget, falseArgs, _) =>
+      {
         val BooleanValue(icond) = Value.eval(cond, this)
-        val iargs = args.map(Value.eval(_, this))
-        val target = if (icond) trueTarget else falseTarget
-        val block = module.get[Block](target).get
-        branch(block, iargs)
+        val iTrueArgs = trueArgs.map(Value.eval(_, this))
+        val iFalseArgs = falseArgs.map(Value.eval(_, this))
+        val (target, args) = if (icond) 
+          (trueTarget, iTrueArgs)
+        else 
+          (falseTarget, iFalseArgs)
+        val block = module.getBlock(target)
+        branch(block, args)
         UnitValue
       }        
       case GlobalLoadInstruction(name, globalName, _) => globalState(globalName)
@@ -170,7 +177,10 @@ final class Environment(val module: Module) {
   }         
 
   def branch(block: Block, arguments: List[Value]) = {
-    state = new State(block, module)
+    state = new State(block.name, 
+                      module.getInstructions(block.instructions).toArray,
+                      0,
+                      state.values)
     setArguments(block.parameters, arguments)
   }
 

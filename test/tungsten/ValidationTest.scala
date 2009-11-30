@@ -166,8 +166,8 @@ class ValidationTest {
   }
 
   @Test
-  def nonExistantCondition = {
-    val code = "#cond a = #true ? foo : bar ( )"
+  def nonExistantBranchCondition = {
+    val code = "#cond a = #true ? foo( ) : bar( )"
     codeContainsError[UndefinedSymbolException](code)
   }
 
@@ -175,7 +175,7 @@ class ValidationTest {
   def nonBooleanCondition = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #cond a = 12 ? foo : bar ( )\n" +
+                  "    #cond a = 12 ? foo( ) : bar( )\n" +
                   "  }\n" +
                   "  #block foo( ) { #return a = () }\n" +
                   "  #block bar( ) { #return a = () }\n" +
@@ -187,7 +187,7 @@ class ValidationTest {
   def conditionArgumentCount = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #cond a = #true ? foo : bar (12)\n" +
+                  "    #cond a = #true ? foo(12) : bar(12)\n" +
                   "  }\n" +
                   "  #block foo(x: #int32) { #return r = () }\n" +
                   "  #block bar( ) { #return r = () }\n" +
@@ -199,7 +199,7 @@ class ValidationTest {
   def conditionTypeMismatch = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #cond a = #true ? foo : bar (12)\n" +
+                  "    #cond a = #true ? foo(12) : bar(12)\n" +
                   "  }\n" +
                   "  #block foo(x: #int32) { #return r = () }\n" +
                   "  #block bar(x: #boolean) { #return r = () }\n" +
@@ -211,7 +211,7 @@ class ValidationTest {
   def conditionDuplicateBlock = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #cond a = #true ? entry : entry ( )\n" +
+                  "    #cond a = #true ? entry( ) : entry( )\n" +
                   "  }\n" +
                   "}\n"
     programContainsError[DuplicateComponentException](program)

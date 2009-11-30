@@ -62,7 +62,7 @@ final case class Function(override name: Symbol,
           val inst = module.getInstruction(instName)
           val blockNames = inst match {
             case BranchInstruction(_, target, _, _) => List(target)
-            case ConditionalBranchInstruction(_, _, trueTarget, falseTarget, _, _) =>
+            case ConditionalBranchInstruction(_, _, trueTarget, _, falseTarget, _, _) =>
               List(trueTarget, falseTarget)
             case _ => Nil
           }
@@ -87,9 +87,9 @@ final case class Function(override name: Symbol,
         insts match {
           case Nil => errors
           case i :: is => {
-            val instNames = i.operandSymbols
-            val invalidNames = instNames.diff(validNames.toList)
-            val newErrors = invalidNames.map(InstructionOrderException(_, i.location))
+            val instNames = i.operandSymbols.toSet
+            val invalidNames = instNames.diff(validNames)
+            val newErrors = invalidNames.toList.map(InstructionOrderException(_, i.location))
             checkOrder(is, validNames + i.name, newErrors ++ errors)
           }
         }

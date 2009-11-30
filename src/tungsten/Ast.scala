@@ -243,8 +243,9 @@ final case class AstBranchInstruction(override name: Symbol,
 final case class AstConditionalBranchInstruction(override name: Symbol,
                                                  condition: AstValue,
                                                  trueTarget: Symbol,
+                                                 trueArguments: List[AstValue],
                                                  falseTarget: Symbol,
-                                                 arguments: List[AstValue],
+                                                 falseArguments: List[AstValue],
                                                  override location: Location)
   extends AstInstruction(name, location)
 {
@@ -259,10 +260,13 @@ final case class AstConditionalBranchInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cCond = condition.compile(ctx)
     val cTrueTarget = resolveTarget(trueTarget)
+    val cTrueArguments = trueArguments.map(_.compile(ctx))
     val cFalseTarget = resolveTarget(falseTarget)
-    val cArgs = arguments.map(_.compile(ctx))
-    val cInst = ConditionalBranchInstruction(fullName, cCond, cTrueTarget, cFalseTarget, 
-                                             cArgs, location)
+    val cFalseArguments = falseArguments.map(_.compile(ctx))
+    val cInst = ConditionalBranchInstruction(fullName, cCond, 
+                                             cTrueTarget, cTrueArguments,
+                                             cFalseTarget, cFalseArguments,
+                                             location)
     ctx.module.update(cInst)
     cInst
   }

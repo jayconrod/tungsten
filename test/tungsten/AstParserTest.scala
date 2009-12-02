@@ -226,6 +226,15 @@ class AstParserTest {
   }
 
   @Test
+  def stackArrayAllocateInst = {
+    testInstruction("#stackarray <foo.w:1.2-3.4> foo = () * #unit",
+                    AstStackAllocateArrayInstruction(foo,
+                                                     AstUnitValue(Nowhere),
+                                                     AstUnitType(Nowhere),
+                                                     fooLoc))
+  }
+
+  @Test
   def staticCallInst = {
     testInstruction("#scall <foo.w:1.2-3.4> foo = bar(123)",
                     AstStaticCallInstruction(foo,

@@ -295,6 +295,20 @@ class AstCompileTest {
   }
 
   @Test
+  def stackArrayAllocInst = {
+    ctx.names.push(foo)
+    val ast = AstStackAllocateArrayInstruction(bar,
+                                               AstUnitValue(Nowhere),
+                                               AstUnitType(Nowhere),
+                                               loc)
+    val expected = StackAllocateArrayInstruction(foo + bar,
+                                                 UnitValue(),
+                                                 UnitType(),
+                                                 loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def staticCallInst = {
     ctx.names.push(foo)
     val baz = new Symbol("baz")

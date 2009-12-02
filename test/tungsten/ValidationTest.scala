@@ -345,4 +345,10 @@ class ValidationTest {
     val code = "#storeelement [#int32: 12, 34], 0L <- ()"
     codeContainsError[TypeMismatchException](code)
   }
+
+  @Test
+  def stackArrayAllocCountType = {
+    val code = "#stackarray a = () * #unit"
+    codeContainsError[TypeMismatchException](code)
+  }
 }

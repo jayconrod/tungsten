@@ -128,6 +128,15 @@ final class Environment(val module: Module) {
         val defaultValue = Value.eval(elementType.defaultValue, this)
         new ScalarReferenceValue(defaultValue)
       }
+      case StackAllocateArrayInstruction(_, count, elementType, _) => {
+        val cCount = Value.eval(count, this)
+        val n = cCount.asInstanceOf[Int64Value].value.asInstanceOf[Int]
+        val a = new Array[Value](n)
+        for (i <- 0 until n)
+          a(i) = Value.eval(elementType.defaultValue, this)
+        val array = new ArrayValue(a)
+        new ScalarReferenceValue(array)
+      }
       case StaticCallInstruction(name, target, arguments, _) => {
         val function = module.get[Function](target).get
         val args = arguments.map(Value.eval(_, this))

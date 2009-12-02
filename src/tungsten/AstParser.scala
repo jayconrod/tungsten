@@ -196,6 +196,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def stackAllocateArrayInst: Parser[AstStackAllocateArrayInstruction] = {
+    "#stackarray" ~> location ~ optName ~ value ~ ("*" ~> ty) ^^ {
+      case l ~ n ~ c ~ t => AstStackAllocateArrayInstruction(n, c, t, l)
+    }
+  }
+
   def staticCallInst: Parser[AstStaticCallInstruction] = {
     "#scall" ~> location ~ optName ~ symbol ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstStaticCallInstruction(n, t, a, l)
@@ -235,6 +241,7 @@ object AstParser extends Parsers with ImplicitConversions {
     relopInst |
     returnInst |
     stackAllocateInst |
+    stackAllocateArrayInst |
     staticCallInst |
     storeInst |
     storeElementInst |

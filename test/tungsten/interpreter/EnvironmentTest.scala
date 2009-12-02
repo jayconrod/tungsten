@@ -232,6 +232,18 @@ class EnvironmentTest {
   }
 
   @Test
+  def stackAllocateArrayInst = {
+    val (module, env) = prepareCode("#stackarray a = 12L * #unit")
+    env.step
+    val value = env.state.get(new Symbol(List("main", "entry", "a")))
+    assertTrue(value.isInstanceOf[ScalarReferenceValue])
+    val arrayValue = value.asInstanceOf[ScalarReferenceValue].value
+    assertTrue(arrayValue.isInstanceOf[ArrayValue])
+    val array = arrayValue.asInstanceOf[ArrayValue].value
+    assertEquals(12, array.length)
+  }
+
+  @Test
   def staticCallAndReturnInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

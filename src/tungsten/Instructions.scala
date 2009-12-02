@@ -494,9 +494,9 @@ final case class StackAllocateInstruction(override name: Symbol,
                                           override location: Location = Nowhere)
   extends Instruction(name, location)
 {
-  def operands = Nil
-
   def ty(module: Module) = ty
+
+  def operands = Nil
 
   override def validateComponents(module: Module) = {
     stage(super.validateComponents(module),
@@ -508,6 +508,26 @@ final case class StackAllocateInstruction(override name: Symbol,
       List(TypeMismatchException(ty.toString, "non-null pointer type", location))
     else
       Nil
+  }
+}
+
+final case class StackAllocateArrayInstruction(override name: Symbol,
+                                               count: Value,
+                                               elementType: Type,
+                                               override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = PointerType(ArrayType(None, elementType, location), location)
+
+  def operands = List(count)
+
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          elementType.validate(module))
+  }
+
+  override def validate(module: Module) = {
+    count.validateType(module, IntType(64))
   }
 }
 

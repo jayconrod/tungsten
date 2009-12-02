@@ -412,6 +412,22 @@ final case class AstStackAllocateInstruction(override name: Symbol,
   }
 }
 
+final case class AstStackAllocateArrayInstruction(override name: Symbol,
+                                                  count: AstValue,
+                                                  elementType: AstType,
+                                                  override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cCount = count.compile(ctx)
+    val cElementType = elementType.compile(ctx)
+    val cAlloc = StackAllocateArrayInstruction(fullName, cCount, cElementType, location)
+    ctx.module.update(cAlloc)
+    cAlloc
+  }
+}
+
 final case class AstStaticCallInstruction(override name: Symbol,
                                           target: Symbol,
                                           arguments: List[AstValue],

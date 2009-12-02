@@ -4,7 +4,6 @@ import scala.collection.immutable.Stack
 import tungsten._
 import tungsten.BinaryOperator._
 import tungsten.RelationalOperator._
-import Value._
 
 final class Environment(val module: Module) {
   val init = Array[Instruction](StaticCallInstruction(new Symbol("init"), 
@@ -16,12 +15,12 @@ final class Environment(val module: Module) {
 
   var stack = new Stack[State]
 
-  var state = new State(new Symbol("init"), init, 0, Map[Symbol, Value]())
+  var state = new State(new Symbol("init"), init, 0, Map[Symbol, IValue]())
 
-  var globalState = module.definitions.valueIterable.foldLeft(Map[Symbol, Value]()) { (st, d) =>
+  var globalState = module.definitions.valueIterable.foldLeft(Map[Symbol, IValue]()) { (st, d) =>
     d match {
-      case Global(name, _, Some(value), _) => st + (name -> Value.eval(value, this))
-      case Global(name, ty, None, _) => st + (name -> Value.eval(ty.defaultValue, this))
+      case Global(name, _, Some(value), _) => st + (name -> create(value))
+      case Global(name, ty, None, _) => st + (name -> create(ty.defaultValue))
       case _ => st
     }
   }
@@ -36,46 +35,37 @@ final class Environment(val module: Module) {
 
   def step = {
     val oldState = state
-    val result = eval(state.inst)
+    val result = evalInst(state.inst)
     if (state == oldState)  // normal non-control instruction
       state = state.add(result).next
   }
 
-  def eval(inst: Instruction): Value = {
+  def evalInst(inst: Instruction): IValue = {
     inst match {
       case AddressInstruction(_, base, indices, _) => {
-        val iBase = Value.eval(base, this)
-        val iIndices = indices.map(Value.eval(_, this))
-        def address(ptr: Value, indices: List[Value]): Value = {
+        val iBase = create(base).asInstanceOf[Reference]
+        val iIndices = indices.map(create _)
+        def address(ptr: Reference, indices: List[IValue]): IValue = {
           indices match {
             case Nil => ptr
-            case Int64Value(i) :: is => {
-              ptr match {
-                case ScalarReferenceValue(array: ArrayValue) => {
-                  val newPtr = ArrayReferenceValue(array, Int64Value(i))
-                  address(newPtr, is)
-                }
-                case ArrayReferenceValue(array: ArrayValue, index: Int64Value) => {
-                  val newArray = array.value(index.value.asInstanceOf[Int]).asInstanceOf[ArrayValue]
-                  val newPtr = ArrayReferenceValue(array, Int64Value(i))
-                  address(newPtr, is)
-                }
-                case _ => throw new RuntimeException("could not calculate address for value %s".format(ptr.toString))
-              }
+            case (i: Int64Value) :: is => {
+              val array = ptr.value.asInstanceOf[ArrayValue]
+              val newPtr = ArrayIndexReference(array, i)
+              address(newPtr, is)
             }
             case _ => throw new RuntimeException("could not calculate address with index %s".format(indices.head.toString))
           }
         }
         address(iBase, iIndices)
       }
-      case AssignInstruction(name, value, _) => Value.eval(value, this)
-      case BinaryOperatorInstruction(name, op, left, right, _) => {
-        val l = Value.eval(left, this)
-        val r = Value.eval(right, this)
+      case AssignInstruction(_, value, _) => create(value)
+      case BinaryOperatorInstruction(_, op, left, right, _) => {
+        val l = create(left)
+        val r = create(right)
         evalBinop(op, l, r)
       }
       case BranchInstruction(name, bbName, args, _) => {
-        val iargs = args.map(Value.eval(_, this))
+        val iargs = args.map(create _)
         val block = module.get[Block](bbName).get
         branch(block, iargs)
         state = state.add(name, UnitValue)
@@ -85,10 +75,10 @@ final class Environment(val module: Module) {
                                         trueTarget, trueArgs, 
                                         falseTarget, falseArgs, _) =>
       {
-        val BooleanValue(icond) = Value.eval(cond, this)
-        val iTrueArgs = trueArgs.map(Value.eval(_, this))
-        val iFalseArgs = falseArgs.map(Value.eval(_, this))
-        val (target, args) = if (icond) 
+        val BooleanValue(c) = create(cond)
+        val iTrueArgs = trueArgs.map(create _)
+        val iFalseArgs = falseArgs.map(create _)
+        val (target, args) = if (c) 
           (trueTarget, iTrueArgs)
         else 
           (falseTarget, iFalseArgs)
@@ -96,33 +86,33 @@ final class Environment(val module: Module) {
         branch(block, args)
         UnitValue
       }        
-      case GlobalLoadInstruction(name, globalName, _) => globalState(globalName)
-      case GlobalStoreInstruction(name, globalName, value, _) => {
-        globalState = globalState + (globalName -> Value.eval(value, this))
+      case GlobalLoadInstruction(_, globalName, _) => globalState(globalName)
+      case GlobalStoreInstruction(_, globalName, value, _) => {
+        globalState = globalState + (globalName -> create(value))
         UnitValue
       }
-      case IndirectCallInstruction(name, target, arguments, _) => {
-        val function = Value.eval(target, this).asInstanceOf[FunctionValue].value
-        val args = arguments.map(Value.eval(_, this))
+      case IndirectCallInstruction(_, target, arguments, _) => {
+        val function = create(target).asInstanceOf[FunctionValue].value
+        val args = arguments.map(create(_))
         call(function, args)
         UnitValue
       }
-      case IntrinsicCallInstruction(name, intrinsic, arguments, _) => {
+      case IntrinsicCallInstruction(_, intrinsic, arguments, _) => {
         import tungsten.Intrinsic._
         intrinsic match {
           case EXIT => {
-            returnCode = Value.eval(arguments(0), this).asInstanceOf[Int32Value].value
+            returnCode = create(arguments(0)).asInstanceOf[Int32Value].value
             state = null
           }
         }
         UnitValue
       }
       case LoadInstruction(_, pointer, _) => {
-        val scalar = Value.eval(pointer, this).asInstanceOf[ScalarReferenceValue]
+        val scalar = create(pointer).asInstanceOf[ScalarReference]
         scalar.value
       }
       case LoadElementInstruction(_, base, indices, _) => {
-        def loadElement(ptr: Value, indices: List[Value]): Value = {
+        def loadElement(ptr: IValue, indices: List[IValue]): IValue = {
           indices match {
             case Nil => ptr
             case i :: is => {
@@ -134,15 +124,15 @@ final class Environment(val module: Module) {
             }
           }
         }
-        loadElement(Value.eval(base, this), indices.map(Value.eval(_, this)))
+        loadElement(create(base), indices.map(create _))
       }
-      case RelationalOperatorInstruction(name, op, left, right, _) => {
-        val l = Value.eval(left, this)
-        val r = Value.eval(right, this)
+      case RelationalOperatorInstruction(_, op, left, right, _) => {
+        val l = create(left)
+        val r = create(right)
         evalRelop(op, l, r)
       }
       case ReturnInstruction(_, v, _) => {
-        val ret = Value.eval(v, this)
+        val ret = create(v)
         state = stack.head
         stack = stack.pop
         state = state.add(state.inst.name, ret).next
@@ -150,33 +140,33 @@ final class Environment(val module: Module) {
       }
       case StackAllocateInstruction(_, ty, _) => {
         val elementType = ty.asInstanceOf[PointerType].elementType
-        val defaultValue = Value.eval(elementType.defaultValue, this)
-        new ScalarReferenceValue(defaultValue)
+        val defaultValue = create(elementType.defaultValue)
+        new ScalarReference(defaultValue)
       }
       case StackAllocateArrayInstruction(_, count, elementType, _) => {
-        val cCount = Value.eval(count, this)
+        val cCount = create(count)
         val n = cCount.asInstanceOf[Int64Value].value.asInstanceOf[Int]
-        val a = new Array[Value](n)
+        val a = new Array[IValue](n)
         for (i <- 0 until n)
-          a(i) = Value.eval(elementType.defaultValue, this)
+          a(i) = create(elementType.defaultValue)
         val array = new ArrayValue(a)
-        new ScalarReferenceValue(array)
+        new ScalarReference(array)
       }
       case StaticCallInstruction(name, target, arguments, _) => {
         val function = module.get[Function](target).get
-        val args = arguments.map(Value.eval(_, this))
+        val args = arguments.map(create _)
         call(function, args)
         UnitValue
       }
       case StoreInstruction(_, pointer, value, _) => {
-        val scalar = Value.eval(pointer, this).asInstanceOf[ScalarReferenceValue]
-        val v = Value.eval(value, this)
+        val scalar = create(pointer).asInstanceOf[ScalarReference]
+        val v = create(value)
         scalar.value = v
         UnitValue
       }
       case StoreElementInstruction(_, base, indices, value, _) => {
-        val v = Value.eval(value, this)
-        def storeElement(ptr: Value, indices: List[Value]): Unit = {
+        val v = create(value)
+        def storeElement(ptr: IValue, indices: List[IValue]): Unit = {
           indices match {
             case i :: Nil => {
               val index = i.asInstanceOf[Int64Value].value.asInstanceOf[Int]
@@ -195,14 +185,14 @@ final class Environment(val module: Module) {
             case _ => throw new RuntimeException("can't have empty index list")
           }
         }
-        storeElement(Value.eval(base, this), indices.map(Value.eval(_, this)))
+        storeElement(create(base), indices.map(create _))
         UnitValue
       }
-      case UpcastInstruction(_, value, _, _) => Value.eval(value, this)
+      case UpcastInstruction(_, value, _, _) => create(value)
     }
   }
 
-  def setArguments(paramNames: List[Symbol], arguments: List[Value]) = {
+  def setArguments(paramNames: List[Symbol], arguments: List[IValue]) = {
     assert(paramNames.length == arguments.length)
     state = (paramNames zip arguments).foldLeft(state) { (st, arg) =>
       val (k, v) = arg
@@ -210,7 +200,7 @@ final class Environment(val module: Module) {
     }
   }         
 
-  def branch(block: Block, arguments: List[Value]) = {
+  def branch(block: Block, arguments: List[IValue]) = {
     state = new State(block.name, 
                       module.getInstructions(block.instructions).toArray,
                       0,
@@ -218,172 +208,51 @@ final class Environment(val module: Module) {
     setArguments(block.parameters, arguments)
   }
 
-  def call(function: Function, arguments: List[Value]) = {
+  def call(function: Function, arguments: List[IValue]) = {
     stack = stack.push(state)
     state = new State(function, module)
     setArguments(function.parameters, arguments)
   }
 
-  def evalBinop(op: BinaryOperator, left: Value, right: Value) = {
-    (op, left, right) match {
-      case (MULTIPLY, Int8Value(l), Int8Value(r)) => Int8Value((l * r).asInstanceOf[Byte])
-      case (MULTIPLY, Int16Value(l), Int16Value(r)) => Int16Value((l * r).asInstanceOf[Short])
-      case (MULTIPLY, Int32Value(l), Int32Value(r)) => Int32Value(l * r)
-      case (MULTIPLY, Int64Value(l), Int64Value(r)) => Int64Value(l * r)
-      case (MULTIPLY, Float32Value(l), Float32Value(r)) => Float32Value(l * r)
-      case (MULTIPLY, Float64Value(l), Float64Value(r)) => Float64Value(l * r)
+  def evalBinop(op: BinaryOperator, left: IValue, right: IValue) = {
+    val methodName = scala.util.NameTransformer.encode(op.name)
+    val method = left.getClass.getMethod(methodName, right.getClass)
+    method.invoke(left, right).asInstanceOf[IValue]
+  }
 
-      case (DIVIDE, Int8Value(l), Int8Value(r)) => Int8Value((l / r).asInstanceOf[Byte])
-      case (DIVIDE, Int16Value(l), Int16Value(r)) => Int16Value((l / r).asInstanceOf[Short])
-      case (DIVIDE, Int32Value(l), Int32Value(r)) => Int32Value(l / r)
-      case (DIVIDE, Int64Value(l), Int64Value(r)) => Int64Value(l / r)
-      case (DIVIDE, Float32Value(l), Float32Value(r)) => Float32Value(l / r)
-      case (DIVIDE, Float64Value(l), Float64Value(r)) => Float64Value(l / r)
-
-      case (REMAINDER, Int8Value(l), Int8Value(r)) => Int8Value((l % r).asInstanceOf[Byte])
-      case (REMAINDER, Int16Value(l), Int16Value(r)) => Int16Value((l % r).asInstanceOf[Short])
-      case (REMAINDER, Int32Value(l), Int32Value(r)) => Int32Value(l % r)
-      case (REMAINDER, Int64Value(l), Int64Value(r)) => Int64Value(l % r)
-      case (REMAINDER, Float32Value(l), Float32Value(r)) => Float32Value(l % r)
-      case (REMAINDER, Float64Value(l), Float64Value(r)) => Float64Value(l % r)
-
-      case (ADD, Int8Value(l), Int8Value(r)) => Int8Value((l + r).asInstanceOf[Byte])
-      case (ADD, Int16Value(l), Int16Value(r)) => Int16Value((l + r).asInstanceOf[Short])
-      case (ADD, Int32Value(l), Int32Value(r)) => Int32Value(l + r)
-      case (ADD, Int64Value(l), Int64Value(r)) => Int64Value(l + r)
-      case (ADD, Float32Value(l), Float32Value(r)) => Float32Value(l + r)
-      case (ADD, Float64Value(l), Float64Value(r)) => Float64Value(l + r)
-
-      case (SUBTRACT, Int8Value(l), Int8Value(r)) => Int8Value((l - r).asInstanceOf[Byte])
-      case (SUBTRACT, Int16Value(l), Int16Value(r)) => Int16Value((l - r).asInstanceOf[Short])
-      case (SUBTRACT, Int32Value(l), Int32Value(r)) => Int32Value(l - r)
-      case (SUBTRACT, Int64Value(l), Int64Value(r)) => Int64Value(l - r)
-      case (SUBTRACT, Float32Value(l), Float32Value(r)) => Float32Value(l - r)
-      case (SUBTRACT, Float64Value(l), Float64Value(r)) => Float64Value(l - r)
-
-      case (LEFT_SHIFT, Int8Value(l), Int8Value(r)) => Int8Value((l << r).asInstanceOf[Byte])
-      case (LEFT_SHIFT, Int16Value(l), Int16Value(r)) => Int16Value((l << r).asInstanceOf[Short])
-      case (LEFT_SHIFT, Int32Value(l), Int32Value(r)) => Int32Value(l << r)
-      case (LEFT_SHIFT, Int64Value(l), Int64Value(r)) => Int64Value(l << r)
-
-      case (RIGHT_SHIFT_ARITHMETIC, Int8Value(l), Int8Value(r)) => Int8Value((l >> r).asInstanceOf[Byte])
-      case (RIGHT_SHIFT_ARITHMETIC, Int16Value(l), Int16Value(r)) => Int16Value((l >> r).asInstanceOf[Short])
-      case (RIGHT_SHIFT_ARITHMETIC, Int32Value(l), Int32Value(r)) => Int32Value(l >> r)
-      case (RIGHT_SHIFT_ARITHMETIC, Int64Value(l), Int64Value(r)) => Int64Value(l >> r)
-
-      case (RIGHT_SHIFT_LOGICAL, Int8Value(l), Int8Value(r)) => Int8Value((l >>> r).asInstanceOf[Byte])
-      case (RIGHT_SHIFT_LOGICAL, Int16Value(l), Int16Value(r)) => Int16Value((l >>> r).asInstanceOf[Short])
-      case (RIGHT_SHIFT_LOGICAL, Int32Value(l), Int32Value(r)) => Int32Value(l >>> r)
-      case (RIGHT_SHIFT_LOGICAL, Int64Value(l), Int64Value(r)) => Int64Value(l >>> r)
-
-      case (AND, Int8Value(l), Int8Value(r)) => Int8Value((l & r).asInstanceOf[Byte])
-      case (AND, Int16Value(l), Int16Value(r)) => Int16Value((l & r).asInstanceOf[Short])
-      case (AND, Int32Value(l), Int32Value(r)) => Int32Value(l & r)
-      case (AND, Int64Value(l), Int64Value(r)) => Int64Value(l & r)
-
-      case (XOR, Int8Value(l), Int8Value(r)) => Int8Value((l ^ r).asInstanceOf[Byte])
-      case (XOR, Int16Value(l), Int16Value(r)) => Int16Value((l ^ r).asInstanceOf[Short])
-      case (XOR, Int32Value(l), Int32Value(r)) => Int32Value(l ^ r)
-      case (XOR, Int64Value(l), Int64Value(r)) => Int64Value(l ^ r)
-
-      case (OR, Int8Value(l), Int8Value(r)) => Int8Value((l | r).asInstanceOf[Byte])
-      case (OR, Int16Value(l), Int16Value(r)) => Int16Value((l | r).asInstanceOf[Short])
-      case (OR, Int32Value(l), Int32Value(r)) => Int32Value(l | r)
-      case (OR, Int64Value(l), Int64Value(r)) => Int64Value(l | r)
-
-      case _ => throw new RuntimeException
+  def evalRelop(op: RelationalOperator, left: IValue, right: IValue): BooleanValue = {
+    if (op == RelationalOperator.EQUAL)
+      BooleanValue(left equals right)
+    else if (op == RelationalOperator.NOT_EQUAL)
+      BooleanValue(!(left equals right))
+    else {
+      val methodName = scala.util.NameTransformer.encode(op.name)
+      val method = left.getClass.getMethod(methodName, right.getClass)
+      method.invoke(left, right).asInstanceOf[BooleanValue]
     }
   }
 
-  def evalRelop(op: RelationalOperator, left: Value, right: Value): BooleanValue = {
-    import tungsten.interpreter.{NullValue => NV}
-    def and(l: BooleanValue, r: BooleanValue): BooleanValue = {
-      (l, r) match {
-        case (BooleanValue(true), BooleanValue(true)) => BooleanValue(true)
-        case _ => BooleanValue(false)
+  def create(value: tungsten.Value): tungsten.interpreter.IValue = {
+    value match {
+      case tungsten.UnitValue(_) => tungsten.interpreter.UnitValue
+      case tungsten.BooleanValue(v, _) => tungsten.interpreter.BooleanValue(v)
+      case tungsten.Int8Value(v, _) => tungsten.interpreter.Int8Value(v)
+      case tungsten.Int16Value(v, _) => tungsten.interpreter.Int16Value(v)
+      case tungsten.Int32Value(v, _) => tungsten.interpreter.Int32Value(v)
+      case tungsten.Int64Value(v, _) => tungsten.interpreter.Int64Value(v)
+      case tungsten.Float32Value(v, _) => tungsten.interpreter.Float32Value(v)
+      case tungsten.Float64Value(v, _) => tungsten.interpreter.Float64Value(v)
+      case tungsten.NullValue(_) => tungsten.interpreter.NullReference
+      case tungsten.ArrayValue(_, vs, _) => {
+        tungsten.interpreter.ArrayValue(vs.toArray.map(create _))
       }
-    }
-    def or(l: BooleanValue, r: BooleanValue): BooleanValue = {
-      (l, r) match {
-        case (BooleanValue(false), BooleanValue(false)) => BooleanValue(false)
-        case _ => BooleanValue(true)
-      }
-    }
-
-    (op, left, right) match {
-      case (LESS_THAN, Int8Value(l), Int8Value(r)) => BooleanValue(l < r)
-      case (LESS_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l < r)
-      case (LESS_THAN, Int32Value(l), Int32Value(r)) => BooleanValue(l < r)
-      case (LESS_THAN, Int64Value(l), Int64Value(r)) => BooleanValue(l < r)
-      case (LESS_THAN, Float32Value(l), Float32Value(r)) => BooleanValue(l < r)
-      case (LESS_THAN, Float64Value(l), Float64Value(r)) => BooleanValue(l < r)
-      
-      case (LESS_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l <= r)
-      case (LESS_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l <= r)
-      case (LESS_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l <= r)
-      case (LESS_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l <= r)
-      case (LESS_EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l <= r)
-      case (LESS_EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l <= r)
-      
-      case (GREATER_THAN, Int8Value(l), Int8Value(r)) => BooleanValue(l > r)
-      case (GREATER_THAN, Int16Value(l), Int16Value(r)) => BooleanValue(l > r)
-      case (GREATER_THAN, Int32Value(l), Int32Value(r)) => BooleanValue(l > r)
-      case (GREATER_THAN, Int64Value(l), Int64Value(r)) => BooleanValue(l > r)
-      case (GREATER_THAN, Float32Value(l), Float32Value(r)) => BooleanValue(l > r)
-      case (GREATER_THAN, Float64Value(l), Float64Value(r)) => BooleanValue(l > r)
-      
-      case (GREATER_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l >= r)
-      case (GREATER_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l >= r)
-      case (GREATER_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l >= r)
-      case (GREATER_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l >= r)
-      case (GREATER_EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l >= r)
-      case (GREATER_EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l >= r)
-
-      case (EQUAL, UnitValue, UnitValue) => BooleanValue(true)
-      case (EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l == r)      
-      case (EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l == r)
-      case (EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l == r)
-      case (EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l == r)
-      case (EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l == r)
-      case (EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l == r)
-      case (EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l == r)
-      case (EQUAL, NV, NV) => BooleanValue(true)
-      case (EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(false)
-      case (EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(false)
-      case (EQUAL, NV, _: ArrayReferenceValue) => BooleanValue(false)
-      case (EQUAL, _: ArrayReferenceValue, NV) => BooleanValue(false)
-      case (EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l eq r)
-      case (EQUAL, l: ArrayReferenceValue, r: ArrayReferenceValue) => BooleanValue(l == r)
-      case (EQUAL, l: ArrayValue, r: ArrayValue) => {
-        (l.value zip r.value).foldLeft(BooleanValue(true)) { (b, lr) =>
-          val (l, r) = lr
-          val cmp = evalRelop(EQUAL, l, r)
-          and(b, cmp)
+      case tungsten.DefinedValue(sym, _) => {
+        module.getDefn(sym) match {
+          case Some(_: Parameter) | Some(_: Instruction) => state.get(sym)
+          case Some(f: Function) => tungsten.interpreter.FunctionValue(f)
+          case _ => throw new RuntimeException("definition " + sym + " is not a value")
         }
       }
-      
-      case (NOT_EQUAL, UnitValue, UnitValue) => BooleanValue(false)
-      case (NOT_EQUAL, BooleanValue(l), BooleanValue(r)) => BooleanValue(l != r)
-      case (NOT_EQUAL, Int8Value(l), Int8Value(r)) => BooleanValue(l != r)
-      case (NOT_EQUAL, Int16Value(l), Int16Value(r)) => BooleanValue(l != r)
-      case (NOT_EQUAL, Int32Value(l), Int32Value(r)) => BooleanValue(l != r)
-      case (NOT_EQUAL, Int64Value(l), Int64Value(r)) => BooleanValue(l != r)
-      case (NOT_EQUAL, Float32Value(l), Float32Value(r)) => BooleanValue(l != r)
-      case (NOT_EQUAL, Float64Value(l), Float64Value(r)) => BooleanValue(l != r)
-      case (NOT_EQUAL, NV, NV) => BooleanValue(false)
-      case (NOT_EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(true)
-      case (NOT_EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(true)
-      case (NOT_EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l ne r)
-      case (NOT_EQUAL, l: ArrayReferenceValue, r: ArrayReferenceValue) => BooleanValue(l != r)
-      case (NOT_EQUAL, l: ArrayValue, r: ArrayValue) => {
-        (l.value zip r.value).foldLeft(BooleanValue(false)) { (b, lr) =>
-          val (l, r) = lr
-          val cmp = evalRelop(NOT_EQUAL, l, r)
-          or(b, cmp)
-        }
-      }
-
-      case _ => throw new RuntimeException
     }
   }
 }

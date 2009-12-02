@@ -11,6 +11,11 @@ abstract sealed class Type(location: Location)
   def isPointer: Boolean = false
   def isSubtypeOf(ty: Type): Boolean = ty == this
   final def <<:(ty: Type): Boolean = ty isSubtypeOf this
+  def supportsOperator(op: BinaryOperator) = false
+  def supportsOperator(op: RelationalOperator) = {
+    import RelationalOperator._
+    List(EQUAL, NOT_EQUAL).contains(op)
+  }
   def equals(that: Any): Boolean
   def hashCode: Int
   def toString: String
@@ -53,6 +58,11 @@ final case class BooleanType(override location: Location = Nowhere) extends Type
 
   def isNumeric = false
 
+  override def supportsOperator(op: BinaryOperator) = {
+    import BinaryOperator._
+    List(AND, XOR, OR).contains(op)
+  }
+
   override def equals(that: Any) = {
     that match {
       case BooleanType(_) => true
@@ -83,6 +93,10 @@ final case class IntType(width: Int,
 
   def isNumeric = true
 
+  override def supportsOperator(op: BinaryOperator) = true
+
+  override def supportsOperator(op: RelationalOperator) = true
+
   override def equals(that: Any) = {
     that match {
       case IntType(w, _) if width == w => true
@@ -105,6 +119,13 @@ final case class FloatType(width: Int,
   def defaultValue = throw new UnsupportedOperationException
 
   def isNumeric = true
+
+  override def supportsOperator(op: BinaryOperator) = {
+    import BinaryOperator._
+    List(MULTIPLY, DIVIDE, REMAINDER, ADD, SUBTRACT).contains(op)
+  }
+
+  override def supportsOperator(op: RelationalOperator) = true
 
   override def equals(that: Any) = {
     that match {

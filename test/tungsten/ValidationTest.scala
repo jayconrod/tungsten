@@ -137,7 +137,7 @@ class ValidationTest {
   @Test
   def binopNonNumeric = {
     val code = "#binop a = () + ()"
-    codeContainsError[TypeMismatchException](code)
+    codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
@@ -162,7 +162,7 @@ class ValidationTest {
   @Test
   def relopNonNumeric = {
     val code = "#relop a = () < ()"
-    codeContainsError[TypeMismatchException](code)
+    codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
@@ -232,7 +232,7 @@ class ValidationTest {
   @Test
   def floatBitOp = {
     val code = "#binop a = 1. & 2."
-    codeContainsError[FloatBitOperationException](code)
+    codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test

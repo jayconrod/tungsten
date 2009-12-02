@@ -37,10 +37,6 @@ final case class EntryParametersException(functionName: Symbol,
                              " must not have any parameters",
                            location)
 
-final case class FloatBitOperationException(location: Location)
-  extends CompileException("bit operations are not supported on floating point values",
-                           location)
-
 final case class FunctionArgumentCountException(symbol: Symbol,
                                                 given: Int,
                                                 required: Int,
@@ -107,6 +103,10 @@ final case class TypeMismatchException(given: String, required: String, location
 
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)
   extends CompileException(symbol.toString + " is not defined", location)
+
+final case class UnsupportedNumericOperationException(ty: AnyRef, op: AnyRef, location: Location)
+  extends CompileException("the type %s does not support the operation %s".format(ty, op),
+                           location)
 
 final case class UpcastException(fromTy: String,
                                  toTy: String,

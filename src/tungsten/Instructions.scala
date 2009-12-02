@@ -152,20 +152,33 @@ final case class AssignInstruction(override name: Symbol,
   def ty(module: Module) = value.ty(module)
 }
 
-final case class BinaryOperator(name: String)
+sealed case class BinaryOperator(name: String) {
+  def isArithmetic: Boolean = false
+  def isShift: Boolean = false
+  def isLogical: Boolean = false
+}
+final case class ArithmeticOperator(override name: String) extends BinaryOperator(name) {
+  override def isArithmetic = true
+}
+final case class ShiftOperator(override name: String) extends BinaryOperator(name) {
+  override def isShift = true
+}
+final case class LogicalOperator(override name: String) extends BinaryOperator(name) {
+  override def isLogical = true
+}
 
 object BinaryOperator {
-  val MULTIPLY = BinaryOperator("*")
-  val DIVIDE = BinaryOperator("/")
-  val REMAINDER = BinaryOperator("%")
-  val ADD = BinaryOperator("+")
-  val SUBTRACT = BinaryOperator("-")
-  val LEFT_SHIFT = BinaryOperator("<<")
-  val RIGHT_SHIFT_ARITHMETIC = BinaryOperator(">>")
-  val RIGHT_SHIFT_LOGICAL = BinaryOperator(">>>")
-  val AND = BinaryOperator("&")
-  val XOR = BinaryOperator("^")
-  val OR = BinaryOperator("|")
+  val MULTIPLY = ArithmeticOperator("*")
+  val DIVIDE = ArithmeticOperator("/")
+  val REMAINDER = ArithmeticOperator("%")
+  val ADD = ArithmeticOperator("+")
+  val SUBTRACT = ArithmeticOperator("-")
+  val LEFT_SHIFT = ShiftOperator("<<")
+  val RIGHT_SHIFT_ARITHMETIC = ShiftOperator(">>")
+  val RIGHT_SHIFT_LOGICAL = ShiftOperator(">>>")
+  val AND = LogicalOperator("&")
+  val XOR = LogicalOperator("^")
+  val OR = LogicalOperator("|")
 
   def fromString(name: String) = {
     name match {
@@ -183,11 +196,6 @@ object BinaryOperator {
       case _ => throw new RuntimeException("invalid binary operator")
     }
   }
-
-  def isBitOperation(op: BinaryOperator) = {
-    op == LEFT_SHIFT || op == RIGHT_SHIFT_ARITHMETIC || op == RIGHT_SHIFT_LOGICAL ||
-      op == AND || op == XOR || op == OR
-  }
 }
 
 final case class BinaryOperatorInstruction(override name: Symbol,
@@ -202,27 +210,14 @@ final case class BinaryOperatorInstruction(override name: Symbol,
   def ty(module: Module) = left.ty(module)
 
   override def validate(module: Module) = {
-    def validateType = {
-      val lty = left.ty(module)
-      val rty = right.ty(module)
-      if (!lty.isNumeric)
-        List(TypeMismatchException(lty.toString, "numeric type", left.location))
-      else if (lty != rty)
-        List(TypeMismatchException(rty.toString, lty.toString, right.location))
-      else
-        Nil
-    }
-
-    def validateFloatBitOp = {
-      val lty = left.ty(module)
-      if (lty.isInstanceOf[FloatType] && BinaryOperator.isBitOperation(operator))
-        List(FloatBitOperationException(location))
-      else
-        Nil
-    }
-
-    stage(validateType,
-          validateFloatBitOp)
+    val lty = left.ty(module)
+    val rty = right.ty(module)
+    if (!lty.supportsOperator(operator))
+      List(UnsupportedNumericOperationException(lty, operator, left.location))
+    else if (lty != rty)
+      List(TypeMismatchException(rty.toString, lty.toString, right.location))
+    else
+      Nil
   }
 }
 
@@ -447,17 +442,11 @@ final case class RelationalOperatorInstruction(override name: Symbol,
   def ty(module: Module) = BooleanType(location)
 
   override def validate(module: Module) = {
-    import RelationalOperator._
     val lty = left.ty(module)
     val rty = right.ty(module)
-    if ((operator == LESS_THAN ||
-         operator == LESS_EQUAL ||
-         operator == GREATER_THAN ||
-         operator == GREATER_EQUAL) &&
-        !lty.isNumeric)
-    {
-      List(TypeMismatchException(lty.toString, "numeric type", left.location))
-    } else if (lty != rty)
+    if (!lty.supportsOperator(operator))
+      List(UnsupportedNumericOperationException(lty, operator, left.location))
+    else if (lty != rty)
       List(TypeMismatchException(rty.toString, lty.toString, right.location))
     else
       Nil

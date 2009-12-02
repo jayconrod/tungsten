@@ -95,12 +95,12 @@ class EnvironmentTest {
     env.step
 
     val asym = new Symbol(List("main", "entry", "a"))
-    val a = env.state.get(asym).asInstanceOf[ScalarReferenceValue]
+    val a = env.state.get(asym).asInstanceOf[ScalarReference]
     val aArray1 = a.value.asInstanceOf[ArrayValue]
     val aArray2 = aArray1.value(1).asInstanceOf[ArrayValue]
 
     val bsym = new Symbol(List("main", "entry", "b"))
-    val b = env.state.get(bsym).asInstanceOf[ArrayReferenceValue]
+    val b = env.state.get(bsym).asInstanceOf[ArrayIndexReference]
     assertSame(aArray2, b.array)
     assertEquals(Int64Value(1), b.index)
   }
@@ -247,7 +247,8 @@ class EnvironmentTest {
   def stackAllocateInst = {
     val (module, env) = prepareCode("#stack a : #int32*")
     env.step
-    assertEquals(ScalarReferenceValue(Int32Value(0)), env.state.get(prefix + "a"))
+    val a = env.state.get(prefix + "a").asInstanceOf[ScalarReference]
+    assertEquals(Int32Value(0), a.value)
   }
 
   @Test
@@ -255,8 +256,8 @@ class EnvironmentTest {
     val (module, env) = prepareCode("#stackarray a = 12L * #unit")
     env.step
     val value = env.state.get(new Symbol(List("main", "entry", "a")))
-    assertTrue(value.isInstanceOf[ScalarReferenceValue])
-    val arrayValue = value.asInstanceOf[ScalarReferenceValue].value
+    assertTrue(value.isInstanceOf[ScalarReference])
+    val arrayValue = value.asInstanceOf[ScalarReference].value
     assertTrue(arrayValue.isInstanceOf[ArrayValue])
     val array = arrayValue.asInstanceOf[ArrayValue].value
     assertEquals(12, array.length)
@@ -294,7 +295,7 @@ class EnvironmentTest {
     env.step
     val a = new Symbol(List("main", "entry", "a"))
     val b = new Symbol(List("main", "entry", "b"))
-    assertEquals(ScalarReferenceValue(Int32Value(12)), env.state.get(a))
+    assertEquals(Int32Value(12), env.state.get(a).asInstanceOf[ScalarReference].value)
     assertEquals(UnitValue, env.state.get(b))
   }
 
@@ -314,6 +315,6 @@ class EnvironmentTest {
   def upcastInst = {
     val (module, env) = prepareCode("#upcast a = #null : #null")
     env.step
-    assertEquals(NullValue, env.state.get(prefix + "a"))
+    assertEquals(NullReference, env.state.get(prefix + "a"))
   }
 }

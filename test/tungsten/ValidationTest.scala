@@ -323,19 +323,19 @@ class ValidationTest {
   }
 
   @Test
-  def loadArrayOutOfBounds = {
+  def loadElementArrayOutOfBounds = {
     val code = "#loadelement a = [#int32: 12, 34], 5L"
     codeIsCorrect(code)
   }
 
   @Test
-  def loadBadIndexType = {
+  def loadElementBadIndexType = {
     val code = "#loadelement a = [#int32: 12, 34], 5"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
-  def loadTooManyIndices = {
+  def loadElementTooManyIndices = {
     val code = "#loadelement a = [#int32: 12, 34], 5, 6"
     codeContainsError[InvalidIndexException](code)
   }
@@ -350,5 +350,33 @@ class ValidationTest {
   def stackArrayAllocCountType = {
     val code = "#stackarray a = () * #unit"
     codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def addressNonPointer = {
+    val code = "#address a = (), 0L"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def addressBadIndexType = {
+    val code = "#stackarray a = 5L * #unit\n" +
+               "#address b = a, 1"
+    codeContainsError[InvalidIndexException](code)
+  }
+
+  @Test
+  def addressTooManyIndices = {
+    val code = "#stackarray a = 5L * #unit\n" +
+               "#address b = a, 1L, 1L"
+    codeContainsError[InvalidIndexException](code)
+  }
+
+  @Test
+  def addressTwice = {
+    val code = "#stackarray a = 2L * [2 * #int32]\n" +
+               "#address b = a, 1L, 1L\n" +
+               "#store *b <- 12"
+    codeIsCorrect(code)
   }
 }

@@ -190,6 +190,22 @@ sealed abstract class AstInstruction(val name: Symbol, override val location: Lo
   def compile(ctx: AstContext): Instruction
 }
 
+final case class AstAddressInstruction(override name: Symbol,
+                                       base: AstValue,
+                                       indices: List[AstValue],
+                                       override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cBase = base.compile(ctx)
+    val cIndices = indices.map(_.compile(ctx))
+    val cAddress = AddressInstruction(fullName, cBase, cIndices, location)
+    ctx.module.update(cAddress)
+    cAddress
+  }
+}
+
 final case class AstAssignInstruction(override name: Symbol,
                                       target: AstValue,
                                       override location: Location)

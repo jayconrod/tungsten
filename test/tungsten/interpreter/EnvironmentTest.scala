@@ -87,6 +87,25 @@ class EnvironmentTest {
   }
 
   @Test
+  def addressInst = {
+    val code = "#stackarray a = 2L * [2 * #int32]\n" +
+               "#address b = a, 1L, 1L"
+    val (module, env) = prepareCode(code)
+    env.step
+    env.step
+
+    val asym = new Symbol(List("main", "entry", "a"))
+    val a = env.state.get(asym).asInstanceOf[ScalarReferenceValue]
+    val aArray1 = a.value.asInstanceOf[ArrayValue]
+    val aArray2 = aArray1.value(1).asInstanceOf[ArrayValue]
+
+    val bsym = new Symbol(List("main", "entry", "b"))
+    val b = env.state.get(bsym).asInstanceOf[ArrayReferenceValue]
+    assertSame(aArray2, b.array)
+    assertEquals(Int64Value(1), b.index)
+  }
+
+  @Test
   def assignInst = {
     val (module, env) = prepareCode("#assign a = 123\n#assign b = a")
     env.step

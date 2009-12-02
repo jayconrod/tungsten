@@ -43,6 +43,31 @@ final class Environment(val module: Module) {
 
   def eval(inst: Instruction): Value = {
     inst match {
+      case AddressInstruction(_, base, indices, _) => {
+        val iBase = Value.eval(base, this)
+        val iIndices = indices.map(Value.eval(_, this))
+        def address(ptr: Value, indices: List[Value]): Value = {
+          indices match {
+            case Nil => ptr
+            case Int64Value(i) :: is => {
+              ptr match {
+                case ScalarReferenceValue(array: ArrayValue) => {
+                  val newPtr = ArrayReferenceValue(array, Int64Value(i))
+                  address(newPtr, is)
+                }
+                case ArrayReferenceValue(array: ArrayValue, index: Int64Value) => {
+                  val newArray = array.value(index.value.asInstanceOf[Int]).asInstanceOf[ArrayValue]
+                  val newPtr = ArrayReferenceValue(array, Int64Value(i))
+                  address(newPtr, is)
+                }
+                case _ => throw new RuntimeException("could not calculate address for value %s".format(ptr.toString))
+              }
+            }
+            case _ => throw new RuntimeException("could not calculate address with index %s".format(indices.head.toString))
+          }
+        }
+        address(iBase, iIndices)
+      }
       case AssignInstruction(name, value, _) => Value.eval(value, this)
       case BinaryOperatorInstruction(name, op, left, right, _) => {
         val l = Value.eval(left, this)
@@ -325,7 +350,10 @@ final class Environment(val module: Module) {
       case (EQUAL, NV, NV) => BooleanValue(true)
       case (EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(false)
       case (EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(false)
+      case (EQUAL, NV, _: ArrayReferenceValue) => BooleanValue(false)
+      case (EQUAL, _: ArrayReferenceValue, NV) => BooleanValue(false)
       case (EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l eq r)
+      case (EQUAL, l: ArrayReferenceValue, r: ArrayReferenceValue) => BooleanValue(l == r)
       case (EQUAL, l: ArrayValue, r: ArrayValue) => {
         (l.value zip r.value).foldLeft(BooleanValue(true)) { (b, lr) =>
           val (l, r) = lr
@@ -346,6 +374,7 @@ final class Environment(val module: Module) {
       case (NOT_EQUAL, NV, _: ScalarReferenceValue) => BooleanValue(true)
       case (NOT_EQUAL, _: ScalarReferenceValue, NV) => BooleanValue(true)
       case (NOT_EQUAL, l: ScalarReferenceValue, r: ScalarReferenceValue) => BooleanValue(l ne r)
+      case (NOT_EQUAL, l: ArrayReferenceValue, r: ArrayReferenceValue) => BooleanValue(l != r)
       case (NOT_EQUAL, l: ArrayValue, r: ArrayValue) => {
         (l.value zip r.value).foldLeft(BooleanValue(false)) { (b, lr) =>
           val (l, r) = lr

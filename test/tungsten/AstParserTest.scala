@@ -106,6 +106,15 @@ class AstParserTest {
   }
 
   @Test
+  def addressInst = {
+    testInstruction("#address <foo.w:1.2-3.4> foo = (), (), ()",
+                    AstAddressInstruction(foo, 
+                                          AstUnitValue(Nowhere),
+                                          List(AstUnitValue(Nowhere), AstUnitValue(Nowhere)),
+                                          fooLoc))
+  }
+
+  @Test
   def assignInst = {
     testInstruction("#assign <foo.w:1.2-3.4> foo = 123",
                     AstAssignInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))

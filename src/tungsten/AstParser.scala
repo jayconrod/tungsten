@@ -118,6 +118,12 @@ object AstParser extends Parsers with ImplicitConversions {
     ("<" | "<=" | ">" | ">=" | "==" | "!=") ^^ { RelationalOperator.fromString(_) }
   }
 
+  def addressInst: Parser[AstAddressInstruction] = {
+    "#address" ~> location ~ optName ~ value ~ ("," ~> rep1sep(value, ",")) ^^ {
+      case l ~ n ~ b ~ is => AstAddressInstruction(n, b, is, l)
+    }
+  }
+
   def assignInst: Parser[AstAssignInstruction] = {
     "#assign" ~> location ~ optName ~ value ^^ {
       case l ~ n ~ v => AstAssignInstruction(n, v, l)
@@ -228,6 +234,7 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def instruction: Parser[AstInstruction] = {
+    addressInst |
     assignInst |
     binopInst |
     branchInst |

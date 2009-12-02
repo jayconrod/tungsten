@@ -24,6 +24,9 @@ final case object NullValue extends Value
 
 final case class ScalarReferenceValue(var value: Value) extends Value
 
+final case class ArrayReferenceValue(var array: ArrayValue, var index: Int64Value)
+  extends Value
+
 final case class ArrayValue(value: Array[Value]) extends Value
 
 final case class FunctionValue(value: Function) extends Value

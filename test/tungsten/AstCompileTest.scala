@@ -152,6 +152,20 @@ class AstCompileTest {
   }
 
   @Test
+  def addressInst = {
+    ctx.names.push(foo)
+    val ast = AstAddressInstruction(bar,
+                                    AstUnitValue(Nowhere),
+                                    List(AstUnitValue(Nowhere), AstUnitValue(Nowhere)),
+                                    loc)
+    val expected = AddressInstruction(foo + bar,
+                                      UnitValue(),
+                                      List(UnitValue(), UnitValue()),
+                                      loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def assignInst = {
     ctx.names.push(foo)
     val ast = AstAssignInstruction(bar, AstUnitValue(Nowhere), loc)

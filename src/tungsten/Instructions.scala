@@ -105,6 +105,43 @@ sealed trait ElementInstruction extends Instruction {
   }
 }
 
+final case class AddressInstruction(override name: Symbol,
+                                    base: Value,
+                                    indices: List[Value],
+                                    override location: Location = Nowhere)
+  extends Instruction(name, location) with ElementInstruction
+{
+  def ty(module: Module) = {
+    base.ty(module) match {
+      case PointerType(elementType, _) => {
+        val resultElementType = getElementType(elementType, indices)
+        PointerType(resultElementType, location)
+      }
+      case _ => PointerType(UnitType(), location) // bogus, but we catch it in validation
+    }
+  }
+
+  def operands = base :: indices
+
+  override def validate(module: Module) = {
+    val baseType = base.ty(module)
+    def baseIsPointer = {
+      if (baseType.isInstanceOf[PointerType])
+        Nil
+      else
+        List(TypeMismatchException(baseType.toString, "non-null pointer type", location))
+    }
+
+    def indicesAreValid = {
+      val elementType = baseType.asInstanceOf[PointerType].elementType
+      validateIndices(module, elementType, indices)
+    }
+
+    stage(baseIsPointer,
+          indicesAreValid)
+  }
+}
+
 final case class AssignInstruction(override name: Symbol,
                                    value: Value,
                                    override location: Location = Nowhere)

@@ -24,6 +24,6 @@ class ValueTest {
     val module = new Module
     module.add(global)
 
-    assertEquals(UnitType(), DefinedValue(foo).ty(module))
+    assertEquals(PointerType(UnitType()), DefinedValue(foo).ty(module))
   }
 }

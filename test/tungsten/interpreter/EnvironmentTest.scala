@@ -169,14 +169,15 @@ class EnvironmentTest {
     val program = "#global foo: #int32 = 12\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #gload bar = foo\n" +
+                  "    #load a = *foo\n" +
                   "    #return r = ()\n" +
                   "  }\n" +
                   "}\n"
     val (module, env) = prepare(program)
-    assertEquals(Int32Value(12), env.globalState(new Symbol("foo")))
+    val foo = env.globalState(new Symbol("foo"))
+    assertEquals(Int32Value(12), foo.asInstanceOf[ScalarReference].value)
     env.step
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "bar"))))
+    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "a"))))
   }
 
   @Test
@@ -184,13 +185,14 @@ class EnvironmentTest {
     val program = "#global foo: #int32\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
-                  "    #gstore bar = foo <- 12\n" +
+                  "    #store *foo <- 12\n" +
                   "    #return r = ()\n" +
                   "  }\n" +
                   "}\n"
     val (module, env) = prepare(program)
     env.step
-    assertEquals(Int32Value(12), env.globalState(new Symbol("foo")))
+    val foo = env.globalState(new Symbol("foo"))
+    assertEquals(Int32Value(12), foo.asInstanceOf[ScalarReference].value)
   }
 
   @Test

@@ -30,7 +30,7 @@ sealed abstract class Instruction(name: Symbol, location: Location)
   protected final def validateOperands(module: Module) = {
     operandSymbols flatMap { sym =>
       module.getDefn(sym) match {
-        case Some(_: Parameter) | Some(_: Instruction) => Nil
+        case Some(_: Parameter) | Some(_: Instruction) | Some(_: Global) => Nil
         case Some(defn) => {
           List(InappropriateSymbolException(sym,
                                             location,
@@ -283,45 +283,6 @@ final case class ConditionalBranchInstruction(override name: Symbol,
     stage(validateBranch(trueTarget, trueArguments),
           validateBranch(falseTarget, falseArguments),
           condition.validateType(module, BooleanType()))
-  }
-}
-
-final case class GlobalLoadInstruction(override name: Symbol,
-                                       globalName: Symbol,
-                                       override location: Location = Nowhere)
-  extends Instruction(name, location)
-{
-  def ty(module: Module) = {
-    module.getGlobal(globalName).ty
-  }
-
-  def operands = Nil
-
-  override def usedSymbols = List(globalName)
-
-  override def validateComponents(module: Module) = {
-    validateComponentOfClass[Global](module, globalName)
-  }
-}
-
-final case class GlobalStoreInstruction(override name: Symbol,
-                                        globalName: Symbol,
-                                        value: Value,
-                                        override location: Location = Nowhere)
-  extends Instruction(name, location)
-{
-  def ty(module: Module) = UnitType()
-
-  def operands = List(value)
-
-  override def usedSymbols = globalName :: operandSymbols
-
-  override def validateComponents(module: Module) = {
-    validateComponentOfClass[Global](module, globalName)
-  }
-
-  override def validate(module: Module) = {
-    value.validateType(module, module.getGlobal(globalName).ty)
   }
 }
 

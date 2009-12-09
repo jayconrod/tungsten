@@ -109,7 +109,7 @@ class ValidationTest {
                   "    #return ()\n" +
                   "  }\n" +
                   "}"
-    programContainsError[InappropriateSymbolException](program)
+    programIsCorrect(program)
   }
 
   @Test
@@ -125,13 +125,14 @@ class ValidationTest {
 
   @Test
   def globalTypeMismatch = {
-    val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
-    val gfoo = Global(foo, UnitType(), None)
-    val ibar = GlobalStoreInstruction(bar, foo, Int32Value(12))
-    val module = new Module
-    module.add(gfoo)
-    module.add(ibar)
-    containsError[TypeMismatchException](ibar.validate(module))
+    val program = "#global foo: #unit\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #store *foo <- 12\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[TypeMismatchException](program)
   }
 
   @Test
@@ -378,5 +379,17 @@ class ValidationTest {
                "#address b = a, 1L, 1L\n" +
                "#store *b <- 12"
     codeIsCorrect(code)
+  }
+
+  @Test
+  def globalAddress = {
+    val program = "#global foo: [2 * #int32]\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #address a = foo, 1L\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}"
+    programIsCorrect(program)
   }
 }

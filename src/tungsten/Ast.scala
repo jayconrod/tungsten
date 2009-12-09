@@ -288,36 +288,6 @@ final case class AstConditionalBranchInstruction(override name: Symbol,
   }
 }
 
-final case class AstGlobalLoadInstruction(override name: Symbol,
-                                          globalName: Symbol,
-                                          override location: Location)
-  extends AstInstruction(name, location)
-{
-  def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
-    val cLoad = GlobalLoadInstruction(fullName, globalName, location)
-    ctx.module.update(cLoad)
-    cLoad
-  }
-}
-
-final case class AstGlobalStoreInstruction(override name: Symbol,
-                                           globalName: Symbol,
-                                           value: AstValue,
-                                           override location: Location)
-  extends AstInstruction(name, location)
-{
-  def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
-    val cStore = GlobalStoreInstruction(fullName, 
-                                        globalName, 
-                                        value.compileOrElse(ctx), 
-                                        location)
-    ctx.module.update(cStore)
-    cStore
-  }
-}
-
 final case class AstIndirectCallInstruction(override name: Symbol,
                                             target: AstValue,
                                             arguments: List[AstValue],

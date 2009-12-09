@@ -88,15 +88,17 @@ final case class Function(override name: Symbol,
           case Nil => errors
           case i :: is => {
             val instNames = i.operandSymbols.toSet
-            val invalidNames = instNames.diff(validNames)
+            val invalidNames = instNames &~ validNames
             val newErrors = invalidNames.toList.map(InstructionOrderException(_, i.location))
             checkOrder(is, validNames + i.name, newErrors ++ errors)
           }
         }
       }
+      val globalNames = module.definitions.valueIterable.
+                        filter(_.isInstanceOf[Global]).map(_.name).toSet
       def checkBlock(blockName: Symbol) = {
         val block = module.getBlock(blockName)
-        val validNames = (parameters ++ block.parameters).toSet
+        val validNames = (parameters ++ block.parameters).toSet union globalNames
         val insts = module.getInstructions(block.instructions)
         checkOrder(insts, validNames, Nil)
       }

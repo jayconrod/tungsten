@@ -17,11 +17,19 @@ final class Environment(val module: Module) {
 
   var state = new State(new Symbol("init"), init, 0, Map[Symbol, IValue]())
 
-  var globalState = module.definitions.valueIterable.foldLeft(Map[Symbol, IValue]()) { (st, d) =>
-    d match {
-      case Global(name, _, Some(value), _) => st + (name -> create(value))
-      case Global(name, ty, None, _) => st + (name -> create(ty.defaultValue))
-      case _ => st
+  var globalState = {
+    module.definitions.valuesIterator.foldLeft(Map[Symbol, IValue]()) { (st, defn) =>
+      defn match {
+        case Global(name, _, Some(value), _) => {
+          val ivalue = ScalarReference(create(value))
+          st + (name -> ivalue)
+        }
+        case Global(name, ty, None, _) => {
+          val ivalue = ScalarReference(create(ty.defaultValue))
+          st + (name -> ivalue)
+        }
+        case _ => st
+      }
     }
   }
 
@@ -86,11 +94,6 @@ final class Environment(val module: Module) {
         branch(block, args)
         UnitValue
       }        
-      case GlobalLoadInstruction(_, globalName, _) => globalState(globalName)
-      case GlobalStoreInstruction(_, globalName, value, _) => {
-        globalState = globalState + (globalName -> create(value))
-        UnitValue
-      }
       case IndirectCallInstruction(_, target, arguments, _) => {
         val function = create(target).asInstanceOf[FunctionValue].value
         val args = arguments.map(create(_))
@@ -249,6 +252,7 @@ final class Environment(val module: Module) {
       case tungsten.DefinedValue(sym, _) => {
         module.getDefn(sym) match {
           case Some(_: Parameter) | Some(_: Instruction) => state.get(sym)
+          case Some(_: Global) => globalState(sym)
           case Some(f: Function) => tungsten.interpreter.FunctionValue(f)
           case _ => throw new RuntimeException("definition " + sym + " is not a value")
         }

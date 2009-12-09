@@ -88,8 +88,11 @@ final case class DefinedValue(value: Symbol, override location: Location = Nowhe
   extends Value(location)
 {
   def ty(module: Module) = {
-    val defn = module.get(value)
-    assert(defn.isDefined)
-    defn.get.asInstanceOf[TypedDefinition].ty(module)
+    module.getDefn(value) match {
+      case Some(Global(_, t, _, _)) => PointerType(t, location)
+      case Some(Parameter(_, t, _)) => t
+      case Some(inst: Instruction) => inst.ty(module)
+      case _ => throw new RuntimeException("symbol " + value + " cannot be used as a value")
+    }
   }
 }

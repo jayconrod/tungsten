@@ -162,21 +162,6 @@ class AstParserTest {
   }
 
   @Test
-  def globalLoadInst = {
-    testInstruction("#gload <foo.w:1.2-3.4> foo = bar",
-                    AstGlobalLoadInstruction(foo, new Symbol("bar"), fooLoc))
-  }
-
-  @Test
-  def globalStoreInst = {
-    testInstruction("#gstore <foo.w:1.2-3.4> foo = bar <- 12",
-                    AstGlobalStoreInstruction(foo, 
-                                              new Symbol("bar"),
-                                              AstInt32Value(12, Nowhere),
-                                              fooLoc))
-  }
-
-  @Test
   def indirectCallInst = {
     testInstruction("#icall <foo.w:1.2-3.4> foo = bar(123)",
                     AstIndirectCallInstruction(foo,

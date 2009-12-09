@@ -81,4 +81,11 @@ class SymbolTest {
     val result = base + "bar"
     assertEquals(expected, result)
   }
+
+  @Test
+  def createImplicit = {
+    import Symbol._
+    val sym: Symbol = "this.is.a.test#12"
+    assertEquals(new Symbol(List("this", "is", "a", "test"), 12), sym)
+  }
 }

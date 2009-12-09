@@ -4,14 +4,15 @@ import org.junit.Test
 import org.junit.Assert._
 import tungsten._
 import tungsten.Utilities._
+import tungsten.Symbol._
 
 class EnvironmentTest {
-  val prefix = new Symbol(List("main", "entry"))
+  val prefix = Symbol.fromString("main.entry")
       
   def prepare(program: String) = {
     val module = compileString(program)
     val env = new Environment(module)
-    val mainFunction = module.get[Function](new Symbol("main")).get
+    val mainFunction = module.get[Function]("main").get
     val entryBlock = module.get[Block](mainFunction.blocks.head).get
     val firstInst = module.get[Instruction](entryBlock.instructions.head).get
     while (env.state.inst != firstInst)
@@ -27,7 +28,7 @@ class EnvironmentTest {
   @Test
   def setArguments = {
     val env = new Environment(new Module)
-    val names = List("foo", "bar", "baz").map(new Symbol(_))
+    val names = List("foo", "bar", "baz").map(Symbol(_))
     val args = List(1, 2, 3).map(Int32Value(_))
     env.setArguments(names, args)
     for ((n, a) <- names zip args)
@@ -41,12 +42,12 @@ class EnvironmentTest {
                   "  #block b2(x: #int32, y: #int32) { #return r2 = () }\n" +
                   "}\n"
     val (module, env) = prepare(program)
-    val b1 = module.get[Block](new Symbol(List("main", "b1"))).get
-    val b2 = module.get[Block](new Symbol(List("main", "b2"))).get
+    val b1 = module.get[Block]("main.b1").get
+    val b2 = module.get[Block]("main.b2").get
     env.branch(b2, List(Int32Value(12), Int32Value(34)))
     assertEquals(module.getDefn(b2.instructions.head).get, env.state.inst)
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "b2", "x"))))
-    assertEquals(Int32Value(34), env.state.get(new Symbol(List("main", "b2", "y"))))
+    assertEquals(Int32Value(12), env.state.get("main.b2.x"))
+    assertEquals(Int32Value(34), env.state.get("main.b2.y"))
   }
 
   @Test
@@ -68,7 +69,7 @@ class EnvironmentTest {
     val (module, env) = prepare(program)
     env.step    // call
     env.step    // branch
-    val x = env.state.get(new Symbol(List("f", "x")))
+    val x = env.state.get("f.x")
     assertEquals(Int32Value(12), x)
   }
 
@@ -77,13 +78,13 @@ class EnvironmentTest {
     val program = "#function main( ): #unit { #block entry( ) { #return r = () } }\n" +
                   "#function f(x: #int32): #unit { #block entry( ) { #return r = () } }\n"
     val (module, env) = prepare(program)
-    val calledFunction = module.get[Function](new Symbol("f")).get
-    val calledInst = module.get[Instruction](new Symbol(List("f", "entry", "r"))).get
+    val calledFunction = module.getFunction("f")
+    val calledInst = module.getInstruction("f.entry.r")
     val oldSize = env.stack.size
     env.call(calledFunction, List(Int32Value(123)))
     assertEquals(oldSize + 1, env.stack.size)
     assertEquals(calledInst, env.state.inst)
-    assertEquals(Int32Value(123), env.state.get(new Symbol(List("f", "x"))))
+    assertEquals(Int32Value(123), env.state.get("f.x"))
   }
 
   @Test
@@ -94,13 +95,11 @@ class EnvironmentTest {
     env.step
     env.step
 
-    val asym = new Symbol(List("main", "entry", "a"))
-    val a = env.state.get(asym).asInstanceOf[ScalarReference]
+    val a = env.state.get("main.entry.a").asInstanceOf[ScalarReference]
     val aArray1 = a.value.asInstanceOf[ArrayValue]
     val aArray2 = aArray1.value(1).asInstanceOf[ArrayValue]
 
-    val bsym = new Symbol(List("main", "entry", "b"))
-    val b = env.state.get(bsym).asInstanceOf[ArrayIndexReference]
+    val b = env.state.get("main.entry.b").asInstanceOf[ArrayIndexReference]
     assertSame(aArray2, b.array)
     assertEquals(Int64Value(1), b.index)
   }
@@ -136,9 +135,9 @@ class EnvironmentTest {
                   "}\n"
     val (module, env) = prepare(program)
     env.step
-    val r2 = module.get[Instruction](new Symbol(List("main", "b2", "r2"))).get
+    val r2 = module.getInstruction("main.b2.r2")
     assertEquals(r2, env.state.inst)
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "b2", "x"))))
+    assertEquals(Int32Value(12), env.state.get("main.b2.x"))
   }
 
   @Test
@@ -152,9 +151,9 @@ class EnvironmentTest {
                   "}\n"
     val (module, env) = prepare(program)
     env.step
-    val barInst = module.get[Instruction](new Symbol(List("main", "bar", "r"))).get
+    val barInst = module.getInstruction("main.bar.r")
     assertEquals(barInst, env.state.inst)
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "bar", "x"))))
+    assertEquals(Int32Value(12), env.state.get("main.bar.x"))
   }
 
   @Test
@@ -174,10 +173,10 @@ class EnvironmentTest {
                   "  }\n" +
                   "}\n"
     val (module, env) = prepare(program)
-    val foo = env.globalState(new Symbol("foo"))
+    val foo = env.globalState("foo")
     assertEquals(Int32Value(12), foo.asInstanceOf[ScalarReference].value)
     env.step
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "a"))))
+    assertEquals(Int32Value(12), env.state.get("main.entry.a"))
   }
 
   @Test
@@ -191,7 +190,7 @@ class EnvironmentTest {
                   "}\n"
     val (module, env) = prepare(program)
     env.step
-    val foo = env.globalState(new Symbol("foo"))
+    val foo = env.globalState("foo")
     assertEquals(Int32Value(12), foo.asInstanceOf[ScalarReference].value)
   }
 
@@ -211,12 +210,12 @@ class EnvironmentTest {
                   "}\n"
     val (module, env) = prepare(program)
     env.step    // assign
-    val f = module.get[Function](new Symbol("f")).get
-    assertEquals(FunctionValue(f), env.state.get(new Symbol(List("main", "entry", "g"))))
+    val f = module.getFunction("f")
+    assertEquals(FunctionValue(f), env.state.get("main.entry.g"))
     env.step    // call
-    val r = module.get[Instruction](new Symbol(List("f", "entry", "r"))).get
+    val r = module.getInstruction("f.entry.r")
     assertEquals(r, env.state.inst)
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("f", "x"))))
+    assertEquals(Int32Value(12), env.state.get("f.x"))
   }
 
   @Test
@@ -226,8 +225,7 @@ class EnvironmentTest {
     val (module, env) = prepareCode(code)
     env.step
     env.step
-    val a = new Symbol(List("main", "entry", "b"))
-    assertEquals(Int32Value(0), env.state.get(a))
+    assertEquals(Int32Value(0), env.state.get(prefix + "b"))
   }
 
   @Test
@@ -235,7 +233,7 @@ class EnvironmentTest {
     val code = "#loadelement a = [#int32: 12, 34], 0L"
     val (module, env) = prepareCode(code)
     env.step
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "a"))))
+    assertEquals(Int32Value(12), env.state.get(prefix + "a"))
   }
 
   @Test
@@ -257,7 +255,7 @@ class EnvironmentTest {
   def stackAllocateArrayInst = {
     val (module, env) = prepareCode("#stackarray a = 12L * #unit")
     env.step
-    val value = env.state.get(new Symbol(List("main", "entry", "a")))
+    val value = env.state.get(prefix + "a")
     assertTrue(value.isInstanceOf[ScalarReference])
     val arrayValue = value.asInstanceOf[ScalarReference].value
     assertTrue(arrayValue.isInstanceOf[ArrayValue])
@@ -280,12 +278,12 @@ class EnvironmentTest {
                   "}\n"
     val (module, env) = prepare(program)
     env.step // call
-    val r = module.get[Instruction](new Symbol(List("f", "entry", "r"))).get
+    val r = module.getInstruction("f.entry.r")
     assertEquals(r, env.state.inst)
     val stackSize = env.stack.size
     env.step // return
     assertEquals(stackSize - 1, env.stack.size)
-    assertEquals(Int32Value(12), env.state.get(new Symbol(List("main", "entry", "i1"))))
+    assertEquals(Int32Value(12), env.state.get("main.entry.i1"))
   }
 
   @Test
@@ -295,10 +293,8 @@ class EnvironmentTest {
     val (module, env) = prepareCode(code)
     env.step
     env.step
-    val a = new Symbol(List("main", "entry", "a"))
-    val b = new Symbol(List("main", "entry", "b"))
-    assertEquals(Int32Value(12), env.state.get(a).asInstanceOf[ScalarReference].value)
-    assertEquals(UnitValue, env.state.get(b))
+    assertEquals(Int32Value(12), env.state.get(prefix + "a").asInstanceOf[ScalarReference].value)
+    assertEquals(UnitValue, env.state.get(prefix + "b"))
   }
 
   @Test
@@ -308,7 +304,7 @@ class EnvironmentTest {
     val (module, env) = prepareCode(code)
     env.step
     env.step
-    val a = env.state.get(new Symbol(List("main", "entry", "a")))
+    val a = env.state.get(prefix + "a")
     assertTrue(a.isInstanceOf[ArrayValue])
     assertEquals(Int32Value(56), a.asInstanceOf[ArrayValue].value(0))
   }

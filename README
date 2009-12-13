@@ -2,3 +2,12 @@ Tungsten README
 
 Tungsten is a framework for building compilers. It is currently under
 active development by Jay Conrod.
+
+To build tungsten and run unit tests:
+./build.sh
+
+To set environment variables needed to run Tungsten
+. setenv.sh
+
+To run the tungsten interpreter on a Tungsten source file:
+scala tungsten.interpreter.Interpreter file.w

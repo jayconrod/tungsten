@@ -94,7 +94,7 @@ final case class Function(override name: Symbol,
           }
         }
       }
-      val globalNames = module.definitions.valueIterable.
+      val globalNames = module.definitions.valuesIterable.
                         filter(_.isInstanceOf[Global]).map(_.name).toSet
       def checkBlock(blockName: Symbol) = {
         val block = module.getBlock(blockName)

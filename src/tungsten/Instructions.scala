@@ -152,33 +152,38 @@ final case class AssignInstruction(override name: Symbol,
   def ty(module: Module) = value.ty(module)
 }
 
-sealed case class BinaryOperator(name: String) {
+sealed class BinaryOperator(val name: String) {
   def isArithmetic: Boolean = false
   def isShift: Boolean = false
   def isLogical: Boolean = false
+  override def equals(that: Any) = {
+    that match {
+      case BinaryOperator(n) if name == n => true
+      case _ => false
+    }
+  }
+  override def hashCode = hash("BinaryOperator", name)
+  override def toString = "BinaryOperator(" + name + ")"
 }
-final case class ArithmeticOperator(override name: String) extends BinaryOperator(name) {
-  override def isArithmetic = true
-}
-final case class ShiftOperator(override name: String) extends BinaryOperator(name) {
-  override def isShift = true
-}
-final case class LogicalOperator(override name: String) extends BinaryOperator(name) {
-  override def isLogical = true
-}
-
 object BinaryOperator {
-  val MULTIPLY = ArithmeticOperator("*")
-  val DIVIDE = ArithmeticOperator("/")
-  val REMAINDER = ArithmeticOperator("%")
-  val ADD = ArithmeticOperator("+")
-  val SUBTRACT = ArithmeticOperator("-")
-  val LEFT_SHIFT = ShiftOperator("<<")
-  val RIGHT_SHIFT_ARITHMETIC = ShiftOperator(">>")
-  val RIGHT_SHIFT_LOGICAL = ShiftOperator(">>>")
-  val AND = LogicalOperator("&")
-  val XOR = LogicalOperator("^")
-  val OR = LogicalOperator("|")
+  def unapply(that: Any): Option[String] = {
+    if (that.isInstanceOf[BinaryOperator])
+      Some(that.asInstanceOf[BinaryOperator].name)
+    else
+      None
+  }
+
+  val MULTIPLY = new ArithmeticOperator("*")
+  val DIVIDE = new ArithmeticOperator("/")
+  val REMAINDER = new ArithmeticOperator("%")
+  val ADD = new ArithmeticOperator("+")
+  val SUBTRACT = new ArithmeticOperator("-")
+  val LEFT_SHIFT = new ShiftOperator("<<")
+  val RIGHT_SHIFT_ARITHMETIC = new ShiftOperator(">>")
+  val RIGHT_SHIFT_LOGICAL = new ShiftOperator(">>>")
+  val AND = new LogicalOperator("&")
+  val XOR = new LogicalOperator("^")
+  val OR = new LogicalOperator("|")
 
   def fromString(name: String) = {
     name match {
@@ -196,6 +201,16 @@ object BinaryOperator {
       case _ => throw new RuntimeException("invalid binary operator")
     }
   }
+}
+
+final class ArithmeticOperator(name: String) extends BinaryOperator(name) {
+  override def isArithmetic = true
+}
+final class ShiftOperator(name: String) extends BinaryOperator(name) {
+  override def isShift = true
+}
+final class LogicalOperator(name: String) extends BinaryOperator(name) {
+  override def isLogical = true
 }
 
 final case class BinaryOperatorInstruction(override name: Symbol,

@@ -54,13 +54,13 @@ final class Module {
 
   def validate = {
     def validateDependencies = {
-      val allErrors = for (defn <- _definitions.valueIterable)
+      val allErrors = for (defn <- _definitions.valuesIterable)
         yield defn.validateComponents(this)
       allErrors.flatten.toList
     }
 
     def validateDefinitions = {
-      val allErrors = for (defn <- _definitions.valueIterable)
+      val allErrors = for (defn <- _definitions.valuesIterable)
         yield defn.validate(this)
       allErrors.flatten.toList
     }

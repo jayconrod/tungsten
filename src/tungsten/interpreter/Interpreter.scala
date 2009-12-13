@@ -50,12 +50,16 @@ object Interpreter {
       errors.isEmpty
     }
 
-    val returnCode = for { filename <- getFilename
-                           ast      <- parse(filename)
-                           module   <- compile(ast) if validate(module) } yield
-    {
-      val env = new Environment(module)
-      env.run
+    val returnCode = getFilename flatMap { filename =>
+      parse(filename) flatMap { ast =>
+        compile(ast) flatMap { module =>
+          if (validate(module)) {
+            val env = new Environment(module)
+            Some(env.run)
+          } else
+            None
+        }
+      }
     }
 
     System.exit(returnCode.getOrElse(ERROR_CODE))

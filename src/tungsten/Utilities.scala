@@ -19,8 +19,8 @@ private object Utilities {
 
   def humanReadableClassName[T <: Definition](implicit m: Manifest[T]) = {
     val className = m.toString.split("\\.").last
-    className.charAt(0).toLowerCase + className.tail.map({c =>
-      if (c.isUpperCase) " " + c.toLowerCase else c.toString
+    className.charAt(0).toLower + className.tail.map({c =>
+      if (c.isUpper) " " + c.toLower else c.toString
     }).mkString
   }
 

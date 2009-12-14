@@ -392,4 +392,15 @@ class ValidationTest {
                   "}"
     programIsCorrect(program)
   }
+
+  @Test
+  def duplicateStructField = {
+    val module = new Module
+    val field = Field("foo", UnitType())
+    module.add(field)
+    val struct = Struct("bar", List(field.name, field.name))
+    module.add(struct)
+    val errors = struct.validateComponents(module)
+    containsError[DuplicateComponentException](errors)
+  }
 }

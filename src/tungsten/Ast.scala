@@ -607,20 +607,39 @@ final case class AstField(name: Symbol,
                           override location: Location)
   extends AstDefinition(location)
 {
-  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
+  def compileDeclaration(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cField = Field(fullName, UnitType(), location)
+    ctx.module.add(cField)
+  }
 
-  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cField = Field(fullName, ty.compile(ctx), location)
+    ctx.module.update(cField)
+    cField
+  }
 }
 
 final case class AstStruct(name: Symbol,
-                           typeParameters: List[AstTypeParameter],
                            fields: List[AstField],
                            override location: Location)
   extends AstDefinition(location)
 {
-  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
+  def compileDeclaration(ctx: AstContext) = {
+    fields.foreach(_.compileDeclaration(ctx))
+    val cStruct = Struct(name, Nil, location)
+    ctx.module.add(cStruct)
+  }
 
-  def compile(ctx: AstContext) = throw new UnsupportedOperationException
+  def compile(ctx: AstContext) = {
+    ctx.names.push(name)
+    val cFields = fields.map(_.compile(ctx).name)
+    val cStruct = Struct(name, cFields, location)
+    ctx.module.update(cStruct)
+    ctx.names.pop
+    cStruct
+  }
 }
 
 final case class AstClass(name: Symbol,

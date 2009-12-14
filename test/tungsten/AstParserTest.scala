@@ -386,12 +386,11 @@ class AstParserTest {
 
   @Test
   def struct = {
-    val program = "#struct <foo.w:1.2-3.4> Foo[T] {\n" +
+    val program = "#struct <foo.w:1.2-3.4> Foo {\n" +
                   "  #field bar: #unit,\n" +
                   "  #field baz: #unit\n" +
                   "}"
     val struct = AstStruct(new Symbol("Foo"),
-                           List(AstTypeParameter(new Symbol("T"), None, None, Nowhere)),
                            List(AstField(new Symbol("bar"), AstUnitType(Nowhere), Nowhere),
                                 AstField(new Symbol("baz"), AstUnitType(Nowhere), Nowhere)),
                            fooLoc)

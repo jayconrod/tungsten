@@ -385,5 +385,23 @@ class AstCompileTest {
                           loc)
     val expected = Function(foo, List(foo + a), List(foo + b), UnitType(), List(foo + bar), loc)
     testDefinition(expected, ast)
-  }   
+  }
+
+  @Test
+  def field = {
+    ctx.names.push(foo)
+    val ast = AstField(bar, AstUnitType(Nowhere), loc)
+    val expected = Field(foo + bar, UnitType(), loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def struct = {
+    val ast = AstStruct(foo,
+                        List(AstField(bar, AstUnitType(Nowhere), Nowhere)),
+                        loc)
+    ctx.module.add(Field(foo + bar, UnitType()))
+    val expected = Struct(foo, List(foo + bar), loc)
+    testDefinition(expected, ast)
+  }
 }

@@ -1,12 +1,16 @@
 package tungsten
 
+import Utilities._
+
 sealed abstract class Value(location: Location) extends TungstenObject(location) {
   def ty(module: Module): Type
  
-  def validateType(module: Module, expectedType: Type): List[CompileException] = {
+  def validateComponents(module: Module): List[CompileException] = Nil
+
+  final def validateType(expectedType: Type, module: Module): List[CompileException] = {
     val actualType = ty(module)
     if (actualType != expectedType)
-      List(TypeMismatchException(actualType.toString, expectedType.toString, location))
+      List(TypeMismatchException(actualType, expectedType, location))
     else
       Nil
   }
@@ -89,20 +93,50 @@ final case class ArrayValue(elementType: Type,
 {
   def ty(module: Module) = ArrayType(Some(elements.size), elementType, location)
 
-  override def validateType(module: Module, expectedType: Type) = {
-    val actualType = ty(module)
-    val errors: List[CompileException] = if (actualType != expectedType)
-      List(TypeMismatchException(actualType.toString, expectedType.toString, location))
-    else
-      Nil
-
-    elements.foldLeft(errors) { (errors, elem) => 
-      elem.validateType(module, elementType) ++ errors
+  override def validateComponents(module: Module) = {
+    def validateElementComponents(element: Value) = {
+      stage(element.validateComponents(module),
+            element.validateType(elementType, module))
     }
+    
+    stage(elementType.validate(module),
+          elements.flatMap(validateElementComponents _))
   }
 
   override def toString = "[%s: %s]".format(elementType, elements.mkString(", "))
 }      
+
+final case class StructValue(structName: Symbol,
+                             fields: List[Value],
+                             override location: Location = Nowhere)
+  extends Value(location)
+{
+  def ty(module: Module) = StructType(structName, location)
+
+  override def validateComponents(module: Module) = {
+    def validateFieldCount = {
+      val struct = module.getStruct(structName)
+      if (fields.size == struct.fields.size)
+        Nil
+      else
+        List(FieldCountException(structName, fields.size, struct.fields.size, location))
+    }
+
+    def validateFieldTypes = {
+      val struct = module.getStruct(structName)
+      val fieldTypes = module.getFields(struct.fields).map(_.ty)
+      (fields zip fieldTypes) flatMap { ft =>
+        val (f, t) = ft
+        f.validateType(t, module)
+      }
+    }
+
+    stage(module.validateName[Struct](structName, location),
+          validateFieldCount,
+          fields.flatMap(_.validateComponents(module)),
+          validateFieldTypes)
+  }
+}
 
 final case class DefinedValue(value: Symbol, override location: Location = Nowhere)
   extends Value(location)
@@ -113,6 +147,19 @@ final case class DefinedValue(value: Symbol, override location: Location = Nowhe
       case Some(Parameter(_, t, _)) => t
       case Some(inst: Instruction) => inst.ty(module)
       case _ => throw new RuntimeException("symbol " + value + " cannot be used as a value")
+    }
+  }
+
+  override def validateComponents(module: Module) = {
+    module.getDefn(value) match {
+      case Some(_: Global) | Some(_: Parameter) | Some(_: Instruction) => Nil
+      case Some(defn) => {
+        List(InappropriateSymbolException(value, 
+                                          location,
+                                          defn.location,
+                                          "global, parameter, or instruction"))
+      }
+      case None => List(UndefinedSymbolException(value, location))
     }
   }
 

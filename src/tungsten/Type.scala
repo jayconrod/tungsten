@@ -19,21 +19,6 @@ abstract sealed class Type(location: Location)
   def equals(that: Any): Boolean
   def hashCode: Int
   def toString: String
-
-  protected def validateName[T <: Definition](name: Symbol, 
-                                              module: Module)
-                                             (implicit m: Manifest[T]) = {
-    module.getDefn(name) match {
-      case Some(defn) if m.erasure.isInstance(defn) => Nil
-      case Some(defn) => {
-        List(InappropriateSymbolException(name,
-                                          location,
-                                          defn.location,
-                                          humanReadableClassName[T]))
-      }
-      case None => List(UndefinedSymbolException(name, location))
-    }
-  }
 }
 
 final case class UnitType(override location: Location = Nowhere) extends Type(location) {
@@ -226,16 +211,34 @@ final case class ArrayType(size: Option[Int],
   }
 }
 
+final case class StructType(structName: Symbol,
+                            override location: Location = Nowhere)
+  extends Type(location)
+{
+  override def validate(module: Module) = module.validateName[Struct](structName, location)
+
+  def defaultValue = throw new UnsupportedOperationException
+
+  def isNumeric = false
+
+  override def equals(that: Any) = {
+    that match {
+      case StructType(n, _) if structName == n => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = hash("StructType", structName)
+
+  override def toString = structName.toString
+}
+
 final case class UniversalType(typeParameters: List[Symbol],
                                baseType: Type,
                                override location: Location = Nowhere)
   extends Type(location)
 {
-  override def validate(module: Module) = {
-    val errors = for (paramName <- typeParameters)
-      yield validateName[TypeParameter](paramName, module)
-    errors.flatMap(_.toList)
-  }
+  override def validate(module: Module) = throw new UnsupportedOperationException
 
   def defaultValue = throw new UnsupportedOperationException
 
@@ -263,11 +266,7 @@ final case class ExistentialType(typeParameters: List[Symbol],
                                  override location: Location = Nowhere)
   extends Type(location)
 {
-  override def validate(module: Module) = {
-    val errors = for (paramName <- typeParameters) 
-      yield validateName[TypeParameter](paramName, module)
-    errors.flatMap(_.toList)
-  }
+  override def validate(module: Module) = throw new UnsupportedOperationException
 
   def defaultValue = throw new UnsupportedOperationException
 
@@ -295,7 +294,7 @@ final case class VariableType(name: Symbol,
                               override location: Location = Nowhere) 
   extends Type(location)
 {
-  override def validate(module: Module) = validateName[TypeParameter](name, module)
+  override def validate(module: Module) = throw new UnsupportedOperationException
 
   def defaultValue = throw new UnsupportedOperationException
 
@@ -343,7 +342,7 @@ final case class ClassType(className: Symbol,
                            override location: Location = Nowhere)
   extends Type(location)
 {
-  override def validate(module: Module) = validateName[Class](className, module)
+  override def validate(module: Module) = throw new UnsupportedOperationException
 
   def defaultValue = throw new UnsupportedOperationException
 
@@ -368,7 +367,7 @@ final case class InterfaceType(interfaceName: Symbol,
                                override location: Location = Nowhere)
   extends Type(location)
 {
-  override def validate(module: Module) = validateName[Interface](interfaceName, module)
+  override def validate(module: Module) = throw new UnsupportedOperationException
 
   def defaultValue = throw new UnsupportedOperationException
 

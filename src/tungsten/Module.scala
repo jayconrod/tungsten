@@ -84,6 +84,22 @@ final class Module {
           validateMain)
   }
 
+  def validateName[T <: Definition](name: Symbol, 
+                                    location: Location)
+                                   (implicit m: Manifest[T]) =
+  {
+    getDefn(name) match {
+      case Some(defn) if m.erasure.isInstance(defn) => Nil
+      case Some(defn) => {
+        List(InappropriateSymbolException(name,
+                                          location,
+                                          defn.location,
+                                          humanReadableClassName[T]))
+      }
+      case None => List(UndefinedSymbolException(name, location))
+    }
+  }
+
   override def equals(that: Any) = that match {
     case m: Module => {
       _definitions equals m._definitions

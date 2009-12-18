@@ -4,13 +4,16 @@ import tungsten.{Parameter, Instruction, Function}
 
 sealed class IValue
 
-final case object UnitValue extends IValue
+final case object UnitValue extends IValue {
+  override def toString = "()"
+}
 
 final case class BooleanValue(value: Boolean) extends IValue
 {
   def &(r: BooleanValue) = BooleanValue(value & r.value)
   def ^(r: BooleanValue) = BooleanValue(value ^ r.value)
   def |(r: BooleanValue) = BooleanValue(value | r.value)
+  override def toString = if (value) "#true" else "#false"
 }
 
 final case class Int8Value(value: Byte) extends IValue {
@@ -29,6 +32,7 @@ final case class Int8Value(value: Byte) extends IValue {
   def <=(r: Int8Value) = BooleanValue(value <= r.value)
   def >(r: Int8Value) = BooleanValue(value > r.value)
   def >=(r: Int8Value) = BooleanValue(value >= r.value)
+  override def toString = value + "b"
 }
 
 final case class Int16Value(value: Short) extends IValue {
@@ -47,6 +51,7 @@ final case class Int16Value(value: Short) extends IValue {
   def <=(r: Int16Value) = BooleanValue(value <= r.value)
   def >(r: Int16Value) = BooleanValue(value > r.value)
   def >=(r: Int16Value) = BooleanValue(value >= r.value)
+  override def toString = value + "s"
 }
 
 final case class Int32Value(value: Int) extends IValue {
@@ -65,6 +70,7 @@ final case class Int32Value(value: Int) extends IValue {
   def <=(r: Int32Value) = BooleanValue(value <= r.value)
   def >(r: Int32Value) = BooleanValue(value > r.value)
   def >=(r: Int32Value) = BooleanValue(value >= r.value)
+  override def toString = value.toString
 }
 
 final case class Int64Value(value: Long) extends IValue {
@@ -83,6 +89,7 @@ final case class Int64Value(value: Long) extends IValue {
   def <=(r: Int64Value) = BooleanValue(value <= r.value)
   def >(r: Int64Value) = BooleanValue(value > r.value)
   def >=(r: Int64Value) = BooleanValue(value >= r.value)
+  override def toString = value + "L"
 }
 
 final case class Float32Value(value: Float) extends IValue {
@@ -95,6 +102,7 @@ final case class Float32Value(value: Float) extends IValue {
   def <=(r: Float32Value) = BooleanValue(value <= r.value)
   def >(r: Float32Value) = BooleanValue(value > r.value)
   def >=(r: Float32Value) = BooleanValue(value >= r.value)
+  override def toString = value + "f"
 }
 
 final case class Float64Value(value: Double) extends IValue {
@@ -107,6 +115,7 @@ final case class Float64Value(value: Double) extends IValue {
   def <=(r: Float64Value) = BooleanValue(value <= r.value)
   def >(r: Float64Value) = BooleanValue(value > r.value)
   def >=(r: Float64Value) = BooleanValue(value >= r.value)
+  override def toString = value.toString
 }
 
 sealed abstract class Reference extends IValue {
@@ -149,12 +158,36 @@ case object NullReference extends Reference {
   def value = throw new RuntimeException("null pointer dereferenced")
 
   def value_=(v: IValue) = throw new RuntimeException("null pointer dereferenced")
+
+  override def toString = "#null"
 }
 
 final case class ArrayValue(value: Array[IValue]) extends IValue {
-  override def equals(that: Any) = this eq that.asInstanceOf[AnyRef]
+  override def equals(that: Any) = {
+    that match {
+      case ArrayValue(v) if value.deep == v.deep => true
+      case _ => false
+    }
+  }
 
-  override def hashCode = super.hashCode
+  override def hashCode = hash("ArrayValue", value.deep)
+
+  override def toString = value.mkString("[", ", ", "]")
 }
 
-final case class FunctionValue(value: Function) extends IValue
+final case class StructValue(value: Array[IValue]) extends IValue {
+  override def equals(that: Any) = {
+    that match {
+      case StructValue(v) if value.deep == v.deep => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = hash("StructValue", value.deep)
+
+  override def toString = value.mkString("[", ", ", "]")
+}
+
+final case class FunctionValue(value: Function) extends IValue {
+  override def toString = "<function " + value.name + ">"
+}

@@ -249,6 +249,9 @@ final class Environment(val module: Module) {
       case tungsten.ArrayValue(_, vs, _) => {
         tungsten.interpreter.ArrayValue(vs.toArray.map(create _))
       }
+      case tungsten.StructValue(_, vs, _) => {
+        tungsten.interpreter.StructValue(vs.toArray.map(create _))
+      }
       case tungsten.DefinedValue(sym, _) => {
         module.getDefn(sym) match {
           case Some(_: Parameter) | Some(_: Instruction) => state.get(sym)

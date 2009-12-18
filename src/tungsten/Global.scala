@@ -12,7 +12,7 @@ final case class Global(override name: Symbol,
   def ty(module: Module) = ty
 
   def validateComponents(module: Module) = {
-    ty.validate(module)
+    ty.validate(module) ++ value.toList.flatMap(_.validateComponents(module))    
   }
 
   def validate(module: Module) = {
@@ -24,7 +24,7 @@ final case class Global(override name: Symbol,
     }
 
     stage(validateValueLiteral,
-          value.toList.flatMap(_.validateType(module, ty)))
+          value.toList.flatMap(_.validateType(ty, module)))
   }
 
   override def toString = "global " + name + ": " + ty

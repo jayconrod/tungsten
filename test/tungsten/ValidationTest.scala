@@ -394,6 +394,14 @@ class ValidationTest {
   }
 
   @Test
+  def undefinedStructType = {
+    val foo = Global("a", StructType("B"), None)
+    val module = new Module
+    module.add(foo)
+    val errors = foo.validateComponents(module)
+  }
+
+  @Test
   def duplicateStructField = {
     val module = new Module
     val field = Field("foo", UnitType())
@@ -402,5 +410,33 @@ class ValidationTest {
     module.add(struct)
     val errors = struct.validateComponents(module)
     containsError[DuplicateComponentException](errors)
+  }
+
+  @Test
+  def invalidStructValueCount = {
+    val program = "#struct A {\n" +
+                  "  #field b: #unit\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #assign x = {A: (), ()}\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[FieldCountException](program)
+  }
+
+  @Test
+  def structValueFieldType = {
+    val program = "#struct A {\n" +
+                  "  #field b: #unit\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #assign x = {A: 12}\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
   }
 }

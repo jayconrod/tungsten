@@ -28,18 +28,7 @@ sealed abstract class Instruction(name: Symbol, location: Location)
   def validate(module: Module): List[CompileException] = Nil
 
   protected final def validateOperands(module: Module) = {
-    operandSymbols flatMap { sym =>
-      module.getDefn(sym) match {
-        case Some(_: Parameter) | Some(_: Instruction) | Some(_: Global) => Nil
-        case Some(defn) => {
-          List(InappropriateSymbolException(sym,
-                                            location,
-                                            defn.location,
-                                            "parameter or instruction"))
-        }
-        case None => List(UndefinedSymbolException(sym, location))
-      }
-    }
+    operands.flatMap(_.validateComponents(module))
   }
 }
 
@@ -57,7 +46,7 @@ trait CallInstruction extends Instruction {
     } else {
       (arguments zip parameterTypes) flatMap { at => 
         val (a, t) = at
-        a.validateType(module, t)
+        a.validateType(t, module)
       }
     }
   }
@@ -297,7 +286,7 @@ final case class ConditionalBranchInstruction(override name: Symbol,
 
     stage(validateBranch(trueTarget, trueArguments),
           validateBranch(falseTarget, falseArguments),
-          condition.validateType(module, BooleanType()))
+          condition.validateType(BooleanType(), module))
   }
 }
 
@@ -472,7 +461,7 @@ final case class StoreElementInstruction(override name: Symbol,
   override def validate(module: Module) = {
     def validateValueType = {
       val elementType = getElementType(base.ty(module), indices)
-      value.validateType(module, elementType)
+      value.validateType(elementType, module)
     }
     stage(validateIndices(module, base.ty(module), indices),
           validateValueType)
@@ -529,7 +518,7 @@ final case class StackAllocateArrayInstruction(override name: Symbol,
   }
 
   override def validate(module: Module) = {
-    count.validateType(module, IntType(64))
+    count.validateType(IntType(64), module)
   }
 }
 

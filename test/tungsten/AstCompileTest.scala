@@ -75,6 +75,15 @@ class AstCompileTest {
   }
 
   @Test
+  def structType = {
+    val struct = Struct(foo, Nil)
+    ctx.module.add(struct)
+    val ast = AstClassType(foo, Nil, loc)
+    val expected = StructType(foo, loc)
+    assertEquals(expected, ast.compile(ctx))
+  }
+
+  @Test
   def defaultType = {
     val ast = AstClassType(foo, Nil, loc)
     val ty = ast.compileOrElse(ctx)
@@ -113,6 +122,17 @@ class AstCompileTest {
     assertEquals(ArrayValue(UnitType(), List(UnitValue()), loc),
                  AstArrayValue(AstUnitType(Nowhere), List(AstUnitValue(Nowhere)), loc).compile(ctx))
   }
+
+  @Test
+  def structValue = {
+    val field = Field("A.b", UnitType())
+    ctx.module.add(field)
+    val struct = Struct("A", List(field.name))
+    ctx.module.add(struct)
+    val ast = AstAggregateValue("A", List(AstUnitValue(Nowhere)), loc)
+    val expected = StructValue("A", List(UnitValue()), loc)
+    assertEquals(expected, ast.compile(ctx))
+  }    
 
   @Test
   def symbolValue = {

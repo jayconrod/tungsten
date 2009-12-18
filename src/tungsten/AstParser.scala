@@ -87,6 +87,11 @@ object AstParser extends Parsers with ImplicitConversions {
         flatten3(AstArrayValue(_, _, _))
     }
 
+    def aggregate = {
+      "{" ~> (symbol <~ ":") ~ (repsep(value, ",") <~ "}") ~ location ^^
+        flatten3(AstAggregateValue(_, _, _))
+    }
+
     ("()" ~> location ^^ { AstUnitValue(_) }) |
     ("#true" ~> location ^^ { AstBooleanValue(true, _) }) |
     ("#false" ~> location ^^ { AstBooleanValue(false, _) }) |
@@ -98,6 +103,7 @@ object AstParser extends Parsers with ImplicitConversions {
     (double ~ location ^^ flatten2(AstFloat64Value(_, _))) |
     ("#null" ~> location ^^ { AstNullValue(_) }) |
     array |
+    aggregate |
     (symbol ~ location ^^ flatten2(AstSymbolValue(_, _)))
   }
 

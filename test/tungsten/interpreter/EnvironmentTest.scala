@@ -25,6 +25,51 @@ class EnvironmentTest {
     prepare(program)
   }
 
+  def prepareDefault = {
+    val code = "#return ()"
+    prepareCode(code)
+  }
+
+  @Test
+  def basicValues = {
+    val (module, env) = prepareDefault
+    assertEquals(tungsten.interpreter.UnitValue, env.create(tungsten.UnitValue()))
+    assertEquals(tungsten.interpreter.BooleanValue(true), env.create(tungsten.BooleanValue(true)))
+    assertEquals(tungsten.interpreter.Int8Value(12), env.create(tungsten.Int8Value(12)))
+    assertEquals(tungsten.interpreter.Int16Value(12), env.create(tungsten.Int16Value(12)))
+    assertEquals(tungsten.interpreter.Int32Value(12), env.create(tungsten.Int32Value(12)))
+    assertEquals(tungsten.interpreter.Int64Value(12), env.create(tungsten.Int64Value(12)))
+    assertEquals(tungsten.interpreter.Float32Value(1.0f), env.create(tungsten.Float32Value(1.0f)))
+    assertEquals(tungsten.interpreter.Float64Value(1.0), env.create(tungsten.Float64Value(1.0)))
+    assertEquals(tungsten.interpreter.NullReference, env.create(tungsten.NullValue()))
+  }
+
+  @Test
+  def arrayValue = {
+    val (module, env) = prepareDefault
+    val value = tungsten.ArrayValue(IntType(32), List(tungsten.Int32Value(12)))
+    val ivalue = env.create(value)
+    val expected = tungsten.interpreter.ArrayValue(Array[IValue](tungsten.interpreter.Int32Value(12)))
+    assertEquals(expected, ivalue)
+  }
+
+  @Test
+  def structValue = {
+    val program = "#struct A {\n" +
+                  "  #field b: #unit\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    val value = tungsten.StructValue("A", List(tungsten.UnitValue()))
+    val ivalue = env.create(value)
+    val expected = tungsten.interpreter.StructValue(Array[IValue](tungsten.interpreter.UnitValue))
+    assertEquals(expected, ivalue)
+  }
+
   @Test
   def setArguments = {
     val env = new Environment(new Module)

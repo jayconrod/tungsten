@@ -96,6 +96,7 @@ class AstParserTest {
     testValue("[#unit:]", AstArrayValue(AstUnitType(Nowhere), Nil, Nowhere))
     testValue("[#unit: ()]", 
               AstArrayValue(AstUnitType(Nowhere), List(AstUnitValue(Nowhere)), Nowhere))
+    testValue("{A: ()}", AstAggregateValue("A", List(AstUnitValue(Nowhere)), Nowhere))
     testValue("foo", AstSymbolValue(new Symbol("foo"), Nowhere))
   }
 

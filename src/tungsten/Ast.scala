@@ -72,11 +72,11 @@ final case class AstClassType(val name: Symbol,
   extends AstType(location)
 {
   def compile(ctx: AstContext) = {
+    val cTypeArguments = typeArguments.map(_.compile(ctx))
     ctx.module.getDefn(name) match {
-      case Some(c: Class) => ClassType(c.name, typeArguments.map(_.compile(ctx)), location)
-      case Some(i: Interface) => {
-        InterfaceType(i.name, typeArguments.map(_.compile(ctx)), location)
-      }
+      case Some(c: Class) => ClassType(c.name, cTypeArguments, location)
+      case Some(i: Interface) => InterfaceType(i.name, cTypeArguments, location)
+      case Some(s: Struct) => StructType(s.name, location)
       case Some(other) => {
         throw InappropriateSymbolException(name, location, other.location, "type")
       }
@@ -86,7 +86,6 @@ final case class AstClassType(val name: Symbol,
 }
 
 // Values
-
 sealed abstract class AstValue(val location: Location) {
   def compile(ctx: AstContext): Value
   final def compileOrElse(ctx: AstContext, default: Value = UnitValue(location)) = {
@@ -162,6 +161,26 @@ final case class AstArrayValue(elementType: AstType,
     val cElementType = elementType.compile(ctx)
     val cElements = elements.map(_.compile(ctx))
     ArrayValue(cElementType, cElements, location)
+  }
+}
+
+final case class AstAggregateValue(aggregateName: Symbol,
+                                   fields: List[AstValue],
+                                   override location: Location = Nowhere)
+  extends AstValue(location)
+{
+  def compile(ctx: AstContext) = {
+    val cFields = fields.map(_.compile(ctx))
+    ctx.module.getDefn(aggregateName) match {
+      case Some(s: Struct) => StructValue(aggregateName, cFields, location)
+      case Some(other) => {
+        throw InappropriateSymbolException(aggregateName, 
+                                           location,
+                                           other.location,
+                                           "aggregate name")
+      }
+      case None => throw new UndefinedSymbolException(aggregateName, location)
+    }
   }
 }
 
@@ -627,8 +646,10 @@ final case class AstStruct(name: Symbol,
   extends AstDefinition(location)
 {
   def compileDeclaration(ctx: AstContext) = {
+    ctx.names.push(name)
     fields.foreach(_.compileDeclaration(ctx))
     val cStruct = Struct(name, Nil, location)
+    ctx.names.pop
     ctx.module.add(cStruct)
   }
 

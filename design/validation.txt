@@ -1,0 +1,26 @@
+Validation in Tungsten takes place in two stages: name validation and
+semantic validation.
+
+In the name validation, connections between different definitions are
+tested. This is necessary because definitions refer to each other by
+symbols. If a definition refers to another definition that doesn't
+exist, this generates an undefined symbol exception. If a definition
+refers to another definition inappropriately (such as a block which
+should contain instructions but contains fields), this generates an
+inappropriate symbol exception. During this stage, we may also check
+for empty component lists (for instance, a block must contain at least
+one instruction) and duplicate components. If types or values are
+included as part of a definition (for instance, in fields, globals, or
+parameters), they are validated at this time. 
+
+If name validation succeeds, semantic validation will be performed.
+During semantic validation, we assume all symbols, types, and values
+are valid. This is where each definition checks whatever other
+invariants it expects. For instance, we would check that a function
+call has the correct number of arguments and that instructions occur
+in the right order. All type checking occurs in this stage.
+
+Two stage validation is necessary because definitions may refer to
+each other. Because we validate all references between definitions
+before validating more specific invariants, we can assume the validity
+of most components. This greatly simplifies semantic validation.

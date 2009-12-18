@@ -37,6 +37,14 @@ final case class EntryParametersException(functionName: Symbol,
                              " must not have any parameters",
                            location)
 
+final case class FieldCountException(structName: Symbol,
+                                     given: Int,
+                                     required: Int,
+                                     location: Location)
+  extends CompileException("struct %s value has %d fields; %d are required".
+                             format(structName, given, required),
+                           location)
+
 final case class FunctionArgumentCountException(symbol: Symbol,
                                                 given: Int,
                                                 required: Int,
@@ -96,9 +104,9 @@ final case class RedefinedSymbolException(symbol: Symbol,
                              oldLocation,
                            location)
 
-final case class TypeMismatchException(given: String, required: String, location: Location)
-  extends CompileException("type mismatch: " + given + " was given; " +
-                             required + " was required",
+final case class TypeMismatchException(given: Any, required: Any, location: Location)
+  extends CompileException("type mismatch: %s  was given; %s was required".
+                             format(given, required),
                            location)
 
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)

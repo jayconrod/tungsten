@@ -4,16 +4,23 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Stack
 
 final class AstContext {
-  val module = new Module
+  var module = new Module
   val errors = new ArrayBuffer[CompileException]
   val names = new Stack[Symbol]
 
+  def addDefn(defn: Definition) = module = module.add(defn)
+
+  def replaceDefn(defn: Definition) = module = module.replace(defn)
+
   def resolve(name: Symbol): Option[Symbol] = {
     for (n <- names) {
-      val defn = module.getDefn(n + name)
-      if (defn.isInstanceOf[Some[_]]) 
-        return defn.map(_.name)
+      val fullName = n + name
+      if (module.get(fullName).isDefined)
+        return Some(fullName)
     }
-    module.getDefn(name).map(_.name)
+    if (module.get(name).isDefined)
+      Some(name)
+    else
+      None
   }   
 }

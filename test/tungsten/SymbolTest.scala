@@ -88,4 +88,14 @@ class SymbolTest {
     val sym: Symbol = "this.is.a.test#12"
     assertEquals(new Symbol(List("this", "is", "a", "test"), 12), sym)
   }
+
+  @Test
+  def compare {
+    assertEquals(0, Symbol("a").compare(Symbol("a")))
+    assertTrue(Symbol("a").compare(Symbol("b")) < 0)
+    assertTrue(Symbol("b").compare(Symbol("a")) > 0)
+    assertTrue(Symbol.fromString("a.a").compare(Symbol("a")) > 0)
+    assertTrue(Symbol("a").compare(Symbol("a.a")) < 0)
+    assertEquals(0, Symbol.fromString("a.a").compare(Symbol.fromString("a.a")))
+  }
 }

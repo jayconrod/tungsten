@@ -3,6 +3,7 @@ package tungsten
 import Utilities._
 
 final class Symbol(val name: Iterable[String], val id: Int)
+  extends Ordered[Symbol]
 {
   if (name.isEmpty || !name.forall(!_.isEmpty) || id < 0)
     throw new IllegalArgumentException
@@ -13,6 +14,32 @@ final class Symbol(val name: Iterable[String], val id: Int)
 
   def + (right: String) = new Symbol(name ++ List(right), id)
   def + (right: Symbol) = new Symbol(name ++ right.name, right.id)
+
+  def compare(that: Symbol): Int = {
+    def compareName(lname: Iterable[String], rname: Iterable[String]): Int = {
+      if (lname.isEmpty) {
+        if (rname.isEmpty) 
+          0 
+        else
+          -1
+      } else {
+        if (rname.isEmpty) 
+          1 
+        else {
+          val cmp = lname.head.compareTo(rname.head)
+          if (cmp != 0)
+            cmp
+          else
+            compareName(lname.tail, rname.tail)
+        }
+      }
+    }
+    val cmp = compareName(name, that.name)
+    if (cmp == 0)
+      id.compare(that.id)
+    else
+      cmp
+  }
 
   override def equals(that: Any) = {
     that match {

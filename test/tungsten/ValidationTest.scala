@@ -94,9 +94,7 @@ class ValidationTest {
     val inst = ReturnInstruction(instName, UnitValue())
     val block = Block(blockName, Nil, List(instName, instName))
     val function = Function(new Symbol("main"), Nil, Nil, UnitType(), List(blockName))
-    val module = new Module
-    for (defn <- List(inst, block, function))
-      module.add(defn)
+    var module = (new Module).add(inst, block, function)
     containsError[DuplicateComponentException](module.validate)
   }
 
@@ -117,9 +115,7 @@ class ValidationTest {
     val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
     val gfoo = Global(foo, UnitType(), Some(UnitValue()))
     val gbar = Global(bar, UnitType(), Some(DefinedValue(foo)))
-    val module = new Module
-    module.add(gfoo)
-    module.add(gbar)
+    val module = (new Module).add(gfoo, gbar)
     containsError[GlobalValueNonLiteralException](gbar.validate(module))
   }
 
@@ -396,18 +392,15 @@ class ValidationTest {
   @Test
   def undefinedStructType = {
     val foo = Global("a", StructType("B"), None)
-    val module = new Module
-    module.add(foo)
+    val module = (new Module).add(foo)
     val errors = foo.validateComponents(module)
   }
 
   @Test
   def duplicateStructField = {
-    val module = new Module
     val field = Field("foo", UnitType())
-    module.add(field)
     val struct = Struct("bar", List(field.name, field.name))
-    module.add(struct)
+    val module = (new Module).add(field, struct)
     val errors = struct.validateComponents(module)
     containsError[DuplicateComponentException](errors)
   }

@@ -74,8 +74,6 @@ final case class AstClassType(val name: Symbol,
   def compile(ctx: AstContext) = {
     val cTypeArguments = typeArguments.map(_.compile(ctx))
     ctx.module.getDefn(name) match {
-      case Some(c: Class) => ClassType(c.name, cTypeArguments, location)
-      case Some(i: Interface) => InterfaceType(i.name, cTypeArguments, location)
       case Some(s: Struct) => StructType(s.name, location)
       case Some(other) => {
         throw InappropriateSymbolException(name, location, other.location, "type")
@@ -203,7 +201,7 @@ sealed abstract class AstInstruction(val name: Symbol, override val location: Lo
   def compileDeclaration(ctx: AstContext) = {
     val fullName: Symbol = ctx.names.top + name
     val cInst = AssignInstruction(fullName, UnitValue(), location)
-    ctx.module.add(cInst)
+    ctx.addDefn(cInst)
   }
 
   def compile(ctx: AstContext): Instruction
@@ -220,7 +218,7 @@ final case class AstAddressInstruction(override name: Symbol,
     val cBase = base.compile(ctx)
     val cIndices = indices.map(_.compile(ctx))
     val cAddress = AddressInstruction(fullName, cBase, cIndices, location)
-    ctx.module.update(cAddress)
+    ctx.replaceDefn(cAddress)
     cAddress
   }
 }
@@ -234,7 +232,7 @@ final case class AstAssignInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cTarget = target.compile(ctx)
     val cInst = AssignInstruction(fullName, cTarget, location)
-    ctx.module.update(cInst)
+    ctx.replaceDefn(cInst)
     cInst
   }
 }
@@ -251,7 +249,7 @@ final case class AstBinaryOperatorInstruction(override name: Symbol,
     val cLeft = left.compile(ctx)
     val cRight = right.compile(ctx)
     val cBinop = BinaryOperatorInstruction(fullName, operator, cLeft, cRight, location)
-    ctx.module.update(cBinop)
+    ctx.replaceDefn(cBinop)
     cBinop
   }
 }
@@ -270,7 +268,7 @@ final case class AstBranchInstruction(override name: Symbol,
     }
     val cArgs = arguments.map(_.compileOrElse(ctx))
     val cInst = BranchInstruction(fullName, cTarget, cArgs, location)
-    ctx.module.update(cInst)
+    ctx.replaceDefn(cInst)
     cInst
   }
 }
@@ -302,7 +300,7 @@ final case class AstConditionalBranchInstruction(override name: Symbol,
                                              cTrueTarget, cTrueArguments,
                                              cFalseTarget, cFalseArguments,
                                              location)
-    ctx.module.update(cInst)
+    ctx.replaceDefn(cInst)
     cInst
   }
 }
@@ -318,7 +316,7 @@ final case class AstIndirectCallInstruction(override name: Symbol,
     val cTarget = target.compileOrElse(ctx)
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = IndirectCallInstruction(fullName, cTarget, cArgs, location)
-    ctx.module.update(cCall)
+    ctx.replaceDefn(cCall)
     cCall
   }
 }
@@ -337,7 +335,7 @@ final case class AstIntrinsicCallInstruction(override name: Symbol,
     }
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = IntrinsicCallInstruction(fullName, cIntrinsic, cArgs, location)
-    ctx.module.update(cCall)
+    ctx.replaceDefn(cCall)
     cCall
   }
 }
@@ -351,7 +349,7 @@ final case class AstLoadInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cPointer = pointer.compileOrElse(ctx)
     val cLoad = LoadInstruction(fullName, cPointer, location)
-    ctx.module.update(cLoad)
+    ctx.replaceDefn(cLoad)
     cLoad
   }
 }
@@ -367,7 +365,7 @@ final case class AstLoadElementInstruction(override name: Symbol,
     val cBase = base.compileOrElse(ctx)
     val cIndices = indices.map(_.compileOrElse(ctx))
     val cLoad = LoadElementInstruction(fullName, cBase, cIndices, location)
-    ctx.module.update(cLoad)
+    ctx.replaceDefn(cLoad)
     cLoad
   }
 }
@@ -384,7 +382,7 @@ final case class AstRelationalOperatorInstruction(override name: Symbol,
     val cLeft = left.compile(ctx)
     val cRight = right.compile(ctx)
     val cRelop = RelationalOperatorInstruction(fullName, operator, cLeft, cRight, location)
-    ctx.module.update(cRelop)
+    ctx.replaceDefn(cRelop)
     cRelop
   }
 }
@@ -398,7 +396,7 @@ final case class AstReturnInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cValue = value.compileOrElse(ctx)
     val cReturn = ReturnInstruction(fullName, cValue, location)
-    ctx.module.update(cReturn)
+    ctx.replaceDefn(cReturn)
     cReturn
   }
 }
@@ -412,7 +410,7 @@ final case class AstStackAllocateInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cTy = ty.compile(ctx)
     val cAlloc = StackAllocateInstruction(fullName, cTy, location)
-    ctx.module.update(cAlloc)
+    ctx.replaceDefn(cAlloc)
     cAlloc
   }
 }
@@ -428,7 +426,7 @@ final case class AstStackAllocateArrayInstruction(override name: Symbol,
     val cCount = count.compile(ctx)
     val cElementType = elementType.compile(ctx)
     val cAlloc = StackAllocateArrayInstruction(fullName, cCount, cElementType, location)
-    ctx.module.update(cAlloc)
+    ctx.replaceDefn(cAlloc)
     cAlloc
   }
 }
@@ -443,7 +441,7 @@ final case class AstStaticCallInstruction(override name: Symbol,
     val fullName = ctx.names.top + name
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = StaticCallInstruction(fullName, target, cArgs, location)
-    ctx.module.update(cCall)
+    ctx.replaceDefn(cCall)
     cCall
   }
 }
@@ -459,7 +457,7 @@ final case class AstStoreInstruction(override name: Symbol,
     val cPointer = pointer.compileOrElse(ctx)
     val cValue = value.compileOrElse(ctx)
     val cStore = StoreInstruction(fullName, cPointer, cValue, location)
-    ctx.module.update(cStore)
+    ctx.replaceDefn(cStore)
     cStore
   }
 }
@@ -477,7 +475,7 @@ final case class AstStoreElementInstruction(override name: Symbol,
     val cIndices = indices.map(_.compileOrElse(ctx))
     val cValue = value.compileOrElse(ctx)
     val cStore = StoreElementInstruction(fullName, cBase, cIndices, cValue, location)
-    ctx.module.update(cStore)
+    ctx.replaceDefn(cStore)
     cStore
   }
 }   
@@ -493,7 +491,7 @@ final case class AstUpcastInstruction(override name: Symbol,
     val cValue = value.compile(ctx)
     val cTy = ty.compile(ctx)
     val cCast = UpcastInstruction(fullName, cValue, cTy, location)
-    ctx.module.update(cCast)
+    ctx.replaceDefn(cCast)
     cCast
   }
 }
@@ -506,14 +504,14 @@ final case class AstParameter(name: Symbol, ty: AstType, override location: Loca
   def compileDeclaration(ctx: AstContext) = {
     val fullName = ctx.names.top + name
     val cParam = Parameter(fullName, UnitType(), location)
-    ctx.module.add(cParam)
+    ctx.addDefn(cParam)
   }
 
   def compile(ctx: AstContext): Parameter = {
     val cty = ty.compileOrElse(ctx)
     val fullName = ctx.names.top + name
     val cParam = Parameter(fullName, cty, location)
-    ctx.module.update(cParam)
+    ctx.replaceDefn(cParam)
     cParam
   }
 }     
@@ -527,7 +525,7 @@ final case class AstTypeParameter(name: Symbol,
   def compileDeclaration(ctx: AstContext) = {
     val fullName = ctx.names.top + name
     val cTyParam = TypeParameter(fullName, None, None, location)
-    ctx.module.add(cTyParam)
+    ctx.addDefn(cTyParam)
   }
 
   def compile(ctx: AstContext): TypeParameter = {
@@ -535,7 +533,7 @@ final case class AstTypeParameter(name: Symbol,
     val cUpperBound = upperBound.map(_.compileOrElse(ctx))
     val cLowerBound = lowerBound.map(_.compileOrElse(ctx))
     val cTyParam = TypeParameter(fullName, cUpperBound, cLowerBound, location)
-    ctx.module.update(cTyParam)
+    ctx.replaceDefn(cTyParam)
     cTyParam
   }
 }
@@ -553,7 +551,7 @@ final case class AstBlock(name: Symbol,
     instructions.foreach(_.compileDeclaration(ctx))
     val cBlock = Block(fullName, Nil, Nil, location)
     ctx.names.pop
-    ctx.module.add(cBlock)
+    ctx.addDefn(cBlock)
   }
 
   def compile(ctx: AstContext): Block = {
@@ -562,7 +560,7 @@ final case class AstBlock(name: Symbol,
     val cParams = parameters.map(_.compile(ctx).name)
     val cInsts = instructions.map(_.compile(ctx).name)
     val cBlock = Block(fullName, cParams, cInsts, location)
-    ctx.module.update(cBlock)
+    ctx.replaceDefn(cBlock)
     ctx.names.pop
     cBlock
   }
@@ -583,7 +581,7 @@ final case class AstFunction(name: Symbol,
     blocks.foreach(_.compileDeclaration(ctx))
     val cFunction = Function(name, Nil, Nil, UnitType(), Nil, location)
     ctx.names.pop
-    ctx.module.add(cFunction)
+    ctx.addDefn(cFunction)
   }
 
   def compile(ctx: AstContext) = {
@@ -593,7 +591,7 @@ final case class AstFunction(name: Symbol,
     val cParams = parameters.map(_.compile(ctx).name)
     var cBlocks = blocks.map(_.compile(ctx).name)
     val cFunction = Function(name, cTyParams, cParams, cRetTy, cBlocks, location)
-    ctx.module.update(cFunction)
+    ctx.replaceDefn(cFunction)
     ctx.names.pop
     cFunction
   }
@@ -609,12 +607,12 @@ final case class AstGlobal(name: Symbol,
 {
   def compileDeclaration(ctx: AstContext) = {
     val cGlobal = Global(name, UnitType(), None, location)
-    ctx.module.add(cGlobal)
+    ctx.addDefn(cGlobal)
   }
 
   def compile(ctx: AstContext) = {
     val global = Global(name, ty.compile(ctx), value.map(_.compile(ctx)), location)
-    ctx.module.update(global)
+    ctx.replaceDefn(global)
     global
   }
 }
@@ -629,13 +627,13 @@ final case class AstField(name: Symbol,
   def compileDeclaration(ctx: AstContext) = {
     val fullName = ctx.names.top + name
     val cField = Field(fullName, UnitType(), location)
-    ctx.module.add(cField)
+    ctx.addDefn(cField)
   }
 
   def compile(ctx: AstContext) = {
     val fullName = ctx.names.top + name
     val cField = Field(fullName, ty.compile(ctx), location)
-    ctx.module.update(cField)
+    ctx.replaceDefn(cField)
     cField
   }
 }
@@ -650,14 +648,14 @@ final case class AstStruct(name: Symbol,
     fields.foreach(_.compileDeclaration(ctx))
     val cStruct = Struct(name, Nil, location)
     ctx.names.pop
-    ctx.module.add(cStruct)
+    ctx.addDefn(cStruct)
   }
 
   def compile(ctx: AstContext) = {
     ctx.names.push(name)
     val cFields = fields.map(_.compile(ctx).name)
     val cStruct = Struct(name, cFields, location)
-    ctx.module.update(cStruct)
+    ctx.replaceDefn(cStruct)
     ctx.names.pop
     cStruct
   }

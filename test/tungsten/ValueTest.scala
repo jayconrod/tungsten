@@ -5,7 +5,7 @@ import org.junit.Assert._
 
 class ValueTest {
   val loc = Location("foo.w", 1, 2, 3, 4)
-  val module = new Module
+  var module = new Module
 
   @Test
   def unit = {
@@ -21,8 +21,7 @@ class ValueTest {
   def global = {
     val foo = new Symbol("foo")
     val global = Global(foo, UnitType(), Some(UnitValue()))
-    val module = new Module
-    module.add(global)
+    module = module.add(global)
 
     assertEquals(PointerType(UnitType()), DefinedValue(foo).ty(module))
   }

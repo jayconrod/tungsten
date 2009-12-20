@@ -12,9 +12,9 @@ class EnvironmentTest {
   def prepare(program: String) = {
     val module = compileString(program)
     val env = new Environment(module)
-    val mainFunction = module.get[Function]("main").get
-    val entryBlock = module.get[Block](mainFunction.blocks.head).get
-    val firstInst = module.get[Instruction](entryBlock.instructions.head).get
+    val mainFunction = module.getFunction("main")
+    val entryBlock = module.getBlock(mainFunction.blocks.head)
+    val firstInst = module.getInstruction(entryBlock.instructions.head)
     while (env.state.inst != firstInst)
       env.step
     (module, env)
@@ -87,10 +87,10 @@ class EnvironmentTest {
                   "  #block b2(x: #int32, y: #int32) { #return r2 = () }\n" +
                   "}\n"
     val (module, env) = prepare(program)
-    val b1 = module.get[Block]("main.b1").get
-    val b2 = module.get[Block]("main.b2").get
+    val b1 = module.getBlock("main.b1")
+    val b2 = module.getBlock("main.b2")
     env.branch(b2, List(Int32Value(12), Int32Value(34)))
-    assertEquals(module.getDefn(b2.instructions.head).get, env.state.inst)
+    assertEquals(module.getInstruction(b2.instructions.head), env.state.inst)
     assertEquals(Int32Value(12), env.state.get("main.b2.x"))
     assertEquals(Int32Value(34), env.state.get("main.b2.y"))
   }

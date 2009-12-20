@@ -61,23 +61,9 @@ class AstCompileTest {
   }
 
   @Test
-  def classType = {
-    val clas = new Class(foo, Nil, None, Nil, Nil, Nil, Nowhere)
-    ctx.module.add(clas)
-    assertEquals(ClassType(foo, Nil, loc), AstClassType(foo, Nil, loc).compile(ctx))
-  }
-
-  @Test
-  def interfaceType = {
-    val iface = new Interface(foo, Nil, None, Nil, Nil, Nowhere)
-    ctx.module.add(iface)
-    assertEquals(InterfaceType(foo, Nil, loc), AstClassType(foo, Nil, loc).compile(ctx))
-  }
-
-  @Test
   def structType = {
     val struct = Struct(foo, Nil)
-    ctx.module.add(struct)
+    ctx.addDefn(struct)
     val ast = AstClassType(foo, Nil, loc)
     val expected = StructType(foo, loc)
     assertEquals(expected, ast.compile(ctx))
@@ -126,9 +112,9 @@ class AstCompileTest {
   @Test
   def structValue = {
     val field = Field("A.b", UnitType())
-    ctx.module.add(field)
+    ctx.addDefn(field)
     val struct = Struct("A", List(field.name))
-    ctx.module.add(struct)
+    ctx.addDefn(struct)
     val ast = AstAggregateValue("A", List(AstUnitValue(Nowhere)), loc)
     val expected = StructValue("A", List(UnitValue()), loc)
     assertEquals(expected, ast.compile(ctx))
@@ -138,7 +124,7 @@ class AstCompileTest {
   def symbolValue = {
     ctx.names.push(foo)
     val param = Parameter(foo + bar, UnitType(Nowhere))
-    ctx.module.add(param)
+    ctx.addDefn(param)
     val ast = AstSymbolValue(bar, loc)
     val expected = DefinedValue(param.name, loc)
     assertEquals(expected, ast.compile(ctx))
@@ -213,7 +199,7 @@ class AstCompileTest {
   def branchInst = {
     ctx.names.push(foo)
     val block = Block(foo + baz, Nil, Nil, Nowhere)
-    ctx.module.add(block)
+    ctx.addDefn(block)
     val ast = AstBranchInstruction(bar, baz, List(AstInt32Value(12, Nowhere)), loc)
     val expected = BranchInstruction(foo + bar, 
                                      block.name,
@@ -226,9 +212,9 @@ class AstCompileTest {
   def condBranchInst = {
     ctx.names.push(foo)
     val bazBlock = Block(foo + baz, Nil, Nil, Nowhere)
-    ctx.module.add(bazBlock)
+    ctx.addDefn(bazBlock)
     val quuxBlock = Block(foo + quux, Nil, Nil, Nowhere)
-    ctx.module.add(quuxBlock)
+    ctx.addDefn(quuxBlock)
     val ast = AstConditionalBranchInstruction(bar,
                                               AstUnitValue(Nowhere),
                                               baz,
@@ -420,7 +406,7 @@ class AstCompileTest {
     val ast = AstStruct(foo,
                         List(AstField(bar, AstUnitType(Nowhere), Nowhere)),
                         loc)
-    ctx.module.add(Field(foo + bar, UnitType()))
+    ctx.addDefn(Field(foo + bar, UnitType()))
     val expected = Struct(foo, List(foo + bar), loc)
     testDefinition(expected, ast)
   }

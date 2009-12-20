@@ -8,39 +8,38 @@ class AstContextTest {
 
   @Test
   def resolveEmpty = {
-    val name = new Symbol("foo")
-    val global = Global(name, UnitType(), None)
-    ctx.module.add(global)
-    assertSame(global.name, ctx.resolve(name).get)
+    val name = Symbol.fromString("foo")
+    ctx.addDefn(Global(name, UnitType(), None))
+    val resolved = ctx.resolve(name).get
+    assertEquals(name, resolved)
   }
 
   @Test
   def resolveUsingStack = {
-    val name = new Symbol(List("foo", "bar"))
+    val name = Symbol.fromString("foo.bar")
     val global = Global(name, UnitType(), None)
-    ctx.module.add(global)
-    ctx.names.push(new Symbol("foo"))
-    val resolved = ctx.resolve(new Symbol("bar")).get
-    assertSame(global.name, resolved)
+    ctx.addDefn(global)
+    ctx.names.push("foo")
+    val resolved = ctx.resolve("bar").get
+    assertEquals(name, resolved)
   }
 
   @Test
   def resolveWithoutStack = {
-    val name = new Symbol(List("foo"))
-    val global = Global(name, UnitType(), None)
-    ctx.module.add(global)
-    ctx.names.push(new Symbol("bar"))
-    assertSame(global.name, ctx.resolve(name).get)
+    val foo = Symbol.fromString("foo")
+    ctx.addDefn(Global(foo, UnitType(), None))
+    ctx.names.push("bar")
+    val resolved = ctx.resolve("foo").get
+    assertEquals(foo, resolved)
   }
 
   @Test
   def resolveShadowed = {
-    val foobar = Global(new Symbol(List("foo", "bar")), UnitType(), None)
-    ctx.module.add(foobar)
-    val bar = Global(new Symbol("bar"), UnitType(), None)
-    ctx.module.add(bar)
-    ctx.names.push(new Symbol("foo"))
-    val resolved = ctx.resolve(new Symbol("bar")).get
-    assertSame(foobar.name, resolved)
+    val foobar = Symbol.fromString("foo.bar")
+    ctx.addDefn(Global(foobar, UnitType(), None))
+    ctx.addDefn(Global("bar", UnitType(), None))
+    ctx.names.push("foo")
+    val resolved = ctx.resolve("bar").get
+    assertEquals(foobar, resolved)
   }
 }

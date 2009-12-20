@@ -1,72 +1,64 @@
 package tungsten
 
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
+import scala.collection.immutable.Map
+import scala.collection.immutable.TreeMap
 import scala.reflect.Manifest
 import Utilities._
 
-final class Module {
-  private val _definitions: Map[Symbol, Definition] = new HashMap[Symbol, Definition]
+final class Module(val definitions: Map[Symbol, Definition]) {
+  def this() = this(new TreeMap[Symbol, Definition])
 
-  def definitions = _definitions
-
-  def add(defn: Definition) = {
-    _definitions.get(defn.name) match {
+  def add(defn: Definition): Module = {
+    definitions.get(defn.name) match {
       case Some(d) => throw new RedefinedSymbolException(defn.name, defn.location, d.location)
-      case None => _definitions += defn.name -> defn
+      case None => new Module(definitions + (defn.name -> defn))
     }
-    ()
   }
 
-  def update(defn: Definition) = {
-    _definitions += defn.name -> defn
+  def add(defn: Definition, defns: Definition*): Module = {
+    val ds = defn :: defns.toList
+    ds.foldLeft(this)(_.add(_))
   }
 
-  def getDefn(name: Symbol): Option[Definition] = _definitions.get(name)
+  def replace(defn: Definition) = new Module(definitions + (defn.name -> defn))
 
-  def get[T <: Definition](name: Symbol)(implicit m: Manifest[T]): Option[T] = {
-    _definitions.get(name) match {
+  def apply(name: Symbol): Definition = definitions(name)
+
+  def get[T <: Definition](name: Symbol)(implicit m: Manifest[T]) = {
+    definitions.get(name) match {
       case Some(d) if m.erasure.isInstance(d) => Some(d.asInstanceOf[T])
       case _ => None
     }
   }
 
-  def getBlock(name: Symbol) = get[Block](name).get
+  def getDefn(name: Symbol) = definitions.get(name)
+
+  def getBlock(name: Symbol) = definitions(name).asInstanceOf[Block]
   def getBlocks(names: List[Symbol]) = names.map(getBlock _)
-  def getClass(name: Symbol) = get[Class](name).get
-  def getClasses(names: List[Symbol]) = names.map(getClass _)
-  def getField(name: Symbol) = get[Field](name).get
+  def getField(name: Symbol) = definitions(name).asInstanceOf[Field]
   def getFields(names: List[Symbol]) = names.map(getField _)
-  def getFunction(name: Symbol) = get[Function](name).get
+  def getFunction(name: Symbol) = definitions(name).asInstanceOf[Function]
   def getFunctions(names: List[Symbol]) = names.map(getFunction _)
-  def getGlobal(name: Symbol) = get[Global](name).get
+  def getGlobal(name: Symbol) = definitions(name).asInstanceOf[Global]
   def getGlobals(names: List[Symbol]) = names.map(getGlobal _)
-  def getInstruction(name: Symbol) = get[Instruction](name).get
+  def getInstruction(name: Symbol) = definitions(name).asInstanceOf[Instruction]
   def getInstructions(names: List[Symbol]) = names.map(getInstruction _)
-  def getInterface(name: Symbol) = get[Interface](name).get
-  def getInterfaces(names: List[Symbol]) = names.map(getInterface _)
-  def getParameter(name: Symbol) = get[Parameter](name).get
+  def getParameter(name: Symbol) = definitions(name).asInstanceOf[Parameter]
   def getParameters(names: List[Symbol]) = names.map(getParameter _)
-  def getStruct(name: Symbol) = get[Struct](name).get
+  def getStruct(name: Symbol) = definitions(name).asInstanceOf[Struct]
   def getStructs(names: List[Symbol]) = names.map(getStruct _)
-  def getTypeParameter(name: Symbol) = get[TypeParameter](name).get
-  def getTypeParameters(names: List[Symbol]) = names.map(getTypeParameter _)
 
   def validate = {
     def validateDependencies = {
-      val allErrors = for (defn <- _definitions.valuesIterable)
-        yield defn.validateComponents(this)
-      allErrors.flatten.toList
+      definitions.valuesIterable.flatMap(_.validateComponents(this)).toList
     }
 
     def validateDefinitions = {
-      val allErrors = for (defn <- _definitions.valuesIterable)
-        yield defn.validate(this)
-      allErrors.flatten.toList
+      definitions.valuesIterable.flatMap(_.validate(this)).toList
     }
 
     def validateMain = {
-      _definitions.get(new Symbol("main")) match {
+      getDefn("main") match {
         case Some(main: Function) => {
           if (!main.parameters.isEmpty)
             List(MainNonEmptyParametersException(main.location))
@@ -100,14 +92,11 @@ final class Module {
     }
   }
 
-  override def equals(that: Any) = that match {
-    case m: Module => {
-      _definitions equals m._definitions
-    }
-    case _ => false
+  override def equals(that: Any) = {
+    that.isInstanceOf[Module] && definitions == that.asInstanceOf[Module].definitions
   }
 
-  override def hashCode = _definitions.hashCode
+  override def hashCode = hash("Module", definitions)
 
-  override def toString = _definitions.toString
+  override def toString = definitions.valuesIterable.mkString("\n")
 }

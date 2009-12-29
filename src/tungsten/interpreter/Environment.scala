@@ -121,7 +121,8 @@ final class Environment(val module: Module) {
             case i :: is => {
               val index = i.asInstanceOf[Int64Value].value.asInstanceOf[Int]
               ptr match {
-                case ArrayValue(array) => array(index)
+                case ArrayValue(array) => loadElement(array(index), is)
+                case StructValue(struct) => loadElement(struct(index), is)
                 case _ => throw new RuntimeException("indexed non-array value")
               }
             }
@@ -175,6 +176,7 @@ final class Environment(val module: Module) {
               val index = i.asInstanceOf[Int64Value].value.asInstanceOf[Int]
               ptr match {
                 case ArrayValue(array) => array(index) = v
+                case StructValue(struct) => struct(index) = v
                 case _ => throw new RuntimeException("indexed non-array value")
               }
             }
@@ -182,6 +184,7 @@ final class Environment(val module: Module) {
               val index = i.asInstanceOf[Int64Value].value.asInstanceOf[Int]
               ptr match {
                 case ArrayValue(array) => storeElement(array(index), is)
+                case StructValue(struct) => storeElement(struct(index), is)
                 case _ => throw new RuntimeException("indexed non-array value")
               }
             }

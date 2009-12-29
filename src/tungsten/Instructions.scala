@@ -53,13 +53,26 @@ trait CallInstruction extends Instruction {
 }   
 
 sealed trait ElementInstruction extends Instruction {
-  protected final def getElementType(baseType: Type, indices: List[Value]): Type = {
+  protected final def getElementType(module: Module,
+                                     baseType: Type, 
+                                     indices: List[Value]): Type =                                     
+  {
     indices match {
       case Nil => baseType
       case i :: is => {
         baseType match {
-          case ArrayType(_, elementType, _) => getElementType(elementType, is)
-          case _ => baseType  // bogus, but we'll catch it in validation
+          case ArrayType(_, elementType, _) => getElementType(module, elementType, is)
+          case StructType(structName, _) => {
+            val struct = module.getStruct(structName)
+            i match {
+              case Int64Value(ix, _) if 0 <= ix && ix < struct.fields.size => {
+                val field = module.getField(struct.fields(ix.asInstanceOf[Int]))
+                getElementType(module, field.ty, is)
+              }
+              case _ => UnitType()
+            }
+          }
+          case _ => UnitType()  // bogus, but we'll catch it in validation
         }
       }
     }
@@ -73,19 +86,36 @@ sealed trait ElementInstruction extends Instruction {
               indices: List[Value],
               errors: List[CompileException]): List[CompileException] =
     {
-      var newErrors = errors
       indices match {
-        case Nil => newErrors
+        case Nil => errors
         case i :: is => {
-          if (i.ty(module) != IntType(64)) {
-            val exn = InvalidIndexException(i.toString, baseType.toString, location)
-            newErrors = exn :: newErrors
-          }
+          val indexType = i.ty(module)
+          val newErrors = if (indexType == IntType(64))
+            errors
+          else
+            TypeMismatchException(indexType.toString, IntType(64), location) :: errors
 
           baseType match {
             case ArrayType(size, elementType, _) => 
               check(elementType, is, newErrors)
-            case _ => InvalidIndexException(i.toString, baseType.toString, location) :: newErrors
+            case StructType(structName, _) => {
+              val struct = module.getStruct(structName)
+              val numFields = struct.fields.size
+              i match {
+                case Int64Value(ix, _) if 0 <= ix && ix < numFields => {
+                  val field = module.getField(struct.fields(ix.asInstanceOf[Int]))
+                  check(field.ty, is, newErrors)
+                }
+                case _ => {
+                  val error = InvalidIndexException(i.toString, baseType.toString, location)
+                  error :: newErrors
+                }
+              }
+            }
+            case _ => {
+              val error = InvalidIndexException(i.toString, baseType.toString, location)
+              error :: newErrors
+            }
           }
         }
       }
@@ -103,7 +133,7 @@ final case class AddressInstruction(override name: Symbol,
   def ty(module: Module) = {
     base.ty(module) match {
       case PointerType(elementType, _) => {
-        val resultElementType = getElementType(elementType, indices)
+        val resultElementType = getElementType(module, elementType, indices)
         PointerType(resultElementType, location)
       }
       case _ => PointerType(UnitType(), location) // bogus, but we catch it in validation
@@ -368,7 +398,7 @@ final case class LoadElementInstruction(override name: Symbol,
 
   def operands = base :: indices
 
-  def ty(module: Module) = getElementType(base.ty(module), indices)
+  def ty(module: Module) = getElementType(module, base.ty(module), indices)
 
   override def validate(module: Module) = validateIndices(module, base.ty(module), indices)
 }
@@ -460,7 +490,7 @@ final case class StoreElementInstruction(override name: Symbol,
 
   override def validate(module: Module) = {
     def validateValueType = {
-      val elementType = getElementType(base.ty(module), indices)
+      val elementType = getElementType(module, base.ty(module), indices)
       value.validateType(elementType, module)
     }
     stage(validateIndices(module, base.ty(module), indices),

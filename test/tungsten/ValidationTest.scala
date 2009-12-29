@@ -328,7 +328,7 @@ class ValidationTest {
   @Test
   def loadElementBadIndexType = {
     val code = "#loadelement a = [#int32: 12, 34], 5"
-    codeContainsError[InvalidIndexException](code)
+    codeContainsError[TypeMismatchException](code)
   }
 
   @Test
@@ -359,7 +359,7 @@ class ValidationTest {
   def addressBadIndexType = {
     val code = "#stackarray a = 5L * #unit\n" +
                "#address b = a, 1"
-    codeContainsError[InvalidIndexException](code)
+    codeContainsError[TypeMismatchException](code)
   }
 
   @Test
@@ -431,5 +431,52 @@ class ValidationTest {
                   "  }\n" +
                   "}\n"
     programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def loadElementFromStruct = {
+    val program = "#struct A {\n" +
+                  "  #field b: #unit\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #loadelement c = {A: ()}, 0L\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def loadElementNonLiteralIndex = {
+    val program = "#struct A {\n" +
+                  "  #field b: #unit\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #assign i = 0L\n" +
+                  "    #loadelement e = {A: ()}, i\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[InvalidIndexException](program)
+  }
+
+  @Test
+  def storeElementDoubleIndex = {
+    val program = "#struct A {\n" +
+                  "  #field x: #int32\n" +
+                  "}\n" +
+                  "#struct B {\n" +
+                  "  #field y: A\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #assign a = {B: {A: 12}}\n" +
+                  "    #storeelement a, 0L, 0L <- 34\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
   }
 }

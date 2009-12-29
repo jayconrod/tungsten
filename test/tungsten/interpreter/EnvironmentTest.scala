@@ -274,11 +274,27 @@ class EnvironmentTest {
   }
 
   @Test
-  def loadElementInst = {
+  def loadElementArrayInst = {
     val code = "#loadelement a = [#int32: 12, 34], 0L"
     val (module, env) = prepareCode(code)
     env.step
     assertEquals(Int32Value(12), env.state.get(prefix + "a"))
+  }
+
+  @Test
+  def loadElementStructInst = {
+    val program = "#struct A {\n" +
+                  "  #field b: #int32\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #loadelement e = {A: 12}, 0L\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    env.step
+    assertEquals(Int32Value(12), env.state.get(prefix + "e"))
   }
 
   @Test
@@ -352,6 +368,26 @@ class EnvironmentTest {
     val a = env.state.get(prefix + "a")
     assertTrue(a.isInstanceOf[ArrayValue])
     assertEquals(Int32Value(56), a.asInstanceOf[ArrayValue].value(0))
+  }
+
+  @Test
+  def storeElementArrayInst = {
+    val program = "#struct A {\n" +
+                  "  #field b: #int32\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #assign s = {A: 12}\n" +
+                  "    #storeelement s, 0L <- 34\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    env.step
+    env.step
+    val s = env.state.get(prefix + "s")
+    assertTrue(s.isInstanceOf[StructValue])
+    assertEquals(Int32Value(34), s.asInstanceOf[StructValue].value(0))
   }
 
   @Test

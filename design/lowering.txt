@@ -1,0 +1,4 @@
+Tungsten is intended to be a general purpose intermediate language for a variety of programming language. The goal is to make it as easy as possible to write a front-end for any language. To aid front-end implementation, many high level primitives are provided, such as classes and bounded arrays. These also aid in translation from one language to another (such as from JVM bytecode to MSIL). 
+
+Although high level primitives are convenient for front-end implementation, they inhibit optimization and code generation. Tungsten provides a lowering transformation which translates modules containing high level primitives into equivalent modules containing only lower level primitives. This transformation will likely introduce unsafe operations, but if the code in the input module was safe, the code in the output module will always have well-defined behavior.
+

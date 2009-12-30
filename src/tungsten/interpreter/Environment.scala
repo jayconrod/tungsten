@@ -25,7 +25,7 @@ final class Environment(val module: Module) {
           st + (name -> ivalue)
         }
         case Global(name, ty, None, _) => {
-          val ivalue = ScalarReference(create(ty.defaultValue))
+          val ivalue = ScalarReference(create(ty.defaultValue(module)))
           st + (name -> ivalue)
         }
         case _ => st
@@ -57,11 +57,14 @@ final class Environment(val module: Module) {
           indices match {
             case Nil => ptr
             case (i: Int64Value) :: is => {
-              val array = ptr.value.asInstanceOf[ArrayValue]
-              val newPtr = ArrayIndexReference(array, i)
+              val newPtr = ptr.value match {
+                case v: ArrayValue => ArrayIndexReference(v, i)
+                case v: StructValue => StructIndexReference(v, i)
+                case _ => throw new RuntimeException("non-indexable value " + ptr.value)
+              }
               address(newPtr, is)
             }
-            case _ => throw new RuntimeException("could not calculate address with index %s".format(indices.head.toString))
+            case _ => throw new RuntimeException("could not calculate address with index " + iIndices.head)
           }
         }
         address(iBase, iIndices)
@@ -111,7 +114,7 @@ final class Environment(val module: Module) {
         UnitValue
       }
       case LoadInstruction(_, pointer, _) => {
-        val scalar = create(pointer).asInstanceOf[ScalarReference]
+        val scalar = create(pointer).asInstanceOf[Reference]
         scalar.value
       }
       case LoadElementInstruction(_, base, indices, _) => {
@@ -144,7 +147,7 @@ final class Environment(val module: Module) {
       }
       case StackAllocateInstruction(_, ty, _) => {
         val elementType = ty.asInstanceOf[PointerType].elementType
-        val defaultValue = create(elementType.defaultValue)
+        val defaultValue = create(elementType.defaultValue(module))
         new ScalarReference(defaultValue)
       }
       case StackAllocateArrayInstruction(_, count, elementType, _) => {
@@ -152,7 +155,7 @@ final class Environment(val module: Module) {
         val n = cCount.asInstanceOf[Int64Value].value.asInstanceOf[Int]
         val a = new Array[IValue](n)
         for (i <- 0 until n)
-          a(i) = create(elementType.defaultValue)
+          a(i) = create(elementType.defaultValue(module))
         val array = new ArrayValue(a)
         new ScalarReference(array)
       }
@@ -163,9 +166,9 @@ final class Environment(val module: Module) {
         UnitValue
       }
       case StoreInstruction(_, pointer, value, _) => {
-        val scalar = create(pointer).asInstanceOf[ScalarReference]
-        val v = create(value)
-        scalar.value = v
+        val ipointer = create(pointer).asInstanceOf[Reference]
+        val ivalue = create(value)
+        ipointer.value = ivalue
         UnitValue
       }
       case StoreElementInstruction(_, base, indices, value, _) => {

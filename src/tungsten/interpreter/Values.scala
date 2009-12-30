@@ -130,14 +130,11 @@ object Reference {
   }
 }
 
-final class ScalarReference(var value: IValue) extends Reference {
+final case class ScalarReference(var value: IValue) extends Reference {
   override def toString = "ScalarReference(" + value + ")"
 }
-object ScalarReference {
-  def apply(value: IValue) = new ScalarReference(value)
-}
 
-final class ArrayIndexReference(val array: ArrayValue, val index: Int64Value) 
+final case class ArrayIndexReference(val array: ArrayValue, val index: Int64Value) 
   extends Reference
 {
   private val intIndex = index.value.asInstanceOf[Int]
@@ -148,10 +145,17 @@ final class ArrayIndexReference(val array: ArrayValue, val index: Int64Value)
 
   override def toString = "ArrayReference(" + value + ")"
 }
-object ArrayIndexReference {
-  def apply(array: ArrayValue, index: Int64Value) = {
-    new ArrayIndexReference(array, index)
-  }
+
+final case class StructIndexReference(val struct: StructValue, val index: Int64Value) 
+  extends Reference
+{
+  private val intIndex = index.value.asInstanceOf[Int]
+
+  def value = struct.value(intIndex)
+
+  def value_=(v: IValue) = struct.value(intIndex) = v
+
+  override def toString = "StructReference(" + value + ")"
 }
 
 case object NullReference extends Reference {

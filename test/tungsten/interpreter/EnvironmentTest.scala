@@ -133,7 +133,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def addressInst = {
+  def addressArrayInst = {
     val code = "#stackarray a = 2L * [2 * #int32]\n" +
                "#address b = a, 1L, 1L"
     val (module, env) = prepareCode(code)
@@ -147,6 +147,34 @@ class EnvironmentTest {
     val b = env.state.get("main.entry.b").asInstanceOf[ArrayIndexReference]
     assertSame(aArray2, b.array)
     assertEquals(Int64Value(1), b.index)
+  }
+
+  @Test
+  def addressStructInst = {
+    val program = "#struct A {\n" +
+                  "  #field x: #int32\n" +
+                  "}\n" +
+                  "#struct B {\n" +
+                  "  #field y: A\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #stack a: B*\n" +
+                  "    #address b = a, 0L, 0L\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    val (module, env) = prepare(program)
+    env.step
+    env.step
+
+    val a = env.state.get(prefix + "a").asInstanceOf[ScalarReference]
+    val recordB = a.value.asInstanceOf[StructValue]
+    val recordA = recordB.value(0).asInstanceOf[StructValue]
+
+    val b = env.state.get(prefix + "b").asInstanceOf[StructIndexReference]
+    val expected = StructIndexReference(recordA, Int64Value(0L))
+    assertEquals(expected, b)
   }
 
   @Test
@@ -274,6 +302,16 @@ class EnvironmentTest {
   }
 
   @Test
+  def loadArrayInst = {
+    val code = "#stack a: [1 * #int32]*\n" +
+               "#address b = a, 0L\n" +
+               "#load c = *b"
+    val (module, env) = prepareCode(code)
+    for (i <- 0 until 3) env.step
+    assertEquals(Int32Value(0), env.state.get(prefix + "c"))
+  }    
+
+  @Test
   def loadElementArrayInst = {
     val code = "#loadelement a = [#int32: 12, 34], 0L"
     val (module, env) = prepareCode(code)
@@ -359,6 +397,18 @@ class EnvironmentTest {
   }
 
   @Test
+  def storeArrayInst = {
+    val code = "#stack a : [1 * #int32]*\n" +
+               "#address b = a, 0L\n" +
+               "#store *b <- 12"
+    val (module, env) = prepareCode(code)
+    for (i <- 0 until 3) env.step
+    val a = env.state.get(prefix + "a").asInstanceOf[ScalarReference]
+    val a0 = a.value.asInstanceOf[ArrayValue].value(0)
+    assertEquals(Int32Value(12), a0)
+  }
+
+  @Test
   def storeElementInst = {
     val code = "#assign a = [#int32: 12, 34]\n" +
                "#storeelement a, 0L <- 56"
@@ -395,5 +445,16 @@ class EnvironmentTest {
     val (module, env) = prepareCode("#upcast a = #null : #null")
     env.step
     assertEquals(NullReference, env.state.get(prefix + "a"))
+  }
+
+  @Test
+  def addressEquality = {
+    val code = "#stack a: [1 * #int32]*\n" +
+               "#address b = a, 0L\n" +
+               "#address c = a, 0L\n" +
+               "#relop d = b == c\n"
+    val (module, env) = prepareCode(code)
+    for (i <- 0 until 4) env.step
+    assertEquals(BooleanValue(true), env.state.get(prefix + "d"))
   }
 }

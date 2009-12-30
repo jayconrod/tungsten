@@ -6,7 +6,7 @@ abstract sealed class Type(location: Location)
   extends TungstenObject(location)
 {
   def validate(module: Module): List[CompileException] = Nil
-  def defaultValue: Value
+  def defaultValue(module: Module): Value
   def isNumeric: Boolean
   def isPointer: Boolean = false
   def isSubtypeOf(ty: Type): Boolean = ty == this
@@ -22,7 +22,7 @@ abstract sealed class Type(location: Location)
 }
 
 final case class UnitType(override location: Location = Nowhere) extends Type(location) {
-  def defaultValue = UnitValue(location)
+  def defaultValue(module: Module) = UnitValue(location)
 
   def isNumeric = false
 
@@ -39,7 +39,7 @@ final case class UnitType(override location: Location = Nowhere) extends Type(lo
 }
 
 final case class BooleanType(override location: Location = Nowhere) extends Type(location) {
-  def defaultValue = BooleanValue(false, location)
+  def defaultValue(module: Module) = BooleanValue(false, location)
 
   def isNumeric = false
 
@@ -67,7 +67,7 @@ final case class IntType(width: Int,
   if (width < 1 || !isPowerOf2(width) || width > 64)
     throw new IllegalArgumentException
 
-  def defaultValue = {
+  def defaultValue(module: Module) = {
     width match {
       case 8 => Int8Value(0, location)
       case 16 => Int16Value(0, location)
@@ -101,7 +101,12 @@ final case class FloatType(width: Int,
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
 
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = {
+    width match {
+      case 32 => Float32Value(0.0f, location)
+      case 64 => Float64Value(0.0, location)
+    }
+  }
 
   def isNumeric = true
 
@@ -130,7 +135,7 @@ final case class PointerType(elementType: Type,
 {
   override def validate(module: Module) = elementType.validate(module)
 
-  def defaultValue = NullValue()
+  def defaultValue(module: Module) = NullValue()
 
   def isNumeric = false
 
@@ -151,7 +156,7 @@ final case class PointerType(elementType: Type,
 final case class NullType(override location: Location = Nowhere)
   extends Type(location)
 {
-  def defaultValue = NullValue()
+  def defaultValue(module: Module) = NullValue()
 
   def isNumeric = false
 
@@ -178,7 +183,11 @@ final case class ArrayType(size: Option[Int],
 
   override def validate(module: Module) = elementType.validate(module)
 
-  def defaultValue = ArrayValue(elementType, Nil, location)
+  def defaultValue(module: Module) = {
+    val defaultElementValue = elementType.defaultValue(module)
+    val defaultSize = size.getOrElse(0)
+    ArrayValue(elementType, List.fill(defaultSize)(defaultElementValue), location)
+  }
 
   def isNumeric = false
 
@@ -217,7 +226,12 @@ final case class StructType(structName: Symbol,
 {
   override def validate(module: Module) = module.validateName[Struct](structName, location)
 
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = {
+    val struct = module.getStruct(structName)
+    val fields = module.getFields(struct.fields)
+    val elements = fields.map(_.ty.defaultValue(module))
+    StructValue(structName, elements, location)
+  }
 
   def isNumeric = false
 
@@ -240,7 +254,7 @@ final case class UniversalType(typeParameters: List[Symbol],
 {
   override def validate(module: Module) = throw new UnsupportedOperationException
 
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
 
@@ -268,7 +282,7 @@ final case class ExistentialType(typeParameters: List[Symbol],
 {
   override def validate(module: Module) = throw new UnsupportedOperationException
 
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
 
@@ -296,7 +310,7 @@ final case class VariableType(name: Symbol,
 {
   override def validate(module: Module) = throw new UnsupportedOperationException
 
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
 
@@ -317,7 +331,7 @@ final case class FunctionType(returnType: Type,
                               override location: Location = Nowhere)
   extends Type(location)
 {
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
 
@@ -344,7 +358,7 @@ final case class ClassType(className: Symbol,
 {
   override def validate(module: Module) = throw new UnsupportedOperationException
 
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
 
@@ -369,7 +383,7 @@ final case class InterfaceType(interfaceName: Symbol,
 {
   override def validate(module: Module) = throw new UnsupportedOperationException
 
-  def defaultValue = throw new UnsupportedOperationException
+  def defaultValue(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
 

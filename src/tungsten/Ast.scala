@@ -76,9 +76,13 @@ final case class AstClassType(val name: Symbol,
     ctx.module.getDefn(name) match {
       case Some(s: Struct) => StructType(s.name, location)
       case Some(other) => {
-        throw InappropriateSymbolException(name, location, other.location, "type")
+        ctx.errors += InappropriateSymbolException(name, location, other.location, "type")
+        UnitType(location)
       }
-      case None => throw UndefinedSymbolException(name, location)
+      case None => {
+        ctx.errors += UndefinedSymbolException(name, location)
+        UnitType(location)
+      }
     }
   }
 }
@@ -172,12 +176,16 @@ final case class AstAggregateValue(aggregateName: Symbol,
     ctx.module.getDefn(aggregateName) match {
       case Some(s: Struct) => StructValue(aggregateName, cFields, location)
       case Some(other) => {
-        throw InappropriateSymbolException(aggregateName, 
-                                           location,
-                                           other.location,
-                                           "aggregate name")
+        ctx.errors += InappropriateSymbolException(aggregateName, 
+                                                   location,
+                                                   other.location,
+                                                   "aggregate name")
+        UnitValue(location)
       }
-      case None => throw new UndefinedSymbolException(aggregateName, location)
+      case None => {
+        ctx.errors += UndefinedSymbolException(aggregateName, location)
+        UnitValue(location)
+      }
     }
   }
 }

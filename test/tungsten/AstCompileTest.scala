@@ -410,4 +410,18 @@ class AstCompileTest {
     val expected = Struct(foo, List(foo + bar), loc)
     testDefinition(expected, ast)
   }
+
+  @Test
+  def undefinedClassType = {
+    val ast = AstClassType("A", Nil, Nowhere)
+    ast.compile(ctx)
+    assertTrue(ctx.errors.exists(_.isInstanceOf[UndefinedSymbolException]))
+  }
+
+  @Test
+  def undefinedAggregateValue = {
+    val ast = AstAggregateValue("A", Nil, Nowhere)
+    ast.compile(ctx)
+    assertTrue(ctx.errors.exists(_.isInstanceOf[UndefinedSymbolException]))
+  }
 }

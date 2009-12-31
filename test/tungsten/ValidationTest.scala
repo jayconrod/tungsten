@@ -479,4 +479,15 @@ class ValidationTest {
                   "}\n"
     programIsCorrect(program)
   }
+
+  @Test
+  def nonExistantStructValue = {
+    val i1 = AssignInstruction("i1", StructValue("A", Nil))
+    val i2 = ReturnInstruction("i2", UnitValue())
+    val block = Block("main.entry", Nil, List(i1, i2).map(_.name))
+    val function = Function("main", Nil, Nil, UnitType(), List(block.name))
+    val module = (new Module).add(i1, i2, block, function)
+    val errors = module.validate
+    containsError[UndefinedSymbolException](errors)
+  }
 }

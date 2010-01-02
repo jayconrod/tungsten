@@ -1,25 +1,30 @@
 package tungsten
 
 import Math.min
+import Utilities._
 
 final class Graph[T](val nodes: Set[T],
                      val incident: Map[T, Set[T]],
                      val adjacent: Map[T, Set[T]])
 {
-  def this() = this(Set[T](), Map[T, Set[T]](), Map[T, Set[T]]())
-
-  def this(nodes: Traversable[T]) = this(nodes.toSet, Map[T, Set[T]](), Map[T, Set[T]]())
-
   def this(nodes: Traversable[T], adjacent: Map[T, Set[T]]) = {
     this(nodes.toSet,
-         adjacent.foldLeft(Map[T, Set[T]]()) { (incident, adjPair) =>
-           val (from, adj) = adjPair
-           adj.foldLeft(incident) { (incident, to) =>
-             incident + (to -> (incident.getOrElse(to, Set[T]()) + from))
+         nodes.foldLeft(Map[T, Set[T]]()) { (incident, from) =>
+           adjacent.get(from) match {
+             case None => incident
+             case Some(fromNeighbors) => {
+               fromNeighbors.foldLeft(incident) { (incident, to) =>
+                 incident + (to -> (incident.getOrElse(to, Set()) + from))
+               }
+             }
            }
          },
          adjacent)
   }
+
+  def this(nodes: Traversable[T]) = this(nodes, Map[T, Set[T]]())
+
+  def this() = this(Set(), Map(), Map())
 
   private final def copy(nodes: Set[T] = this.nodes,
                          incident: Map[T, Set[T]] = this.incident,
@@ -31,11 +36,8 @@ final class Graph[T](val nodes: Set[T],
   def + (n: T) = {
     if (nodes.contains(n))
       this
-    else {
-      new Graph(nodes + n,
-                incident + (n -> Set[T]()),
-                adjacent + (n -> Set[T]()))
-    }
+    else
+      copy(nodes = nodes + n)
   }
 
   def ++ (ns: Traversable[T]) = ns.foldLeft(this)(_ + _)
@@ -43,8 +45,8 @@ final class Graph[T](val nodes: Set[T],
   def & (e: (T, T)) = {
     assert(nodes.contains(e._1) && nodes.contains(e._2))
 
-    copy(incident = incident.updated(e._2, incident(e._2) + e._1),
-         adjacent = adjacent.updated(e._1, adjacent(e._1) + e._2))
+    copy(incident = incident + (e._2 -> (incident.getOrElse(e._2, Set()) + e._1)),
+         adjacent = adjacent + (e._1 -> (adjacent.getOrElse(e._1, Set()) + e._2)))
   }
 
   def && (es: Traversable[(T, T)]) = es.foldLeft(this)(_ & _)
@@ -81,7 +83,7 @@ final class Graph[T](val nodes: Set[T],
       index += 1
       stack.push(v)
       onStack(v) = true
-      for (w <- adjacent(v)) {
+      for (w <- adjacent.getOrElse(v, Set())) {
         if (!indices.contains(w)) {
           tarjan(w)
           lowlink(v) = min(lowlink(v), lowlink(w))
@@ -113,12 +115,31 @@ final class Graph[T](val nodes: Set[T],
 
     val sccAdjacent = sccs.foldLeft(Map[Set[T], Set[Set[T]]]()) { (adjMap, scc) =>
       val sccAdj = for (u        <- scc;
-                        v        <- adjacent(u);
+                        v        <- adjacent.getOrElse(u, Set());
                         val vScc  = sccMap(v);
                         if vScc ne scc)
                      yield vScc
       adjMap + (scc -> sccAdj)
     }
     new Graph(sccs, sccAdjacent)
+  }
+
+  override def equals(that: Any) = {
+    that match {
+      case g: Graph[_] 
+        if nodes == g.nodes && incident == g.incident && adjacent == g.adjacent => true
+      case _ => false
+    }
+  }
+
+  override def hashCode = hash("Graph", nodes, adjacent)
+
+  override def toString = {
+    val builder = new StringBuilder
+    builder.append("Graph {\n")
+    for (n <- nodes)
+      builder.append("  " + n + " -> " + adjacent(n).mkString(", ") + "\n")
+    builder.append("}")
+    builder.toString
   }
 }

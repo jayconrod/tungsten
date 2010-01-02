@@ -26,8 +26,8 @@ class GraphTest {
     val sym = Symbol("foo")
     g += sym
     assertEquals(Set(sym), g.nodes)
-    assertTrue(g.incident(sym).isEmpty)
-    assertTrue(g.adjacent(sym).isEmpty)
+    assertEquals(Set(), g.incident.getOrElse(sym, Set()))
+    assertEquals(Set(), g.adjacent.getOrElse(sym, Set()))
   }
 
   @Test
@@ -64,6 +64,21 @@ class GraphTest {
     var g = new Graph[Symbol] + u & (u, u)
     g += u
     assertEquals(Set(u), g.adjacent(u))
+  }
+
+  @Test
+  def findSCCs = {
+    val g = new Graph[Int](List(1, 2, 3, 4, 5),
+                           Map((1, Set(2)),
+                               (2, Set(3)),
+                               (3, Set(4)),
+                               (4, Set(5)),
+                               (5, Set(3))))
+    val expected = new Graph[Set[Int]](List(Set(1), Set(2), Set(3, 4, 5)),
+                                       Map((Set(1), Set(Set(2))),
+                                           (Set(2), Set(Set(3, 4, 5))),
+                                           (Set(3, 4, 5), Set())))
+    assertEquals(expected, g.findSCCs)
   }
 }
 

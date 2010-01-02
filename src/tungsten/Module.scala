@@ -71,9 +71,38 @@ final class Module(val definitions: Map[Symbol, Definition]) {
       }
     }
 
+    def validateStructDependencies = {
+      def findStructDependencies(struct: Struct): Set[Symbol] = {
+        val fieldTypes = struct.fields.map(getField(_).ty)
+        val structDeps = fieldTypes.flatMap { fty =>
+          fty match {
+            case StructType(structName, _) => Some(structName)
+            case _ => None
+          }
+        }
+        structDeps.toSet
+      }
+
+      val structNames = definitions.valuesIterable.flatMap { defn =>
+        defn match {
+          case s: Struct => Some(s.name)
+          case _ => None
+        }
+      }      
+      val dependencyMap = structNames.foldLeft(Map[Symbol, Set[Symbol]]()) { (deps, structName) =>
+        deps + (structName -> findStructDependencies(getStruct(structName)))
+      }
+      val dependencyGraph = new Graph[Symbol](structNames, dependencyMap)
+      val sccDependencyGraph = dependencyGraph.findSCCs
+      for (scc <- sccDependencyGraph.nodes;
+           if sccDependencyGraph.adjacent(scc).contains(scc);
+           val location = getStruct(scc.head).location)
+        yield CyclicStructException(scc.toList, location)
+    }
+
     stage(validateDependencies,
           validateDefinitions,
-          validateMain)
+          validateMain ++ validateStructDependencies)
   }
 
   def validateName[T <: Definition](name: Symbol, 

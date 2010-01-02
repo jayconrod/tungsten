@@ -9,6 +9,11 @@ sealed abstract class CompileException(message: String, location: Location) exte
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 
+final case class CyclicStructException(structNames: List[Symbol], location: Location)
+  extends CompileException("the following structs depend on each other: " + 
+                             structNames.mkString(", "),
+                           location)
+
 final case class DuplicateComponentException(symbol: Symbol,
                                              component: Symbol,
                                              className: String,

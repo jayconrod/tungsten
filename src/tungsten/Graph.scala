@@ -116,8 +116,7 @@ final class Graph[T](val nodes: Set[T],
     val sccAdjacent = sccs.foldLeft(Map[Set[T], Set[Set[T]]]()) { (adjMap, scc) =>
       val sccAdj = for (u        <- scc;
                         v        <- adjacent.getOrElse(u, Set());
-                        val vScc  = sccMap(v);
-                        if vScc ne scc)
+                        val vScc  = sccMap(v))
                      yield vScc
       adjMap + (scc -> sccAdj)
     }

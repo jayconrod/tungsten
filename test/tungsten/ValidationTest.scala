@@ -490,4 +490,19 @@ class ValidationTest {
     val errors = module.validate
     containsError[UndefinedSymbolException](errors)
   }
+
+  @Test
+  def singleCyclicStruct = {
+    val program = "#struct A { #field x: A }\n" +
+                  "#function main( ): #unit { #block entry( ) { #return () } }\n"
+    programContainsError[CyclicStructException](program)
+  }
+
+  @Test
+  def doubleCyclicStruct = {
+    val program = "#struct A { #field x: B }\n" +
+                  "#struct B { #field y: A }\n" +
+                  "#function main( ): #unit { #block entry( ) { #return () } }\n"
+    programContainsError[CyclicStructException](program)
+  }
 }

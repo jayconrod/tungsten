@@ -77,7 +77,7 @@ class GraphTest {
     val expected = new Graph[Set[Int]](List(Set(1), Set(2), Set(3, 4, 5)),
                                        Map((Set(1), Set(Set(2))),
                                            (Set(2), Set(Set(3, 4, 5))),
-                                           (Set(3, 4, 5), Set())))
+                                           (Set(3, 4, 5), Set(Set(3, 4, 5)))))
     assertEquals(expected, g.findSCCs)
   }
 }

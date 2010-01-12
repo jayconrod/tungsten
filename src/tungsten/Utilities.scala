@@ -1,12 +1,22 @@
 package tungsten
 
-import java.io.File
-import java.io.FileReader
+import java.io._
 
 object Utilities {
+  val ERROR_CODE = 127
+
   def compileString(program: String): Module = {
     val ast = AstParser.test(program)
     ast.compile.left.get
+  }
+
+  def fileWithExtension(file: File, oldExt: String, newExt: String): File = {
+    val oldFilename = file.getCanonicalPath
+    val newFilename = if (oldFilename.endsWith(oldExt))
+      oldFilename.substring(0, oldFilename.length - oldExt.length) + newExt
+    else
+      oldFilename + newExt
+    new File(newFilename)
   }
 
   def hash(code: Int, x: Any): Int = {
@@ -26,19 +36,24 @@ object Utilities {
 
   def isPowerOf2(x: Int) = (x & (x - 1)) == 0
 
-  def readFile(file: File) = {
-    val buffer = new StringBuffer
+  def readContentsOfFile(file: File): String = {
     val reader = new FileReader(file)
+    val contents = readContentsOfFile(reader)
+    reader.close
+    contents
+  }
+
+  def readContentsOfFile(input: Reader): String = {
+    val buffer = new StringBuffer
     val block = new Array[Char](4096)
-    var count = reader.read(block)
+    var count = input.read(block)
     while (count != -1) {
       for (i <- 0 until count)
         buffer.append(block(i))
-      count = reader.read(block)
+      count = input.read(block)
     }
-    reader.close
     buffer.toString 
-  }
+  }    
 
   def stage[T](a: List[T], b: => List[T]): List[T] = {
     if (!a.isEmpty) a else b

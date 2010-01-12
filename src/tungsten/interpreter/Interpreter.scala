@@ -7,8 +7,6 @@ import tungsten._
 import tungsten.Utilities._
 
 object Interpreter {
-  val ERROR_CODE = 127
-
   def usage = System.err.println("usage: Interpreter sourcefile\n")
 
   def main(args: Array[String]) = {
@@ -22,7 +20,7 @@ object Interpreter {
 
     def parse(filename: String) = {
       val file = new File(filename)
-      val text = readFile(file)
+      val text = readContentsOfFile(file)
       val reader = new CharSequenceReader(text)
       val scanner = new AstLexer.Scanner(filename, reader)
       AstParser.phrase(AstParser.module)(scanner) match {

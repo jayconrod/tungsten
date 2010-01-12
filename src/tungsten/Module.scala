@@ -48,7 +48,7 @@ final class Module(val definitions: Map[Symbol, Definition]) {
   def getStruct(name: Symbol) = definitions(name).asInstanceOf[Struct]
   def getStructs(names: List[Symbol]) = names.map(getStruct _)
 
-  def validate = {
+  def validate: List[CompileException] = {
     def validateDependencies = {
       definitions.valuesIterable.flatMap(_.validateComponents(this)).toList
     }

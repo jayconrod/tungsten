@@ -102,6 +102,9 @@ final case class NonLocalBranchException(functionName: Symbol,
 final case class NumericTypeException(ty: String, location: Location)
   extends CompileException("type " + ty + " must be numeric", location)
 
+final case class ParseException(message: String, location: Location)
+  extends CompileException(message, location)
+
 final case class RedefinedSymbolException(symbol: Symbol, 
                                           location: Location, 
                                           oldLocation: Location)

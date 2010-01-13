@@ -51,8 +51,6 @@ abstract class Definition(val name: Symbol, location: Location = Nowhere)
     else
       validateComponentsOfClass[T](module, componentNames)
   }
-
-  def toString: String
 }
 
 trait TypedDefinition extends Definition {

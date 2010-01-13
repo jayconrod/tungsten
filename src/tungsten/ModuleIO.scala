@@ -6,9 +6,12 @@ import scala.util.parsing.input.CharSequenceReader
 import Utilities._
 
 object ModuleIO {
-  def readBinary(in: InputStream) = {
-    // TODO
-    throw new UnsupportedOperationException
+  def readBinary(file: File): Module = {
+    val input = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))
+    val reader = new BinaryModuleReader(input)
+    val module = reader.read
+    input.close
+    module
   }
 
   def readText(file: File): Either[Module, List[CompileException]] = {
@@ -37,8 +40,157 @@ object ModuleIO {
   }
 
   def writeText(module: Module, file: File) = {
-    // TODO
-    throw new UnsupportedOperationException
+    val output = new BufferedWriter(new FileWriter(file))
+    val INDENT = "  "
+
+    def isTopLevel(defn: Definition) = defn match {
+      case _: Global | _: Function | _: Struct => true
+      case _ => false
+    }
+
+    def writeDefinition(defn: Definition) {
+      defn match {
+        case Block(name, parameters, instructions, location) => {
+          output.write(INDENT + "#block" + locationString(location) + name + "(")
+          writeDefinitionList(parameters, ", ")
+          output.write(") {\n")
+          writeDefinitionList(instructions, "")
+          output.write(INDENT + "}\n")
+        }
+        case Field(name, ty, location) => {
+          output.write(INDENT + "#field " + name + locationString(location) + ": " + ty + "\n")
+        }          
+        case Function(name, _, parameters, returnType, blocks, location) => {
+          output.write("#function" + locationString(location) + name + "(")
+          writeDefinitionList(parameters, ", ")
+          output.write("): " + returnType + " {\n")
+          writeDefinitionList(blocks, "")
+          output.write("}")
+        }
+        case Global(name, ty, value, location) => {
+          output.write("#global" + locationString(location) + name + ": " + ty)
+          value foreach { v => output.write(" = " + v) }
+          output.write("\n")
+        }
+        case Parameter(name, ty, location) => {
+          output.write(name.toString + locationString(location) + ": " + ty)
+        }
+        case Struct(name, fields, location) => {
+          output.write("#struct " + locationString(location) + name + " {\n")
+          writeDefinitionList(fields, "")
+        }
+        case inst: Instruction => {
+          output.write(INDENT + INDENT)
+          inst match {
+            case AddressInstruction(name, base, indices, location) => {
+              output.write("#address " + locationString(location) + name + " = " + base + ", ")
+              writeList(indices, (_: Value).toString, ", ")
+            }
+            case AssignInstruction(name, value, location) => {
+              output.write("#assign " + locationString(location) + name + " = " + value)
+            }
+            case BinaryOperatorInstruction(name, operator, left, right, location) => {
+              output.write("#binop " + locationString(location) + name + " = " +
+                left + " " + operator.name + " " + right)
+            }
+            case BranchInstruction(name, target, arguments, location) => {
+              output.write("#branch " + locationString(location) + name + " = " + target + "(")
+              writeList(arguments, (_: Value).toString, ", ")
+            }
+            case ConditionalBranchInstruction(name, condition, trueTarget, trueArgs,
+                                              falseTarget, falseArgs, location) =>
+            {
+              output.write("#cond " + locationString(location) + name + " = " +
+                condition + " ? " + trueTarget + "(")
+              writeList(trueArgs, (_: Value).toString, ", ")
+              output.write(") : " + falseTarget + "(")
+              writeList(falseArgs, (_: Value).toString, ", ")
+              output.write(")")
+            }
+            case IndirectCallInstruction(name, target, arguments, location) => {
+              output.write("#icall " + locationString(location) + name + " = " + target + "(")
+              writeList(arguments, (_: Value).toString, ", ")
+              output.write(")")
+            }
+            case IntrinsicCallInstruction(name, intrinsic, arguments, location) => {
+              output.write("#intrinsic " + locationString(location) + name + " = " +
+                intrinsic.name + "(")
+              writeList(arguments, (_: Value).toString, ", ")
+              output.write(")")
+            }
+            case LoadInstruction(name, pointer, location) => {
+              output.write("#load " + locationString(location) + name + " = *" + pointer)
+            }
+            case LoadElementInstruction(name, base, indices, location) => {
+              output.write("#loadelement " + locationString(location) + name + " = " +
+                base + ", ")
+              writeList(indices, (_: Value).toString, ", ")
+            }
+            case RelationalOperatorInstruction(name, operator, left, right, location) => {
+              output.write("#relop " + locationString(location) + name + " = " + 
+                left + " " + operator.name + " " + right)
+            }
+            case ReturnInstruction(name, value, location) => {
+              output.write("#return " + locationString(location) + name + " = " + value)
+            }
+            case StackAllocateInstruction(name, ty, location) => {
+              output.write("#stack " + locationString(location) + name + ": " + ty)
+            }
+            case StackAllocateArrayInstruction(name, count, elementType, location) => {
+              output.write("#stackarray " + locationString(location) + name + " = " +
+                count + " * " + elementType)
+            }
+            case StaticCallInstruction(name, target, arguments, location) => {
+              output.write("#scall " + locationString(location) + name + " = " + target + "(")
+              writeList(arguments, (_: Value).toString, ", ")
+              output.write(")")
+            }
+            case StoreInstruction(name, pointer, value, location) => {
+              output.write("#store " + locationString(location) + name + " = *" + pointer +
+                " <- " + value)
+            }
+            case StoreElementInstruction(name, base, indices, value, location) => {
+              output.write("#storeelement " + locationString(location) + name + " = " + 
+                base + ", ")
+              writeList(indices, (_: Value).toString, ", ")
+              output.write(" <- " + value)
+            }
+            case UpcastInstruction(name, value, ty, location) => {
+              output.write("#upcast " + locationString(location) + name + " = " + value + 
+                ": " + ty)
+            }
+          }
+          output.write("\n")
+        }
+      }
+    }
+
+    def writeList[T](list: List[T], writer: T => Unit, sep: String) {
+      list match {
+        case Nil => ()
+        case h :: Nil => writer(h)
+        case h :: t => {
+          writer(h)
+          output.write(sep)
+          writeList(t, writer, sep)
+        }
+      }
+    }
+
+    def writeDefinitionList(list: List[Symbol], sep: String) {
+      writeList(list, module.definitions(_: Symbol), sep)
+    }
+
+    def locationString(loc: Location) = {
+      if (loc == Nowhere)
+        ""
+      else
+        loc.toString + " "
+    }
+
+    for (d <- module.definitions.valuesIterable
+         if isTopLevel(d))
+      writeDefinition(d)
   }
 
   def parse(file: File): Either[AstModule, String] = {
@@ -530,7 +682,7 @@ object ModuleIO {
     }
   }
 
-  class BinaryModuleReader(module: Module, input: DataInputStream) {
+  class BinaryModuleReader(input: DataInputStream) {
     import BinaryModuleMagicNumbers._
 
     val stringTable = new ArrayBuffer[String]
@@ -564,7 +716,7 @@ object ModuleIO {
       if (count < 0)
         throw new IOException("Negative string count")
       for (i <- 0 until count)
-        stringTable(i) = readString
+        stringTable += readString
     }
 
     def readLocations {
@@ -572,7 +724,7 @@ object ModuleIO {
       if (count < 0)
         throw new IOException("Negative location count")
       for (i <- 0 until count)
-        locationTable(i) = readLocation
+        locationTable += readLocation
     }
 
     def readSymbols {
@@ -580,7 +732,7 @@ object ModuleIO {
       if (count < 0)
         throw new IOException("Negative symbol count")
       for (i <- 0 until count)
-        symbolTable(i) = readSymbol
+        symbolTable += readSymbol
     }
 
     def readDefinitions: List[Definition] = {

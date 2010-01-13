@@ -448,6 +448,18 @@ final case class RelationalOperatorInstruction(override name: Symbol,
   }
 }
 
+final case class ReturnInstruction(override name: Symbol,
+                                   value: Value,
+                                   override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def operands = List(value)
+
+  override def isTerminating = true
+
+  def ty(module: Module) = UnitType(location)
+}
+
 final case class StoreInstruction(override name: Symbol,
                                   pointer: Value,
                                   value: Value,
@@ -496,18 +508,6 @@ final case class StoreElementInstruction(override name: Symbol,
     stage(validateIndices(module, base.ty(module), indices),
           validateValueType)
   }
-}
-
-final case class ReturnInstruction(override name: Symbol,
-                                   value: Value,
-                                   override location: Location = Nowhere)
-  extends Instruction(name, location)
-{
-  def operands = List(value)
-
-  override def isTerminating = true
-
-  def ty(module: Module) = UnitType(location)
 }
 
 final case class StackAllocateInstruction(override name: Symbol,

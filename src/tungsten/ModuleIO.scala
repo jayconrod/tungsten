@@ -80,9 +80,9 @@ object ModuleIO {
     val LOAD_INST_ID: Byte = 107
     val LOAD_ELEMENT_INST_ID: Byte = 108
     val RELATIONAL_OPERATOR_INST_ID: Byte = 109
-    val STORE_INST_ID: Byte = 110
-    val STORE_ELEMENT_INST_ID: Byte = 111
-    val RETURN_INST_ID: Byte = 112
+    val RETURN_INST_ID: Byte = 110
+    val STORE_INST_ID: Byte = 111
+    val STORE_ELEMENT_INST_ID: Byte = 112
     val STACK_ALLOCATE_INST_ID: Byte = 113
     val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 114
     val STATIC_CALL_INST_ID: Byte = 115
@@ -385,6 +385,10 @@ object ModuleIO {
             writeValue(left)
             writeValue(right)
           }            
+          case ReturnInstruction(_, value, _) => {
+            output.writeByte(RETURN_INST_ID)
+            writeValue(value)
+          }
           case StoreInstruction(_, pointer, value, _) => {
             output.writeByte(STORE_INST_ID)
             writeValue(pointer)
@@ -394,10 +398,6 @@ object ModuleIO {
             output.writeByte(STORE_ELEMENT_INST_ID)
             writeValue(base)
             writeSeq(indices, writeValue _)
-            writeValue(value)
-          }
-          case ReturnInstruction(_, value, _) => {
-            output.writeByte(RETURN_INST_ID)
             writeValue(value)
           }
           case StackAllocateInstruction(_, ty, _) => {
@@ -528,5 +528,360 @@ object ModuleIO {
         }
       }
     }
+  }
+
+  class BinaryModuleReader(module: Module, input: DataInputStream) {
+    import BinaryModuleMagicNumbers._
+
+    val stringTable = new ArrayBuffer[String]
+    val locationTable = new ArrayBuffer[Location]
+    val symbolTable = new ArrayBuffer[Symbol]
+
+    def read: Module = {
+      readHeader
+      readStrings
+      readLocations
+      readSymbols
+      val definitions = readDefinitions
+      val empty = scala.collection.immutable.Map[Symbol, Definition]()
+      val defnMap = definitions.foldLeft(empty) { (map, defn) =>
+        map + (defn.name -> defn)
+      }
+      new Module(defnMap)
+    }
+
+    def readHeader {
+      val magic = input.readInt
+      if (magic != MAGIC)
+        throw new IOException("Invalid magic number")
+      val version = (input.readByte, input.readByte)
+      if (magic != MAGIC || version != VERSION)
+        throw new IOException("Invalid version")
+    }
+
+    def readStrings {
+      val count = input.readInt
+      if (count < 0)
+        throw new IOException("Negative string count")
+      for (i <- 0 until count)
+        stringTable(i) = readString
+    }
+
+    def readLocations {
+      val count = input.readInt
+      if (count < 0)
+        throw new IOException("Negative location count")
+      for (i <- 0 until count)
+        locationTable(i) = readLocation
+    }
+
+    def readSymbols {
+      val count = input.readInt
+      if (count < 0)
+        throw new IOException("Negative symbol count")
+      for (i <- 0 until count)
+        symbolTable(i) = readSymbol
+    }
+
+    def readDefinitions: List[Definition] = {
+      val count = symbolTable.size
+      val definitions = new ArrayBuffer[Definition](count)
+      for (i <- 0 until count)
+        definitions(i) = readDefinition
+      definitions.toList
+    }
+
+    def readDefinition: Definition = {
+      val name = getSymbol(input.readInt)
+      def location = getLocation(input.readInt)
+
+      input.readByte match {
+        case BLOCK_ID => {
+          val parameters = readList { () => getSymbol(input.readInt) }
+          val instructions = readList { () => getSymbol(input.readInt) }
+          Block(name, parameters, instructions, location)
+        }
+        case FIELD_ID => {
+          val ty = readType
+          Field(name, ty, location)
+        }
+        case FUNCTION_ID => {
+          val parameters = readList { () => getSymbol(input.readInt) }
+          val returnType = readType
+          val blocks = readList { () => getSymbol(input.readInt) }
+          Function(name, Nil, parameters, returnType, blocks, location)
+        }
+        case GLOBAL_ID => {
+          val ty = readType
+          val value = readOption(readValue _)
+          Global(name, ty, value, location)
+        }
+        case PARAMETER_ID => {
+          val ty = readType
+          Parameter(name, ty, location)
+        }
+        case STRUCT_ID => {
+          val fields = readList { () => getSymbol(input.readInt) }
+          Struct(name, fields, location)
+        }
+
+        case ADDRESS_INST_ID => {
+          val base = readValue
+          val indices = readList(readValue _)
+          AddressInstruction(name, base, indices, location)
+        }
+        case ASSIGN_INST_ID => {
+          val value = readValue
+          AssignInstruction(name, value, location)
+        }
+        case BINARY_OPERATOR_INST_ID => {
+          val operator = readBinop
+          val left = readValue
+          val right = readValue
+          BinaryOperatorInstruction(name, operator, left, right, location)
+        }
+        case BRANCH_INST_ID => {
+          val target = getSymbol(input.readInt)
+          val arguments = readList(readValue _)
+          BranchInstruction(name, target, arguments, location)
+        }
+        case CONDITIONAL_BRANCH_INST_ID => {
+          val condition = readValue
+          val trueTarget = getSymbol(input.readInt)
+          val trueArguments = readList(readValue _)
+          val falseTarget = getSymbol(input.readInt)
+          val falseArguments = readList(readValue _)
+          ConditionalBranchInstruction(name, condition, trueTarget, trueArguments,
+                                       falseTarget, falseArguments, location)
+        }
+        case INDIRECT_CALL_INST_ID => {
+          val target = readValue
+          val arguments = readList(readValue _)
+          IndirectCallInstruction(name, target, arguments, location)
+        }
+        case INTRINSIC_CALL_INST_ID => {
+          val intrinsic = readIntrinsic
+          val arguments = readList(readValue _)
+          IntrinsicCallInstruction(name, intrinsic, arguments, location)
+        }
+        case LOAD_INST_ID => {
+          val pointer = readValue
+          LoadInstruction(name, pointer, location)
+        }
+        case LOAD_ELEMENT_INST_ID => {
+          val base = readValue
+          val indices = readList(readValue _)
+          LoadElementInstruction(name, base, indices, location)
+        }
+        case RELATIONAL_OPERATOR_INST_ID => {
+          val relop = readRelop
+          val left = readValue
+          val right = readValue
+          RelationalOperatorInstruction(name, relop, left, right, location)
+        }
+        case RETURN_INST_ID => {
+          val value = readValue
+          ReturnInstruction(name, value, location)
+        }
+        case STORE_INST_ID => {
+          val pointer = readValue
+          val value = readValue
+          StoreInstruction(name, pointer, value, location)
+        }
+        case STORE_ELEMENT_INST_ID => {
+          val base = readValue
+          val indices = readList(readValue _)
+          val value = readValue
+          StoreElementInstruction(name, base, indices, value, location)
+        }
+        case STACK_ALLOCATE_INST_ID => {
+          val ty = readType
+          StackAllocateInstruction(name, ty, location)
+        }
+        case STACK_ALLOCATE_ARRAY_INST_ID => {
+          val count = readValue
+          val elementType = readType
+          StackAllocateArrayInstruction(name, count, elementType, location)
+        }
+        case STATIC_CALL_INST_ID => {
+          val target = getSymbol(input.readInt)
+          val arguments = readList(readValue _)
+          StaticCallInstruction(name, target, arguments, location)
+        }
+        case UPCAST_INST_ID => {
+          val value = readValue
+          val ty = readType
+          UpcastInstruction(name, value, ty, location)
+        }
+        case _ => throw new IOException("Invalid definition ID")
+      }
+    }
+
+    def readType: Type = {
+      def location = getLocation(input.readInt)
+      input.readByte match {
+        case UNIT_TYPE_ID => UnitType(location)
+        case INT_TYPE_ID => {
+          val width = input.readByte
+          if (!List(8, 16, 32, 64).contains(width))
+            throw new IOException("Invalid integer width")
+          IntType(width, location)
+        }
+        case FLOAT_TYPE_ID => {
+          val width = input.readByte
+          if (!List(32, 64).contains(width))
+            throw new IOException("Invalid float width")
+          FloatType(width, location)
+        }
+        case POINTER_TYPE_ID => PointerType(readType, location)
+        case NULL_TYPE_ID => NullType(location)
+        case ARRAY_TYPE_ID => {
+          val size = readOption { () =>
+            val sz = input.readInt
+            if (sz < 0)
+              throw new IOException("Invalid array type size")
+            sz
+          }
+          ArrayType(size, readType, location)
+        }
+        case STRUCT_TYPE_ID => StructType(getSymbol(input.readInt), location)
+        case _ => throw new IOException("Invalid type ID")
+      }
+    }
+
+    def readValue: Value = {
+      def location = getLocation(input.readInt)
+      input.readByte match {
+        case UNIT_VALUE_ID => UnitValue(location)
+        case BOOLEAN_VALUE_ID => {
+          val b = input.readByte
+          if (b == 0)
+            BooleanValue(false, location)
+          else if (b == 1)
+            BooleanValue(true, location)
+          else
+            throw new IOException("Invalid Boolean value")
+        }
+        case INT8_VALUE_ID => Int8Value(input.readByte, location)
+        case INT16_VALUE_ID => Int16Value(input.readShort, location)
+        case INT32_VALUE_ID => Int32Value(input.readInt, location)
+        case INT64_VALUE_ID => Int64Value(input.readLong, location)
+        case FLOAT32_VALUE_ID => Float32Value(input.readFloat, location)
+        case FLOAT64_VALUE_ID => Float64Value(input.readDouble, location)
+        case NULL_VALUE_ID => NullValue(location)
+        case ARRAY_VALUE_ID => ArrayValue(readType, readList(readValue _), location)
+        case STRUCT_VALUE_ID => {
+          StructValue(getSymbol(input.readInt), readList(readValue _), location)
+        }
+        case DEFINED_VALUE_ID => DefinedValue(getSymbol(input.readInt), location)
+        case _ => throw new IOException("Invalid value ID")
+      }
+    }
+
+    def readBinop: BinaryOperator = {
+      import BinaryOperator._
+      input.readByte match {
+        case BINOP_MULTIPLY_ID => MULTIPLY
+        case BINOP_DIVIDE_ID => DIVIDE
+        case BINOP_REMAINDER_ID => REMAINDER
+        case BINOP_ADD_ID => ADD
+        case BINOP_SUBTRACT_ID => SUBTRACT
+        case BINOP_LEFT_SHIFT_ID => LEFT_SHIFT
+        case BINOP_RIGHT_SHIFT_ARITHMETIC_ID => RIGHT_SHIFT_ARITHMETIC
+        case BINOP_RIGHT_SHIFT_LOGICAL_ID => RIGHT_SHIFT_LOGICAL
+        case BINOP_AND_ID => AND
+        case BINOP_XOR_ID => XOR
+        case BINOP_OR_ID => OR
+        case _ => throw new IOException("Invalid binary operator ID")
+      }
+    }
+
+    def readRelop: RelationalOperator = {
+      import RelationalOperator._
+      input.readByte match {
+        case RELOP_LESS_THAN_ID => LESS_THAN
+        case RELOP_LESS_EQUAL_ID => LESS_EQUAL
+        case RELOP_GREATER_THAN_ID => GREATER_THAN
+        case RELOP_GREATER_EQUAL_ID => GREATER_EQUAL
+        case RELOP_EQUAL_ID => EQUAL
+        case RELOP_NOT_EQUAL_ID => NOT_EQUAL
+        case _ => throw new IOException("Invalid relational operator ID")
+      }
+    }
+
+    def readIntrinsic: IntrinsicFunction = {
+      import Intrinsic._
+      input.readByte match {
+        case INTRINSIC_EXIT_ID => EXIT
+        case _ => throw new IOException("Invalid intrinsic ID")
+      }
+    }
+
+    def readSymbol: Symbol = {
+      val name = readList { () => getString(input.readInt) }
+      val id = input.readInt
+      if (id < 0)
+        throw new IOException("Invalid symbol ID")
+      new Symbol(name, id)
+    }
+
+    def readLocation: Location = {
+      val filename = getString(input.readInt)
+      val beginLine = input.readInt
+      val beginColumn = input.readInt
+      val endLine = input.readInt
+      val endColumn = input.readInt
+      if (filename.isEmpty ||
+          beginLine < 1 || beginColumn < 1 || endLine < 1 || endColumn < 1 ||
+          (beginLine > endLine) || (beginLine == endLine && beginColumn > endColumn))
+      {
+        throw new IOException("Invalid location")
+      }
+      new Location(filename, beginLine, beginColumn, endLine, endColumn)
+    }
+
+    def readString: String = {
+      input.readUTF
+    }
+
+    def readList[T](readFunction: () => T): List[T] = {
+      val count = input.readInt
+      if (count < 0)
+        throw new IOException("Invalid list size")
+      val result = for (i <- 0 until count)
+        yield readFunction()
+      result.toList
+    }
+
+    def readOption[T](readFunction: () => T): Option[T] = {
+      val opt = input.readByte
+      if (opt == 0)
+        None
+      else if (opt == 1)
+        Some(readFunction())
+      else
+        throw new IOException("Invalid option ID")
+    }
+
+    def getSymbol(index: Int): Symbol = {
+      if (symbolTable.isDefinedAt(index))
+        symbolTable(index)
+      else
+        throw new IOException("Invalid symbol index")
+    }
+
+    def getLocation(index: Int): Location = {
+      if (locationTable.isDefinedAt(index))
+        locationTable(index)
+      else
+        throw new IOException("Invalid location index")
+    }
+
+    def getString(index: Int): String = {
+      if (stringTable.isDefinedAt(index))
+        stringTable(index)
+      else
+        throw new IOException("Invalid string index")
+    }    
   }
 }

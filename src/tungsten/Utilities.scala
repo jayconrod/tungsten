@@ -4,6 +4,7 @@ import java.io._
 
 object Utilities {
   val ERROR_CODE = 127
+  val FAILURE_CODE = 1
 
   def compileString(program: String): Module = {
     val ast = AstParser.test(program)

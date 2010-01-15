@@ -15,6 +15,8 @@ final class Symbol(val name: Seq[String], val id: Int)
   def + (right: String) = new Symbol(name ++ List(right), id)
   def + (right: Symbol) = new Symbol(name ++ right.name, right.id)
 
+  def simple = Symbol(name.last, id)
+
   def compare(that: Symbol): Int = {
     def compareName(lname: Seq[String], rname: Seq[String]): Int = {
       if (lname.isEmpty) {

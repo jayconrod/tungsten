@@ -305,7 +305,7 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def struct: Parser[AstStruct] = {
-    "#struct" ~> location ~ symbol ~ ("{" ~> repsep(field, ",") <~ "}") ^^ {
+    "#struct" ~> location ~ symbol ~ ("{" ~> rep(field) <~ "}") ^^ {
         case loc ~ name ~ fields => AstStruct(name, fields, loc)
       }
   }  

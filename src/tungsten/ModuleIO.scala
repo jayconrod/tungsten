@@ -7,15 +7,36 @@ import Utilities._
 
 object ModuleIO {
   def readBinary(file: File): Module = {
-    val input = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))
-    val reader = new BinaryModuleReader(input)
-    val module = reader.read
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  def readBinary(input: InputStream): Module = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  def readText(file: File): Either[Module, List[CompileException]] = {
+    val input = new BufferedReader(new FileReader(file))
+    val module = readText(input, file.getName)
     input.close
     module
   }
 
-  def readText(file: File): Either[Module, List[CompileException]] = {
-    parse(file) match {
+  def readText(input: Reader): Either[Module, List[CompileException]] = {
+    readText(input, "<STDIN>")
+  }    
+
+  def readText(input: Reader, filename: String): Either[Module, List[CompileException]] =
+  {
+    val text = readContentsOfFile(input)
+    readText(text, filename)
+  }
+
+  def readText(text: String,
+               filename: String = "<STDIN>"): Either[Module, List[CompileException]] =
+  {
+    parse(text, filename) match {
       case Right(error) => Right(List(ParseException(error, Nowhere)))
       case Left(ast) => {
         ast.compile match {
@@ -30,142 +51,231 @@ object ModuleIO {
         }
       }
     }
-  }      
+  }
 
   def writeBinary(module: Module, file: File) = {
-    val output = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))
-    val writer = new BinaryModuleWriter(module, output)
-    writer.write
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  def writeBinary(module: Module, output: OutputStream) = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  def writeText(module: Module, file: File) {
+    val output = new BufferedWriter(new FileWriter(file))
+    writeText(module, output)
     output.close
   }
 
-  def writeText(module: Module, file: File) = {
-    val output = new BufferedWriter(new FileWriter(file))
-    val INDENT = "  "
+  def writeText(module: Module, output: Writer) {
+    // TODO
+    throw new UnsupportedOperationException
+  }
 
-    def isTopLevel(defn: Definition) = defn match {
+  /* readBinary helpers */
+
+  /* readText helpers */
+  def parse(text: String, filename: String): Either[AstModule, String] = {
+    val reader = new CharSequenceReader(text)
+    val scanner = new AstLexer.Scanner(filename, reader)
+    AstParser.phrase(AstParser.module)(scanner) match {
+      case AstParser.Success(ast, _) => Left(ast)
+      case parseError: AstParser.NoSuccess => Right(parseError.msg)
+    }
+  }    
+
+  /* writeBinary helpers */
+  
+  /* writeText helpers */
+  val INDENT = "  "
+
+  def isTopLevel(defn: Definition): Boolean = {
+    defn match {
       case _: Global | _: Function | _: Struct => true
       case _ => false
     }
+  }    
+
+  def locationString(loc: Location): String = {
+    if (loc == Nowhere)
+      ""
+    else
+      loc.toString + " "
+  }
+
+  class TextModuleWriter(module: Module, output: Writer) {
+    val parentNames = new Stack[Symbol]
 
     def writeDefinition(defn: Definition) {
-      defn match {
-        case Block(name, parameters, instructions, location) => {
-          output.write(INDENT + "#block" + locationString(location) + name + "(")
-          writeDefinitionList(parameters, ", ")
-          output.write(") {\n")
-          writeDefinitionList(instructions, "")
-          output.write(INDENT + "}\n")
-        }
-        case Field(name, ty, location) => {
-          output.write(INDENT + "#field " + name + locationString(location) + ": " + ty + "\n")
-        }          
-        case Function(name, _, parameters, returnType, blocks, location) => {
-          output.write("#function" + locationString(location) + name + "(")
-          writeDefinitionList(parameters, ", ")
-          output.write("): " + returnType + " {\n")
-          writeDefinitionList(blocks, "")
-          output.write("}")
-        }
-        case Global(name, ty, value, location) => {
-          output.write("#global" + locationString(location) + name + ": " + ty)
-          value foreach { v => output.write(" = " + v) }
-          output.write("\n")
-        }
-        case Parameter(name, ty, location) => {
-          output.write(name.toString + locationString(location) + ": " + ty)
-        }
-        case Struct(name, fields, location) => {
-          output.write("#struct " + locationString(location) + name + " {\n")
-          writeDefinitionList(fields, "")
-        }
-        case inst: Instruction => {
-          output.write(INDENT + INDENT)
-          inst match {
-            case AddressInstruction(name, base, indices, location) => {
-              output.write("#address " + locationString(location) + name + " = " + base + ", ")
-              writeList(indices, (_: Value).toString, ", ")
-            }
-            case AssignInstruction(name, value, location) => {
-              output.write("#assign " + locationString(location) + name + " = " + value)
-            }
-            case BinaryOperatorInstruction(name, operator, left, right, location) => {
-              output.write("#binop " + locationString(location) + name + " = " +
-                left + " " + operator.name + " " + right)
-            }
-            case BranchInstruction(name, target, arguments, location) => {
-              output.write("#branch " + locationString(location) + name + " = " + target + "(")
-              writeList(arguments, (_: Value).toString, ", ")
-            }
-            case ConditionalBranchInstruction(name, condition, trueTarget, trueArgs,
-                                              falseTarget, falseArgs, location) =>
-            {
-              output.write("#cond " + locationString(location) + name + " = " +
-                condition + " ? " + trueTarget + "(")
-              writeList(trueArgs, (_: Value).toString, ", ")
-              output.write(") : " + falseTarget + "(")
-              writeList(falseArgs, (_: Value).toString, ", ")
-              output.write(")")
-            }
-            case IndirectCallInstruction(name, target, arguments, location) => {
-              output.write("#icall " + locationString(location) + name + " = " + target + "(")
-              writeList(arguments, (_: Value).toString, ", ")
-              output.write(")")
-            }
-            case IntrinsicCallInstruction(name, intrinsic, arguments, location) => {
-              output.write("#intrinsic " + locationString(location) + name + " = " +
-                intrinsic.name + "(")
-              writeList(arguments, (_: Value).toString, ", ")
-              output.write(")")
-            }
-            case LoadInstruction(name, pointer, location) => {
-              output.write("#load " + locationString(location) + name + " = *" + pointer)
-            }
-            case LoadElementInstruction(name, base, indices, location) => {
-              output.write("#loadelement " + locationString(location) + name + " = " +
-                base + ", ")
-              writeList(indices, (_: Value).toString, ", ")
-            }
-            case RelationalOperatorInstruction(name, operator, left, right, location) => {
-              output.write("#relop " + locationString(location) + name + " = " + 
-                left + " " + operator.name + " " + right)
-            }
-            case ReturnInstruction(name, value, location) => {
-              output.write("#return " + locationString(location) + name + " = " + value)
-            }
-            case StackAllocateInstruction(name, ty, location) => {
-              output.write("#stack " + locationString(location) + name + ": " + ty)
-            }
-            case StackAllocateArrayInstruction(name, count, elementType, location) => {
-              output.write("#stackarray " + locationString(location) + name + " = " +
-                count + " * " + elementType)
-            }
-            case StaticCallInstruction(name, target, arguments, location) => {
-              output.write("#scall " + locationString(location) + name + " = " + target + "(")
-              writeList(arguments, (_: Value).toString, ", ")
-              output.write(")")
-            }
-            case StoreInstruction(name, pointer, value, location) => {
-              output.write("#store " + locationString(location) + name + " = *" + pointer +
-                " <- " + value)
-            }
-            case StoreElementInstruction(name, base, indices, value, location) => {
-              output.write("#storeelement " + locationString(location) + name + " = " + 
-                base + ", ")
-              writeList(indices, (_: Value).toString, ", ")
-              output.write(" <- " + value)
-            }
-            case UpcastInstruction(name, value, ty, location) => {
-              output.write("#upcast " + locationString(location) + name + " = " + value + 
-                ": " + ty)
-            }
-          }
-          output.write("\n")
+      if (defn.isInstanceOf[Instruction])
+        writeDefinition(defn.asInstanceOf[Instruction])
+      else {
+        try {
+          val writer = getClass.getMethod("writeDefinition", defn.getClass)
+          writer.invoke(this, defn)
+        } catch {
+          case exn => throw new RuntimeException(exn)
         }
       }
     }
 
-    def writeList[T](list: List[T], writer: T => Unit, sep: String) {
+    def writeDefinition(block: Block) {
+      output.write(INDENT + "#block " + locationString(block.location) + block.name.simple)
+      writeParameterList(block.parameters)
+      output.write(" {\n")
+      parentNames.push(block.name)
+      writeDefinitionList(block.instructions, "")
+      parentNames.pop
+      output.write(INDENT + "}\n")
+    }
+
+    def writeDefinition(field: Field) {
+      output.write(INDENT + "#field " + locationString(field.location) + field.name.simple + 
+        ": " + field.ty + "\n")
+    }
+
+    def writeDefinition(function: Function) {
+      output.write("#function " + locationString(function.location) + function.name)
+      writeParameterList(function.parameters)
+      output.write(": " + function.returnType + " {\n")
+      writeDefinitionList(function.blocks, "")
+      output.write("}\n")
+    }
+
+    def writeDefinition(global: Global) { 
+      output.write("#global " + locationString(global.location) + global.name + 
+        ": " + global.ty)
+      global.value match {
+        case Some(v) => output.write(" = " + v)
+        case None => ()
+      }
+      output.write("\n")
+    }
+
+    def writeDefinition(param: Parameter) {
+      val locStr = if (param.location == Nowhere)
+        ""
+      else
+        " " + param.location + " "
+      output.write(param.name.simple.toString + locStr + ": " + param.ty)
+    }
+
+    def writeDefinition(struct: Struct) {
+      output.write("#struct " + locationString(struct.location) + struct.name + " {\n")
+      writeDefinitionList(struct.fields, "")
+      output.write("}\n")
+    }
+
+    def writeDefinition(inst: Instruction) {
+      val localName = localSymbol(inst.name)
+      def writeLocalValue(value: Value) {
+        output.write(localValue(value).toString)
+      }
+      output.write(INDENT + INDENT)
+      inst match {
+        case AddressInstruction(name, base, indices, location) => {
+          output.write("#address " + locationString(location) + localName + " = " + 
+            localValue(base) + ", ")
+          writeList(indices, writeLocalValue _, ", ")
+        }
+        case AssignInstruction(name, value, location) => {
+          output.write("#assign " + locationString(location) + localName + 
+            " = " + localValue(value))
+        }
+        case BinaryOperatorInstruction(name, operator, left, right, location) => {
+          output.write("#binop " + locationString(location) + localName + " = " +
+            localValue(left) + " " + operator.name + " " + localValue(right))
+        }
+        case BranchInstruction(name, target, arguments, location) => {
+          output.write("#branch " + locationString(location) + localName + 
+            " = " + target.simple)
+          writeArgumentList(arguments)
+        }
+        case ConditionalBranchInstruction(name, condition, trueTarget, trueArgs,
+                                          falseTarget, falseArgs, location) =>
+        {
+          output.write("#cond " + locationString(location) + localName + " = " +
+            condition + " ? " + localSymbol(trueTarget))
+          writeArgumentList(trueArgs)
+          output.write(" : " + localSymbol(falseTarget))
+          writeArgumentList(falseArgs)
+        }
+        case IndirectCallInstruction(name, target, arguments, location) => {
+          output.write("#icall " + locationString(location) + localName + " = " + target)
+          writeArgumentList(arguments)
+        }
+        case IntrinsicCallInstruction(name, intrinsic, arguments, location) => {
+          output.write("#intrinsic " + locationString(location) + localName + 
+            " = " + intrinsic.name)
+          writeArgumentList(arguments)
+        }
+        case LoadInstruction(name, pointer, location) => {
+          output.write("#load " + locationString(location) + localName + 
+            " = *" + localValue(pointer))
+        }
+        case LoadElementInstruction(name, base, indices, location) => {
+          output.write("#loadelement " + locationString(location) + localName + " = " +
+            base + ", ")
+          writeList(indices, writeLocalValue _, ", ")
+        }
+        case RelationalOperatorInstruction(name, operator, left, right, location) => {
+          output.write("#relop " + locationString(location) + localName + " = " + 
+            left + " " + operator.name + " " + right)
+        }
+        case ReturnInstruction(name, value, location) => {
+          output.write("#return " + locationString(location) + localName + 
+            " = " + localValue(value))
+        }
+        case StackAllocateInstruction(name, ty, location) => {
+          output.write("#stack " + locationString(location) + localName + ": " + ty)
+        }
+        case StackAllocateArrayInstruction(name, count, elementType, location) => {
+          output.write("#stackarray " + locationString(location) + localName + " = " +
+            count + " * " + elementType)
+        }
+        case StaticCallInstruction(name, target, arguments, location) => {
+          output.write("#scall " + locationString(location) + localName + " = " + target)
+          writeArgumentList(arguments)
+        }
+        case StoreInstruction(name, pointer, value, location) => {
+          output.write("#store " + locationString(location) + localName + " = *" + 
+            localValue(pointer) + " <- " + localValue(value))
+        }
+        case StoreElementInstruction(name, base, indices, value, location) => {
+          output.write("#storeelement " + locationString(location) + localName + " = " + 
+            localValue(base) + ", ")
+          writeList(indices, writeLocalValue _, ", ")
+          output.write(" <- " + localValue(value))
+        }
+        case UpcastInstruction(name, value, ty, location) => {
+          output.write("#upcast " + locationString(location) + localName + 
+            " = " + localValue(value) + ": " + ty)
+        }
+      }
+      output.write("\n")
+    }   
+
+    def writeParameterList(parameters: List[Symbol]) {
+      output.write("(")
+      if (parameters.isEmpty)
+        output.write(" ")
+      else
+        writeDefinitionList(parameters, ", ")
+      output.write(")")
+    }
+
+    def writeArgumentList(arguments: List[Value]) {
+      output.write("(")
+      if (arguments.isEmpty)
+        output.write(" ")
+      else
+        writeList(arguments, { (v: Value) => output.write(localValue(v).toString) }, ", ")
+      output.write(")")
+    }
+
+    def writeList[T](list: List[T], writer: T => Unit, sep: String) { 
       list match {
         case Nil => ()
         case h :: Nil => writer(h)
@@ -177,111 +287,132 @@ object ModuleIO {
       }
     }
 
-    def writeDefinitionList(list: List[Symbol], sep: String) {
-      writeList(list, module.definitions(_: Symbol), sep)
+    def writeDefinitionList(list: List[Symbol], sep: String) { 
+      val definitionList = list.map(module.definitions(_))
+      writeList(definitionList, writeDefinition(_: Definition), sep)
     }
 
-    def locationString(loc: Location) = {
-      if (loc == Nowhere)
-        ""
-      else
-        loc.toString + " "
+    def localSymbol(sym: Symbol): Symbol = {
+      def localName(l: List[String], r: List[String]): List[String] = {
+        (l, r) match {
+          case (lh :: lt, rh :: (rt @ _ :: _)) if lh == rh => localName(lt, rt)
+          case _ => r
+        }
+      }
+    
+      parentNames.headOption match {
+        case Some(parentName) => {
+          val lname = localName(parentName.name.toList, sym.name.toList)
+          Symbol(lname, sym.id)
+        }
+        case None => sym
+      }
     }
 
-    for (d <- module.definitions.valuesIterable
-         if isTopLevel(d))
-      writeDefinition(d)
+    def localValue(value: Value): Value = {
+      value match {
+        case DefinedValue(name, location) => DefinedValue(localSymbol(name), location)
+        case ArrayValue(elementType, elements, location) => {
+          val localElements = elements.map(localValue _)
+          ArrayValue(elementType, localElements, location)
+        }
+        case StructValue(structName, fields, location) => {
+          val localFields = fields.map(localValue _)
+          StructValue(structName, localFields, location)
+        }
+        case _ => value
+      }
+    }
   }
 
-  def parse(file: File): Either[AstModule, String] = {
-    val input = new FileReader(file)
-    val result = parse(input, file.getName)
+  /* magic numbers */
+  val MAGIC = 0x574F626A    // 'WObj' in big-endian
+
+  val VERSION: (Byte, Byte) = (0, 1)
+
+  val BLOCK_ID: Byte = 1
+  val FIELD_ID: Byte = 2
+  val FUNCTION_ID: Byte = 3
+  val GLOBAL_ID: Byte = 4
+  val PARAMETER_ID: Byte = 5
+  val STRUCT_ID: Byte = 6
+
+  val ADDRESS_INST_ID: Byte = 100
+  val ASSIGN_INST_ID: Byte = 101
+  val BINARY_OPERATOR_INST_ID: Byte = 102
+  val BRANCH_INST_ID: Byte = 103
+  val CONDITIONAL_BRANCH_INST_ID: Byte = 104
+  val INDIRECT_CALL_INST_ID: Byte = 105
+  val INTRINSIC_CALL_INST_ID: Byte = 106
+  val LOAD_INST_ID: Byte = 107
+  val LOAD_ELEMENT_INST_ID: Byte = 108
+  val RELATIONAL_OPERATOR_INST_ID: Byte = 109
+  val RETURN_INST_ID: Byte = 110
+  val STORE_INST_ID: Byte = 111
+  val STORE_ELEMENT_INST_ID: Byte = 112
+  val STACK_ALLOCATE_INST_ID: Byte = 113
+  val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 114
+  val STATIC_CALL_INST_ID: Byte = 115
+  val UPCAST_INST_ID: Byte = 116
+
+  val BINOP_MULTIPLY_ID: Byte = 1
+  val BINOP_DIVIDE_ID: Byte = 2
+  val BINOP_REMAINDER_ID: Byte = 3
+  val BINOP_ADD_ID: Byte = 4
+  val BINOP_SUBTRACT_ID: Byte = 5
+  val BINOP_LEFT_SHIFT_ID: Byte = 6
+  val BINOP_RIGHT_SHIFT_ARITHMETIC_ID: Byte = 7
+  val BINOP_RIGHT_SHIFT_LOGICAL_ID: Byte = 8
+  val BINOP_AND_ID: Byte = 9
+  val BINOP_XOR_ID: Byte = 10
+  val BINOP_OR_ID: Byte = 11
+
+  val RELOP_LESS_THAN_ID: Byte = 20
+  val RELOP_LESS_EQUAL_ID: Byte = 21
+  val RELOP_GREATER_THAN_ID: Byte = 22
+  val RELOP_GREATER_EQUAL_ID: Byte = 23
+  val RELOP_EQUAL_ID: Byte = 24
+  val RELOP_NOT_EQUAL_ID: Byte = 25
+
+  val INTRINSIC_EXIT_ID: Byte = 30
+
+  val UNIT_TYPE_ID = 1
+  val BOOLEAN_TYPE_ID = 2
+  val INT_TYPE_ID = 3
+  val FLOAT_TYPE_ID = 4
+  val POINTER_TYPE_ID = 5
+  val NULL_TYPE_ID = 6
+  val ARRAY_TYPE_ID = 7
+  val STRUCT_TYPE_ID = 8
+
+  val UNIT_VALUE_ID = 1
+  val BOOLEAN_VALUE_ID = 2
+  val INT8_VALUE_ID = 3
+  val INT16_VALUE_ID = 4
+  val INT32_VALUE_ID = 5
+  val INT64_VALUE_ID = 6
+  val FLOAT32_VALUE_ID = 7
+  val FLOAT64_VALUE_ID = 8
+  val NULL_VALUE_ID = 9
+  val ARRAY_VALUE_ID = 10
+  val STRUCT_VALUE_ID = 11
+  val DEFINED_VALUE_ID = 12
+
+  /* old code */
+/*
+  def readBinary(file: File): Module = {
+    val input = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))
+    val reader = new BinaryModuleReader(input)
+    val module = reader.read
     input.close
-    result
+    module
   }
 
-  def parse(input: Reader, filename: String = ""): Either[AstModule, String] = {
-    val text = readContentsOfFile(input)
-    val reader = new CharSequenceReader(text)
-    val scanner = new AstLexer.Scanner(filename, reader)
-    AstParser.phrase(AstParser.module)(scanner) match {
-      case AstParser.Success(ast, _) => Left(ast)
-      case parseError: AstParser.NoSuccess => Right(parseError.msg)
-    }
-  }
-
-  object BinaryModuleMagicNumbers {
-    val MAGIC = 0x574F626A    // 'WObj' in big-endian
-
-    val VERSION: (Byte, Byte) = (0, 1)
-
-    val BLOCK_ID: Byte = 1
-    val FIELD_ID: Byte = 2
-    val FUNCTION_ID: Byte = 3
-    val GLOBAL_ID: Byte = 4
-    val PARAMETER_ID: Byte = 5
-    val STRUCT_ID: Byte = 6
-
-    val ADDRESS_INST_ID: Byte = 100
-    val ASSIGN_INST_ID: Byte = 101
-    val BINARY_OPERATOR_INST_ID: Byte = 102
-    val BRANCH_INST_ID: Byte = 103
-    val CONDITIONAL_BRANCH_INST_ID: Byte = 104
-    val INDIRECT_CALL_INST_ID: Byte = 105
-    val INTRINSIC_CALL_INST_ID: Byte = 106
-    val LOAD_INST_ID: Byte = 107
-    val LOAD_ELEMENT_INST_ID: Byte = 108
-    val RELATIONAL_OPERATOR_INST_ID: Byte = 109
-    val RETURN_INST_ID: Byte = 110
-    val STORE_INST_ID: Byte = 111
-    val STORE_ELEMENT_INST_ID: Byte = 112
-    val STACK_ALLOCATE_INST_ID: Byte = 113
-    val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 114
-    val STATIC_CALL_INST_ID: Byte = 115
-    val UPCAST_INST_ID: Byte = 116
-
-    val BINOP_MULTIPLY_ID: Byte = 1
-    val BINOP_DIVIDE_ID: Byte = 2
-    val BINOP_REMAINDER_ID: Byte = 3
-    val BINOP_ADD_ID: Byte = 4
-    val BINOP_SUBTRACT_ID: Byte = 5
-    val BINOP_LEFT_SHIFT_ID: Byte = 6
-    val BINOP_RIGHT_SHIFT_ARITHMETIC_ID: Byte = 7
-    val BINOP_RIGHT_SHIFT_LOGICAL_ID: Byte = 8
-    val BINOP_AND_ID: Byte = 9
-    val BINOP_XOR_ID: Byte = 10
-    val BINOP_OR_ID: Byte = 11
-
-    val RELOP_LESS_THAN_ID: Byte = 20
-    val RELOP_LESS_EQUAL_ID: Byte = 21
-    val RELOP_GREATER_THAN_ID: Byte = 22
-    val RELOP_GREATER_EQUAL_ID: Byte = 23
-    val RELOP_EQUAL_ID: Byte = 24
-    val RELOP_NOT_EQUAL_ID: Byte = 25
-
-    val INTRINSIC_EXIT_ID: Byte = 30
-
-    val UNIT_TYPE_ID = 1
-    val BOOLEAN_TYPE_ID = 2
-    val INT_TYPE_ID = 3
-    val FLOAT_TYPE_ID = 4
-    val POINTER_TYPE_ID = 5
-    val NULL_TYPE_ID = 6
-    val ARRAY_TYPE_ID = 7
-    val STRUCT_TYPE_ID = 8
-
-    val UNIT_VALUE_ID = 1
-    val BOOLEAN_VALUE_ID = 2
-    val INT8_VALUE_ID = 3
-    val INT16_VALUE_ID = 4
-    val INT32_VALUE_ID = 5
-    val INT64_VALUE_ID = 6
-    val FLOAT32_VALUE_ID = 7
-    val FLOAT64_VALUE_ID = 8
-    val NULL_VALUE_ID = 9
-    val ARRAY_VALUE_ID = 10
-    val STRUCT_VALUE_ID = 11
-    val DEFINED_VALUE_ID = 12
+  def writeBinary(module: Module, file: File) = {
+    val output = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))
+    val writer = new BinaryModuleWriter(module, output)
+    writer.write
+    output.close
   }
 
   class BinaryModuleWriter(module: Module, output: DataOutputStream) {
@@ -1036,4 +1167,5 @@ object ModuleIO {
         throw new IOException("Invalid string index")
     }    
   }
+*/
 }

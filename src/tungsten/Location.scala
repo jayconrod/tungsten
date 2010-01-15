@@ -40,9 +40,9 @@ sealed case class Location(val filename: String,
   }
 
   final override def toString = {
-    filename + ":" + beginLine + "." + beginColumn + "-" + endLine + "." + endColumn
+    "<" + filename + ":" + beginLine + "." + beginColumn + "-" + endLine + "." + endColumn + ">"
   }
 }
 
-object Nowhere extends Location("<NOWHERE>", 1, 1, 1, 1)
+object Nowhere extends Location("NOWHERE", 1, 1, 1, 1)
 

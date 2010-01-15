@@ -388,7 +388,7 @@ class AstParserTest {
   @Test
   def struct = {
     val program = "#struct <foo.w:1.2-3.4> Foo {\n" +
-                  "  #field bar: #unit,\n" +
+                  "  #field bar: #unit\n" +
                   "  #field baz: #unit\n" +
                   "}"
     val struct = AstStruct(new Symbol("Foo"),
@@ -396,109 +396,6 @@ class AstParserTest {
                                 AstField(new Symbol("baz"), AstUnitType(Nowhere), Nowhere)),
                            fooLoc)
     val expected = AstModule(List(struct))
-    testModule(program, expected)
-  }
-
-  @Test
-  def classBasic = {
-    val program = "#class Foo {\n" +
-                  "  #fields {\n" +
-                  "  }\n" +
-                  "  #methods {\n" +
-                  "  }\n" +
-                  "}"
-    val clas = AstClass(new Symbol("Foo"),
-                        Nil,
-                        None,
-                        Nil,
-                        Nil,
-                        Nil,
-                        Nowhere)
-    val expected = AstModule(List(clas))
-    testModule(program, expected)
-  }
-
-  @Test
-  def classFull = {
-    val program = "#class <foo.w:1.2-3.4> Foo[T] <: Bar[T] : Baz, Quux[T] {\n" +
-                  "  #fields {\n" +
-                  "    #field a: #unit,\n" +
-                  "    #field b: #unit\n" +
-                  "  }\n" +
-                  "  #methods {\n" +
-                  "    #function c( ): #unit,\n" +
-                  "    #function d( ): #unit\n" +
-                  "  }\n" +
-                  "}"
-    val clas = AstClass(new Symbol("Foo"),
-                        List(AstTypeParameter(new Symbol("T"), None, None, Nowhere)),
-                        Some(AstClassType(new Symbol("Bar"),
-                                          List(AstClassType(new Symbol("T"), Nil, Nowhere)),
-                                          Nowhere)),
-                        List(AstClassType(new Symbol("Baz"), Nil, Nowhere),
-                             AstClassType(new Symbol("Quux"),
-                                          List(AstClassType(new Symbol("T"), Nil, Nowhere)),
-                                          Nowhere)),
-                        List(AstField(new Symbol("a"),
-                                      AstUnitType(Nowhere),
-                                      Nowhere),
-                             AstField(new Symbol("b"),
-                                      AstUnitType(Nowhere),
-                                      Nowhere)),
-                        List(AstFunction(new Symbol("c"),
-                                         AstUnitType(Nowhere),
-                                         Nil,
-                                         Nil,
-                                         Nil,
-                                         Nowhere),
-                             AstFunction(new Symbol("d"),
-                                         AstUnitType(Nowhere),
-                                         Nil,
-                                         Nil,
-                                         Nil,
-                                         Nowhere)),
-                        fooLoc)
-    val expected = AstModule(List(clas))
-    testModule(program, expected)
-  }
-
-  @Test
-  def interfaceBasic = {
-    val program = "#interface Foo {}\n"
-    val iface = AstInterface(new Symbol("Foo"), Nil, None, Nil, Nil, Nowhere)
-    val expected = AstModule(List(iface))
-    testModule(program, expected)
-  }
-
-  @Test
-  def interfaceFull = {
-    val program = "#interface <foo.w:1.2-3.4> Foo[T] <: Bar[T] : Baz, Quux[T] {\n" +
-                  "  #function a( ): #unit,\n" +
-                  "  #function b( ): #unit\n" +
-                  "}"
-    val iface = AstInterface(new Symbol("Foo"),
-                             List(AstTypeParameter(new Symbol("T"), None, None, Nowhere)),
-                             Some(AstClassType(new Symbol("Bar"),
-                                               List(AstClassType(new Symbol("T"), Nil, Nowhere)),
-                                               Nowhere)),
-                             List(AstClassType(new Symbol("Baz"), Nil, Nowhere),
-                                  AstClassType(new Symbol("Quux"),
-                                               List(AstClassType(new Symbol("T"), Nil, Nowhere)),
-                                               Nowhere)),
-                             List(AstFunction(new Symbol("a"), 
-                                              AstUnitType(Nowhere),
-                                              Nil,
-                                              Nil,
-                                              Nil,
-                                              Nowhere),
-                                  AstFunction(new Symbol("b"),
-                                              AstUnitType(Nowhere),
-                                              Nil,
-                                              Nil,
-                                              Nil,
-                                              Nowhere)),
-                             fooLoc)
-    val expected = AstModule(List(iface))
     testModule(program, expected)
   }
 }

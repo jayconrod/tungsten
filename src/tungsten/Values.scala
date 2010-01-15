@@ -103,7 +103,11 @@ final case class ArrayValue(elementType: Type,
           elements.flatMap(validateElementComponents _))
   }
 
-  override def toString = "[%s: %s]".format(elementType, elements.mkString(", "))
+  override def toString = {
+    val elementsStr = elements.mkString(", ")
+    val locationStr = if (location == Nowhere) "" else location.toString
+    "[%s: %s]%s".format(elementType, elementsStr, locationStr)
+  }
 }      
 
 final case class StructValue(structName: Symbol,
@@ -135,6 +139,12 @@ final case class StructValue(structName: Symbol,
           validateFieldCount,
           fields.flatMap(_.validateComponents(module)),
           validateFieldTypes)
+  }
+
+  override def toString = {
+    val fieldsStr = fields.mkString(", ")
+    val locationStr = if (location == Nowhere) "" else location.toString
+    "{%s: %s}%s".format(structName, fieldsStr, locationStr)
   }
 }
 

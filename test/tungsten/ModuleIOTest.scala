@@ -32,7 +32,7 @@ class ModuleIOTest {
   def isTopLevelTest {
     assertFalse(isTopLevel(Block("a", Nil, Nil)))
     assertFalse(isTopLevel(Field("a", UnitType())))
-    assertTrue(isTopLevel(Function("a", Nil, Nil, UnitType(), Nil)))
+    assertTrue(isTopLevel(Function("a", Nil, UnitType(), Nil)))
     assertTrue(isTopLevel(Global("a", UnitType(), None)))
     assertFalse(isTopLevel(ReturnInstruction("a", UnitValue())))
     assertFalse(isTopLevel(Parameter("a", UnitType())))

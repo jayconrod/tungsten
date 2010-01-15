@@ -3,7 +3,6 @@ package tungsten
 import Utilities._
 
 final case class Function(override name: Symbol,
-                          typeParameters: List[Symbol],
                           parameters: List[Symbol],
                           returnType: Type,
                           blocks: List[Symbol],
@@ -16,8 +15,7 @@ final case class Function(override name: Symbol,
   }
 
   def validateComponents(module: Module) = {
-    stage(validateComponentsOfClass[TypeParameter](module, typeParameters),
-          validateComponentsOfClass[Parameter](module, parameters),
+    stage(validateComponentsOfClass[Parameter](module, parameters),
           returnType.validate(module),
           validateComponentsOfClass[Block](module, blocks))
   }

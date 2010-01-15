@@ -291,16 +291,6 @@ class AstParserTest {
   }
 
   @Test
-  def typeParameter = {
-    val param = "foo <foo.w:1.2-3.4> <: #unit >: #unit"
-    val expected = AstTypeParameter(new Symbol("foo"),
-                                    Some(AstUnitType(Nowhere)),
-                                    Some(AstUnitType(Nowhere)),
-                                    fooLoc)
-    test(param, AstParser.typeParameter, expected)
-  }
-
-  @Test
   def global = {
     val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, Nowhere)
     val expected = AstModule(List(global))
@@ -336,7 +326,6 @@ class AstParserTest {
     val function = AstFunction(new Symbol("foo"), 
                                AstUnitType(Nowhere),
                                Nil,
-                               Nil,
                                List(ret),
                                Nowhere)
     val expected = AstModule(List(function))
@@ -345,7 +334,7 @@ class AstParserTest {
 
   @Test
   def function = {
-    val program = "#function <foo.w:1.2-3.4> foo[T1, T2](bar: #unit, baz: #unit): #unit {\n" +
+    val program = "#function <foo.w:1.2-3.4> foo(bar: #unit, baz: #unit): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #branch quux = ret( )\n" + 
                   "  }\n" +
@@ -353,8 +342,6 @@ class AstParserTest {
                   "    #return xyz = ()\n" +
                   "  }\n" +
                   "}"
-    val (t1, t2) = (AstTypeParameter(new Symbol("T1"), None, None, Nowhere),
-                    AstTypeParameter(new Symbol("T2"), None, None, Nowhere))
     val (p1, p2) = (AstParameter(new Symbol("bar"), AstUnitType(Nowhere), Nowhere),
                     AstParameter(new Symbol("baz"), AstUnitType(Nowhere), Nowhere))
     val entry = AstBlock(new Symbol("entry"), Nil,
@@ -370,7 +357,6 @@ class AstParserTest {
                        Nowhere)
     val function = AstFunction(new Symbol("foo"),
                                AstUnitType(Nowhere),
-                               List(t1, t2),
                                List(p1, p2),
                                List(entry, ret),
                                fooLoc)

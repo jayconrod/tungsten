@@ -443,7 +443,7 @@ object ModuleIO {
       defn match {
         case _: Block => ()
         case Field(_, ty, _) => collectType(ty)
-        case Function(_, _, _, returnType, _, _) => collectType(returnType)
+        case Function(_, _, returnType, _, _) => collectType(returnType)
         case Global(_, ty, value, _) => {
           collectType(ty)
           value.foreach(collectValue _)
@@ -567,7 +567,7 @@ object ModuleIO {
           output.writeByte(FIELD_ID)
           writeType(ty)
         }
-        case Function(_, _, parameters, returnType, blocks, _) => {
+        case Function(_, parameters, returnType, blocks, _) => {
           output.writeByte(FUNCTION_ID)
           writeSeq(parameters, writeSymbol _)
           writeType(returnType)

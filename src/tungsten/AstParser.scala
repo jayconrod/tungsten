@@ -261,27 +261,6 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
-  def typeParameter: Parser[AstTypeParameter] = {
-    val subtype = opt("<:" ~> ty)
-    val supertype = opt(">:" ~> ty)
-    symbol ~ location ~ subtype ~ supertype ^^ {
-      case name ~ loc ~ sub ~ sup => AstTypeParameter(name, sub, sup, loc)
-    }
-  }
-
-  def typeParameterList: Parser[List[AstTypeParameter]] = {
-    opt("[" ~> rep1sep(typeParameter, ",") <~ "]") ^^ {
-      case Some(params) => params
-      case None => Nil
-    }
-  }
-
-  def superclass: Parser[Option[AstType]] = opt("<:" ~> ty)
-
-  def interfaces: Parser[List[AstType]] = {
-    opt(":" ~> rep1sep(ty, ",")) ^^ { _.getOrElse(Nil) }
-  }
-
   def field: Parser[AstField] = {
     "#field" ~> location ~ symbol ~ (":" ~> ty) ^^ {
       case loc ~ name ~ ty => AstField(name, ty, loc)
@@ -295,11 +274,11 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def function: Parser[AstFunction] = {
-    "#function" ~> location ~ symbol ~ typeParameterList ~ parameterList ~ (":" ~> ty) ~
+    "#function" ~> location ~ symbol ~ parameterList ~ (":" ~> ty) ~
       opt("{" ~> rep(block) <~ "}") ^^ {
-        case loc ~ name ~ tyParams ~ params ~ retTy ~ body => {
+        case loc ~ name ~ params ~ retTy ~ body => {
           val blocks = body.getOrElse(Nil)
-          AstFunction(name, retTy, tyParams, params, blocks, loc)
+          AstFunction(name, retTy, params, blocks, loc)
         }
       }
   }
@@ -310,32 +289,7 @@ object AstParser extends Parsers with ImplicitConversions {
       }
   }  
 
-  def clas: Parser[AstClass] = {
-    def fields: Parser[List[AstField]] = {
-      "#fields" ~> "{" ~> repsep(field, ",") <~ "}"
-    }
-    def methods: Parser[List[AstFunction]] = {
-      "#methods" ~> "{" ~> repsep(function, ",") <~ "}"
-    }
-    
-    "#class" ~> location ~ symbol ~ typeParameterList ~ superclass ~ interfaces ~ 
-      ("{" ~> fields ~ methods <~ "}") ^^ { 
-        case loc ~ name ~ tyParams ~ sup ~ is ~ (fs ~ ms) => {
-          AstClass(name, tyParams, sup, is, fs, ms, loc)
-        }
-      }
-  }
-
-  def iface: Parser[AstInterface] = {
-    "#interface" ~> location ~ symbol ~ typeParameterList ~ superclass ~ interfaces ~
-      ("{" ~> repsep(function, ",") <~ "}") ^^ {
-        case loc ~ name ~ tyParams ~ sup ~ is ~ ms => {
-          AstInterface(name, tyParams, sup, is, ms, loc)
-        }
-      }
-  }
-
-  def definition: Parser[AstDefinition] = global | function | struct | clas | iface
+  def definition: Parser[AstDefinition] = global | function | struct
 
   def module: Parser[AstModule] = rep(definition) ^^ { AstModule(_) }
 

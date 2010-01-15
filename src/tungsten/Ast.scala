@@ -524,28 +524,6 @@ final case class AstParameter(name: Symbol, ty: AstType, override location: Loca
   }
 }     
 
-final case class AstTypeParameter(name: Symbol, 
-                                  upperBound: Option[AstType], 
-                                  lowerBound: Option[AstType],  
-                                  override location: Location)
-  extends AstDefinition(location)
-{
-  def compileDeclaration(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
-    val cTyParam = TypeParameter(fullName, None, None, location)
-    ctx.addDefn(cTyParam)
-  }
-
-  def compile(ctx: AstContext): TypeParameter = {
-    val fullName = ctx.names.top + name
-    val cUpperBound = upperBound.map(_.compileOrElse(ctx))
-    val cLowerBound = lowerBound.map(_.compileOrElse(ctx))
-    val cTyParam = TypeParameter(fullName, cUpperBound, cLowerBound, location)
-    ctx.replaceDefn(cTyParam)
-    cTyParam
-  }
-}
-
 final case class AstBlock(name: Symbol,
                           parameters: List[AstParameter],
                           instructions: List[AstInstruction],
@@ -576,7 +554,6 @@ final case class AstBlock(name: Symbol,
 
 final case class AstFunction(name: Symbol,
                              returnType: AstType,
-                             typeParameters: List[AstTypeParameter],
                              parameters: List[AstParameter],
                              blocks: List[AstBlock],
                              override location: Location)
@@ -584,10 +561,9 @@ final case class AstFunction(name: Symbol,
 {
   def compileDeclaration(ctx: AstContext) = {
     ctx.names.push(name)
-    typeParameters.foreach(_.compileDeclaration(ctx))
     parameters.foreach(_.compileDeclaration(ctx))
     blocks.foreach(_.compileDeclaration(ctx))
-    val cFunction = Function(name, Nil, Nil, UnitType(), Nil, location)
+    val cFunction = Function(name, Nil, UnitType(), Nil, location)
     ctx.names.pop
     ctx.addDefn(cFunction)
   }
@@ -595,10 +571,9 @@ final case class AstFunction(name: Symbol,
   def compile(ctx: AstContext) = {
     ctx.names.push(name)
     val cRetTy = returnType.compileOrElse(ctx)
-    val cTyParams = typeParameters.map(_.compile(ctx).name)
     val cParams = parameters.map(_.compile(ctx).name)
     var cBlocks = blocks.map(_.compile(ctx).name)
-    val cFunction = Function(name, cTyParams, cParams, cRetTy, cBlocks, location)
+    val cFunction = Function(name, cParams, cRetTy, cBlocks, location)
     ctx.replaceDefn(cFunction)
     ctx.names.pop
     cFunction
@@ -667,33 +642,6 @@ final case class AstStruct(name: Symbol,
     ctx.names.pop
     cStruct
   }
-}
-
-final case class AstClass(name: Symbol,
-                          typeParameters: List[AstTypeParameter],
-                          superclass: Option[AstType],
-                          interfaces: List[AstType],
-                          fields: List[AstField],
-                          methods: List[AstFunction],
-                          override location: Location)
-  extends AstDefinition(location)
-{
-  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
-
-  def compile(ctx: AstContext) = throw new UnsupportedOperationException
-}
-
-final case class AstInterface(name: Symbol,
-                              typeParameters: List[AstTypeParameter],
-                              superclass: Option[AstType],
-                              interfaces: List[AstType],
-                              methods: List[AstFunction],
-                              override location: Location)
-  extends AstDefinition(location)
-{
-  def compileDeclaration(ctx: AstContext) = throw new UnsupportedOperationException
-
-  def compile(ctx: AstContext) = throw new UnsupportedOperationException
 }
 
 // Module

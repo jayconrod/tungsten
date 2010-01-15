@@ -93,7 +93,7 @@ class ValidationTest {
     val (instName, blockName) = (new Symbol("ret"), new Symbol("block"))
     val inst = ReturnInstruction(instName, UnitValue())
     val block = Block(blockName, Nil, List(instName, instName))
-    val function = Function(new Symbol("main"), Nil, Nil, UnitType(), List(blockName))
+    val function = Function(new Symbol("main"), Nil, UnitType(), List(blockName))
     var module = (new Module).add(inst, block, function)
     containsError[DuplicateComponentException](module.validate)
   }
@@ -485,7 +485,7 @@ class ValidationTest {
     val i1 = AssignInstruction("i1", StructValue("A", Nil))
     val i2 = ReturnInstruction("i2", UnitValue())
     val block = Block("main.entry", Nil, List(i1, i2).map(_.name))
-    val function = Function("main", Nil, Nil, UnitType(), List(block.name))
+    val function = Function("main", Nil, UnitType(), List(block.name))
     val module = (new Module).add(i1, i2, block, function)
     val errors = module.validate
     containsError[UndefinedSymbolException](errors)

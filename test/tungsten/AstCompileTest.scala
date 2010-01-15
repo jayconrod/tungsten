@@ -147,17 +147,6 @@ class AstCompileTest {
   }
 
   @Test
-  def typeParameter = {
-    ctx.names.push(foo)
-    val expected = TypeParameter(foo + bar, 
-                                 Some(UnitType(Nowhere)),
-                                 Some(UnitType(Nowhere)),
-                                 loc)
-    val ast = AstTypeParameter(bar, Some(AstUnitType(Nowhere)), Some(AstUnitType(Nowhere)), loc)
-    testDefinition(expected, ast)
-  }
-
-  @Test
   def addressInst = {
     ctx.names.push(foo)
     val ast = AstAddressInstruction(bar,
@@ -380,7 +369,6 @@ class AstCompileTest {
     val List(a, b, c) = List("a", "b", "c").map(new Symbol(_))
     val ast = AstFunction(foo,
                           AstUnitType(Nowhere),
-                          List(AstTypeParameter(a, None, None, Nowhere)),
                           List(AstParameter(b, AstUnitType(Nowhere), Nowhere)),
                           List(AstBlock(bar,
                                         List(AstParameter(c, AstUnitType(Nowhere), Nowhere)),
@@ -389,7 +377,7 @@ class AstCompileTest {
                                                                   Nowhere)),
                                         Nowhere)),
                           loc)
-    val expected = Function(foo, List(foo + a), List(foo + b), UnitType(), List(foo + bar), loc)
+    val expected = Function(foo, List(foo + b), UnitType(), List(foo + bar), loc)
     testDefinition(expected, ast)
   }
 

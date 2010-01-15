@@ -41,33 +41,6 @@ class TypeTest {
   }
 
   @Test
-  def universalEquals = {
-    val p = new Symbol("T")
-    val u1 = UniversalType(List(p), UnitType())
-    val u2 = UniversalType(List(p), UnitType())
-    assertTrue(u1 == u2)
-    assertEquals(u1.hashCode, u2.hashCode)
-  }
-
-  @Test
-  def existentialEquals = {
-    val p = new Symbol("T")
-    val e1 = ExistentialType(List(p), UnitType())
-    val e2 = ExistentialType(List(p), UnitType())
-    assertTrue(e1 == e2)
-    assertEquals(e1.hashCode, e2.hashCode)
-  }
-
-  @Test
-  def varEquals = {
-    val varName = new Symbol("T")
-    val v1 = VariableType(varName)
-    val v2 = VariableType(varName)
-    assertTrue(v1 == v2)
-    assertEquals(v1.hashCode, v2.hashCode)
-  }
-
-  @Test
   def arrayEquals = {
     val et = IntType(32)
     val a1 = ArrayType(None, et)
@@ -82,24 +55,6 @@ class TypeTest {
     val f2 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
     assertTrue(f1 == f2)
     assertEquals(f1.hashCode, f2.hashCode)
-  }
-
-  @Test
-  def classEquals = {
-    val className = new Symbol("Foo")
-    val c1 = ClassType(className)
-    val c2 = ClassType(className)
-    assertTrue(c1 == c2)
-    assertEquals(c1.hashCode, c2.hashCode)
-  }
-
-  @Test
-  def interfaceEquals = {
-    val interfaceName = new Symbol("Foo")
-    val i1 = InterfaceType(interfaceName)
-    val i2 = InterfaceType(interfaceName)
-    assertTrue(i1 == i2)
-    assertEquals(i1.hashCode, i2.hashCode)
   }
 
   @Test

@@ -78,11 +78,6 @@ class ValidationTest {
   }
 
   @Test
-  def missingMain = {
-    programContainsError[MissingMainException]("")    
-  }
-
-  @Test
   def returnTypeMismatch = {
     val program = "#function main( ): #unit { #block entry( ) { #return r = 12 } }"
     programContainsError[TypeMismatchException](program)

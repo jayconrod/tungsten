@@ -67,7 +67,7 @@ final class Module(val definitions: Map[Symbol, Definition]) {
           else
             Nil
         }
-        case _ => List(MissingMainException())
+        case _ => Nil
       }
     }
 

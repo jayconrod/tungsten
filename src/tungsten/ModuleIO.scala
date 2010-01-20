@@ -273,7 +273,7 @@ object ModuleIO {
 
     def readBinaryOperator: BinaryOperator = {
       import BinaryOperator._
-      readInt match {
+      input.readByte match {
         case BINOP_MULTIPLY_ID => MULTIPLY
         case BINOP_DIVIDE_ID => DIVIDE
         case BINOP_REMAINDER_ID => REMAINDER
@@ -291,7 +291,7 @@ object ModuleIO {
 
     def readRelationalOperator: RelationalOperator = {
       import RelationalOperator._
-      readInt match {
+      input.readByte match {
         case RELOP_LESS_THAN_ID => LESS_THAN
         case RELOP_LESS_EQUAL_ID => LESS_EQUAL
         case RELOP_GREATER_THAN_ID => GREATER_THAN
@@ -304,7 +304,7 @@ object ModuleIO {
 
     def readIntrinsic: IntrinsicFunction = {
       import Intrinsic._
-      readInt match {
+      input.readByte match {
         case INTRINSIC_EXIT_ID => EXIT
         case _ => throw new IOException("Invalid intrinsic ID")
       }

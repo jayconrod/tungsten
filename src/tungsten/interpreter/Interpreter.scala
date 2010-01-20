@@ -1,65 +1,37 @@
 package tungsten.interpreter
 
 import java.io._
-import java.nio.channels.FileChannel.MapMode._
-import scala.util.parsing.input.CharSequenceReader
 import tungsten._
 import tungsten.Utilities._
 
 object Interpreter {
-  def usage = System.err.println("usage: Interpreter sourcefile\n")
+  def usage = System.err.println("usage: Interpreter objectfile\n")
 
   def main(args: Array[String]) = {
-    def getFilename = {
-      if (args.size != 1) {
-        usage
-        None
-      } else
-        Some(args(0))
+    if (args.size != 1) {
+      usage
+      System.exit(ERROR_CODE)
     }
 
-    def parse(filename: String) = {
-      val file = new File(filename)
-      val text = readContentsOfFile(file)
-      val reader = new CharSequenceReader(text)
-      val scanner = new AstLexer.Scanner(filename, reader)
-      AstParser.phrase(AstParser.module)(scanner) match {
-        case AstParser.Success(ast, _) => Some(ast)
-        case parseError: AstParser.NoSuccess => {
-          System.err.println(parseError.msg)
-          None
-        }
+    var module: Module = null
+    try {
+      val file = new File(args(0))
+      module = ModuleIO.readBinary(file)
+      val errors = module.validate
+      if (!errors.isEmpty) {
+        System.err.println("Invalid module:")
+        errors.foreach(System.err.println(_))
+        System.exit(FAILURE_CODE)
+      }
+    } catch {
+      case exn: IOException => {
+        System.err.println("error: " + exn.getMessage)
+        System.exit(FAILURE_CODE)
       }
     }
     
-    def compile(ast: AstModule) = {
-      ast.compile match {
-        case Left(module) => Some(module)
-        case Right(errors) => {
-          errors.foreach(System.err.println(_))
-          None
-        }
-      }
-    }
-
-    def validate(module: Module) = {
-      val errors = module.validate
-      errors.foreach(System.err.println(_))
-      errors.isEmpty
-    }
-
-    val returnCode = getFilename flatMap { filename =>
-      parse(filename) flatMap { ast =>
-        compile(ast) flatMap { module =>
-          if (validate(module)) {
-            val env = new Environment(module)
-            Some(env.run)
-          } else
-            None
-        }
-      }
-    }
-
-    System.exit(returnCode.getOrElse(ERROR_CODE))
+    val env = new Environment(module)
+    val errorCode = env.run
+    System.exit(errorCode)
   }
 }

@@ -3,6 +3,7 @@ package tungsten
 import org.junit.Test
 import org.junit.Ignore
 import org.junit.Assert._
+import Utilities._
 
 class AstParserTest {
   val fooLoc = Location("foo.w", 1, 2, 3, 4)

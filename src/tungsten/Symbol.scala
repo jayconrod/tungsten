@@ -75,16 +75,6 @@ object Symbol {
       Some(sym.name.toList, sym.id)
     }
   }      
-
-  implicit def fromString(string: String) = {
-    import scala.util.parsing.input.CharArrayReader
-    val reader = new CharArrayReader(string.toCharArray)
-    val result = AstLexer.phrase(AstLexer.symbol)(reader)
-    result match {
-      case AstLexer.Success(sym, _) => sym
-      case _ => throw new IllegalArgumentException
-    }
-  }
 }
 
 final class SymbolFactory {

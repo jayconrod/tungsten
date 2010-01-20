@@ -105,4 +105,14 @@ object Utilities {
   {
     if (!a.isEmpty) a else stage(b, c, d, e, f, g, h, i, j)
   }
+
+  implicit def symbolFromString(string: String) = {
+    import scala.util.parsing.input.CharArrayReader
+    val reader = new CharArrayReader(string.toCharArray)
+    val result = AstLexer.phrase(AstLexer.symbol)(reader)
+    result match {
+      case AstLexer.Success(sym, _) => sym
+      case _ => throw new IllegalArgumentException
+    }
+  }
 }

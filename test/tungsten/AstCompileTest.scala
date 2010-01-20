@@ -2,6 +2,7 @@ package tungsten
 
 import org.junit.Test
 import org.junit.Assert._
+import Utilities._
 
 class AstCompileTest {
   val ctx = new AstContext

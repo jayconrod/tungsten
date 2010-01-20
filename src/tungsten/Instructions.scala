@@ -171,7 +171,7 @@ final case class AssignInstruction(override name: Symbol,
   def ty(module: Module) = value.ty(module)
 }
 
-sealed class BinaryOperator(val name: String) {
+sealed abstract class BinaryOperator(val name: String) {
   def isArithmetic: Boolean = false
   def isShift: Boolean = false
   def isLogical: Boolean = false

@@ -3,10 +3,168 @@ package tungsten
 import org.junit.Test
 import org.junit.Assert._
 import java.io._
+import Utilities._
 import ModuleIO._
 
-class ModuleIOTest {
-  /* writeBinary tests */
+class ModuleIOWriteBinaryCollectTest {
+  def makeWriter(program: String): BinaryModuleWriter = {
+    val Left(module) = readText(program)
+    val output = new DataOutputStream(new ByteArrayOutputStream)
+    new BinaryModuleWriter(module, output)
+  }
+
+  def testCollect[T](program: String,
+                     getTable: BinaryModuleWriter => BinaryModuleWriter#Table[T],
+                     value: T)
+  {
+    val writer = makeWriter(program)
+    writer.collect
+    val table = getTable(writer)
+    val index = table(value)
+    assertEquals(value, table.get(index))
+  }
+
+  @Test
+  def tableTest {
+    val writer = makeWriter("")
+    val table = writer.strings
+    table.add("test")
+    assertEquals(0, table("test"))
+    assertEquals("test", table.get(0))
+  }
+
+  @Test
+  def collectSymbolCollectsStrings {
+    val writer = makeWriter("")
+    val sym = symbolFromString("foo.bar")
+    writer.collectSymbol(sym)
+    assertEquals(sym.name(0), writer.strings.get(writer.strings(sym.name(0))))
+  }
+
+  @Test
+  def collectLocationCollectsString {
+    val writer = makeWriter("")
+    val loc = new Location("foo.w", 1, 2, 3, 4)
+    writer.collectLocation(loc)
+    assertEquals("foo.w", writer.strings.get(writer.strings("foo.w")))
+  }
+
+  @Test
+  def collectDefinitionNameStrings {
+    val program = "#global foo.bar: #unit"
+    testCollect(program, _.strings, "foo")
+    testCollect(program, _.strings, "bar")
+  }
+
+  @Test
+  def collectDefinitionLocations {
+    val program = "#global <foo.w:1.2-3.4> g: #unit"
+    val loc = Location("foo.w", 1, 2, 3, 4)
+    testCollect(program, _.locations, loc)
+  }
+
+  @Test
+  def collectDefinitionLocationStrings {
+    val program = "#global <foo.w:1.2-3.4> g: #unit"
+    testCollect(program, _.strings, "foo.w")
+  }
+
+  @Test
+  def collectDefinitionNames {
+    val program = "#global foo.bar#32: #unit"
+    testCollect(program, _.symbols, symbolFromString("foo.bar#32"))
+  }
+
+  @Test
+  def collectTypeLocation {
+    val program = "#global g: #unit <foo.w:1.2-3.4>"
+    val loc = Location("foo.w", 1, 2, 3, 4)
+    testCollect(program, _.locations, loc)
+  }
+
+  @Test
+  def collectValueLocation {
+    val program = "#global g: #unit = () <foo.w:1.2-3.4>"
+    val loc = Location("foo.w", 1, 2, 3, 4)
+    testCollect(program, _.locations, loc)
+  }
+
+  @Test
+  def collectNestedValueLocation {
+    val program = "#global g: [1 * #unit] = [#unit: () <foo.w:1.2-3.4>]"
+    val loc = Location("foo.w", 1, 2, 3, 4)
+    testCollect(program, _.locations, loc)
+  }
+}
+
+class ModuleIOWriteBinaryTest {
+  val Left(module) = readText("")
+  val output = new ByteArrayOutputStream
+  val writer = new BinaryModuleWriter(module, new DataOutputStream(output))
+
+  def testOutput(expected: Any*) {
+    testOutput(expected.toList)
+  }
+
+  def testOutput(expected: List[Any]) {
+    val expectedOutput = new ByteArrayOutputStream
+    val stream = new DataOutputStream(expectedOutput)
+    expected.foreach { 
+      case b: Byte => stream.writeByte(b)
+      case s: Short => stream.writeShort(s)
+      case i: Int => stream.writeInt(i)
+      case l: Long => stream.writeLong(l)
+      case f: Float => stream.writeFloat(f)
+      case d: Double => stream.writeDouble(d)
+      case s: String => stream.writeUTF(s)
+    }
+    val data = output.toByteArray
+    val expectedData = expectedOutput.toByteArray
+    assertArrayEquals(expectedData, data)
+  }
+
+  @Test
+  def testWriteOptionSome {
+    writer.writeOption(Some(12), writer.writeInt _)
+    testOutput(1.asInstanceOf[Byte], 12)
+  }
+
+  @Test
+  def testWriteOptionNone {
+    writer.writeOption(None, writer.writeInt _)
+    testOutput(0.asInstanceOf[Byte])
+  }
+
+  @Test
+  def testWriteList {
+    writer.writeList(List(1, 2, 3), writer.writeInt _)
+    testOutput(3, 1, 2, 3)
+  }
+
+  @Test
+  def testWriteString {
+    val s = "hello"
+    writer.writeString(s)
+    testOutput(s)
+  }
+
+  @Test
+  def testWriteSymbol {
+    writer.strings.add("foo")
+    writer.strings.add("bar")
+    writer.writeSymbol("foo.bar#32")
+    testOutput(2, writer.strings("foo"), writer.strings("bar"), 32)
+  }
+
+  @Test
+  def testWriteLocation {
+    writer.strings.add("foo.w")
+    writer.writeLocation(Location("foo.w", 1, 2, 3, 4))
+    testOutput(writer.strings("foo.w"), 1, 2, 3, 4)
+  }
+}
+
+class ModuleIOWriteTextTest {
   def testWriteDefinitionText(expected: String, 
                               program: String,
                               symbol: Symbol,

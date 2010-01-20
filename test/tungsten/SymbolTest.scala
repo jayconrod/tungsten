@@ -2,6 +2,7 @@ package tungsten
 
 import org.junit.Test
 import org.junit.Assert._
+import Utilities._
 
 class SymbolTest {
   @Test
@@ -94,8 +95,8 @@ class SymbolTest {
     assertEquals(0, Symbol("a").compare(Symbol("a")))
     assertTrue(Symbol("a").compare(Symbol("b")) < 0)
     assertTrue(Symbol("b").compare(Symbol("a")) > 0)
-    assertTrue(Symbol.fromString("a.a").compare(Symbol("a")) > 0)
+    assertTrue(symbolFromString("a.a").compare(Symbol("a")) > 0)
     assertTrue(Symbol("a").compare(Symbol("a.a")) < 0)
-    assertEquals(0, Symbol.fromString("a.a").compare(Symbol.fromString("a.a")))
+    assertEquals(0, symbolFromString("a.a").compare(symbolFromString("a.a")))
   }
 }

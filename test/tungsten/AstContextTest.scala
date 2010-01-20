@@ -2,13 +2,14 @@ package tungsten
 
 import org.junit.Test
 import org.junit.Assert._
+import Utilities._
 
 class AstContextTest {
   val ctx = new AstContext
 
   @Test
   def resolveEmpty = {
-    val name = Symbol.fromString("foo")
+    val name = symbolFromString("foo")
     ctx.addDefn(Global(name, UnitType(), None))
     val resolved = ctx.resolve(name).get
     assertEquals(name, resolved)
@@ -16,7 +17,7 @@ class AstContextTest {
 
   @Test
   def resolveUsingStack = {
-    val name = Symbol.fromString("foo.bar")
+    val name = symbolFromString("foo.bar")
     val global = Global(name, UnitType(), None)
     ctx.addDefn(global)
     ctx.names.push("foo")
@@ -26,7 +27,7 @@ class AstContextTest {
 
   @Test
   def resolveWithoutStack = {
-    val foo = Symbol.fromString("foo")
+    val foo = symbolFromString("foo")
     ctx.addDefn(Global(foo, UnitType(), None))
     ctx.names.push("bar")
     val resolved = ctx.resolve("foo").get
@@ -35,7 +36,7 @@ class AstContextTest {
 
   @Test
   def resolveShadowed = {
-    val foobar = Symbol.fromString("foo.bar")
+    val foobar = symbolFromString("foo.bar")
     ctx.addDefn(Global(foobar, UnitType(), None))
     ctx.addDefn(Global("bar", UnitType(), None))
     ctx.names.push("foo")

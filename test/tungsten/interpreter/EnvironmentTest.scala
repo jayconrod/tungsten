@@ -4,10 +4,9 @@ import org.junit.Test
 import org.junit.Assert._
 import tungsten._
 import tungsten.Utilities._
-import tungsten.Symbol._
 
 class EnvironmentTest {
-  val prefix = Symbol.fromString("main.entry")
+  val prefix = symbolFromString("main.entry")
       
   def prepare(program: String) = {
     val module = compileString(program)

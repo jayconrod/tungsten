@@ -3,9 +3,25 @@ package tungsten
 import scala.collection.immutable.Map
 import scala.collection.immutable.TreeMap
 import scala.reflect.Manifest
+import java.io.File
 import Utilities._
 
-final class Module(val definitions: Map[Symbol, Definition]) {
+final class Module(val name: Symbol,
+                   val ty: ModuleType.ModuleType,
+                   val version: List[Int],
+                   val dependencies: List[ModuleDependency],
+                   val searchPaths: List[File],
+                   val definitions: Map[Symbol, Definition])
+{
+  def this(definitions: Map[Symbol, Definition]) = {
+    this(Symbol("default"),
+         ModuleType.INTERMEDIATE,
+         Nil,
+         Nil,
+         Nil,
+         definitions)
+  }
+
   def this() = this(new TreeMap[Symbol, Definition])
 
   def add(defn: Definition): Module = {
@@ -129,3 +145,25 @@ final class Module(val definitions: Map[Symbol, Definition]) {
 
   override def toString = definitions.valuesIterable.mkString("\n")
 }
+
+object ModuleType extends Enumeration {
+  type ModuleType = Value
+  val INTERMEDIATE, LIBRARY, PROGRAM = Value
+}
+
+final class ModuleDependency(val name: Symbol,
+                             val minVersion: List[Int],
+                             val maxVersion: List[Int])
+{
+  override def toString = {
+    val minVersionStr = minVersion.mkString(".")
+    val maxVersionStr = maxVersion.mkString(".")
+    val versionStr = if (minVersion.isEmpty && maxVersion.isEmpty) 
+      ""
+    else
+      ":" + minVersionStr + "-" + maxVersionStr
+    name.toString + versionStr
+  }
+}
+
+      

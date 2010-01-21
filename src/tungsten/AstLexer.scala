@@ -53,7 +53,7 @@ object AstLexer extends Parsers {
     }
   }
 
-  def identifierChar: Parser[Char] = letter | digit | elem('_')
+  def identifierChar: Parser[Char] = letter | digit | elem('_') | elem('$')
 
   def identifier: Parser[String] = {
     (letter | elem('_')) ~ rep(identifierChar) ^^ { 

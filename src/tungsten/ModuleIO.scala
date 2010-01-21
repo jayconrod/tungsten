@@ -90,7 +90,7 @@ object ModuleIO {
     val symbols = new ArrayBuffer[Symbol]
 
     def read: Module = {
-      readHeader
+      val header = readHeader
       readTable(strings, readString)
       readTable(locations, readLocation)
       readTable(symbols, readSymbol)
@@ -101,16 +101,46 @@ object ModuleIO {
           throw new IOException("Duplicate definition")
         definitions + (defn.name -> defn)
       }
-      new Module(definitions)
+      new Module(header._1, header._2, header._3, header._4, header._5, definitions)
     }
 
-    def readHeader {
+    def readHeader = {
       val magic = input.readInt
       if (magic != MAGIC)
         throw new IOException("Invalid magic number")
-      val version = (input.readByte, input.readByte)
-      if (version != VERSION)
+      val formatVersion = (input.readByte, input.readByte)
+      if (formatVersion != VERSION)
         throw new IOException("Invalid version")
+
+      val name = readHeaderSymbol
+      val ty = readModuleType
+      val version = readList(readInt)
+      val dependencies = readList(readModuleDependency)
+      val searchPaths = readList(new File(readString))
+      (name, ty, version, dependencies, searchPaths)
+    }
+
+    def readHeaderSymbol: Symbol = {
+      val name = readList(input.readUTF)
+      val id = readInt
+      new Symbol(name, id)
+    }
+
+    def readModuleType: ModuleType.ModuleType = {
+      import ModuleType._
+      input.readByte match {
+        case 0 => INTERMEDIATE
+        case 1 => LIBRARY
+        case 2 => PROGRAM
+        case _ => throw new IOException("Invalid module type")
+      }
+    }
+
+    def readModuleDependency: ModuleDependency = {
+      val name = readHeaderSymbol
+      val minVersion = readList(readInt)
+      val maxVersion = readList(readInt)
+      new ModuleDependency(name, minVersion, maxVersion)
     }
 
     def readTable[T](table: ArrayBuffer[T], reader: => T) {
@@ -694,6 +724,33 @@ object ModuleIO {
       output.writeInt(MAGIC)
       output.writeByte(VERSION._1)
       output.writeByte(VERSION._2)
+
+      writeHeaderSymbol(module.name)
+      writeModuleType
+      writeList(module.version, writeInt _)
+      writeList(module.dependencies, writeModuleDependency _)
+      writeList(module.searchPaths.map(_.toString), writeString _)
+    }
+
+    def writeHeaderSymbol(sym: Symbol) {
+      writeList(sym.name.toList, output.writeUTF _)
+      writeInt(sym.id)
+    }
+
+    def writeModuleType {
+      import ModuleType._
+      val typeId = module.ty match {
+        case INTERMEDIATE => 0
+        case LIBRARY => 1
+        case PROGRAM => 2
+      }
+      output.writeByte(typeId)
+    }
+
+    def writeModuleDependency(dep: ModuleDependency) {
+      writeHeaderSymbol(dep.name)
+      writeList(dep.minVersion, writeInt _)
+      writeList(dep.maxVersion, writeInt _)
     }
 
     def writeDefinition(defn: Definition) {
@@ -991,7 +1048,7 @@ object ModuleIO {
   /* magic numbers */
   val MAGIC = 0x574F626A    // 'WObj' in big-endian
 
-  val VERSION: (Byte, Byte) = (0, 1)
+  val VERSION: (Byte, Byte) = (0, 2)
 
   val BLOCK_ID: Byte = 1
   val FIELD_ID: Byte = 2

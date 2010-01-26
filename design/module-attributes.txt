@@ -1,0 +1,11 @@
+In addition to a set of definitions, modules also have a number of global attributes. 
+
+- name: a symbol which is the name of the module. This is useful for libraries which may be linked with other modules by name. It is not meaningful for programs or intermediate objects. Usually the module filename is derived from its symbolic name.
+
+- version: a list of positive integers indicating the version of a library. This is meaningless for non-libraries.
+
+- type: a module can be either an intermediate object, library, or program file. The module filename's extension is usually derived from the type: .wo denotes an intermediate file, .wl denotes a library, and .wp denotes a program. Libraries have the restriction that all external definitions must be resolved by dependencies. Programs have the same restriction, but they also must have a main function which satisfies certain constraints. Intermediate objects don't need to follow either of these rules.
+
+- dependencies: a list of libraries on which the module depends. Libraries are loaded at runtime to satisfy unresolved symbols. Each element of the list contains a library name (a symbol), and a minimum and maximum version.
+
+- library search paths: a list of paths indicating directories to search for libraries. When a program or library is loaded, this list will be used first to find any dependencies. This shouldn't be needed often. 

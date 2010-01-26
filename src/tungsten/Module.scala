@@ -7,7 +7,7 @@ import java.io.File
 import Utilities._
 
 final class Module(val name: Symbol,
-                   val ty: ModuleType.ModuleType,
+                   val ty: ModuleType,
                    val version: List[Int],
                    val dependencies: List[ModuleDependency],
                    val searchPaths: List[File],
@@ -146,9 +146,11 @@ final class Module(val name: Symbol,
   override def toString = definitions.valuesIterable.mkString("\n")
 }
 
-object ModuleType extends Enumeration {
-  type ModuleType = Value
-  val INTERMEDIATE, LIBRARY, PROGRAM = Value
+final class ModuleType
+object ModuleType {
+  val INTERMEDIATE = new ModuleType
+  val LIBRARY = new ModuleType
+  val PROGRAM = new ModuleType
 }
 
 final class ModuleDependency(val name: Symbol,
@@ -165,5 +167,3 @@ final class ModuleDependency(val name: Symbol,
     name.toString + versionStr
   }
 }
-
-      

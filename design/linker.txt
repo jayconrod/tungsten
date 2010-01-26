@@ -1,0 +1,17 @@
+The Tungsten linker combines one or more modules into a new module. Module attributes, such as name, version, type, and dependencies for the new module can also be set.
+
+The input to the linker is a list of modules specified as either a module filename or a symbolic library name. Library names can be specified with an optional minimum/maximum version.
+
+The linker will load and validate each of the input modules. The output is a module which contains the union of the definitions in all of the input modules. There are some conditions in which definitions can be combined. All of the following must be satisfied:
+
+- definitions have the same name
+- definitions are of the same class (e.g., function, global)
+- definitions are of a class which allows combining (functions, globals, and parameters)
+- definitions have the same type
+  - for functions, the type is determined by return type and parameter names
+- at most one definition is "strong" and the others are weak
+  - a global is strong if it has an explicit value
+  - a function is strong if its body is defined
+  - parameters are always weak
+
+When there is a strong definition, it is included in the new module. If there are only weak definitions they should all be equivalent, so the first one is included.

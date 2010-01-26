@@ -11,6 +11,16 @@ object Utilities {
     ast.compile.left.get
   }
 
+  def exitWithError(message: String) {
+    System.err.println(message)
+    System.exit(ERROR_CODE)
+  }
+
+  def exitWithFailure(message: String) {
+    System.err.println(message)
+    System.exit(FAILURE_CODE)
+  }
+
   def fileWithExtension(file: File, oldExt: String, newExt: String): File = {
     val oldFilename = file.getCanonicalPath
     val newFilename = if (oldFilename.endsWith(oldExt))

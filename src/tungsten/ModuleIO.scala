@@ -126,7 +126,7 @@ object ModuleIO {
       new Symbol(name, id)
     }
 
-    def readModuleType: ModuleType.ModuleType = {
+    def readModuleType: ModuleType = {
       import ModuleType._
       input.readByte match {
         case 0 => INTERMEDIATE

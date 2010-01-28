@@ -8,7 +8,7 @@ import Utilities._
 
 final class Module(val name: Symbol,
                    val ty: ModuleType,
-                   val version: List[Int],
+                   val version: Version,
                    val dependencies: List[ModuleDependency],
                    val searchPaths: List[File],
                    val definitions: Map[Symbol, Definition])
@@ -16,7 +16,7 @@ final class Module(val name: Symbol,
   def this(definitions: Map[Symbol, Definition]) = {
     this(Symbol("default"),
          ModuleType.INTERMEDIATE,
-         Nil,
+         Version.MIN,
          Nil,
          Nil,
          definitions)
@@ -146,21 +146,23 @@ final class Module(val name: Symbol,
   override def toString = definitions.valuesIterable.mkString("\n")
 }
 
-final class ModuleType
+final class ModuleType(description: String) {
+  override def toString = description
+}
 object ModuleType {
-  val INTERMEDIATE = new ModuleType
-  val LIBRARY = new ModuleType
-  val PROGRAM = new ModuleType
+  val INTERMEDIATE = new ModuleType("intermediate")
+  val LIBRARY = new ModuleType("library")
+  val PROGRAM = new ModuleType("program")
 }
 
 final class ModuleDependency(val name: Symbol,
-                             val minVersion: List[Int],
-                             val maxVersion: List[Int])
+                             val minVersion: Version,
+                             val maxVersion: Version)
 {
   override def toString = {
-    val minVersionStr = minVersion.mkString(".")
-    val maxVersionStr = maxVersion.mkString(".")
-    val versionStr = if (minVersion.isEmpty && maxVersion.isEmpty) 
+    val minVersionStr = if (minVersion == Version.MIN) "" else minVersion.toString
+    val maxVersionStr = if (maxVersion == Version.MAX) "" else maxVersion.toString
+    val versionStr = if (minVersionStr.isEmpty && maxVersionStr.isEmpty)
       ""
     else
       ":" + minVersionStr + "-" + maxVersionStr

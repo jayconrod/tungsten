@@ -29,4 +29,11 @@ class UtilitiesTest {
     val newFile = Utilities.fileWithExtension(oldFile, ".txt", ".jpg")
     assertEquals(new File("foo.asdf.jpg").getCanonicalFile, newFile)
   }
+
+  @Test
+  def parseVersionTest {
+    assertEquals(new Version(List(12)), parseVersion("12"))
+    assertEquals(new Version(List(0, 1, 2)), parseVersion("0.1.2"))
+    assertEquals(new Version(List(34, 45)), parseVersion("34.45"))
+  }
 }

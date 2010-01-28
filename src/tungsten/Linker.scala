@@ -23,7 +23,7 @@ object Linker {
 
   var moduleName = Symbol("default")
   var moduleTy = ModuleType.INTERMEDIATE
-  var moduleVersion: List[Int] = Nil
+  var moduleVersion = Version.MIN
   val moduleDependencies = new ArrayBuffer[ModuleDependency]
   val moduleSearchPaths = new ArrayBuffer[File]
 
@@ -35,45 +35,39 @@ object Linker {
     parseArguments(args)
 
     val inputModules = loadModules
-    val allDefinitions = for (module <- inputModules.iterator;
-                              defn   <- module.definitions.valuesIterator)
-                           yield (defn, module)
-    val empty = Map[Symbol, (Definition, Module)]()
-    val linkedDefinitions = allDefinitions.foldLeft(empty)(link _).map { kv =>
-      val (name, (definition, module)) = kv
-      (name, definition)
-    }
-    val outputModule = new Module(moduleName, 
-                                  moduleTy, 
-                                  moduleVersion, 
-                                  moduleDependencies.toList, 
-                                  moduleSearchPaths.toList, 
-                                  linkedDefinitions)
-    storeModule(outputModule)
+    val outputModule = linkModules(inputModules,
+                                   moduleName,
+                                   moduleTy,
+                                   moduleVersion,
+                                   moduleDependencies.toList,
+                                   moduleSearchPaths.toList)
+    try { 
+      storeModule(outputModule)
+    } catch {
+      case exn: IOException => exitWithFailure("I/O error while storing module: " + exn.getMessage)
+    }     
   }
 
   def parseArguments(args: Array[String]) {
     var i = 0
-    var errorMessage: Option[String] = None
     def next: String = {
       if (i + 1 < args.size) {
         i += 1
         args(i)
       } else {
-        usage
-        System.exit(ERROR_CODE)
+        exitWithError("parameter " + args(i) + " requires an argument")
         ""
       }
     }
 
-    while (i < args.size && !errorMessage.isDefined) {
+    while (i < args.size) {
       args(i) match {
         case "-n" => {
           val nameStr = next
           try {
             moduleName = symbolFromString(nameStr)
           } catch {
-            case _: IllegalArgumentException => errorMessage = Some("Invalid module name")
+            case _ => exitWithError("Invalid module name: " + nameStr)
           }
         }
         case "-t" => {
@@ -82,14 +76,13 @@ object Linker {
             case "program" => moduleTy = PROGRAM
             case "library" => moduleTy = LIBRARY
             case "intermediate" => moduleTy = INTERMEDIATE
-            case _ => errorMessage = Some("Invalid type. Must be program, library, or intermediate.")
+            case _ => exitWithError("Invalid type. Must be program, library, or intermediate.")
           }
         }
         case "-v" => {
-          try {
-            moduleVersion = parseVersion(next)
-          } catch {
-            case _ => errorMessage = Some("Invalid version. Must be dot-separated integers.")
+          Utilities.tryParseVersion(next) match {
+            case Some(v) => moduleVersion = v
+            case None => exitWithError("Invalid module version")
           }
         }
         case "-o" => outputFile = Some(new File(next))
@@ -99,35 +92,30 @@ object Linker {
         case LibraryArgument(nameStr, minVersionStr, maxVersionStr) => {
           try {
             val name = symbolFromString(nameStr)
-            val minVersion = parseVersion(minVersionStr)
-            val maxVersion = parseVersion(maxVersionStr)
+            val minVersion = parseVersion(minVersionStr, Version.MIN)
+            val maxVersion = parseVersion(maxVersionStr, Version.MAX)
             moduleDependencies += new ModuleDependency(name, minVersion, maxVersion)
           } catch {
-            case _ => errorMessage = Some("Invalid library: " + args(i))
+            case _ => exitWithError("Invalid library: " + args(i))
           }
         }
-        case _ if args(i).startsWith("_") => {
-          errorMessage = Some("Invalid option: " + args(i))
+        case _ if args(i).startsWith("-") => {
+          exitWithError("Invalid option: " + args(i))
         }
         case _ => inputFiles += new File(args(i))
       }
       i += 1
     }
 
-    if (errorMessage.isDefined)
-      exitWithError(errorMessage.get)
+    if (moduleTy == ModuleType.LIBRARY && moduleVersion == Version.MIN)
+      exitWithError("Libraries must have a version. Use -v to set the version.")
   }
 
-  def parseVersion(versionStr: String): List[Int] = {
+  def parseVersion(versionStr: String, defaultVersion: Version): Version = {
     if (versionStr == null || versionStr.isEmpty)
-      Nil
-    else {
-      val version = versionStr.split("\\.").map(_.toInt)
-      if (version.exists(_ < 0))
-        throw new IllegalArgumentException
-      else
-        version.toList
-    }
+      defaultVersion
+    else
+      Utilities.parseVersion(versionStr)
   }
 
   val LibraryArgument = new Regex("-l([A-Za-z0-9_$.]+)(?::([0-9.]*)-?([0-9.]*))?")
@@ -151,6 +139,24 @@ object Linker {
     }
   }
 
+  def linkModules(modules: List[Module],
+                  name: Symbol,
+                  ty: ModuleType,
+                  version: Version,
+                  dependencies: List[ModuleDependency],
+                  searchPaths: List[File]): Module = 
+  {
+    val allDefinitions = for (module <- modules.iterator;
+                              defn   <- module.definitions.valuesIterator)
+                           yield (defn, module)
+    val empty = Map[Symbol, (Definition, Module)]()
+    val linkedDefinitions = allDefinitions.foldLeft(empty)(linkDefinition _).map { kv =>
+      val (name, (definition, _)) = kv
+      (name, definition)
+    }
+    new Module(name, ty, version, dependencies, searchPaths, linkedDefinitions)
+  }
+
   def isStrong(defn: Definition): Boolean = {
     defn match {
       case Function(_, _, _, Nil, _) => false
@@ -160,8 +166,8 @@ object Linker {
     }
   }
 
-  def link(definitions: Map[Symbol, (Definition, Module)], 
-           defn: (Definition, Module)): Map[Symbol, (Definition, Module)] = 
+  def linkDefinition(definitions: Map[Symbol, (Definition, Module)], 
+                     defn: (Definition, Module)): Map[Symbol, (Definition, Module)] = 
   {
     val name = defn._1.name
 
@@ -209,10 +215,10 @@ object Linker {
       case None => {
         import ModuleType._
         val nameStr = moduleName.toString
-        val versionStr = if (moduleVersion.isEmpty)
+        val versionStr = if (moduleVersion == Version.MIN)
           ""
         else
-          "-" + moduleVersion.mkString(".")
+          "-" + moduleVersion.toString
         val extensionStr = moduleTy match {
           case INTERMEDIATE => ".wo"
           case LIBRARY => ".wl"

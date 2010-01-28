@@ -114,7 +114,7 @@ object ModuleIO {
 
       val name = readHeaderSymbol
       val ty = readModuleType
-      val version = readList(readInt)
+      val version = readVersion
       val dependencies = readList(readModuleDependency)
       val searchPaths = readList(new File(readString))
       (name, ty, version, dependencies, searchPaths)
@@ -138,8 +138,8 @@ object ModuleIO {
 
     def readModuleDependency: ModuleDependency = {
       val name = readHeaderSymbol
-      val minVersion = readList(readInt)
-      val maxVersion = readList(readInt)
+      val minVersion = readVersion
+      val maxVersion = readVersion
       new ModuleDependency(name, minVersion, maxVersion)
     }
 
@@ -257,6 +257,13 @@ object ModuleIO {
         case DEFINED_VALUE_ID => DefinedValue(symbol, location)
         case _ => throw new IOException("Invalid value ID")
       }
+    }
+
+    def readVersion: Version = {
+      val elements = readList(readInt)
+      if (elements.exists(_ < 0))
+        throw new IOException("Invalid version")
+      new Version(elements)
     }
 
     def readSymbol: Symbol = {
@@ -727,7 +734,7 @@ object ModuleIO {
 
       writeHeaderSymbol(module.name)
       writeModuleType
-      writeList(module.version, writeInt _)
+      writeVersion(module.version)
       writeList(module.dependencies, writeModuleDependency _)
       writeList(module.searchPaths.map(_.toString), writeString _)
     }
@@ -747,10 +754,14 @@ object ModuleIO {
       output.writeByte(typeId)
     }
 
+    def writeVersion(version: Version) {
+      writeList(version.elements, writeInt _)
+    }
+
     def writeModuleDependency(dep: ModuleDependency) {
       writeHeaderSymbol(dep.name)
-      writeList(dep.minVersion, writeInt _)
-      writeList(dep.maxVersion, writeInt _)
+      writeVersion(dep.minVersion)
+      writeVersion(dep.maxVersion)
     }
 
     def writeDefinition(defn: Definition) {

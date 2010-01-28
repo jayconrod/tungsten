@@ -47,6 +47,13 @@ object Utilities {
 
   def isPowerOf2(x: Int) = (x & (x - 1)) == 0
 
+  def parseVersion(string: String): Version = {
+    tryParseVersion(string) match {
+      case Some(v) => v
+      case None => throw new IllegalArgumentException
+    }
+  }
+
   def readContentsOfFile(file: File): String = {
     val reader = new FileReader(file)
     val contents = readContentsOfFile(reader)
@@ -124,5 +131,14 @@ object Utilities {
       case AstLexer.Success(sym, _) => sym
       case _ => throw new IllegalArgumentException
     }
+  }
+
+  def tryParseVersion(string: String): Option[Version] = {
+    val versionRegex = "[0-9]+(\\.[0-9]+)*"
+    if (string.matches(versionRegex)) {
+      val elements = string.split("\\.").toList.map(_.toInt)
+      Some(new Version(elements))
+    } else
+      None
   }
 }

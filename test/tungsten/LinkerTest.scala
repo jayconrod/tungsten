@@ -7,14 +7,6 @@ import Linker._
 
 class LinkerTest {
   @Test
-  def parseVersionTest {
-    assertEquals(Nil, parseVersion(""))
-    assertEquals(List(12), parseVersion("12"))
-    assertEquals(List(0, 1, 2), parseVersion("0.1.2"))
-    assertEquals(List(34, 45), parseVersion("34.45"))
-  }
-
-  @Test
   def parseLibraryTest {
     def test(libStr: String, 
              expectedName: String, 

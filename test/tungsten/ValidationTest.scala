@@ -259,6 +259,18 @@ class ValidationTest {
   }
 
   @Test
+  def heapAllocateInt {
+    val code = "#heap a : #int32"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def heapAllocateNull {
+    val code = "#heap a : #null"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
   def loadInt = {
     val code = "#load a = *12"
     codeContainsError[TypeMismatchException](code)

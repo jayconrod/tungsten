@@ -97,6 +97,11 @@ final class Environment(val module: Module) {
         branch(block, args)
         UnitValue
       }        
+      case HeapAllocateInstruction(_, ty, _) => {
+        val elementType = ty.asInstanceOf[PointerType].elementType
+        val defaultValue = create(elementType.defaultValue(module))
+        new ScalarReference(defaultValue)
+      }
       case IndirectCallInstruction(_, target, arguments, _) => {
         val function = create(target).asInstanceOf[FunctionValue].value
         val args = arguments.map(create(_))

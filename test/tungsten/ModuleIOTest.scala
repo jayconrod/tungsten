@@ -293,6 +293,7 @@ class ModuleIOWriteTextTest {
     val branch1Text      = "    #branch <foo.w:1.1-1.1> branch1 = b1(1, 2)\n"
     val branch2Text      = "    #branch <foo.w:1.1-1.1> branch2 = b2( )\n"
     val condText         = "    #cond <foo.w:1.1-1.1> cond = #true ? b3(1, 2) : b4( )\n"
+    val heapText         = "    #heap heap: #unit*\n"
 //    val icallText        = "    #icall <foo.w:1.1-1.1> icall = main( )\n"
     val loadText         = "    #load <foo.w:1.1-1.1> load = *l\n"
     val loadElementText  = "    #loadelement <foo.w:1.1-1.1> loadelement = [#unit: ()], 0L\n"
@@ -320,6 +321,7 @@ class ModuleIOWriteTextTest {
                   "  #block b3(a: #int32, b: #int32) {\n" +
 //                  icallText +
                   "    #stack l: #unit*\n" +
+                  heapText +
                   loadText +
                   loadElementText +
                   relopText +
@@ -342,6 +344,7 @@ class ModuleIOWriteTextTest {
     testWriteDefinitionText(branch1Text, program, "main.entry.branch1", Some("main.entry"))
     testWriteDefinitionText(branch2Text, program, "main.b1.branch2", Some("main.b1"))
     testWriteDefinitionText(condText, program, "main.b2.cond", Some("main.b2"))
+    testWriteDefinitionText(heapText, program, "main.b3.heap", Some("main.b3"))
 //    testWriteDefinitionText(icallText, program, "main.b3.icall", Some("main.b3"))
     testWriteDefinitionText(loadText, program, "main.b3.load", Some("main.b3"))
     testWriteDefinitionText(loadElementText, program, "main.b3.loadelement", Some("main.b3"))

@@ -313,6 +313,20 @@ final case class AstConditionalBranchInstruction(override name: Symbol,
   }
 }
 
+final case class AstHeapAllocateInstruction(override name: Symbol,
+                                            ty: AstType,
+                                            override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cTy = ty.compile(ctx)
+    val cAlloc = HeapAllocateInstruction(fullName, cTy, location)
+    ctx.replaceDefn(cAlloc)
+    cAlloc
+  }
+}
+
 final case class AstIndirectCallInstruction(override name: Symbol,
                                             target: AstValue,
                                             arguments: List[AstValue],

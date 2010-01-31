@@ -267,6 +267,14 @@ class EnvironmentTest {
   }
 
   @Test
+  def heapAllocateInst {
+    val (module, env) = prepareCode("#heap a : #int32*")
+    env.step
+    val a = env.state.get(prefix + "a").asInstanceOf[ScalarReference]
+    assertEquals(Int32Value(0), a.value)
+  }
+
+  @Test
   def indirectCallInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

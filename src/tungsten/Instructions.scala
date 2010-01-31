@@ -320,6 +320,28 @@ final case class ConditionalBranchInstruction(override name: Symbol,
   }
 }
 
+final case class HeapAllocateInstruction(override name: Symbol,
+                                         ty: Type,
+                                         override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = ty
+
+  def operands = Nil
+
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          ty.validate(module))
+  }
+
+  override def validate(module: Module) = {
+    if (!ty.isPointer || ty.isInstanceOf[NullType])
+      List(TypeMismatchException(ty.toString, "non-null pointer type", location))
+    else
+      Nil
+  }
+}
+
 final case class IndirectCallInstruction(override name: Symbol,
                                          target: Value,
                                          arguments: List[Value],

@@ -177,6 +177,9 @@ object ModuleIO {
           ConditionalBranchInstruction(name, readValue, symbol, readList(readValue),
                                        symbol, readList(readValue), location)
         }
+        case HEAP_ALLOCATE_INST_ID => {
+          HeapAllocateInstruction(name, readType, location)
+        }
         case INDIRECT_CALL_INST_ID => {
           IndirectCallInstruction(name, readValue, readList(readValue), location)
         }
@@ -480,6 +483,9 @@ object ModuleIO {
           output.write(" : " + localSymbol(falseTarget))
           writeArgumentList(falseArgs)
         }
+        case HeapAllocateInstruction(name, ty, location) => {
+          output.write("#heap " + locationString(location) + localName + ": " + ty)
+        }
         case IndirectCallInstruction(name, target, arguments, location) => {
           output.write("#icall " + locationString(location) + localName + " = " + target)
           writeArgumentList(arguments)
@@ -667,6 +673,7 @@ object ModuleIO {
             case _: ConditionalBranchInstruction => ()
             case _: IndirectCallInstruction => ()
             case _: IntrinsicCallInstruction => ()
+            case HeapAllocateInstruction(_, ty, _) => collectType(ty)
             case _: LoadInstruction => ()
             case _: LoadElementInstruction => ()
             case _: RelationalOperatorInstruction => ()
@@ -826,6 +833,10 @@ object ModuleIO {
             writeList(trueArgs, writeValue _)
             writeInt(symbols(falseTarget))
             writeList(falseArgs, writeValue _)
+          }
+          case HeapAllocateInstruction(_, ty, _) => {
+            output.writeByte(HEAP_ALLOCATE_INST_ID)
+            writeType(ty)
           }
           case IndirectCallInstruction(_, target, arguments, _) => {
             output.writeByte(INDIRECT_CALL_INST_ID)
@@ -1059,7 +1070,7 @@ object ModuleIO {
   /* magic numbers */
   val MAGIC = 0x574F626A    // 'WObj' in big-endian
 
-  val VERSION: (Byte, Byte) = (0, 2)
+  val VERSION: (Byte, Byte) = (0, 3)
 
   val BLOCK_ID: Byte = 1
   val FIELD_ID: Byte = 2
@@ -1085,6 +1096,7 @@ object ModuleIO {
   val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 114
   val STATIC_CALL_INST_ID: Byte = 115
   val UPCAST_INST_ID: Byte = 116
+  val HEAP_ALLOCATE_INST_ID = 117
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

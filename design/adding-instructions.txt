@@ -1,0 +1,15 @@
+To do when adding new instructions
+
+- Create an instruction class (Instructions.scala) and validation test (ValidationTest.scala)
+- Create an AST class (Ast.scala) and compilation test (AstCompileTest.scala)
+- Create a parser (AstParser.scala) and parse test (AstParserTest.scala)
+- Add any new tokens to the lexer (AstLexer.scala)
+- Add functionality to Environment.evalInst (Environment.scala) and an interpreter test (EnvironmentTest.scala)
+- Add cases in ModuleIO (ModuleIO.scala)
+  - Add ID (end of file)
+  - TextModuleWriter.writeDefinition(Instruction)
+  - BinaryModuleWriter.collectDefinition
+  - BinaryModuleWriter.writeDefinition
+  - BinaryModuleReader.readDefinition
+  - test in ModuleIOWriteTextTest.writeInstructions
+  - increment ModuleIO.VERSION._2

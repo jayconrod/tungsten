@@ -129,22 +129,24 @@ final class Module(val name: Symbol,
         Nil
     }
 
-    def validateIsLinked = {
-      def isDefined(defn: Definition) = {
-        defn match {
-          case Function(_, _, _, Nil, _) => false
-          case _ => true
-        }
-      }
+    validateHasMain ++ validateIsLinked
+  }
 
-      definitions.
-        valuesIterator.
-        filter(!isDefined(_)).
-        map { (defn: Definition) => ExternalDefinitionException(defn.name) }.
-        toList
+  def validateLibrary = validateIsLinked
+
+  def validateIsLinked: List[CompileException] = {
+    def isDefined(defn: Definition) = {
+      defn match {
+        case Function(_, _, _, Nil, _) => false
+        case _ => true
+      }
     }
 
-    validateHasMain ++ validateIsLinked
+    definitions.
+      valuesIterator.
+      filter(!isDefined(_)).
+      map { (defn: Definition) => ExternalDefinitionException(defn.name) }.
+      toList
   }
 
   def validateName[T <: Definition](name: Symbol, 

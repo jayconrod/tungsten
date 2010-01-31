@@ -41,6 +41,8 @@ object Linker {
                                    moduleVersion,
                                    moduleDependencies.toList,
                                    moduleSearchPaths.toList)
+    validateOutput(outputModule)
+      
     try { 
       storeModule(outputModule)
     } catch {
@@ -209,7 +211,36 @@ object Linker {
     definitions + (name -> combinedDefn)
   }
 
-  def storeModule(module: Module) = {
+  def validateOutput(module: Module) {
+    if (module.ty == ModuleType.LIBRARY || module.ty == ModuleType.PROGRAM) {
+      val libraries = try {
+        module.dependencies.
+          map(Loader.findModuleFile(_, module.searchPaths)).
+          flatMap(Loader.loadModuleAndDependencies(_, ModuleType.LIBRARY, 
+                                                   Version.MIN, Version.MAX))
+      } catch {
+        case exn: IOException => {
+          exitWithFailure(exn.getMessage)
+          Nil
+        }
+      }
+
+      val linkedModule = linkModules(module :: libraries,
+                                     module.name,
+                                     module.ty,
+                                     module.version,
+                                     Nil,
+                                     module.searchPaths)
+      val errors = if (module.ty == ModuleType.PROGRAM)
+        linkedModule.validateProgram
+      else
+        linkedModule.validateLibrary
+      if (!errors.isEmpty)
+        exitWithFailure("validation errors:\n" + errors.mkString("\n"))
+    }
+  }
+
+  def storeModule(module: Module) {
     val outFile = outputFile match {
       case Some(f) => f
       case None => {

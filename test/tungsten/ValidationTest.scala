@@ -500,4 +500,31 @@ class ValidationTest {
                   "#function main( ): #unit { #block entry( ) { #return () } }\n"
     programContainsError[CyclicStructException](program)
   }
+
+  @Test
+  def programMissingMain {
+    val module = new Module("default",
+                            ModuleType.PROGRAM,
+                            Version.MIN,
+                            Nil,
+                            Nil,
+                            Map[Symbol, Definition]())
+    val errors = module.validateProgram
+    containsError[MissingMainException](errors)
+  }
+
+  @Test
+  def externalDefinition {
+    val program = "#function foo( ): #int32 {\n" +
+                  "}\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #scall x = foo( )\n" +
+                  "    #intrinsic exit(x)\n" +
+                  "  }\n" +
+                  "}\n"
+    val module = compileString(program)
+    val errors = module.validateProgram
+    containsError[ExternalDefinitionException](errors)
+  }   
 }

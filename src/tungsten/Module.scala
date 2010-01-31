@@ -121,6 +121,32 @@ final class Module(val name: Symbol,
           validateMain ++ validateStructDependencies)
   }
 
+  def validateProgram: List[CompileException] = {
+    def validateHasMain = {
+      if (!definitions.contains("main"))
+        List(MissingMainException())
+      else
+        Nil
+    }
+
+    def validateIsLinked = {
+      def isDefined(defn: Definition) = {
+        defn match {
+          case Function(_, _, _, Nil, _) => false
+          case _ => true
+        }
+      }
+
+      definitions.
+        valuesIterator.
+        filter(!isDefined(_)).
+        map { (defn: Definition) => ExternalDefinitionException(defn.name) }.
+        toList
+    }
+
+    validateHasMain ++ validateIsLinked
+  }
+
   def validateName[T <: Definition](name: Symbol, 
                                     location: Location)
                                    (implicit m: Manifest[T]) =

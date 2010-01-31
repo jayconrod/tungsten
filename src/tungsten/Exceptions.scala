@@ -42,6 +42,9 @@ final case class EntryParametersException(functionName: Symbol,
                              " must not have any parameters",
                            location)
 
+final case class ExternalDefinitionException(name: Symbol)
+  extends CompileException("symbol " + name + " is declared but never defined", Nowhere)
+
 final case class FieldCountException(structName: Symbol,
                                      given: Int,
                                      required: Int,

@@ -14,6 +14,11 @@ final object Loader {
                                      Version.MIN,
                                      Nil,
                                      Nil)
+    val errors = program.validateProgram
+    if (!errors.isEmpty) {
+      throw new IOException("validation errors in program %s:\n%s".
+                              format(file, errors.mkString("\n")))
+    }
     program
   }
 

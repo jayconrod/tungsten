@@ -161,6 +161,12 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def heapAllocateArrayInst: Parser[AstHeapAllocateArrayInstruction] = {
+    "#heaparray" ~> location ~ optName ~ value ~ ("*" ~> ty) ^^ {
+      case l ~ n ~ c ~ t => AstHeapAllocateArrayInstruction(n, c, t, l)
+    }
+  }
+
   def indirectCallInst: Parser[AstIndirectCallInstruction] = {
     "#icall" ~> location ~ optName ~ value ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstIndirectCallInstruction(n, t, a, l)
@@ -240,6 +246,7 @@ object AstParser extends Parsers with ImplicitConversions {
     branchInst |
     condInst |
     heapAllocateInst |
+    heapAllocateArrayInst |
     indirectCallInst |
     intrinsicCallInst |
     loadInst |

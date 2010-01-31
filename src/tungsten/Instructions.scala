@@ -342,6 +342,26 @@ final case class HeapAllocateInstruction(override name: Symbol,
   }
 }
 
+final case class HeapAllocateArrayInstruction(override name: Symbol,
+                                              count: Value,
+                                              elementType: Type,
+                                              override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = PointerType(ArrayType(None, elementType, location), location)
+
+  def operands = List(count)
+
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          elementType.validate(module))
+  }
+
+  override def validate(module: Module) = {
+    count.validateType(IntType(64), module)
+  }
+}
+
 final case class IndirectCallInstruction(override name: Symbol,
                                          target: Value,
                                          arguments: List[Value],

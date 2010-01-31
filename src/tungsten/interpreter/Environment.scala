@@ -102,6 +102,15 @@ final class Environment(val module: Module) {
         val defaultValue = create(elementType.defaultValue(module))
         new ScalarReference(defaultValue)
       }
+      case HeapAllocateArrayInstruction(_, count, elementType, _) => {
+        val cCount = create(count)
+        val n = cCount.asInstanceOf[Int64Value].value.asInstanceOf[Int]
+        val a = new Array[IValue](n)
+        for (i <- 0 until n)
+          a(i) = create(elementType.defaultValue(module))
+        val array = new ArrayValue(a)
+        new ScalarReference(array)
+      }
       case IndirectCallInstruction(_, target, arguments, _) => {
         val function = create(target).asInstanceOf[FunctionValue].value
         val args = arguments.map(create(_))

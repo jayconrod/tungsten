@@ -180,6 +180,9 @@ object ModuleIO {
         case HEAP_ALLOCATE_INST_ID => {
           HeapAllocateInstruction(name, readType, location)
         }
+        case HEAP_ALLOCATE_ARRAY_INST_ID => {
+          HeapAllocateArrayInstruction(name, readValue, readType, location)
+        }
         case INDIRECT_CALL_INST_ID => {
           IndirectCallInstruction(name, readValue, readList(readValue), location)
         }
@@ -486,6 +489,10 @@ object ModuleIO {
         case HeapAllocateInstruction(name, ty, location) => {
           output.write("#heap " + locationString(location) + localName + ": " + ty)
         }
+        case HeapAllocateArrayInstruction(name, count, elementType, location) => {
+          output.write("#heaparray " + locationString(location) + localName + " = " +
+            count + " * " + elementType)
+        }
         case IndirectCallInstruction(name, target, arguments, location) => {
           output.write("#icall " + locationString(location) + localName + " = " + target)
           writeArgumentList(arguments)
@@ -674,6 +681,7 @@ object ModuleIO {
             case _: IndirectCallInstruction => ()
             case _: IntrinsicCallInstruction => ()
             case HeapAllocateInstruction(_, ty, _) => collectType(ty)
+            case HeapAllocateArrayInstruction(_, _, ty, _) => collectType(ty)
             case _: LoadInstruction => ()
             case _: LoadElementInstruction => ()
             case _: RelationalOperatorInstruction => ()
@@ -837,6 +845,11 @@ object ModuleIO {
           case HeapAllocateInstruction(_, ty, _) => {
             output.writeByte(HEAP_ALLOCATE_INST_ID)
             writeType(ty)
+          }
+          case HeapAllocateArrayInstruction(_, count, elementType, _) => {
+            output.writeByte(HEAP_ALLOCATE_ARRAY_INST_ID)
+            writeValue(count)
+            writeType(elementType)
           }
           case IndirectCallInstruction(_, target, arguments, _) => {
             output.writeByte(INDIRECT_CALL_INST_ID)
@@ -1097,6 +1110,7 @@ object ModuleIO {
   val STATIC_CALL_INST_ID: Byte = 115
   val UPCAST_INST_ID: Byte = 116
   val HEAP_ALLOCATE_INST_ID = 117
+  val HEAP_ALLOCATE_ARRAY_INST_ID = 118
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

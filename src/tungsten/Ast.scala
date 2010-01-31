@@ -327,6 +327,22 @@ final case class AstHeapAllocateInstruction(override name: Symbol,
   }
 }
 
+final case class AstHeapAllocateArrayInstruction(override name: Symbol, 
+                                                 count: AstValue,
+                                                 elementType: AstType,
+                                                 override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.names.top + name
+    val cCount = count.compile(ctx)
+    val cElementType = elementType.compile(ctx)
+    val cAlloc = HeapAllocateArrayInstruction(fullName, cCount, cElementType, location)
+    ctx.replaceDefn(cAlloc)
+    cAlloc
+  }
+}
+
 final case class AstIndirectCallInstruction(override name: Symbol,
                                             target: AstValue,
                                             arguments: List[AstValue],

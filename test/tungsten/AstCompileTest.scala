@@ -233,6 +233,20 @@ class AstCompileTest {
   }
 
   @Test
+  def heapAllocateArrayInst {
+    ctx.names.push(foo)
+    val ast = AstHeapAllocateArrayInstruction(bar,
+                                              AstUnitValue(Nowhere),
+                                              AstUnitType(Nowhere),
+                                              loc)
+    val expected = HeapAllocateArrayInstruction(foo + bar,
+                                                UnitValue(),
+                                                UnitType(),
+                                                loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def indirectCallInst = {
     ctx.names.push(foo)
     val ast = AstIndirectCallInstruction(bar, 
@@ -285,7 +299,7 @@ class AstCompileTest {
   }
 
   @Test
-  def stackAlAlocateInst = {
+  def stackAllocateInst = {
     ctx.names.push(foo)
     val ast = AstStackAllocateInstruction(bar, 
                                           AstPointerType(AstUnitType(Nowhere), Nowhere), 

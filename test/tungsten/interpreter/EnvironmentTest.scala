@@ -275,6 +275,18 @@ class EnvironmentTest {
   }
 
   @Test
+  def heapAllocateArrayInst {
+    val (module, env) = prepareCode("#heaparray a = 12L * #unit")
+    env.step
+    val value = env.state.get(prefix + "a")
+    assertTrue(value.isInstanceOf[ScalarReference])
+    val arrayValue = value.asInstanceOf[ScalarReference].value
+    assertTrue(arrayValue.isInstanceOf[ArrayValue])
+    val array = arrayValue.asInstanceOf[ArrayValue].value
+    assertEquals(12, array.length)
+  }
+
+  @Test
   def indirectCallInst = {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

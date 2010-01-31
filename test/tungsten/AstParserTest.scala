@@ -173,6 +173,15 @@ class AstParserTest {
   }
 
   @Test
+  def heapAllocateArrayInst {
+    testInstruction("#heaparray <foo.w:1.2-3.4> foo = () * #unit",
+                    AstHeapAllocateArrayInstruction(foo,
+                                                    AstUnitValue(Nowhere),
+                                                    AstUnitType(Nowhere),
+                                                    fooLoc))
+  }
+
+  @Test
   def indirectCallInst = {
     testInstruction("#icall <foo.w:1.2-3.4> foo = bar(123)",
                     AstIndirectCallInstruction(foo,

@@ -410,11 +410,15 @@ object ModuleIO {
     def writeDefinition(block: Block) {
       output.write(INDENT + "#block " + locationString(block.location) + block.name.simple)
       writeParameterList(block.parameters)
-      output.write(" {\n")
-      parentNames.push(block.name)
-      writeDefinitionList(block.instructions, "")
-      parentNames.pop
-      output.write(INDENT + "}\n")
+      if (block.instructions.isEmpty)
+        output.write("\n")
+      else {
+        output.write(" {\n")
+        parentNames.push(block.name)
+        writeDefinitionList(block.instructions, "")
+        parentNames.pop
+        output.write(INDENT + "}\n")
+      }
     }
 
     def writeDefinition(field: Field) {
@@ -425,9 +429,14 @@ object ModuleIO {
     def writeDefinition(function: Function) {
       output.write("#function " + locationString(function.location) + function.name)
       writeParameterList(function.parameters)
-      output.write(": " + function.returnType + " {\n")
-      writeDefinitionList(function.blocks, "")
-      output.write("}\n")
+      output.write(": " + function.returnType)
+      if (function.blocks.isEmpty)
+        output.write("\n")
+      else {
+        output.write(" {\n")
+        writeDefinitionList(function.blocks, "")
+        output.write("}\n")
+      }
     }
 
     def writeDefinition(global: Global) { 
@@ -449,9 +458,14 @@ object ModuleIO {
     }
 
     def writeDefinition(struct: Struct) {
-      output.write("#struct " + locationString(struct.location) + struct.name + " {\n")
-      writeDefinitionList(struct.fields, "")
-      output.write("}\n")
+      output.write("#struct " + locationString(struct.location) + struct.name)
+      if (struct.fields.isEmpty)
+        output.write("\n")
+      else {
+        output.write(" {\n")
+        writeDefinitionList(struct.fields, "")
+        output.write("}\n")
+      }
     }
 
     def writeDefinition(inst: Instruction) {

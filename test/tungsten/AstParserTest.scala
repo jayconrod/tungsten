@@ -293,6 +293,12 @@ class AstParserTest {
   }
 
   @Test
+  def blockEmpty {
+    val expected = AstBlock("foo", Nil, Nil, Nowhere)
+    test("#block foo( )", AstParser.block, expected)
+  }    
+
+  @Test
   def block = {
     val program = "#block <foo.w:1.2-3.4> foo(bar : #int32,\n" +
                   "                           baz : #int32) {\n" +
@@ -333,6 +339,18 @@ class AstParserTest {
     testModule("#global foo: #unit = ()", expected)
   }
 
+  @Test
+  def functionExtern = {
+    val program = "#function foo( ): #unit"
+    val function = AstFunction("foo",
+                               AstUnitType(Nowhere),
+                               Nil,
+                               Nil,
+                               Nowhere)
+    val expected = AstModule(List(function))
+    testModule(program, expected)
+  }
+    
   @Test
   def functionEmpty = {
     val program = "#function foo( ): #unit { #block ret( ) { #return bar = () } }"
@@ -388,6 +406,14 @@ class AstParserTest {
     val program = "#field <foo.w:1.2-3.4> foo: #unit"
     val expected = AstField(new Symbol("foo"), AstUnitType(Nowhere), fooLoc)
     test(program, AstParser.field, expected)
+  }
+
+  @Test
+  def structEmpty {
+    val program = "#struct A"
+    val struct = AstStruct("A", Nil, Nowhere)
+    val expected = AstModule(List(struct))
+    testModule(program, expected)
   }
 
   @Test

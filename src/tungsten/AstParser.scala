@@ -269,8 +269,12 @@ object AstParser extends Parsers with ImplicitConversions {
     "(" ~> repsep(parameter, ",") <~ ")"
   }
 
+  def body[T](parser: Parser[T]): Parser[List[T]] = {
+    opt("{" ~> rep(parser) <~ "}") ^^ { _.getOrElse(Nil) }
+  }
+
   def block: Parser[AstBlock] = {
-    "#block" ~> location ~ symbol ~ parameterList ~ ("{" ~> rep(instruction) <~ "}") ^^ { 
+    "#block" ~> location ~ symbol ~ parameterList ~ body(instruction) ^^ { 
       case loc ~ name ~ params ~ body => AstBlock(name, params, body, loc)
     }
   }
@@ -288,17 +292,15 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def function: Parser[AstFunction] = {
-    "#function" ~> location ~ symbol ~ parameterList ~ (":" ~> ty) ~
-      opt("{" ~> rep(block) <~ "}") ^^ {
-        case loc ~ name ~ params ~ retTy ~ body => {
-          val blocks = body.getOrElse(Nil)
+    "#function" ~> location ~ symbol ~ parameterList ~ (":" ~> ty) ~ body(block) ^^ {
+        case loc ~ name ~ params ~ retTy ~ blocks => {
           AstFunction(name, retTy, params, blocks, loc)
         }
       }
   }
 
   def struct: Parser[AstStruct] = {
-    "#struct" ~> location ~ symbol ~ ("{" ~> rep(field) <~ "}") ^^ {
+    "#struct" ~> location ~ symbol ~ body(field) ^^ {
         case loc ~ name ~ fields => AstStruct(name, fields, loc)
       }
   }  

@@ -207,7 +207,7 @@ sealed abstract class AstInstruction(val name: Symbol, override val location: Lo
   extends AstDefinition(location)
 {
   def compileDeclaration(ctx: AstContext) = {
-    val fullName: Symbol = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cInst = AssignInstruction(fullName, UnitValue(), location)
     ctx.addDefn(cInst)
   }
@@ -222,7 +222,7 @@ final case class AstAddressInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cBase = base.compile(ctx)
     val cIndices = indices.map(_.compile(ctx))
     val cAddress = AddressInstruction(fullName, cBase, cIndices, location)
@@ -237,7 +237,7 @@ final case class AstAssignInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cTarget = target.compile(ctx)
     val cInst = AssignInstruction(fullName, cTarget, location)
     ctx.replaceDefn(cInst)
@@ -253,7 +253,7 @@ final case class AstBinaryOperatorInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cLeft = left.compile(ctx)
     val cRight = right.compile(ctx)
     val cBinop = BinaryOperatorInstruction(fullName, operator, cLeft, cRight, location)
@@ -269,7 +269,7 @@ final case class AstBranchInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cTarget = ctx.resolve(target) match {
       case Some(t) => t
       case None => target
@@ -298,7 +298,7 @@ final case class AstConditionalBranchInstruction(override name: Symbol,
       }
     }
 
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cCond = condition.compile(ctx)
     val cTrueTarget = resolveTarget(trueTarget)
     val cTrueArguments = trueArguments.map(_.compile(ctx))
@@ -319,7 +319,7 @@ final case class AstHeapAllocateInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cTy = ty.compile(ctx)
     val cAlloc = HeapAllocateInstruction(fullName, cTy, location)
     ctx.replaceDefn(cAlloc)
@@ -334,7 +334,7 @@ final case class AstHeapAllocateArrayInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cCount = count.compile(ctx)
     val cElementType = elementType.compile(ctx)
     val cAlloc = HeapAllocateArrayInstruction(fullName, cCount, cElementType, location)
@@ -350,7 +350,7 @@ final case class AstIndirectCallInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cTarget = target.compileOrElse(ctx)
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = IndirectCallInstruction(fullName, cTarget, cArgs, location)
@@ -367,7 +367,7 @@ final case class AstIntrinsicCallInstruction(override name: Symbol,
 {
   def compile(ctx: AstContext) = {
     import Intrinsic._
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cIntrinsic = target.toString match {
       case "exit" => EXIT
     }
@@ -384,7 +384,7 @@ final case class AstLoadInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cPointer = pointer.compileOrElse(ctx)
     val cLoad = LoadInstruction(fullName, cPointer, location)
     ctx.replaceDefn(cLoad)
@@ -399,7 +399,7 @@ final case class AstLoadElementInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cBase = base.compileOrElse(ctx)
     val cIndices = indices.map(_.compileOrElse(ctx))
     val cLoad = LoadElementInstruction(fullName, cBase, cIndices, location)
@@ -416,7 +416,7 @@ final case class AstRelationalOperatorInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cLeft = left.compile(ctx)
     val cRight = right.compile(ctx)
     val cRelop = RelationalOperatorInstruction(fullName, operator, cLeft, cRight, location)
@@ -431,7 +431,7 @@ final case class AstReturnInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cValue = value.compileOrElse(ctx)
     val cReturn = ReturnInstruction(fullName, cValue, location)
     ctx.replaceDefn(cReturn)
@@ -445,7 +445,7 @@ final case class AstStackAllocateInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cTy = ty.compile(ctx)
     val cAlloc = StackAllocateInstruction(fullName, cTy, location)
     ctx.replaceDefn(cAlloc)
@@ -460,7 +460,7 @@ final case class AstStackAllocateArrayInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cCount = count.compile(ctx)
     val cElementType = elementType.compile(ctx)
     val cAlloc = StackAllocateArrayInstruction(fullName, cCount, cElementType, location)
@@ -476,7 +476,7 @@ final case class AstStaticCallInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cArgs = arguments.map(_.compile(ctx))
     val cCall = StaticCallInstruction(fullName, target, cArgs, location)
     ctx.replaceDefn(cCall)
@@ -491,7 +491,7 @@ final case class AstStoreInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cPointer = pointer.compileOrElse(ctx)
     val cValue = value.compileOrElse(ctx)
     val cStore = StoreInstruction(fullName, cPointer, cValue, location)
@@ -508,7 +508,7 @@ final case class AstStoreElementInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cBase = base.compileOrElse(ctx)
     val cIndices = indices.map(_.compileOrElse(ctx))
     val cValue = value.compileOrElse(ctx)
@@ -525,7 +525,7 @@ final case class AstUpcastInstruction(override name: Symbol,
   extends AstInstruction(name, location)
 {
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cValue = value.compile(ctx)
     val cTy = ty.compile(ctx)
     val cCast = UpcastInstruction(fullName, cValue, cTy, location)
@@ -540,14 +540,14 @@ final case class AstParameter(name: Symbol, ty: AstType, override location: Loca
   extends AstDefinition(location)
 {
   def compileDeclaration(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cParam = Parameter(fullName, UnitType(), location)
     ctx.addDefn(cParam)
   }
 
   def compile(ctx: AstContext): Parameter = {
     val cty = ty.compileOrElse(ctx)
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cParam = Parameter(fullName, cty, location)
     ctx.replaceDefn(cParam)
     cParam
@@ -561,7 +561,7 @@ final case class AstBlock(name: Symbol,
   extends AstDefinition(location)
 {
   def compileDeclaration(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     ctx.names.push(fullName)
     parameters.foreach(_.compileDeclaration(ctx))
     instructions.foreach(_.compileDeclaration(ctx))
@@ -571,7 +571,7 @@ final case class AstBlock(name: Symbol,
   }
 
   def compile(ctx: AstContext): Block = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     ctx.names.push(fullName)
     val cParams = parameters.map(_.compile(ctx).name)
     val cInsts = instructions.map(_.compile(ctx).name)
@@ -638,13 +638,13 @@ final case class AstField(name: Symbol,
   extends AstDefinition(location)
 {
   def compileDeclaration(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cField = Field(fullName, UnitType(), location)
     ctx.addDefn(cField)
   }
 
   def compile(ctx: AstContext) = {
-    val fullName = ctx.names.top + name
+    val fullName = ctx.createName(name)
     val cField = Field(fullName, ty.compile(ctx), location)
     ctx.replaceDefn(cField)
     cField

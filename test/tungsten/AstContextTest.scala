@@ -36,11 +36,46 @@ class AstContextTest {
 
   @Test
   def resolveShadowed = {
-    val foobar = symbolFromString("foo.bar")
-    ctx.addDefn(Global(foobar, UnitType(), None))
-    ctx.addDefn(Global("bar", UnitType(), None))
     ctx.names.push("foo")
+    ctx.addDefn(Global("foo.bar", UnitType(), None))
+    ctx.addDefn(Global("bar", UnitType(), None))
     val resolved = ctx.resolve("bar").get
-    assertEquals(foobar, resolved)
+    assertEquals(symbolFromString("bar"), resolved)
+  }
+
+  @Test
+  def createSimpleName {
+    val inst = AstAssignInstruction("b", AstUnitValue(Nowhere), Nowhere)
+    ctx.names.push("a")
+    val cInst = inst.compile(ctx)
+    assertEquals(symbolFromString("a.b"), cInst.name)
+  }
+
+  @Test
+  def createComplexName {
+    val inst = AstAssignInstruction("a.b", AstUnitValue(Nowhere), Nowhere)
+    ctx.names.push("foo")
+    val cInst = inst.compile(ctx)
+    assertEquals(inst.name, cInst.name)
+  }
+
+  @Test
+  def resolveSimpleGlobalName {
+    ctx.names.push("a")
+    val name = symbolFromString("b")
+    ctx.addDefn(Global(name, UnitType(), None))
+    ctx.addDefn(Global("a.b", UnitType(), None))
+    val resolved = ctx.resolve("b")
+    assertEquals(Some(name), resolved)
+  }
+
+  @Test
+  def resolveComplexName {
+    ctx.names.push("a")
+    val name = symbolFromString("x.y")
+    ctx.addDefn(Global(name, UnitType(), None))
+    ctx.addDefn(Global("a.x.y", UnitType(), None))
+    val resolved = ctx.resolve("x.y")
+    assertEquals(Some(name), resolved)
   }
 }

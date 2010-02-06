@@ -17,6 +17,8 @@ final class Symbol(val name: Seq[String], val id: Int)
 
   def simple = Symbol(name.last, id)
 
+  def isSimple = name.size == 1
+
   def compare(that: Symbol): Int = {
     def compareName(lname: Seq[String], rname: Seq[String]): Int = {
       if (lname.isEmpty) {

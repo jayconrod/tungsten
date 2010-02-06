@@ -12,15 +12,23 @@ final class AstContext {
 
   def replaceDefn(defn: Definition) = module = module.replace(defn)
 
+  def createName(name: Symbol): Symbol = {
+    if (name.isSimple && !names.isEmpty)
+      names.top + name
+    else
+      name
+  }
+
   def resolve(name: Symbol): Option[Symbol] = {
-    for (n <- names) {
-      val fullName = n + name
-      if (module.get(fullName).isDefined)
-        return Some(fullName)
+    def nameIsDefined(fullName: Symbol): Boolean = {
+      module.get(fullName).isDefined
     }
-    if (module.get(name).isDefined)
+
+    if (nameIsDefined(name))
       Some(name)
+    else if (name.isSimple)
+      names.view.map(_ + name).find(nameIsDefined _)
     else
       None
-  }   
+  }
 }

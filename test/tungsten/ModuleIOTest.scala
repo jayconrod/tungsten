@@ -165,6 +165,15 @@ class ModuleIOWriteBinaryTest {
 }
 
 class ModuleIOWriteTextTest {
+  def parentPrefixes(parent: Symbol): List[Symbol] = {
+    (List[Symbol]() /: parent.name) { (prefixes: List[Symbol], part: String) =>
+      prefixes match {
+        case Nil => List(Symbol(part, parent.id))
+        case h :: _ => Symbol(h.name :+ part, parent.id) :: prefixes
+      }
+    }.reverse
+  }
+
   def testWriteDefinitionText(expected: String, 
                               program: String,
                               symbol: Symbol,
@@ -174,10 +183,9 @@ class ModuleIOWriteTextTest {
     val defn = module.definitions(symbol)
     val output = new StringWriter
     val writer = new TextModuleWriter(module, output)
-    parent foreach { p => writer.parentNames.push(p) }
+    val prefixes = parent.toList.flatMap(parentPrefixes _)
+    prefixes.foreach(writer.parentNames.push _)
     writer.writeDefinition(defn)
-    if (parent.isDefined)
-      writer.parentNames.pop
 
     if (expected != output.toString) {
       System.err.println(expected)
@@ -211,9 +219,10 @@ class ModuleIOWriteTextTest {
     val writer = new TextModuleWriter(module, output)
 
     def testLocalSymbol(expected: Symbol, parent: Symbol, name: Symbol) {
-      writer.parentNames.push(parent)
+      val prefixes = parentPrefixes(parent)
+      prefixes.foreach(writer.parentNames.push _)
       val localSym = writer.localSymbol(name)
-      writer.parentNames.pop
+      prefixes.foreach { _ => writer.parentNames.pop _ }
       assertEquals(expected, localSym)
     }
 
@@ -222,6 +231,7 @@ class ModuleIOWriteTextTest {
     testLocalSymbol("foo", "main.entry.a", "main.foo")
     testLocalSymbol("bar.b", "foo.a", "bar.b")
     testLocalSymbol("a", "foo.a", "foo.a")
+    testLocalSymbol("b3", "main.b2", "main.b3")
   }
 
   @Test
@@ -235,7 +245,7 @@ class ModuleIOWriteTextTest {
                   "  }\n" +
                   blockText +
                   "}\n"
-    testWriteDefinitionText(blockText, program, "main.a")
+    testWriteDefinitionText(blockText, program, "main.a", Some("main"))
   }
 
   @Test

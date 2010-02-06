@@ -408,7 +408,8 @@ object ModuleIO {
     }
 
     def writeDefinition(block: Block) {
-      output.write(INDENT + "#block " + locationString(block.location) + block.name.simple)
+      output.write(INDENT + "#block " + locationString(block.location) + localSymbol(block.name))
+      parentNames.push(block.name)
       writeParameterList(block.parameters)
       if (block.instructions.isEmpty)
         output.write("\n")
@@ -419,15 +420,17 @@ object ModuleIO {
         parentNames.pop
         output.write(INDENT + "}\n")
       }
+      parentNames.pop
     }
 
     def writeDefinition(field: Field) {
-      output.write(INDENT + "#field " + locationString(field.location) + field.name.simple + 
-        ": " + field.ty + "\n")
+      output.write(INDENT + "#field " + locationString(field.location) + 
+        localSymbol(field.name) + ": " + field.ty + "\n")
     }
 
     def writeDefinition(function: Function) {
       output.write("#function " + locationString(function.location) + function.name)
+      parentNames.push(function.name)
       writeParameterList(function.parameters)
       output.write(": " + function.returnType)
       if (function.blocks.isEmpty)
@@ -437,6 +440,7 @@ object ModuleIO {
         writeDefinitionList(function.blocks, "")
         output.write("}\n")
       }
+      parentNames.pop
     }
 
     def writeDefinition(global: Global) { 
@@ -454,11 +458,12 @@ object ModuleIO {
         ""
       else
         " " + param.location + " "
-      output.write(param.name.simple.toString + locStr + ": " + param.ty)
+      output.write(localSymbol(param.name).toString + locStr + ": " + param.ty)
     }
 
     def writeDefinition(struct: Struct) {
       output.write("#struct " + locationString(struct.location) + struct.name)
+      parentNames.push(struct.name)
       if (struct.fields.isEmpty)
         output.write("\n")
       else {
@@ -466,6 +471,7 @@ object ModuleIO {
         writeDefinitionList(struct.fields, "")
         output.write("}\n")
       }
+      parentNames.pop
     }
 
     def writeDefinition(inst: Instruction) {
@@ -599,21 +605,28 @@ object ModuleIO {
       writeList(definitionList, writeDefinition(_: Definition), sep)
     }
 
+    /** Returns the simple version of the symbol if the simple name by itself does not refer 
+     *  to another definition, nor does any prefix combined with the simple name. The symbol
+     *  on top of the parent name stack combined with the simple name must also match the
+     *  whole name. Otherwise, the given name is returned.
+     */
     def localSymbol(sym: Symbol): Symbol = {
-      def localName(l: List[String], r: List[String]): List[String] = {
-        (l, r) match {
-          case (lh :: lt, rh :: (rt @ _ :: _)) if lh == rh => localName(lt, rt)
-          case _ => r
+      def conflicts(name: Symbol): Boolean = {
+        module.getDefn(name) match {
+          case Some(defn) if defn.name != sym => true
+          case _ => false
         }
       }
-    
-      parentNames.headOption match {
-        case Some(parentName) => {
-          val lname = localName(parentName.name.toList, sym.name.toList)
-          Symbol(lname, sym.id)
-        }
-        case None => sym
+
+      val matchesPrefix = (false /: parentNames) { (b, prefix) =>
+        b || prefix + sym.simple == sym
       }
+      if (conflicts(sym.simple) ||
+          parentNames.exists { (prefix: Symbol) => conflicts(prefix + sym.simple) } ||
+          !matchesPrefix)
+        sym
+      else
+        sym.simple
     }
 
     def localValue(value: Value): Value = {

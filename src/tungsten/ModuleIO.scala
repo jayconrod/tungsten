@@ -70,6 +70,7 @@ object ModuleIO {
     val out = new DataOutputStream(output)
     val writer = new BinaryModuleWriter(module, out)
     writer.write
+    out.flush
   }
 
   def writeText(module: Module, file: File) {
@@ -81,6 +82,7 @@ object ModuleIO {
   def writeText(module: Module, output: Writer) {
     val writer = new TextModuleWriter(module, output)
     writer.write
+    output.flush
   }
 
   /* readBinary helpers */

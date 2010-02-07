@@ -1,5 +1,6 @@
 package tungsten
 
+import java.io.File
 import org.junit.Test
 import org.junit.Ignore
 import org.junit.Assert._
@@ -37,12 +38,35 @@ class AstParserTest {
 
   @Test
   def empty = {
-    testModule("", AstModule(Nil))
+    testModule("", new AstModule(Nil))
   }
 
   @Test
   def whitespace = {
-    testModule(" \t\n", AstModule(Nil))
+    testModule(" \t\n", new AstModule(Nil))
+  }
+
+  @Test
+  def headers = {
+    testModule("#name a.b#12\n" +
+               "#type #library\n" +
+               "#version #1.2.3\n" +
+               "#dependencies c.d#34:0.1-, e.f#56:-1.0, g.h#78\n" +
+               "#searchpaths \"/foo/bar\", \"/baz\"\n",
+               new AstModule("a.b#12",
+                             ModuleType.LIBRARY,
+                             Version(1, 2, 3),
+                             List(ModuleDependency("c.d#34",
+                                                   Version(0, 1),
+                                                   Version.MAX),
+                                  ModuleDependency("e.f#56",
+                                                   Version.MIN,
+                                                   Version(1, 0)),
+                                  ModuleDependency("g.h#78",
+                                                   Version.MIN,
+                                                   Version.MAX)),
+                             List(new File("/foo/bar"), new File("/baz")),
+                             Nil))
   }
 
   @Test
@@ -318,14 +342,14 @@ class AstParserTest {
   @Test
   def global = {
     val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, Nowhere)
-    val expected = AstModule(List(global))
+    val expected = new AstModule(List(global))
     testModule("#global foo: #unit", expected)
   }
 
   @Test
   def globalWithLocation = {
     val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, fooLoc)
-    val expected = AstModule(List(global))
+    val expected = new AstModule(List(global))
     testModule("#global <foo.w:1.2-3.4> foo: #unit", expected)
   }
 
@@ -335,7 +359,7 @@ class AstParserTest {
                            AstUnitType(Nowhere),
                            Some(AstUnitValue(Nowhere)),
                            Nowhere)
-    val expected = AstModule(List(global))
+    val expected = new AstModule(List(global))
     testModule("#global foo: #unit = ()", expected)
   }
 
@@ -347,7 +371,7 @@ class AstParserTest {
                                Nil,
                                Nil,
                                Nowhere)
-    val expected = AstModule(List(function))
+    val expected = new AstModule(List(function))
     testModule(program, expected)
   }
     
@@ -365,7 +389,7 @@ class AstParserTest {
                                Nil,
                                List(ret),
                                Nowhere)
-    val expected = AstModule(List(function))
+    val expected = new AstModule(List(function))
     testModule(program, expected)
   }
 
@@ -397,7 +421,7 @@ class AstParserTest {
                                List(p1, p2),
                                List(entry, ret),
                                fooLoc)
-    val expected = AstModule(List(function))
+    val expected = new AstModule(List(function))
     testModule(program, expected)
   }
 
@@ -412,7 +436,7 @@ class AstParserTest {
   def structEmpty {
     val program = "#struct A"
     val struct = AstStruct("A", Nil, Nowhere)
-    val expected = AstModule(List(struct))
+    val expected = new AstModule(List(struct))
     testModule(program, expected)
   }
 
@@ -426,7 +450,7 @@ class AstParserTest {
                            List(AstField(new Symbol("bar"), AstUnitType(Nowhere), Nowhere),
                                 AstField(new Symbol("baz"), AstUnitType(Nowhere), Nowhere)),
                            fooLoc)
-    val expected = AstModule(List(struct))
+    val expected = new AstModule(List(struct))
     testModule(program, expected)
   }
 }

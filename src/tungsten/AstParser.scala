@@ -3,6 +3,7 @@ package tungsten
 import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.combinator.ImplicitConversions
 import scala.util.parsing.input.Reader
+import java.io.File
 
 object AstParser extends Parsers with ImplicitConversions {
   type Elem = Token
@@ -24,6 +25,23 @@ object AstParser extends Parsers with ImplicitConversions {
     opt(locParser) ^^ {
       case Some(l) => l
       case None => Nowhere
+    }
+  }
+
+  def version: Parser[Version] = {
+    elem("version", _.isInstanceOf[VersionToken]) ^^ { _.asInstanceOf[VersionToken].version }
+  }
+
+  def dependency: Parser[ModuleDependency] = {
+    elem("module dependency", _.isInstanceOf[ModuleDependencyToken]) ^^ {
+      _.asInstanceOf[ModuleDependencyToken].dependency
+    } |
+    symbol ^^ { ModuleDependency(_, Version.MIN, Version.MAX) }
+  }
+
+  def string: Parser[String] = {
+    elem("string", _.isInstanceOf[StringToken]) ^^ {
+      _.asInstanceOf[StringToken].value
     }
   }
 
@@ -307,7 +325,32 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def definition: Parser[AstDefinition] = global | function | struct
 
-  def module: Parser[AstModule] = rep(definition) ^^ { AstModule(_) }
+  def header: Parser[(Symbol, ModuleType, Version, List[ModuleDependency], List[File])] = {
+    opt("#name" ~> symbol) ~
+      opt("#type" ~> ("#intermediate" | "#library" | "#program")) ~
+      opt("#version" ~> version) ~
+      opt("#dependencies" ~> repsep(dependency, ",")) ~
+      opt("#searchpaths" ~> repsep(string, ",")) ^^ {
+        case n ~ t ~ v ~ d ~ s => {
+          val name = n.getOrElse(Symbol("default"))
+          val ty = t match {
+            case Some("#intermediate") => ModuleType.INTERMEDIATE
+            case Some("#library") => ModuleType.LIBRARY
+            case Some("#program") => ModuleType.PROGRAM
+            case None => ModuleType.INTERMEDIATE
+            case _ => throw new AssertionError("Invalid module type")
+          }
+          val version = v.getOrElse(Version.MIN)
+          val dependencies = d.getOrElse(Nil)
+          val searchPaths = s.getOrElse(Nil).map(new File(_))
+          (name, ty, version, dependencies, searchPaths)
+        }
+      }
+  }
+
+  def module: Parser[AstModule] = header ~ rep(definition) ^^ { 
+    case (n, t, v, d, s) ~ definitions => new AstModule(n, t, v, d, s, definitions)
+  }
 
   implicit def reserved(r: String): Parser[String] = elem(ReservedToken(r)) ^^^ r
 

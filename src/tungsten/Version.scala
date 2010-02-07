@@ -2,7 +2,7 @@ package tungsten
 
 import Utilities._
 
-final class Version(val elements: List[Int]) 
+final case class Version(elements: List[Int]) 
   extends Ordered[Version]
 {
   if (elements.exists(_ < 0))
@@ -28,19 +28,12 @@ final class Version(val elements: List[Int])
     compareElements(elements, that.elements)
   }
 
-  override def equals(that: Any) = {
-    that match {
-      case v: Version if elements == v.elements => true
-      case _ => false
-    }
-  }
-
-  override def hashCode = hash(elements)
-
   override def toString = elements.mkString(".")
 }
 
 object Version {
+  def apply(elements: Int*) = new Version(elements.toList)
+
   val MAX = new Version(List(1000000))
   val MIN = new Version(Nil)
 }

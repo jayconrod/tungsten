@@ -2,9 +2,24 @@ package tungsten
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Stack
+import java.io.File
+import Utilities._
 
-final class AstContext {
-  var module = new Module
+final class AstContext(name: Symbol,
+                       ty: ModuleType,
+                       version: Version,
+                       dependencies: List[ModuleDependency],
+                       searchPaths: List[File])
+{
+  def this() = {
+    this("default",
+         ModuleType.INTERMEDIATE,
+         Version.MIN,
+         Nil,
+         Nil)
+  }
+
+  var module = new Module(name, ty, version, dependencies, searchPaths, Map[Symbol, Definition]())
   val errors = new ArrayBuffer[CompileException]
   val names = new Stack[Symbol]
 

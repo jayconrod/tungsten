@@ -24,10 +24,20 @@ final class Module(val name: Symbol,
 
   def this() = this(new TreeMap[Symbol, Definition])
 
+  private def copyWith(name: Symbol = name,
+                       ty: ModuleType = ty,
+                       version: Version = version,
+                       dependencies: List[ModuleDependency] = dependencies,
+                       searchPaths: List[File] = searchPaths,
+                       definitions: Map[Symbol, Definition] = definitions) =
+  {
+    new Module(name, ty, version, dependencies, searchPaths, definitions)
+  }
+
   def add(defn: Definition): Module = {
     definitions.get(defn.name) match {
       case Some(d) => throw new RedefinedSymbolException(defn.name, defn.location, d.location)
-      case None => new Module(definitions + (defn.name -> defn))
+      case None => copyWith(definitions = definitions + (defn.name -> defn))
     }
   }
 
@@ -36,7 +46,7 @@ final class Module(val name: Symbol,
     ds.foldLeft(this)(_.add(_))
   }
 
-  def replace(defn: Definition) = new Module(definitions + (defn.name -> defn))
+  def replace(defn: Definition) = copyWith(definitions = definitions + (defn.name -> defn))
 
   def apply(name: Symbol): Definition = definitions(name)
 
@@ -166,10 +176,22 @@ final class Module(val name: Symbol,
   }
 
   override def equals(that: Any) = {
-    that.isInstanceOf[Module] && definitions == that.asInstanceOf[Module].definitions
+    that match {
+      case m: Module => {
+        name         == m.name         &&
+        ty           == m.ty           &&
+        version      == m.version      &&
+        dependencies == m.dependencies &&
+        searchPaths  == m.searchPaths  &&
+        definitions  == m.definitions
+      }
+      case _ => false
+    }
   }
 
-  override def hashCode = hash("Module", definitions)
+  override def hashCode = {
+    hash("Module", name, ty, version, dependencies, searchPaths, definitions)
+  }
 
   override def toString = definitions.valuesIterable.mkString("\n")
 }
@@ -183,9 +205,9 @@ object ModuleType {
   val PROGRAM = new ModuleType("program")
 }
 
-final class ModuleDependency(val name: Symbol,
-                             val minVersion: Version,
-                             val maxVersion: Version)
+final case class ModuleDependency(name: Symbol,
+                                  minVersion: Version,
+                                  maxVersion: Version)
 {
   override def toString = {
     val minVersionStr = if (minVersion == Version.MIN) "" else minVersion.toString

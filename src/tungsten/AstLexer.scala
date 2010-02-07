@@ -9,6 +9,8 @@ object AstLexer extends Parsers {
   val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:", "<-",
     "*", "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|", "?",
     "<", "<=", ">", ">=", "==", "!=",
+    "#name", "#type", "#intermediate", "#library", "#program", "#version", "#dependencies",
+      "#searchpaths",
     "#true", "#false",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",
@@ -108,6 +110,10 @@ object AstLexer extends Parsers {
     }
   }
 
+  def string: Parser[String] = {
+    elem('"') ~> rep(elem("string character", _ != '"')) <~ elem('"') ^^ { _.mkString }
+  }
+
   def symbol: Parser[Symbol] = {
     val idNum: Parser[Int] = {
       opt(elem('#') ~> int) ^^ {
@@ -135,15 +141,44 @@ object AstLexer extends Parsers {
       }
   }
 
+  def version: Parser[Version] = {
+    elem('#') ~> rep1sep(rep1(digit), elem('.')) ^^ { (parts: List[List[Char]]) =>
+      val elements = parts.map(_.mkString.toInt)
+      Version(elements)
+    }
+  }
+
+  def dependency: Parser[ModuleDependency] = {
+    def bareVersion: Parser[Version] = {
+      rep1sep(rep1(digit), '.') ^^ { (parts: List[List[Char]]) =>
+        val elements = parts.map(_.mkString.toInt)
+        Version(elements)
+      }
+    }
+
+    def versionRange: Parser[(Version, Version)] = {
+      bareVersion ~ '-' ~ bareVersion ^^ { case min ~ _ ~ max => (min, max) } |
+      bareVersion <~ opt('-') ^^ { (_, Version.MAX) } |
+      '-' ~> bareVersion ^^ { (Version.MIN, _) }
+    }
+
+    symbol ~ ':' ~ versionRange ^^ {
+      case name ~ _ ~ range => ModuleDependency(name, range._1, range._2)
+    }
+  }
+
   def token: Parser[Token] = {
     (location ^^ { LocationToken(_) }) | 
+    (dependency ^^ { ModuleDependencyToken(_) }) |
     (symbol ^^ { SymbolToken(_) }) | 
     float |
     (byte ^^ { ByteToken(_) }) |
     (short ^^ { ShortToken(_) }) |
     (long ^^ { LongToken(_) }) |
     (int ^^ { IntToken(_) }) |      // must follow others since it doesn't have a suffix
-    reserved | 
+    (string ^^ { StringToken(_) }) |
+    (version ^^ { VersionToken(_) }) |
+    reserved |
     failure("illegal character")
   }
 

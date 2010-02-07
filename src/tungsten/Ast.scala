@@ -1,5 +1,6 @@
 package tungsten
 
+import java.io.File
 import Utilities._
 
 sealed abstract class AstDefinition(val location: Location) {
@@ -676,14 +677,50 @@ final case class AstStruct(name: Symbol,
 
 // Module
 
-final case class AstModule(definitions: List[AstDefinition]) {
+final class AstModule(val name: Symbol,
+                      val ty: ModuleType,
+                      val version: Version,
+                      val dependencies: List[ModuleDependency],
+                      val searchPaths: List[File],
+                      val definitions: List[AstDefinition])
+{
+  def this(definitions: List[AstDefinition]) = {
+    this("default",
+         ModuleType.INTERMEDIATE,
+         Version.MIN,
+         Nil,
+         Nil,
+         definitions)
+  }
+
   def compile: Either[Module, List[CompileException]] = {
-    val ctx = new AstContext
+    val ctx = new AstContext(name, ty, version, dependencies, searchPaths)
     definitions.foreach(_.compileDeclaration(ctx))
     definitions.foreach(_.compile(ctx))
     ctx.errors.toList match {
       case Nil => Left(ctx.module)
       case errors => Right(errors)
     }
+  }
+
+  override def equals(that: Any) = {
+    that match {
+      case m: AstModule => {
+        name         == m.name         &&
+        ty           == m.ty           &&
+        version      == m.version      &&
+        dependencies == m.dependencies &&
+        searchPaths  == m.searchPaths  &&
+        definitions  == m.definitions
+      }
+      case _ => false
+    }
+  }
+
+  override def hashCode = hash(name, ty, version, dependencies, searchPaths, definitions)
+
+  override def toString = {
+    "AstModule(%s, %s, %s, %s, %s, %s)".
+      format(name, ty, version, dependencies, searchPaths, definitions)
   }
 }

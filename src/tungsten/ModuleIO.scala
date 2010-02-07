@@ -389,9 +389,27 @@ object ModuleIO {
     val parentNames = new Stack[Symbol]
 
     def write {
+      writeHeader
       for (defn <- module.definitions.valuesIterable
            if isTopLevel(defn))
         writeDefinition(defn)
+    }
+
+    def writeHeader {
+      output.write("#name " + module.name + "\n")
+      val tyStr = module.ty match {
+        case ModuleType.INTERMEDIATE => "#intermediate"
+        case ModuleType.LIBRARY => "#library"
+        case ModuleType.PROGRAM => "#program"
+      }
+      output.write("#type " + tyStr + "\n")
+      if (module.version != Version.MIN)
+        output.write("#version " + module.version + "\n")
+      if (!module.dependencies.isEmpty)
+        output.write("#dependencies " + module.dependencies.mkString(", ") + "\n")
+      if (!module.searchPaths.isEmpty)
+        output.write("#searchpaths " + module.searchPaths.mkString(", ") + "\n")
+      output.write("\n")
     }
 
     def writeDefinition(defn: Definition) {

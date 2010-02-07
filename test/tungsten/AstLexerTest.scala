@@ -3,6 +3,7 @@ package tungsten
 import org.junit.Test
 import org.junit.Assert._
 import scala.util.parsing.input.CharArrayReader
+import Utilities._
 
 class AstLexerTest {
   def test[T](in: String, parser: AstLexer.Parser[T], expected: T) = {
@@ -60,6 +61,24 @@ class AstLexerTest {
   }
 
   @Test
+  def version {
+    testToken("#1", VersionToken(Version(1)))
+    testToken("#1.2.3", VersionToken(Version(1, 2, 3)))
+  }
+
+  @Test
+  def dependency {
+    testToken("a.b#12:0.1", 
+              ModuleDependencyToken(ModuleDependency("a.b#12", Version(0, 1), Version.MAX)))
+    testToken("a.b#12:0.1-",
+              ModuleDependencyToken(ModuleDependency("a.b#12", Version(0, 1), Version.MAX)))
+    testToken("a.b#12:-0.1",
+              ModuleDependencyToken(ModuleDependency("a.b#12", Version.MIN, Version(0, 1))))
+    testToken("a.b#12:0.1-2.3",
+              ModuleDependencyToken(ModuleDependency("a.b#12", Version(0, 1), Version(2, 3))))
+  }
+
+  @Test
   def integer = {
     test("12b", AstLexer.byte, 12: Byte)
     test("12s", AstLexer.short, 12: Short)
@@ -99,6 +118,11 @@ class AstLexerTest {
     testToken("-1e2f", Float32Token(-1e2f))
     testToken("1f", Float32Token(1f))
     testToken("-1f", Float32Token(-1f))
+  }
+
+  @Test
+  def string {
+    testToken("\"blah\"", StringToken("blah"))
   }
 
   @Test

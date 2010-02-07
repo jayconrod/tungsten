@@ -1,5 +1,6 @@
 package tungsten
 
+import java.io.File
 import org.junit.Test
 import org.junit.Assert._
 import Utilities._
@@ -21,6 +22,26 @@ class AstCompileTest {
     assertEquals(expected, defn)
     assertEquals(expected, get(expected.name))
     assertTrue(ctx.errors.isEmpty)
+  }
+
+  @Test
+  def headers {
+    val ast = new AstModule("a.b#12",
+                            ModuleType.LIBRARY,
+                            new Version(List(1, 2, 3)),
+                            List(new ModuleDependency("c.d#34", 
+                                                      new Version(List(0, 1)),
+                                                      new Version(List(3, 4)))),
+                            List(new File("/foo/bar")),
+                            Nil)
+    val Left(module) = ast.compile
+    val expected = new Module(module.name,
+                              module.ty,
+                              module.version,
+                              module.dependencies,
+                              module.searchPaths,
+                              Map[Symbol, Definition]())                             
+    assertEquals(expected, module)
   }
 
   @Test

@@ -680,6 +680,7 @@ final case class AstStruct(name: Symbol,
 final class AstModule(val name: Symbol,
                       val ty: ModuleType,
                       val version: Version,
+                      val filename: Option[File],
                       val dependencies: List[ModuleDependency],
                       val searchPaths: List[File],
                       val definitions: List[AstDefinition])
@@ -688,13 +689,14 @@ final class AstModule(val name: Symbol,
     this("default",
          ModuleType.INTERMEDIATE,
          Version.MIN,
+         None,
          Nil,
          Nil,
          definitions)
   }
 
   def compile: Either[Module, List[CompileException]] = {
-    val ctx = new AstContext(name, ty, version, dependencies, searchPaths)
+    val ctx = new AstContext(name, ty, version, filename, dependencies, searchPaths)
     definitions.foreach(_.compileDeclaration(ctx))
     definitions.foreach(_.compile(ctx))
     ctx.errors.toList match {
@@ -709,6 +711,7 @@ final class AstModule(val name: Symbol,
         name         == m.name         &&
         ty           == m.ty           &&
         version      == m.version      &&
+        filename     == m.filename     &&
         dependencies == m.dependencies &&
         searchPaths  == m.searchPaths  &&
         definitions  == m.definitions
@@ -717,10 +720,10 @@ final class AstModule(val name: Symbol,
     }
   }
 
-  override def hashCode = hash(name, ty, version, dependencies, searchPaths, definitions)
+  override def hashCode = hash(name, ty, version, filename, dependencies, searchPaths, definitions)
 
   override def toString = {
     "AstModule(%s, %s, %s, %s, %s, %s)".
-      format(name, ty, version, dependencies, searchPaths, definitions)
+      format(name, ty, version, filename, dependencies, searchPaths, definitions)
   }
 }

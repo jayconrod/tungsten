@@ -103,7 +103,7 @@ object ModuleIO {
           throw new IOException("Duplicate definition")
         definitions + (defn.name -> defn)
       }
-      new Module(header._1, header._2, header._3, header._4, header._5, definitions)
+      new Module(header._1, header._2, header._3, header._4, header._5, header._6, definitions)
     }
 
     def readHeader = {
@@ -117,9 +117,10 @@ object ModuleIO {
       val name = readHeaderSymbol
       val ty = readModuleType
       val version = readVersion
+      val filename = readOption(new File(readString))
       val dependencies = readList(readModuleDependency)
       val searchPaths = readList(new File(readString))
-      (name, ty, version, dependencies, searchPaths)
+      (name, ty, version, filename, dependencies, searchPaths)
     }
 
     def readHeaderSymbol: Symbol = {
@@ -358,9 +359,10 @@ object ModuleIO {
 
   /* readText helpers */
   def parse(text: String, filename: String): Either[AstModule, String] = {
+    val file = Some(new File(filename))
     val reader = new CharSequenceReader(text)
     val scanner = new AstLexer.Scanner(filename, reader)
-    AstParser.phrase(AstParser.module)(scanner) match {
+    AstParser.phrase(AstParser.module(file))(scanner) match {
       case AstParser.Success(ast, _) => Left(ast)
       case parseError: AstParser.NoSuccess => Right(parseError.msg)
     }
@@ -405,6 +407,10 @@ object ModuleIO {
       output.write("#type " + tyStr + "\n")
       if (module.version != Version.MIN)
         output.write("#version " + module.version + "\n")
+      module.filename match {
+        case Some(filename) => output.write("#filename \"" + filename + "\"\n")
+        case _ => ()
+      }
       if (!module.dependencies.isEmpty)
         output.write("#dependencies " + module.dependencies.mkString(", ") + "\n")
       if (!module.searchPaths.isEmpty)
@@ -797,6 +803,7 @@ object ModuleIO {
       writeHeaderSymbol(module.name)
       writeModuleType
       writeVersion(module.version)
+      writeOption(module.filename, { (file: File) => writeString(file.toString) })
       writeList(module.dependencies, writeModuleDependency _)
       writeList(module.searchPaths.map(_.toString), writeString _)
     }

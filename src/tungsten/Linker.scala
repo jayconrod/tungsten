@@ -27,24 +27,26 @@ object Linker {
   val moduleDependencies = new ArrayBuffer[ModuleDependency]
   val moduleSearchPaths = new ArrayBuffer[File]
 
-  var outputFile: Option[File] = None
+  var moduleOutputFile: Option[File] = None
 
   val inputFiles = new ArrayBuffer[File]
 
   def main(args: Array[String]) {
     parseArguments(args)
+    val outputFile = moduleOutputFile.getOrElse(defaultOutputFile)
 
     val inputModules = loadModules
     val outputModule = linkModules(inputModules,
                                    moduleName,
                                    moduleTy,
                                    moduleVersion,
+                                   Some(outputFile),
                                    moduleDependencies.toList,
                                    moduleSearchPaths.toList)
     validateOutput(outputModule)
       
     try { 
-      storeModule(outputModule)
+      storeModule(outputModule, outputFile)
     } catch {
       case exn: IOException => exitWithFailure("I/O error while storing module: " + exn.getMessage)
     }     
@@ -87,7 +89,7 @@ object Linker {
             case None => exitWithError("Invalid module version")
           }
         }
-        case "-o" => outputFile = Some(new File(next))
+        case "-o" => moduleOutputFile = Some(new File(next))
         case "-L" => {
           moduleSearchPaths ++= next.split(File.pathSeparator).map(new File(_))
         }
@@ -145,6 +147,7 @@ object Linker {
                   name: Symbol,
                   ty: ModuleType,
                   version: Version,
+                  filename: Option[File],
                   dependencies: List[ModuleDependency],
                   searchPaths: List[File]): Module = 
   {
@@ -156,7 +159,7 @@ object Linker {
       val (name, (definition, _)) = kv
       (name, definition)
     }
-    new Module(name, ty, version, dependencies, searchPaths, linkedDefinitions)
+    new Module(name, ty, version, filename, dependencies, searchPaths, linkedDefinitions)
   }
 
   def isStrong(defn: Definition): Boolean = {
@@ -229,6 +232,7 @@ object Linker {
                                      module.name,
                                      module.ty,
                                      module.version,
+                                     module.filename,
                                      Nil,
                                      module.searchPaths)
       val errors = if (module.ty == ModuleType.PROGRAM)
@@ -240,27 +244,24 @@ object Linker {
     }
   }
 
-  def storeModule(module: Module) {
-    val outFile = outputFile match {
-      case Some(f) => f
-      case None => {
-        import ModuleType._
-        val nameStr = moduleName.toString
-        val versionStr = if (moduleVersion == Version.MIN)
-          ""
-        else
-          "-" + moduleVersion.toString
-        val extensionStr = moduleTy match {
-          case INTERMEDIATE => ".wo"
-          case LIBRARY => ".wl"
-          case PROGRAM => ".wp"
-        }
-        new File(nameStr + versionStr + extensionStr)
-      }
+  def defaultOutputFile: File = {
+    import ModuleType._
+    val nameStr = moduleName.toString
+    val versionStr = if (moduleVersion == Version.MIN)
+      ""
+    else
+      "-" + moduleVersion.toString
+    val extensionStr = moduleTy match {
+      case INTERMEDIATE => ".wo"
+      case LIBRARY => ".wl"
+      case PROGRAM => ".wp"
     }
+    new File(nameStr + versionStr + extensionStr)
+  }
 
+  def storeModule(module: Module, file: File) {
     try {
-      ModuleIO.writeBinary(module, outFile)
+      ModuleIO.writeBinary(module, file)
     } catch {
       case exn: IOException => exitWithFailure(exn.getMessage)
     }

@@ -12,6 +12,7 @@ final object Loader {
                                      "default",
                                      ModuleType.PROGRAM,
                                      Version.MIN,
+                                     None,
                                      Nil,
                                      Nil)
     val errors = program.validateProgram

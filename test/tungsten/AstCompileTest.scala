@@ -29,6 +29,7 @@ class AstCompileTest {
     val ast = new AstModule("a.b#12",
                             ModuleType.LIBRARY,
                             new Version(List(1, 2, 3)),
+                            None,
                             List(new ModuleDependency("c.d#34", 
                                                       new Version(List(0, 1)),
                                                       new Version(List(3, 4)))),
@@ -38,6 +39,7 @@ class AstCompileTest {
     val expected = new Module(module.name,
                               module.ty,
                               module.version,
+                              None,
                               module.dependencies,
                               module.searchPaths,
                               Map[Symbol, Definition]())                             

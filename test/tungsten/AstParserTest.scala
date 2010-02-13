@@ -21,7 +21,7 @@ class AstParserTest {
   } 
 
   def testModule(input: String, expected: AstModule) = {
-    test(input, AstParser.module, expected)
+    test(input, AstParser.module(None), expected)
   }
 
   def testType(input: String, expected: AstType) = {
@@ -56,6 +56,7 @@ class AstParserTest {
                new AstModule("a.b#12",
                              ModuleType.LIBRARY,
                              Version(1, 2, 3),
+                             None,
                              List(ModuleDependency("c.d#34",
                                                    Version(0, 1),
                                                    Version.MAX),

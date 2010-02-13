@@ -325,13 +325,14 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def definition: Parser[AstDefinition] = global | function | struct
 
-  def header: Parser[(Symbol, ModuleType, Version, List[ModuleDependency], List[File])] = {
+  def header: Parser[(Symbol, ModuleType, Version, Option[File], List[ModuleDependency], List[File])] = {
     opt("#name" ~> symbol) ~
       opt("#type" ~> ("#intermediate" | "#library" | "#program")) ~
       opt("#version" ~> version) ~
+      opt("#filename" ~> string) ~
       opt("#dependencies" ~> repsep(dependency, ",")) ~
       opt("#searchpaths" ~> repsep(string, ",")) ^^ {
-        case n ~ t ~ v ~ d ~ s => {
+        case n ~ t ~ v ~ f ~ d ~ s => {
           val name = n.getOrElse(Symbol("default"))
           val ty = t match {
             case Some("#intermediate") => ModuleType.INTERMEDIATE
@@ -341,22 +342,29 @@ object AstParser extends Parsers with ImplicitConversions {
             case _ => throw new AssertionError("Invalid module type")
           }
           val version = v.getOrElse(Version.MIN)
+          val filename = f.map(new File(_))
           val dependencies = d.getOrElse(Nil)
           val searchPaths = s.getOrElse(Nil).map(new File(_))
-          (name, ty, version, dependencies, searchPaths)
+          (name, ty, version, filename, dependencies, searchPaths)
         }
       }
   }
 
-  def module: Parser[AstModule] = header ~ rep(definition) ^^ { 
-    case (n, t, v, d, s) ~ definitions => new AstModule(n, t, v, d, s, definitions)
+  def module(file: Option[File]): Parser[AstModule] = header ~ rep(definition) ^^ { 
+    case (n, t, v, f, d, s) ~ definitions => {
+      val moduleFile = f match {
+        case Some(_) => f
+        case None => file
+      }
+      new AstModule(n, t, v, moduleFile, d, s, definitions)
+    }
   }
 
   implicit def reserved(r: String): Parser[String] = elem(ReservedToken(r)) ^^^ r
 
   def test(input: String) = {
     val reader = new AstLexer.Scanner(input)
-    val result = phrase(module)(reader)
+    val result = phrase(module(None))(reader)
     result match {
       case Success(ast, _) => ast
       case error: NoSuccess => throw new RuntimeException(error.msg)

@@ -9,6 +9,7 @@ import Utilities._
 final class Module(val name: Symbol,
                    val ty: ModuleType,
                    val version: Version,
+                   val filename: Option[File],
                    val dependencies: List[ModuleDependency],
                    val searchPaths: List[File],
                    val definitions: Map[Symbol, Definition])
@@ -17,6 +18,7 @@ final class Module(val name: Symbol,
     this(Symbol("default"),
          ModuleType.INTERMEDIATE,
          Version.MIN,
+         None,
          Nil,
          Nil,
          definitions)
@@ -27,11 +29,12 @@ final class Module(val name: Symbol,
   private def copyWith(name: Symbol = name,
                        ty: ModuleType = ty,
                        version: Version = version,
+                       filename: Option[File] = filename,
                        dependencies: List[ModuleDependency] = dependencies,
                        searchPaths: List[File] = searchPaths,
                        definitions: Map[Symbol, Definition] = definitions) =
   {
-    new Module(name, ty, version, dependencies, searchPaths, definitions)
+    new Module(name, ty, version, filename, dependencies, searchPaths, definitions)
   }
 
   def add(defn: Definition): Module = {

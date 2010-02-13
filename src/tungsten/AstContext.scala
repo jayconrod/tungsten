@@ -8,6 +8,7 @@ import Utilities._
 final class AstContext(name: Symbol,
                        ty: ModuleType,
                        version: Version,
+                       filename: Option[File],
                        dependencies: List[ModuleDependency],
                        searchPaths: List[File])
 {
@@ -15,11 +16,14 @@ final class AstContext(name: Symbol,
     this("default",
          ModuleType.INTERMEDIATE,
          Version.MIN,
+         None,
          Nil,
          Nil)
   }
 
-  var module = new Module(name, ty, version, dependencies, searchPaths, Map[Symbol, Definition]())
+  var module = new Module(name, ty, version, 
+                          filename, dependencies, searchPaths, 
+                          Map[Symbol, Definition]())
   val errors = new ArrayBuffer[CompileException]
   val names = new Stack[Symbol]
 

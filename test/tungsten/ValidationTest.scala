@@ -518,6 +518,7 @@ class ValidationTest {
     val module = new Module("default",
                             ModuleType.PROGRAM,
                             Version.MIN,
+                            None,
                             Nil,
                             Nil,
                             Map[Symbol, Definition]())

@@ -130,13 +130,14 @@ object Linker {
         val module = ModuleIO.readBinary(inputFile)
         val errors = module.validate
         if (!errors.isEmpty) {
+          System.err.println("validation errors when reading file: " + inputFile)
           errors.foreach(System.err.println(_))
           System.exit(FAILURE_CODE)
         }
         module
       } catch {
         case exn: IOException => {
-          exitWithFailure(exn.getMessage); 
+          exitWithFailure(inputFile + ": error: " + exn.getMessage); 
           null
         }
       }

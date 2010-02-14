@@ -39,4 +39,19 @@ class LinkerTest {
     assertFalse(isStrong(Parameter("p", UnitType())))
     assertTrue(isStrong(Struct("s", Nil)))
   }
+
+  @Test
+  def mergedDependencies {
+    val dependencies @ List(a, b, c, d) = List("a", "b", "c", "d").map { 
+      new ModuleDependency(_, Version.MIN, Version.MAX)
+    }
+    val definitions = Map[Symbol, Definition]()
+    val m1 = new Module("default", ModuleType.INTERMEDIATE, Version.MIN, 
+                        None, List(b, c), Nil, definitions)
+    val m2 = new Module("default", ModuleType.INTERMEDIATE, Version.MIN,
+                        None, List(d, c), Nil, definitions)
+    val linked = Linker.linkModules(List(m1, m2), "default", ModuleType.INTERMEDIATE,
+                                    Version.MIN, None, List(a), Nil)
+    assertEquals(dependencies, linked.dependencies)
+  }
 }

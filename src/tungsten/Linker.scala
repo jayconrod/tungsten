@@ -3,6 +3,7 @@ package tungsten
 import scala.util.matching.Regex
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.TreeMap
+import scala.collection.immutable.ListSet
 import java.io._
 import Utilities._
 
@@ -152,6 +153,10 @@ object Linker {
                   dependencies: List[ModuleDependency],
                   searchPaths: List[File]): Module = 
   {
+    val initialDepSet = (ListSet[ModuleDependency]() /: dependencies.reverse) { _ + _ }
+    val allDependencies = (initialDepSet /: modules) { (deps, m) =>
+      deps ++ m.dependencies
+    }.toList.reverse
     val allDefinitions = for (module <- modules.iterator;
                               defn   <- module.definitions.valuesIterator)
                            yield (defn, module)
@@ -160,7 +165,7 @@ object Linker {
       val (name, (definition, _)) = kv
       (name, definition)
     }
-    new Module(name, ty, version, filename, dependencies, searchPaths, linkedDefinitions)
+    new Module(name, ty, version, filename, allDependencies, searchPaths, linkedDefinitions)
   }
 
   def isStrong(defn: Definition): Boolean = {

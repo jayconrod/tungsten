@@ -182,28 +182,43 @@ object Linker {
   {
     val name = defn._1.name
 
+    def conflictMessage(symbol: Symbol, message: String): String = {
+      def filenameString(module: Module): String = {
+        module.filename match {
+          case Some(filename) => "(" + filename.toString + ")"
+          case None => ""
+        }
+      }
+      val oldModule = definitions(symbol)._2
+      val newModule = defn._2
+      "symbol %s %s:\n  %s %s\n  %s %s\n".
+        format(symbol, message, 
+               oldModule.name, filenameString(oldModule),
+               newModule.name, filenameString(newModule))
+    }
+
     def combine(oldDefn: (Definition, Module), 
                 newDefn: (Definition, Module)) = {
       assert(oldDefn._1.name == newDefn._1.name)
 
       if (oldDefn.getClass != newDefn.getClass)
-        exitWithFailure("symbol %s refers to different types of definitions".format(name))
+        exitWithFailure(conflictMessage(name, "refers to different types of definitions"))
 
       if (isStrong(oldDefn._1) && isStrong(newDefn._1))
-        exitWithFailure("symbol %s refers to multiple strong definitions".format(name))
+        exitWithFailure(conflictMessage(name, "refers to multiple strong definitions"))
 
       (oldDefn, newDefn) match {
         case ((oldFunction: Function, oldModule), (newFunction: Function, newModule)) => {
           if (oldFunction.ty(oldModule) != newFunction.ty(newModule))
-            exitWithFailure("symbol %s refers to functions with different types".format(name))
+            exitWithFailure(conflictMessage(name, "refers to functions with different types"))
         }
         case ((oldGlobal: Global, _), (newGlobal: Global, _)) => {
           if (oldGlobal.ty != newGlobal.ty)
-            exitWithFailure("symbol %s refers to globals with different types".format(name))
+            exitWithFailure(conflictMessage(name, "refers to globals with different types"))
         }
         case ((oldParameter: Parameter, _), (newParameter: Parameter, _)) => {
           if (oldParameter.ty != newParameter.ty)
-            exitWithFailure("symbol %s refers to parameters with different types".format(name))
+            exitWithFailure(conflictMessage(name, "refers to parameters with different types"))
         }
       }
 

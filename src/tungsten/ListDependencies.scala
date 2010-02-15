@@ -24,7 +24,7 @@ object ListDependencies {
       }
     }
 
-    listDependencies(module, Nil) foreach { dep =>
+    listDependencies(module, inputFile.getParentFile, Nil) foreach { dep =>
       val (name, file) = dep
       val filename = file.map(_.toString).getOrElse("<missing>")
       System.err.print("%s => %s\n".format(name, filename))
@@ -32,6 +32,7 @@ object ListDependencies {
   }
 
   def listDependencies(module: Module,
+                       directory: File,
                        found: List[(Symbol, Option[File])]): List[(Symbol, Option[File])] =
   {
     (found /: module.dependencies) { (found, dep) =>
@@ -39,9 +40,9 @@ object ListDependencies {
         found
       else {
         try {
-          val file = Loader.findModuleFile(dep, module.searchPaths)
+          val file = Loader.findModuleFile(dep, directory, module.searchPaths)
           val library = ModuleIO.readBinary(file)
-          listDependencies(library, (dep.name, Some(file)) :: found)
+          listDependencies(library, file.getParentFile, (dep.name, Some(file)) :: found)
         } catch {
           case exn: IOException => (dep.name, None) :: found
         }

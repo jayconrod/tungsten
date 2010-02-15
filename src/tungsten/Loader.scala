@@ -25,6 +25,7 @@ final object Loader {
   }
 
   def loadDependenciesForModule(module: Module,
+                                directory: File,
                                 alreadyLoaded: List[Module]): List[Module] =
   {
     assert(alreadyLoaded.contains(module))
@@ -32,7 +33,7 @@ final object Loader {
       if (loaded.exists(_.name == dependency.name))
         loaded
       else {
-        val libraryFile = findModuleFile(dependency, module.searchPaths)
+        val libraryFile = findModuleFile(dependency, directory, module.searchPaths)
         loadModuleAndDependencies(libraryFile,
                                   ModuleType.LIBRARY,
                                   dependency.minVersion,
@@ -67,16 +68,25 @@ final object Loader {
         throw new IOException("validation errors in module %s:\n%s".
                             format(file, errors.mkString("\n")))
       }
-      loadDependenciesForModule(module, module :: alreadyLoaded)
+      loadDependenciesForModule(module, file.getParentFile, module :: alreadyLoaded)
     }
   }
 
   def findModuleFile(dependency: ModuleDependency, 
+                     directory: File,
                      searchPaths: List[File]): File =
   {
-    val files = for (dir  <- searchPaths.iterator;
-                     file <- dir.listFiles.iterator)
-                  yield file
+    val files = searchPaths.view.flatMap { path =>
+      val dir = if (!path.isAbsolute)
+        new File(directory, path.toString)
+      else
+        path
+      val contents = dir.listFiles
+      if (contents != null)
+        contents.view
+      else
+        Nil.view
+    }
 
     def isMatchingLibrary(file: File): Boolean = {
       file.getName match {

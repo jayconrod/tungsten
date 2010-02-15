@@ -44,7 +44,7 @@ object Linker {
                                    Some(outputFile),
                                    moduleDependencies.toList,
                                    moduleSearchPaths.toList)
-    validateOutput(outputModule)
+    validateOutput(outputModule, outputFile.getParentFile)
       
     try { 
       storeModule(outputModule, outputFile)
@@ -235,10 +235,10 @@ object Linker {
     definitions + (name -> combinedDefn)
   }
 
-  def validateOutput(module: Module) {
+  def validateOutput(module: Module, directory: File) {
     if (module.ty == ModuleType.LIBRARY || module.ty == ModuleType.PROGRAM) {
       val modules = try {
-        Loader.loadDependenciesForModule(module, List(module))
+        Loader.loadDependenciesForModule(module, directory, List(module))
       } catch {
         case exn: IOException => {
           exitWithFailure(exn.getMessage)

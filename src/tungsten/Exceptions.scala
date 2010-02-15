@@ -22,6 +22,12 @@ final case class DuplicateComponentException(symbol: Symbol,
                              " used as part of definition " + symbol,
                            location)
 
+final case class DuplicateDependencyException(moduleName: Symbol,
+                                              dependencyName: Symbol)
+  extends CompileException("module " + moduleName + " lists " + dependencyName + 
+                             " more than once as a dependency",
+                           Nowhere)
+
 final case class EarlyTerminationException(blockName: Symbol,
                                            instName: Symbol,
                                            location: Location)

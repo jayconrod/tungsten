@@ -79,6 +79,26 @@ final class Module(val name: Symbol,
 
   def validate: List[CompileException] = {
     def validateDependencies = {
+      def checkDuplicates(depNames: Set[Symbol],
+                          dependencies: List[ModuleDependency],
+                          duplicates: Set[Symbol]): Set[Symbol] =
+      {
+        dependencies match {
+          case Nil => duplicates
+          case h :: t => {
+            val newDuplicates = if (depNames(h.name))
+              duplicates + h.name
+            else
+              duplicates
+            checkDuplicates(depNames + h.name, t, newDuplicates)
+          }
+        }
+      }
+      val duplicates = checkDuplicates(Set[Symbol](), dependencies, Set[Symbol]())
+      duplicates.toList.map(DuplicateDependencyException(name, _))
+    }
+  
+    def validateComponents = {
       definitions.valuesIterable.flatMap(_.validateComponents(this)).toList
     }
 
@@ -130,6 +150,7 @@ final class Module(val name: Symbol,
     }
 
     stage(validateDependencies,
+          validateComponents,
           validateDefinitions,
           validateMain ++ validateStructDependencies)
   }

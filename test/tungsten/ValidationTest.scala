@@ -539,5 +539,19 @@ class ValidationTest {
     val module = compileString(program)
     val errors = module.validateProgram
     containsError[ExternalDefinitionException](errors)
-  }   
+  }
+
+  @Test
+  def duplicateDependency {
+    val module = new Module("default",
+                            ModuleType.INTERMEDIATE,
+                            Version.MIN,
+                            None,
+                            List(ModuleDependency("a", Version.MIN, Version.MAX),
+                                 ModuleDependency("a", Version.MIN, Version.MAX)),
+                            Nil,
+                            Map[Symbol, Definition]())
+    val errors = module.validate
+    containsError[DuplicateDependencyException](errors)
+  }
 }

@@ -237,11 +237,8 @@ object Linker {
 
   def validateOutput(module: Module) {
     if (module.ty == ModuleType.LIBRARY || module.ty == ModuleType.PROGRAM) {
-      val libraries = try {
-        module.dependencies.
-          map(Loader.findModuleFile(_, module.searchPaths)).
-          flatMap(Loader.loadModuleAndDependencies(_, ModuleType.LIBRARY, 
-                                                   Version.MIN, Version.MAX))
+      val modules = try {
+        Loader.loadDependenciesForModule(module, List(module))
       } catch {
         case exn: IOException => {
           exitWithFailure(exn.getMessage)
@@ -249,7 +246,7 @@ object Linker {
         }
       }
 
-      val linkedModule = linkModules(module :: libraries,
+      val linkedModule = linkModules(modules,
                                      module.name,
                                      module.ty,
                                      module.version,

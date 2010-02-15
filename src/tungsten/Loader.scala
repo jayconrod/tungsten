@@ -6,7 +6,8 @@ import Utilities._
 
 final object Loader {
   def loadAndLinkProgram(file: File) = {
-    val modules = loadModuleAndDependencies(file, ModuleType.PROGRAM, Version.MIN, Version.MAX)
+    val modules = loadModuleAndDependencies(file, ModuleType.PROGRAM, 
+                                            Version.MIN, Version.MAX, Nil)
     
     val program = Linker.linkModules(modules,
                                      "default",
@@ -23,36 +24,51 @@ final object Loader {
     program
   }
 
+  def loadDependenciesForModule(module: Module,
+                                alreadyLoaded: List[Module]): List[Module] =
+  {
+    assert(alreadyLoaded.contains(module))
+    (alreadyLoaded /: module.dependencies) { (loaded, dependency) =>
+      if (loaded.exists(_.name == dependency.name))
+        loaded
+      else {
+        val libraryFile = findModuleFile(dependency, module.searchPaths)
+        loadModuleAndDependencies(libraryFile,
+                                  ModuleType.LIBRARY,
+                                  dependency.minVersion,
+                                  dependency.maxVersion,
+                                  loaded)
+      }
+    }
+  }
+
   def loadModuleAndDependencies(file: File,
                                 ty: ModuleType,
                                 minVersion: Version,
-                                maxVersion: Version): List[Module] =
+                                maxVersion: Version,
+                                alreadyLoaded: List[Module]): List[Module] =
   {
     val module = ModuleIO.readBinary(file)
-    if (module.ty != ty)
-      throw new IOException("file %s was supposed to be a %s module".format(file.getName, ty))
-    if (module.version < minVersion) {
-      throw new IOException("library %s has version %s which is less than the minimum, %s".
-                          format(file, module.version, minVersion))
+    if (alreadyLoaded.exists(_.name == module.name))
+      alreadyLoaded
+    else {    
+      if (module.ty != ty)
+        throw new IOException("file %s was supposed to be a %s module".format(file.getName, ty))
+      if (module.version < minVersion) {
+        throw new IOException("library %s has version %s which is less than the minimum, %s".
+                            format(file, module.version, minVersion))
+      }
+      if (module.version > maxVersion) {
+        throw new IOException("library %s has version %s which is greater than the maximum, %s".
+                            format(file, module.version, maxVersion))
+      }
+      val errors = module.validate
+      if (!errors.isEmpty) {
+        throw new IOException("validation errors in module %s:\n%s".
+                            format(file, errors.mkString("\n")))
+      }
+      loadDependenciesForModule(module, module :: alreadyLoaded)
     }
-    if (module.version > maxVersion) {
-      throw new IOException("library %s has version %s which is greater than the maximum, %s".
-                          format(file, module.version, maxVersion))
-    }
-    val errors = module.validate
-    if (!errors.isEmpty) {
-      throw new IOException("validation errors in module %s:\n%s".
-                          format(file, errors.mkString("\n")))
-    }
-
-    val libraries = module.dependencies.flatMap { dependency =>
-      val libraryFile = findModuleFile(dependency, module.searchPaths)
-      loadModuleAndDependencies(libraryFile, 
-                                ModuleType.LIBRARY, 
-                                dependency.minVersion,
-                                dependency.maxVersion)
-    }
-    module :: libraries
   }
 
   def findModuleFile(dependency: ModuleDependency, 

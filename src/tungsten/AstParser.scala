@@ -173,6 +173,24 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
+  def floatExtendInst: Parser[AstFloatExtendInstruction] = {
+    "#fextend" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstFloatExtendInstruction(n, v, t, l)
+    }
+  }
+
+  def floatToIntInst: Parser[AstFloatToIntegerInstruction] = {
+    "#ftoi" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstFloatToIntegerInstruction(n, v, t, l)
+    }
+  }
+
+  def floatTruncateInst: Parser[AstFloatTruncateInstruction] = {
+    "#ftruncate" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstFloatTruncateInstruction(n, v, t, l)
+    }
+  }
+
   def heapAllocateInst: Parser[AstHeapAllocateInstruction] = {
     "#heap" ~> location ~ (symbol <~ ":") ~ ty ^^ {
       case l ~ n ~ t => AstHeapAllocateInstruction(n, t, l)
@@ -188,6 +206,30 @@ object AstParser extends Parsers with ImplicitConversions {
   def indirectCallInst: Parser[AstIndirectCallInstruction] = {
     "#icall" ~> location ~ optName ~ value ~ argumentList ^^ {
       case l ~ n ~ t ~ a => AstIndirectCallInstruction(n, t, a, l)
+    }
+  }
+
+  def intSignExtendInst: Parser[AstIntegerSignExtendInstruction] = {
+    "#isextend" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstIntegerSignExtendInstruction(n, v, t, l)
+    }
+  }
+
+  def intToFloatInst: Parser[AstIntegerToFloatInstruction] = {
+    "#itof" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstIntegerToFloatInstruction(n, v, t, l)
+    }
+  }
+
+  def intTruncateInst: Parser[AstIntegerTruncateInstruction] = {
+    "#itruncate" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstIntegerTruncateInstruction(n, v, t, l)
+    }
+  }
+
+  def intZeroExtendInst: Parser[AstIntegerZeroExtendInstruction] = {
+    "#izextend" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
+      case l ~ n ~ v ~ t => AstIntegerZeroExtendInstruction(n, v, t, l)
     }
   }
 
@@ -263,9 +305,16 @@ object AstParser extends Parsers with ImplicitConversions {
     binopInst |
     branchInst |
     condInst |
+    floatExtendInst |
+    floatToIntInst |
+    floatTruncateInst |
     heapAllocateInst |
     heapAllocateArrayInst |
     indirectCallInst |
+    intSignExtendInst |
+    intToFloatInst |
+    intTruncateInst |
+    intZeroExtendInst |
     intrinsicCallInst |
     loadInst |
     loadElementInst |

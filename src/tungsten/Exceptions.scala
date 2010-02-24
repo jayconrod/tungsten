@@ -108,6 +108,13 @@ final case class NonLocalBranchException(functionName: Symbol,
                              " branches to non-local block " + blockName,
                            location)
 
+final case class NumericExtensionException(fromTy: String, toTy: String, location: Location)
+  extends CompileException("cannot extend from type " + fromTy + " to " + toTy, location)
+                        
+
+final case class NumericTruncationException(fromTy: String, toTy: String, location: Location)
+  extends CompileException("cannot truncate from type " + fromTy + " to " + toTy, location)
+
 final case class NumericTypeException(ty: String, location: Location)
   extends CompileException("type " + ty + " must be numeric", location)
 

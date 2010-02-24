@@ -320,6 +320,91 @@ final case class ConditionalBranchInstruction(override name: Symbol,
   }
 }
 
+sealed abstract class FloatCastInstruction(name: Symbol,
+                                           value: Value,
+                                           ty: Type,
+                                           location: Location)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = ty
+
+  def operands = List(value)
+
+  protected def validateWidths(fromTy: FloatType, toTy: FloatType): List[CompileException]
+
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          ty.validate(module))
+  }
+
+  override def validate(module: Module) = {
+    (value.ty(module), ty) match {
+      case (fromTy: FloatType, toTy: FloatType) => validateWidths(fromTy, toTy)
+      case (fromTy, _: FloatType) => {
+        List(TypeMismatchException(fromTy.toString, "float type", value.location))
+      }
+      case (_, toTy) => List(TypeMismatchException(toTy.toString, "float type", location))
+    }
+  }
+}
+
+final case class FloatExtendInstruction(override name: Symbol,
+                                        value: Value,
+                                        ty: Type,
+                                        override location: Location = Nowhere)
+  extends FloatCastInstruction(name, value, ty, location)
+{
+  protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
+    if (toTy.width > fromTy.width)
+      Nil
+    else
+      List(NumericExtensionException(fromTy.toString, toTy.toString, location))
+  }
+}
+
+final case class FloatToIntegerInstruction(override name: Symbol,
+                                           value: Value,
+                                           ty: Type,
+                                           override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = ty
+
+  def operands = List(value)
+
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          ty.validate(module))
+  }
+
+  override def validate(module: Module) = {
+    val fromTy = value.ty(module)
+    val fromTyErrors = if (!fromTy.isInstanceOf[FloatType])
+      List(TypeMismatchException(fromTy.toString, "float type", location))
+    else
+      Nil
+    val toTyErrors = if (!ty.isInstanceOf[IntType])
+      List(TypeMismatchException(ty.toString, "integer type", location))
+    else
+      Nil
+    fromTyErrors ++ toTyErrors
+  }
+}
+
+final case class FloatTruncateInstruction(override name: Symbol,
+                                        value: Value,
+                                        ty: Type,
+                                        override location: Location = Nowhere)
+  extends FloatCastInstruction(name, value, ty, location)
+{
+  protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
+    if (toTy.width < fromTy.width)
+      Nil
+    else
+      List(NumericTruncationException(fromTy.toString, toTy.toString, location))
+  }
+}
+
 final case class HeapAllocateInstruction(override name: Symbol,
                                          ty: Type,
                                          override location: Location = Nowhere)
@@ -379,6 +464,105 @@ final case class IndirectCallInstruction(override name: Symbol,
   override def validate(module: Module): List[CompileException] = {
     // TODO: implement or delete
     throw new UnsupportedOperationException
+  }
+}
+
+final case class IntegerToFloatInstruction(override name: Symbol,
+                                           value: Value,
+                                           ty: Type,
+                                           override location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = ty
+
+  def operands = List(value)
+
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          ty.validate(module))
+  }
+
+  override def validate(module: Module) = {
+    val fromTy = value.ty(module)
+    val fromTyErrors = if (!fromTy.isInstanceOf[IntType])
+      List(TypeMismatchException(fromTy.toString, "integer type", location))
+    else
+      Nil
+    val toTyErrors = if (!ty.isInstanceOf[FloatType])
+      List(TypeMismatchException(ty.toString, "float type", location))
+    else
+      Nil
+    fromTyErrors ++ toTyErrors
+  }    
+}
+
+sealed abstract class IntegerCastInstruction(name: Symbol,
+                                             value: Value,
+                                             ty: Type,
+                                             location: Location = Nowhere)
+  extends Instruction(name, location)
+{
+  def ty(module: Module) = ty
+
+  def operands = List(value)
+
+  protected def validateWidths(fromTy: IntType, toTy: IntType): List[CompileException]
+
+  override def validateComponents(module: Module) = {
+    stage(super.validateComponents(module),
+          ty.validate(module))
+  }
+
+  override def validate(module: Module) = {
+    (value.ty(module), ty) match {
+      case (fromTy: IntType, toTy: IntType) => validateWidths(fromTy, toTy)
+      case (fromTy, _: IntType) => {
+        List(TypeMismatchException(fromTy.toString, "integer type", value.location))
+      }
+      case (_, toTy) => List(TypeMismatchException(toTy.toString, "integer type", location))
+    }
+  }
+}
+
+final case class IntegerSignExtendInstruction(override name: Symbol,
+                                              value: Value,
+                                              ty: Type,
+                                              override location: Location = Nowhere)
+  extends IntegerCastInstruction(name, value, ty, location)
+{
+  protected def validateWidths(fromTy: IntType, toTy: IntType) = {
+    if (toTy.width >= fromTy.width)
+      Nil
+    else
+      List(NumericExtensionException(fromTy.toString, toTy.toString, location))
+  }
+}
+
+final case class IntegerTruncateInstruction(override name: Symbol,
+                                            value: Value,
+                                            ty: Type,
+                                            override location: Location = Nowhere)
+  extends IntegerCastInstruction(name, value, ty, location)
+{
+  protected def validateWidths(fromTy: IntType, toTy: IntType) = {
+    if (toTy.width < fromTy.width)
+      Nil
+    else
+      List(NumericTruncationException(fromTy.toString, toTy.toString, location))
+  }      
+}
+
+final case class IntegerZeroExtendInstruction(override name: Symbol,
+                                              value: Value,
+                                              ty: Type,
+                                              override location: Location = Nowhere)
+  extends IntegerCastInstruction(name, value, ty, location)
+{
+  protected def validateWidths(fromTy: IntType, toTy: IntType) = {
+    if (toTy.width > fromTy.width)
+      Nil
+    else
+      List(NumericExtensionException(fromTy.toString, toTy.toString, location))
   }
 }
 

@@ -15,7 +15,8 @@ object AstLexer extends Parsers {
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",
     "#unit", "#boolean", "#int8", "#int16", "#int32", "#int64", "#float32", "#float64", "#null",
-    "#address", "#assign", "#binop", "#branch", "#cond", "#heap", "#heaparray", "#icall", 
+    "#address", "#assign", "#binop", "#branch", "#cond", "#fextend", "#ftoi", "#ftruncate", 
+      "#heap", "#heaparray", "#icall", "#isextend", "#itof", "#itruncate", "#izextend",
       "#intrinsic", "#load", "#loadelement", "#relop", "#return", "#scall", "#stack", 
       "#stackarray", "#store", "#storeelement", "#upcast")
 

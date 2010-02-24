@@ -97,6 +97,33 @@ final class Environment(val module: Module) {
         branch(block, args)
         UnitValue
       }        
+      case FloatExtendInstruction(_, v, ty, _) => {
+        (create(v), ty) match {
+          case (Float32Value(f), FloatType(64, _)) => Float64Value(f.asInstanceOf[Double])
+          case _ => throw new RuntimeException("invalid float extension")
+        }
+      }
+      case FloatToIntegerInstruction(_, v, ty, _) => {
+        val ival = create(v)
+        val fv = ival match {
+          case Float32Value(f) => f.asInstanceOf[Double]
+          case Float64Value(f) => f
+          case _ => throw new RuntimeException("invalid conversion")
+        }
+        ty match {
+          case IntType(8, _) => Int8Value(fv.asInstanceOf[Byte])
+          case IntType(16, _) => Int16Value(fv.asInstanceOf[Short])
+          case IntType(32, _) => Int32Value(fv.asInstanceOf[Int])
+          case IntType(64, _) => Int64Value(fv.asInstanceOf[Long])
+          case _ => throw new RuntimeException("invalid conversion")
+        }
+      }
+      case FloatTruncateInstruction(_, v, ty, _) => {
+        (create(v), ty) match {
+          case (Float64Value(f), FloatType(32, _)) => Float32Value(f.asInstanceOf[Float])
+          case _ => throw new RuntimeException("invalid float truncation")
+        }
+      }
       case HeapAllocateInstruction(_, ty, _) => {
         val elementType = ty.asInstanceOf[PointerType].elementType
         val defaultValue = create(elementType.defaultValue(module))
@@ -116,6 +143,52 @@ final class Environment(val module: Module) {
         val args = arguments.map(create(_))
         call(function, args)
         UnitValue
+      }
+      case IntegerSignExtendInstruction(_, v, ty, _) => {
+        (create(v), ty) match {
+          case (Int8Value(i), IntType(16, _)) => Int16Value(i.asInstanceOf[Short])
+          case (Int8Value(i), IntType(32, _)) => Int32Value(i.asInstanceOf[Int])
+          case (Int8Value(i), IntType(64, _)) => Int64Value(i.asInstanceOf[Long])
+          case (Int16Value(i), IntType(32, _)) => Int32Value(i.asInstanceOf[Int])
+          case (Int16Value(i), IntType(64, _)) => Int64Value(i.asInstanceOf[Long])
+          case (Int32Value(i), IntType(64, _)) => Int64Value(i.asInstanceOf[Long])
+          case _ => throw new RuntimeException("invalid sign extension")
+        }
+      }
+      case IntegerToFloatInstruction(_, v, ty, _) => {
+        (create(v), ty) match {
+          case (Int8Value(i), FloatType(32, _)) => Float32Value(i.asInstanceOf[Float])
+          case (Int8Value(i), FloatType(64, _)) => Float64Value(i.asInstanceOf[Double])
+          case (Int16Value(i), FloatType(32, _)) => Float32Value(i.asInstanceOf[Float])
+          case (Int16Value(i), FloatType(64, _)) => Float64Value(i.asInstanceOf[Double])
+          case (Int32Value(i), FloatType(32, _)) => Float32Value(i.asInstanceOf[Float])
+          case (Int32Value(i), FloatType(64, _)) => Float64Value(i.asInstanceOf[Double])
+          case (Int64Value(i), FloatType(32, _)) => Float32Value(i.asInstanceOf[Float])
+          case (Int64Value(i), FloatType(64, _)) => Float64Value(i.asInstanceOf[Double])
+          case _ => throw new RuntimeException("invalid conversion")
+        }
+      }
+      case IntegerTruncateInstruction(_, v, ty, _) => {
+        (create(v), ty) match {
+          case (Int64Value(i), IntType(8, _)) => Int8Value(i.asInstanceOf[Byte])
+          case (Int64Value(i), IntType(16, _)) => Int16Value(i.asInstanceOf[Short])
+          case (Int64Value(i), IntType(32, _)) => Int32Value(i.asInstanceOf[Int])
+          case (Int32Value(i), IntType(8, _)) => Int8Value(i.asInstanceOf[Byte])
+          case (Int32Value(i), IntType(16, _)) => Int16Value(i.asInstanceOf[Short])
+          case (Int16Value(i), IntType(8, _)) => Int8Value(i.asInstanceOf[Byte])
+          case _ => throw new RuntimeException("invalid integer truncation")
+        }
+      }
+      case IntegerZeroExtendInstruction(_, v, ty, _) => {
+        (create(v), ty) match {
+          case (Int8Value(i), IntType(16, _)) => Int16Value((i.asInstanceOf[Short] & 0xFF).asInstanceOf[Short])
+          case (Int8Value(i), IntType(32, _)) => Int32Value(i.asInstanceOf[Int] & 0xFF)
+          case (Int8Value(i), IntType(64, _)) => Int64Value(i.asInstanceOf[Long] & 0xFF)
+          case (Int16Value(i), IntType(32, _)) => Int32Value(i.asInstanceOf[Int] & 0xFFFF)
+          case (Int16Value(i), IntType(64, _)) => Int64Value(i.asInstanceOf[Long] & 0xFFFF)
+          case (Int32Value(i), IntType(64, _)) => Int64Value(i.asInstanceOf[Long] & 0xFFFFFFFF)
+          case _ => throw new RuntimeException("invalid zero extension")
+        }
       }
       case IntrinsicCallInstruction(_, intrinsic, arguments, _) => {
         import tungsten.Intrinsic._

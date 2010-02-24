@@ -554,4 +554,37 @@ class ValidationTest {
     val errors = module.validate
     containsError[DuplicateDependencyException](errors)
   }
+
+  @Test
+  def integerTruncate {
+    codeContainsError[TypeMismatchException]("#itruncate a = () : #int8")
+    codeContainsError[TypeMismatchException]("#itruncate a = 12L : #unit")
+    codeContainsError[NumericTruncationException]("#itruncate a = 12b : #int64")
+  }
+
+  @Test
+  def integerExtend {
+    codeContainsError[NumericExtensionException]("#isextend a = 12L : #int8")
+    codeContainsError[NumericExtensionException]("#izextend a = 12L : #int8")
+  }
+
+  @Test
+  def floatTruncate {
+    codeContainsError[TypeMismatchException]("#ftruncate a = () : #float32")
+    codeContainsError[TypeMismatchException]("#ftruncate a = 3.2 : #unit")
+    codeContainsError[NumericTruncationException]("#ftruncate 3.2f : #float64")
+  }
+
+  @Test
+  def floatExtend {
+    codeContainsError[NumericExtensionException]("#fextend 3.2 : #float32")
+  }
+
+  @Test
+  def floatIntCast {
+    codeContainsError[TypeMismatchException]("#itof () : #float32")
+    codeContainsError[TypeMismatchException]("#itof 12 : #unit")
+    codeContainsError[TypeMismatchException]("#ftoi () : #int32")
+    codeContainsError[TypeMismatchException]("#ftoi 3.4 : #unit")
+  }
 }

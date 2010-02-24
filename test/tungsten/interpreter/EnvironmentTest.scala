@@ -29,6 +29,14 @@ class EnvironmentTest {
     prepareCode(code)
   }
 
+  def testSimpleEval(code: String, expected: IValue) {
+    val (module, env) = prepareCode(code)
+    val instName = module.getBlock("main.entry").instructions.head
+    env.step
+    val value = env.state.get(instName)
+    assertEquals(expected, value)
+  }
+
   @Test
   def basicValues = {
     val (module, env) = prepareDefault
@@ -267,6 +275,21 @@ class EnvironmentTest {
   }
 
   @Test
+  def floatExtendInst {
+    testSimpleEval("#fextend a = 3.0f : #float64", Float64Value(3.0))
+  }
+
+  @Test
+  def floatToIntInst {
+    testSimpleEval("#ftoi a = 1.9f : #int32", Int32Value(1))
+  }
+
+  @Test
+  def floatTruncateInst {
+    testSimpleEval("#ftruncate a = 3.0 : #float32", Float32Value(3.0f))
+  }
+
+  @Test
   def heapAllocateInst {
     val (module, env) = prepareCode("#heap a : #int32*")
     env.step
@@ -308,6 +331,26 @@ class EnvironmentTest {
     val r = module.getInstruction("f.entry.r")
     assertEquals(r, env.state.inst)
     assertEquals(Int32Value(12), env.state.get("f.x"))
+  }
+
+  @Test
+  def intSignExtendInst {
+    testSimpleEval("#isextend a = -12b : #int64", Int64Value(-12L))
+  }
+
+  @Test
+  def intToFloatInst {
+    testSimpleEval("#itof a = 3 : #float32", Float32Value(3.0f))
+  }
+
+  @Test
+  def intTruncateInst {
+    testSimpleEval("#itruncate a = 12L : #int8", Int8Value(12))
+  }
+
+  @Test
+  def intZeroExtendInst {
+    testSimpleEval("#izextend a = -1b : #int64", Int64Value(255))
   }
 
   @Test

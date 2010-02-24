@@ -246,6 +246,48 @@ class AstCompileTest {
   }
 
   @Test
+  def floatExtendInst {
+    ctx.names.push(foo)
+    val ast = AstFloatExtendInstruction(bar,
+                                        AstUnitValue(Nowhere),
+                                        AstUnitType(Nowhere),
+                                        loc)
+    val expected = FloatExtendInstruction(foo + bar,
+                                          UnitValue(),
+                                          UnitType(),
+                                          loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def floatToIntInst {
+    ctx.names.push(foo)
+    val ast = AstFloatToIntegerInstruction(bar,
+                                           AstUnitValue(Nowhere),
+                                           AstUnitType(Nowhere),
+                                           loc)
+    val expected = FloatToIntegerInstruction(foo + bar,
+                                             UnitValue(),
+                                             UnitType(),
+                                             loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def floatTruncateInst {
+    ctx.names.push(foo)
+    val ast = AstFloatTruncateInstruction(bar,
+                                        AstUnitValue(Nowhere),
+                                        AstUnitType(Nowhere),
+                                        loc)
+    val expected = FloatTruncateInstruction(foo + bar,
+                                          UnitValue(),
+                                          UnitType(),
+                                          loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
   def heapAllocateInst {
     ctx.names.push(foo)
     val ast = AstHeapAllocateInstruction(bar,
@@ -280,6 +322,62 @@ class AstCompileTest {
                                            DefinedValue(baz),
                                            List(Int32Value(12)),
                                            loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def integerSignExtendInst {
+    ctx.names.push(foo)
+    val ast = AstIntegerSignExtendInstruction(bar,
+                                              AstUnitValue(Nowhere),
+                                              AstUnitType(Nowhere),
+                                              loc)
+    val expected = IntegerSignExtendInstruction(foo + bar,
+                                                UnitValue(),
+                                                UnitType(),
+                                                loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def integerToFloatInst {
+    ctx.names.push(foo)
+    val ast = AstIntegerToFloatInstruction(bar,
+                                           AstUnitValue(Nowhere),
+                                           AstUnitType(Nowhere),
+                                           loc)
+    val expected = IntegerToFloatInstruction(foo + bar,
+                                             UnitValue(),
+                                             UnitType(),
+                                             loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def integerTruncateInst {
+    ctx.names.push(foo)
+    val ast = AstIntegerTruncateInstruction(bar,
+                                            AstUnitValue(Nowhere),
+                                            AstUnitType(Nowhere),
+                                            loc)
+    val expected = IntegerTruncateInstruction(foo + bar,
+                                              UnitValue(),
+                                              UnitType(),
+                                              loc)
+    testDefinition(expected, ast)
+  }
+
+  @Test
+  def integerZeroExtendInst {
+    ctx.names.push(foo)
+    val ast = AstIntegerZeroExtendInstruction(bar,
+                                              AstUnitValue(Nowhere),
+                                              AstUnitType(Nowhere),
+                                              loc)
+    val expected = IntegerZeroExtendInstruction(foo + bar,
+                                                UnitValue(),
+                                                UnitType(),
+                                                loc)
     testDefinition(expected, ast)
   }
 

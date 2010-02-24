@@ -189,6 +189,33 @@ class AstParserTest {
   }
 
   @Test
+  def floatExtendInst {
+    testInstruction("#fextend <foo.w:1.2-3.4> foo = () : #unit",
+                    AstFloatExtendInstruction(foo,
+                                              AstUnitValue(Nowhere),
+                                              AstUnitType(Nowhere),
+                                              fooLoc))
+  }
+
+  @Test
+  def floatToIntInst {
+    testInstruction("#ftoi <foo.w:1.2-3.4> foo = () : #unit",
+                    AstFloatToIntegerInstruction(foo,
+                                                 AstUnitValue(Nowhere),
+                                                 AstUnitType(Nowhere),
+                                                 fooLoc))
+  }
+
+  @Test
+  def floatTruncateInst {
+    testInstruction("#ftruncate <foo.w:1.2-3.4> foo = () : #unit",
+                    AstFloatTruncateInstruction(foo,
+                                                AstUnitValue(Nowhere),
+                                                AstUnitType(Nowhere),
+                                                fooLoc))
+  }
+
+  @Test
   def heapAllocateInst {
     testInstruction("#heap <foo.w:1.2-3.4> foo : #int32*",
                     AstHeapAllocateInstruction(foo,
@@ -213,6 +240,42 @@ class AstParserTest {
                                                AstSymbolValue(new Symbol("bar"), Nowhere),
                                                List(AstInt32Value(123, Nowhere)),
                                                fooLoc))
+  }
+
+  @Test
+  def intSignExtendInst {
+    testInstruction("#isextend <foo.w:1.2-3.4> foo = () : #unit",
+                    AstIntegerSignExtendInstruction(foo,
+                                                    AstUnitValue(Nowhere),
+                                                    AstUnitType(Nowhere),
+                                                    fooLoc))
+  }
+
+  @Test
+  def intToFloatInst {
+    testInstruction("#itof <foo.w:1.2-3.4> foo = () : #unit",
+                    AstIntegerToFloatInstruction(foo,
+                                                 AstUnitValue(Nowhere),
+                                                 AstUnitType(Nowhere),
+                                                 fooLoc))
+  }
+
+  @Test
+  def intTruncateInst {
+    testInstruction("#itruncate <foo.w:1.2-3.4> foo = () : #unit",
+                    AstIntegerTruncateInstruction(foo,
+                                                  AstUnitValue(Nowhere),
+                                                  AstUnitType(Nowhere),
+                                                  fooLoc))
+  }
+
+  @Test
+  def intZeroExtendInst {
+    testInstruction("#izextend <foo.w:1.2-3.4> foo = () : #unit",
+                    AstIntegerZeroExtendInstruction(foo,
+                                                    AstUnitValue(Nowhere),
+                                                    AstUnitType(Nowhere),
+                                                    fooLoc))
   }
 
   @Test

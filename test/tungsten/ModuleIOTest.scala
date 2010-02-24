@@ -303,9 +303,16 @@ class ModuleIOWriteTextTest {
     val branch1Text      = "    #branch <foo.w:1.1-1.1> branch1 = b1(1, 2)\n"
     val branch2Text      = "    #branch <foo.w:1.1-1.1> branch2 = b2( )\n"
     val condText         = "    #cond <foo.w:1.1-1.1> cond = #true ? b3(1, 2) : b4( )\n"
+    val fextendText      = "    #fextend <foo.w:1.1-1.1> fextend = 3.0f : #float64\n"
+    val ftoiText         = "    #ftoi <foo.w:1.1-1.1> ftoi = 3.0 : #int64\n"
+    val ftruncateText    = "    #ftruncate <foo.w:1.1-1.1> ftruncate = 3.0 : #float32\n"
     val heapText         = "    #heap heap: #unit*\n"
     val heapArrayText    = "    #heaparray heaparray = 12L * #unit\n"
 //    val icallText        = "    #icall <foo.w:1.1-1.1> icall = main( )\n"
+    val isextendText     = "    #isextend <foo.w:1.1-1.1> isextend = -1 : #int64\n"
+    val itofText         = "    #itof <foo.w:1.1-1.1> itof = 3 : #float64\n"
+    val itruncateText    = "    #itruncate <foo.w:1.1-1.1> itruncate = 3L : #int8\n"
+    val izextendText     = "    #izextend <foo.w:1.1-1.1> izextend = 12 : #int64\n"
     val loadText         = "    #load <foo.w:1.1-1.1> load = *l\n"
     val loadElementText  = "    #loadelement <foo.w:1.1-1.1> loadelement = [#unit: ()], 0L\n"
     val relopText        = "    #relop <foo.w:1.1-1.1> relop = 1 < 2\n"
@@ -332,8 +339,15 @@ class ModuleIOWriteTextTest {
                   "  #block b3(a: #int32, b: #int32) {\n" +
 //                  icallText +
                   "    #stack l: #unit*\n" +
+                  fextendText +
+                  ftoiText +
+                  ftruncateText +
                   heapText +
                   heapArrayText +
+                  isextendText +
+                  itofText +
+                  itruncateText +
+                  izextendText +
                   loadText +
                   loadElementText +
                   relopText +
@@ -356,8 +370,15 @@ class ModuleIOWriteTextTest {
     testWriteDefinitionText(branch1Text, program, "main.entry.branch1", Some("main.entry"))
     testWriteDefinitionText(branch2Text, program, "main.b1.branch2", Some("main.b1"))
     testWriteDefinitionText(condText, program, "main.b2.cond", Some("main.b2"))
+    testWriteDefinitionText(fextendText, program, "main.b3.fextend", Some("main.b3"))
+    testWriteDefinitionText(ftoiText, program, "main.b3.ftoi", Some("main.b3"))
+    testWriteDefinitionText(ftruncateText, program, "main.b3.ftruncate", Some("main.b3"))
     testWriteDefinitionText(heapText, program, "main.b3.heap", Some("main.b3"))
     testWriteDefinitionText(heapArrayText, program, "main.b3.heaparray", Some("main.b3"))
+    testWriteDefinitionText(isextendText, program, "main.b3.isextend", Some("main.b3"))
+    testWriteDefinitionText(itofText, program, "main.b3.itof", Some("main.b3"))
+    testWriteDefinitionText(itruncateText, program, "main.b3.itruncate", Some("main.b3"))
+    testWriteDefinitionText(izextendText, program, "main.b3.izextend", Some("main.b3"))
 //    testWriteDefinitionText(icallText, program, "main.b3.icall", Some("main.b3"))
     testWriteDefinitionText(loadText, program, "main.b3.load", Some("main.b3"))
     testWriteDefinitionText(loadElementText, program, "main.b3.loadelement", Some("main.b3"))

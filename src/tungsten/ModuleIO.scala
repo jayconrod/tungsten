@@ -180,6 +180,15 @@ object ModuleIO {
           ConditionalBranchInstruction(name, readValue, symbol, readList(readValue),
                                        symbol, readList(readValue), location)
         }
+        case FLOAT_EXTEND_INST_ID => {
+          FloatExtendInstruction(name, readValue, readType, location)
+        }
+        case FLOAT_TO_INTEGER_INST_ID => {
+          FloatToIntegerInstruction(name, readValue, readType, location)
+        }
+        case FLOAT_TRUNCATE_INST_ID => {
+          FloatTruncateInstruction(name, readValue, readType, location)
+        }
         case HEAP_ALLOCATE_INST_ID => {
           HeapAllocateInstruction(name, readType, location)
         }
@@ -188,6 +197,18 @@ object ModuleIO {
         }
         case INDIRECT_CALL_INST_ID => {
           IndirectCallInstruction(name, readValue, readList(readValue), location)
+        }
+        case INTEGER_SIGN_EXTEND_INST_ID => {
+          IntegerSignExtendInstruction(name, readValue, readType, location)
+        }
+        case INTEGER_TO_FLOAT_INST_ID => {
+          IntegerToFloatInstruction(name, readValue, readType, location)
+        }
+        case INTEGER_TRUNCATE_INST_ID => {
+          IntegerTruncateInstruction(name, readValue, readType, location)
+        }
+        case INTEGER_ZERO_EXTEND_INST_ID => {
+          IntegerZeroExtendInstruction(name, readValue, readType, location)
         }
         case INTRINSIC_CALL_INST_ID => {
           IntrinsicCallInstruction(name, readIntrinsic, readList(readValue), location)
@@ -532,6 +553,18 @@ object ModuleIO {
           output.write(" : " + localSymbol(falseTarget))
           writeArgumentList(falseArgs)
         }
+        case FloatExtendInstruction(name, value, ty, location) => {
+          output.write("#fextend " + locationString(location) + localName + " = " + 
+            localValue(value) + " : " + ty)
+        }
+        case FloatToIntegerInstruction(name, value, ty, location) => {
+          output.write("#ftoi " + locationString(location) + localName + " = " +
+            localValue(value) + " : " + ty)
+        }
+        case FloatTruncateInstruction(name, value, ty, location) => {
+          output.write("#ftruncate " + locationString(location) + localName + " = " +
+            localValue(value) + " : " + ty)
+        }
         case HeapAllocateInstruction(name, ty, location) => {
           output.write("#heap " + locationString(location) + localName + ": " + ty)
         }
@@ -542,6 +575,22 @@ object ModuleIO {
         case IndirectCallInstruction(name, target, arguments, location) => {
           output.write("#icall " + locationString(location) + localName + " = " + target)
           writeArgumentList(arguments)
+        }
+        case IntegerSignExtendInstruction(name, value, ty, location) => {
+          output.write("#isextend " + locationString(location) + localName + " = " +
+            localValue(value) + " : " + ty)
+        }
+        case IntegerToFloatInstruction(name, value, ty, location) => {
+          output.write("#itof " + locationString(location) + localName + " = " +
+            localValue(value) + " : " + ty)
+        }
+        case IntegerTruncateInstruction(name, value, ty, location) => {
+          output.write("#itruncate " + locationString(location) + localName + " = " +
+            localValue(value) + " : " + ty)
+        }
+        case IntegerZeroExtendInstruction(name, value, ty, location) => {
+          output.write("#izextend " + locationString(location) + localName + " = " +
+            localValue(value) + " : " + ty)
         }
         case IntrinsicCallInstruction(name, intrinsic, arguments, location) => {
           output.write("#intrinsic " + locationString(location) + localName + 
@@ -731,10 +780,17 @@ object ModuleIO {
             case _: BinaryOperatorInstruction => ()
             case _: BranchInstruction => ()
             case _: ConditionalBranchInstruction => ()
-            case _: IndirectCallInstruction => ()
-            case _: IntrinsicCallInstruction => ()
+            case FloatExtendInstruction(_, _, ty, _) => collectType(ty)
+            case FloatToIntegerInstruction(_, _, ty, _) => collectType(ty)
+            case FloatTruncateInstruction(_, _, ty, _) => collectType(ty)
             case HeapAllocateInstruction(_, ty, _) => collectType(ty)
             case HeapAllocateArrayInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerSignExtendInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerToFloatInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerTruncateInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerZeroExtendInstruction(_, _, ty, _) => collectType(ty)
+            case _: IndirectCallInstruction => ()
+            case _: IntrinsicCallInstruction => ()
             case _: LoadInstruction => ()
             case _: LoadElementInstruction => ()
             case _: RelationalOperatorInstruction => ()
@@ -896,6 +952,21 @@ object ModuleIO {
             writeInt(symbols(falseTarget))
             writeList(falseArgs, writeValue _)
           }
+          case FloatExtendInstruction(_, value, ty, _) => {
+            output.writeByte(FLOAT_EXTEND_INST_ID)
+            writeValue(value)
+            writeType(ty)
+          }
+          case FloatToIntegerInstruction(_, value, ty, _) => {
+            output.writeByte(FLOAT_TO_INTEGER_INST_ID)
+            writeValue(value)
+            writeType(ty)
+          }
+          case FloatTruncateInstruction(_, value, ty, _) => {
+            output.writeByte(FLOAT_TRUNCATE_INST_ID)
+            writeValue(value)
+            writeType(ty)
+          }
           case HeapAllocateInstruction(_, ty, _) => {
             output.writeByte(HEAP_ALLOCATE_INST_ID)
             writeType(ty)
@@ -910,6 +981,26 @@ object ModuleIO {
             writeValue(target)
             writeList(arguments, writeValue _)
           }            
+          case IntegerSignExtendInstruction(_, value, ty, _) => {
+            output.writeByte(INTEGER_SIGN_EXTEND_INST_ID)
+            writeValue(value)
+            writeType(ty)
+          }
+          case IntegerToFloatInstruction(_, value, ty, _) => {
+            output.writeByte(INTEGER_TO_FLOAT_INST_ID)
+            writeValue(value)
+            writeType(ty)
+          }
+          case IntegerTruncateInstruction(_, value, ty, _) => {
+            output.writeByte(INTEGER_TRUNCATE_INST_ID)
+            writeValue(value)
+            writeType(ty)
+          }
+          case IntegerZeroExtendInstruction(_, value, ty, _) => {
+            output.writeByte(INTEGER_ZERO_EXTEND_INST_ID)
+            writeValue(value)
+            writeType(ty)
+          }
           case IntrinsicCallInstruction(_, intrinsic, arguments, _) => {
             output.writeByte(INTRINSIC_CALL_INST_ID)
             writeIntrinsic(intrinsic)
@@ -1165,6 +1256,13 @@ object ModuleIO {
   val UPCAST_INST_ID: Byte = 116
   val HEAP_ALLOCATE_INST_ID = 117
   val HEAP_ALLOCATE_ARRAY_INST_ID = 118
+  val FLOAT_EXTEND_INST_ID = 119
+  val FLOAT_TO_INTEGER_INST_ID = 120
+  val FLOAT_TRUNCATE_INST_ID = 121
+  val INTEGER_SIGN_EXTEND_INST_ID = 122
+  val INTEGER_TO_FLOAT_INST_ID = 123
+  val INTEGER_TRUNCATE_INST_ID = 124
+  val INTEGER_ZERO_EXTEND_INST_ID = 125
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

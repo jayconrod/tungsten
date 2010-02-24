@@ -314,6 +314,54 @@ final case class AstConditionalBranchInstruction(override name: Symbol,
   }
 }
 
+final case class AstFloatExtendInstruction(override name: Symbol,
+                                           value: AstValue,
+                                           ty: AstType,
+                                           override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.createName(name)
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = FloatExtendInstruction(fullName, cValue, cTy, location)
+    ctx.replaceDefn(cCast)
+    cCast
+  }
+}
+
+final case class AstFloatToIntegerInstruction(override name: Symbol,
+                                              value: AstValue,
+                                              ty: AstType,
+                                              override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.createName(name)
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = FloatToIntegerInstruction(fullName, cValue, cTy, location)
+    ctx.replaceDefn(cCast)
+    cCast
+  }
+}
+
+final case class AstFloatTruncateInstruction(override name: Symbol,
+                                             value: AstValue,
+                                             ty: AstType,
+                                             override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.createName(name)
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = FloatTruncateInstruction(fullName, cValue, cTy, location)
+    ctx.replaceDefn(cCast)
+    cCast
+  }
+}
+
 final case class AstHeapAllocateInstruction(override name: Symbol,
                                             ty: AstType,
                                             override location: Location)
@@ -357,6 +405,70 @@ final case class AstIndirectCallInstruction(override name: Symbol,
     val cCall = IndirectCallInstruction(fullName, cTarget, cArgs, location)
     ctx.replaceDefn(cCall)
     cCall
+  }
+}
+
+final case class AstIntegerSignExtendInstruction(override name: Symbol,
+                                                 value: AstValue,
+                                                 ty: AstType,
+                                                 override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.createName(name)
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = IntegerSignExtendInstruction(fullName, cValue, cTy, location)
+    ctx.replaceDefn(cCast)
+    cCast
+  }
+}
+
+final case class AstIntegerToFloatInstruction(override name: Symbol,
+                                                 value: AstValue,
+                                                 ty: AstType,
+                                                 override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.createName(name)
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = IntegerToFloatInstruction(fullName, cValue, cTy, location)
+    ctx.replaceDefn(cCast)
+    cCast
+  }
+}
+
+final case class AstIntegerTruncateInstruction(override name: Symbol,
+                                               value: AstValue,
+                                               ty: AstType,
+                                               override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.createName(name)
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = IntegerTruncateInstruction(fullName, cValue, cTy, location)
+    ctx.replaceDefn(cCast)
+    cCast
+  }
+}
+
+final case class AstIntegerZeroExtendInstruction(override name: Symbol,
+                                                 value: AstValue,
+                                                 ty: AstType,
+                                                 override location: Location)
+  extends AstInstruction(name, location)
+{
+  def compile(ctx: AstContext) = {
+    val fullName = ctx.createName(name)
+    val cValue = value.compile(ctx)
+    val cTy = ty.compile(ctx)
+    val cCast = IntegerZeroExtendInstruction(fullName, cValue, cTy, location)
+    ctx.replaceDefn(cCast)
+    cCast
   }
 }
 

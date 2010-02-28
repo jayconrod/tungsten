@@ -10,7 +10,7 @@ object AstLexer extends Parsers {
     "*", "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|", "?",
     "<", "<=", ">", ">=", "==", "!=",
     "#name", "#type", "#intermediate", "#library", "#program", "#version", "#filename",
-      "#dependencies", "#searchpaths",
+      "#dependencies", "#searchpaths", "#is64bit",
     "#true", "#false",
     "#global", "#block", "#function", "#field", "#struct", "#class", "#fields", "#methods",
       "#interface",

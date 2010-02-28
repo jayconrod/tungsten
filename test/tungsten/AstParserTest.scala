@@ -67,6 +67,7 @@ class AstParserTest {
                                                    Version.MIN,
                                                    Version.MAX)),
                              List(new File("/foo/bar"), new File("/baz")),
+                             true,
                              Nil))
   }
 

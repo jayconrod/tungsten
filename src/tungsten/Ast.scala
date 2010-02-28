@@ -795,6 +795,7 @@ final class AstModule(val name: Symbol,
                       val filename: Option[File],
                       val dependencies: List[ModuleDependency],
                       val searchPaths: List[File],
+                      val is64Bit: Boolean,
                       val definitions: List[AstDefinition])
 {
   def this(definitions: List[AstDefinition]) = {
@@ -804,11 +805,12 @@ final class AstModule(val name: Symbol,
          None,
          Nil,
          Nil,
+         Utilities.isJvm64Bit,
          definitions)
   }
 
   def compile: Either[Module, List[CompileException]] = {
-    val ctx = new AstContext(name, ty, version, filename, dependencies, searchPaths)
+    val ctx = new AstContext(name, ty, version, filename, dependencies, searchPaths, is64Bit)
     definitions.foreach(_.compileDeclaration(ctx))
     definitions.foreach(_.compile(ctx))
     ctx.errors.toList match {
@@ -826,16 +828,17 @@ final class AstModule(val name: Symbol,
         filename     == m.filename     &&
         dependencies == m.dependencies &&
         searchPaths  == m.searchPaths  &&
+        is64Bit      == m.is64Bit      &&
         definitions  == m.definitions
       }
       case _ => false
     }
   }
 
-  override def hashCode = hash(name, ty, version, filename, dependencies, searchPaths, definitions)
+  override def hashCode = hash(name, ty, version, filename, dependencies, searchPaths, is64Bit, definitions)
 
   override def toString = {
-    "AstModule(%s, %s, %s, %s, %s, %s)".
-      format(name, ty, version, filename, dependencies, searchPaths, definitions)
+    "AstModule(%s, %s, %s, %s, %s, %s, %s)".
+      format(name, ty, version, filename, dependencies, searchPaths, is64Bit, definitions)
   }
 }

@@ -47,6 +47,8 @@ object Utilities {
 
   def isPowerOf2(x: Int) = (x & (x - 1)) == 0
 
+  def isJvm64Bit: Boolean = System.getProperty("sun.arch.data.model") == "64"
+
   def parseVersion(string: String): Version = {
     tryParseVersion(string) match {
       case Some(v) => v

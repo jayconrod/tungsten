@@ -521,6 +521,7 @@ class ValidationTest {
                             None,
                             Nil,
                             Nil,
+                            true,
                             Map[Symbol, Definition]())
     val errors = module.validateProgram
     containsError[MissingMainException](errors)
@@ -550,6 +551,7 @@ class ValidationTest {
                             List(ModuleDependency("a", Version.MIN, Version.MAX),
                                  ModuleDependency("a", Version.MIN, Version.MAX)),
                             Nil,
+                            true,
                             Map[Symbol, Definition]())
     val errors = module.validate
     containsError[DuplicateDependencyException](errors)

@@ -153,6 +153,7 @@ object Linker {
                   dependencies: List[ModuleDependency],
                   searchPaths: List[File]): Module = 
   {
+    val is64Bit = checkWordSize(modules)
     val initialDepSet = (ListSet[ModuleDependency]() /: dependencies.reverse) { _ + _ }
     val allDependencies = (initialDepSet /: modules) { (deps, m) =>
       deps ++ m.dependencies
@@ -165,7 +166,9 @@ object Linker {
       val (name, (definition, _)) = kv
       (name, definition)
     }
-    new Module(name, ty, version, filename, allDependencies, searchPaths, linkedDefinitions)
+    new Module(name, ty, version, 
+               filename, allDependencies, searchPaths, is64Bit, 
+               linkedDefinitions)
   }
 
   def isStrong(defn: Definition): Boolean = {
@@ -233,6 +236,25 @@ object Linker {
     else
       defn
     definitions + (name -> combinedDefn)
+  }
+
+  def checkWordSize(modules: List[Module]): Boolean = {
+    val is64Bit = modules.headOption.map(_.is64Bit).getOrElse(Utilities.isJvm64Bit)
+    val incorrectStr = if (is64Bit) "32-bit" else "64-bit"
+    val correctStr = if (is64Bit) "64-bit" else "32-bit"
+    def filenameStr(n: Option[File]) = {
+      n match {
+        case Some(f) => "from file \"" + f + "\" "
+        case None => ""
+      }
+    }
+    for (m <- modules) {
+      if (is64Bit != m.is64Bit) {
+        exitWithFailure("module %sis %s; expected %s".
+                          format(filenameStr(m.filename), incorrectStr, correctStr))
+      }
+    }
+    is64Bit
   }
 
   def validateOutput(module: Module, directory: File) {

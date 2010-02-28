@@ -12,6 +12,7 @@ final class Module(val name: Symbol,
                    val filename: Option[File],
                    val dependencies: List[ModuleDependency],
                    val searchPaths: List[File],
+                   val is64Bit: Boolean,
                    val definitions: Map[Symbol, Definition])
 {
   def this(definitions: Map[Symbol, Definition]) = {
@@ -21,6 +22,7 @@ final class Module(val name: Symbol,
          None,
          Nil,
          Nil,
+         Utilities.isJvm64Bit,
          definitions)
   }
 
@@ -32,9 +34,10 @@ final class Module(val name: Symbol,
                        filename: Option[File] = filename,
                        dependencies: List[ModuleDependency] = dependencies,
                        searchPaths: List[File] = searchPaths,
+                       is64Bit: Boolean = is64Bit,
                        definitions: Map[Symbol, Definition] = definitions) =
   {
-    new Module(name, ty, version, filename, dependencies, searchPaths, definitions)
+    new Module(name, ty, version, filename, dependencies, searchPaths, is64Bit, definitions)
   }
 
   def add(defn: Definition): Module = {
@@ -207,6 +210,7 @@ final class Module(val name: Symbol,
         version      == m.version      &&
         dependencies == m.dependencies &&
         searchPaths  == m.searchPaths  &&
+        is64Bit      == m.is64Bit      &&
         definitions  == m.definitions
       }
       case _ => false
@@ -214,7 +218,7 @@ final class Module(val name: Symbol,
   }
 
   override def hashCode = {
-    hash("Module", name, ty, version, dependencies, searchPaths, definitions)
+    hash("Module", name, ty, version, dependencies, searchPaths, is64Bit, definitions)
   }
 
   override def toString = definitions.valuesIterable.mkString("\n")

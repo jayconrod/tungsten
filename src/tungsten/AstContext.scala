@@ -10,7 +10,8 @@ final class AstContext(name: Symbol,
                        version: Version,
                        filename: Option[File],
                        dependencies: List[ModuleDependency],
-                       searchPaths: List[File])
+                       searchPaths: List[File],
+                       is64Bit: Boolean)
 {
   def this() = {
     this("default",
@@ -18,11 +19,12 @@ final class AstContext(name: Symbol,
          Version.MIN,
          None,
          Nil,
-         Nil)
+         Nil,   
+         Utilities.isJvm64Bit)
   }
 
   var module = new Module(name, ty, version, 
-                          filename, dependencies, searchPaths, 
+                          filename, dependencies, searchPaths, is64Bit,
                           Map[Symbol, Definition]())
   val errors = new ArrayBuffer[CompileException]
   val names = new Stack[Symbol]

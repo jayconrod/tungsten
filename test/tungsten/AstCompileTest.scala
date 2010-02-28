@@ -34,6 +34,7 @@ class AstCompileTest {
                                                       new Version(List(0, 1)),
                                                       new Version(List(3, 4)))),
                             List(new File("/foo/bar")),
+                            true,
                             Nil)
     val Left(module) = ast.compile
     val expected = new Module(module.name,
@@ -42,6 +43,7 @@ class AstCompileTest {
                               None,
                               module.dependencies,
                               module.searchPaths,
+                              true,
                               Map[Symbol, Definition]())                             
     assertEquals(expected, module)
   }

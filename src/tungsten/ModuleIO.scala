@@ -103,7 +103,8 @@ object ModuleIO {
           throw new IOException("Duplicate definition")
         definitions + (defn.name -> defn)
       }
-      new Module(header._1, header._2, header._3, header._4, header._5, header._6, definitions)
+      new Module(header._1, header._2, header._3, header._4, header._5, header._6, header._7, 
+                 definitions)
     }
 
     def readHeader = {
@@ -120,7 +121,8 @@ object ModuleIO {
       val filename = readOption(new File(readString))
       val dependencies = readList(readModuleDependency)
       val searchPaths = readList(new File(readString))
-      (name, ty, version, filename, dependencies, searchPaths)
+      val is64Bit = readBoolean
+      (name, ty, version, filename, dependencies, searchPaths, is64Bit)
     }
 
     def readHeaderSymbol: Symbol = {
@@ -267,14 +269,7 @@ object ModuleIO {
     def readValue: Value = {
       input.readByte match {
         case UNIT_VALUE_ID => UnitValue(location)
-        case BOOLEAN_VALUE_ID => {
-          val value = input.readByte match {
-            case 0 => false
-            case 1 => true
-            case _ => throw new IOException("Invalid Boolean value")
-          }
-          BooleanValue(value, location)
-        }
+        case BOOLEAN_VALUE_ID => BooleanValue(readBoolean, location)
         case INT8_VALUE_ID => Int8Value(input.readByte, location)
         case INT16_VALUE_ID => Int16Value(input.readShort, location)
         case INT32_VALUE_ID => Int32Value(input.readInt, location)
@@ -319,6 +314,14 @@ object ModuleIO {
     def readString: String = input.readUTF
 
     def readInt: Int = input.readInt
+
+    def readBoolean: Boolean = {
+      input.readByte match {
+        case 0 => false
+        case 1 => true
+        case _ => throw new IOException("Invalid Boolean value")
+      }
+    }
 
     def readList[T](reader: => T): List[T] = {
       val length = readInt
@@ -436,6 +439,7 @@ object ModuleIO {
         output.write("#dependencies " + module.dependencies.mkString(", ") + "\n")
       if (!module.searchPaths.isEmpty)
         output.write("#searchpaths " + module.searchPaths.mkString(", ") + "\n")
+      output.write("#is64bit #" + module.is64Bit + "\n")
       output.write("\n")
     }
 
@@ -862,6 +866,7 @@ object ModuleIO {
       writeOption(module.filename, { (file: File) => writeString(file.toString) })
       writeList(module.dependencies, writeModuleDependency _)
       writeList(module.searchPaths.map(_.toString), writeString _)
+      writeBoolean(module.is64Bit)
     }
 
     def writeHeaderSymbol(sym: Symbol) {
@@ -1100,7 +1105,7 @@ object ModuleIO {
         case UnitValue(_) => output.writeByte(UNIT_VALUE_ID)
         case BooleanValue(b, _) => {
           output.writeByte(BOOLEAN_VALUE_ID)
-          output.writeByte(if (b) 1 else 0)
+          writeBoolean(b)
         }
         case Int8Value(b, _) => {
           output.writeByte(INT8_VALUE_ID)
@@ -1203,6 +1208,10 @@ object ModuleIO {
 
     def writeInt(n: Int) {
       output.writeInt(n)
+    }
+
+    def writeBoolean(b: Boolean) {
+      output.writeByte(if (b) 1 else 0)
     }
 
     def writeList[T](list: List[T], writer: T => Unit) {

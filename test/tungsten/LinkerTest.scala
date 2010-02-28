@@ -47,9 +47,9 @@ class LinkerTest {
     }
     val definitions = Map[Symbol, Definition]()
     val m1 = new Module("default", ModuleType.INTERMEDIATE, Version.MIN, 
-                        None, List(b, c), Nil, definitions)
+                        None, List(b, c), Nil, true, definitions)
     val m2 = new Module("default", ModuleType.INTERMEDIATE, Version.MIN,
-                        None, List(d, c), Nil, definitions)
+                        None, List(d, c), Nil, true, definitions)
     val linked = Linker.linkModules(List(m1, m2), "default", ModuleType.INTERMEDIATE,
                                     Version.MIN, None, List(a), Nil)
     assertEquals(dependencies, linked.dependencies)

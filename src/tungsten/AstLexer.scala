@@ -6,7 +6,7 @@ import scala.util.parsing.input._
 object AstLexer extends Parsers {
   type Elem = Char
 
-  val reservedStrings = Set("()", ":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:", "<-",
+  val reservedStrings = Set(":", ",", "=", "{", "}", "(", ")", "[", "]", "<:", ">:", "<-",
     "*", "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|", "?",
     "<", "<=", ">", ">=", "==", "!=",
     "#name", "#type", "#intermediate", "#library", "#program", "#version", "#filename",

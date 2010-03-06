@@ -114,7 +114,7 @@ object AstParser extends Parsers with ImplicitConversions {
         flatten3(AstAggregateValue(_, _, _))
     }
 
-    ("()" ~> location ^^ { AstUnitValue(_) }) |
+    ("(" ~ ")" ~> location ^^ { AstUnitValue(_) }) |
     (boolean ~ location ^^ { case b ~ l => AstBooleanValue(b, l) }) |
     (byte ~ location ^^ flatten2(AstInt8Value(_, _))) |
     (short ~ location ^^ flatten2(AstInt16Value(_, _))) |

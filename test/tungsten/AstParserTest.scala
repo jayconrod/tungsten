@@ -37,17 +37,17 @@ class AstParserTest {
   }
 
   @Test
-  def empty = {
+  def empty {
     testModule("", new AstModule(Nil))
   }
 
   @Test
-  def whitespace = {
+  def whitespace {
     testModule(" \t\n", new AstModule(Nil))
   }
 
   @Test
-  def headers = {
+  def headers {
     testModule("#name a.b#12\n" +
                "#type #library\n" +
                "#version #1.2.3\n" +
@@ -72,7 +72,7 @@ class AstParserTest {
   }
 
   @Test
-  def types = {
+  def types {
     testType("#unit", AstUnitType(Nowhere))
     testType("#boolean", AstBooleanType(Nowhere))
     testType("#int32", AstIntType(32, Nowhere))
@@ -90,18 +90,18 @@ class AstParserTest {
   }
 
   @Test
-  def typeWithLocation = {
+  def typeWithLocation {
     testType("#unit <foo.w:1.2-3.4>", AstUnitType(fooLoc))
     testType("Foo <foo.w:1.2-3.4>", AstClassType(new Symbol("Foo"), Nil, fooLoc))
   }
 
   @Test
-  def pointerType = {
+  def pointerType {
     testType("#unit**", AstPointerType(AstPointerType(AstUnitType(Nowhere), Nowhere), Nowhere))
   }
 
   @Test
-  def pointerTypeWithLocations = {
+  def pointerTypeWithLocations {
     val l1 = Location("foo.w", 1, 2, 3, 4)
     val l2 = Location("foo.w", 1, 2, 3, 5)
     val l3 = Location("foo.w", 1, 2, 3, 6)
@@ -110,7 +110,7 @@ class AstParserTest {
   }
 
   @Test
-  def value = {
+  def value {
     testValue("()", AstUnitValue(Nowhere))
     testValue("#true", AstBooleanValue(true, Nowhere))
     testValue("12b", AstInt8Value(12, Nowhere))
@@ -128,13 +128,13 @@ class AstParserTest {
   }
 
   @Test
-  def valueWithLocation = {
+  def valueWithLocation {
     val expected = AstUnitValue(fooLoc)
     testValue("() <foo.w:1.2-3.4>", expected)
   }
 
   @Test
-  def addressInst = {
+  def addressInst {
     testInstruction("#address <foo.w:1.2-3.4> foo = (), (), ()",
                     AstAddressInstruction(foo, 
                                           AstUnitValue(Nowhere),
@@ -143,13 +143,13 @@ class AstParserTest {
   }
 
   @Test
-  def assignInst = {
+  def assignInst {
     testInstruction("#assign <foo.w:1.2-3.4> foo = 123",
                     AstAssignInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
   }
 
   @Test
-  def binopInst = {
+  def binopInst {
     testInstruction("#binop <foo.w:1.2-3.4> foo = 12 + 34",
                     AstBinaryOperatorInstruction(foo,
                                                  BinaryOperator.ADD,
@@ -159,7 +159,7 @@ class AstParserTest {
   }
 
   @Test
-  def binopRemainder = {
+  def binopRemainder {
     testInstruction("#binop foo = 12 % 34",
                     AstBinaryOperatorInstruction(foo,
                                                  BinaryOperator.REMAINDER,
@@ -169,7 +169,7 @@ class AstParserTest {
   }
 
   @Test
-  def branchInst = {
+  def branchInst {
     testInstruction("#branch <foo.w:1.2-3.4> foo = bar(123)",
                     AstBranchInstruction(foo, 
                                          new Symbol("bar"),
@@ -178,7 +178,7 @@ class AstParserTest {
   }
 
   @Test
-  def condBranchInst = {
+  def condBranchInst {
     testInstruction("#cond <foo.w:1.2-3.4> foo = () ? bar(12) : baz(34)",
                     AstConditionalBranchInstruction(foo,
                                                     AstUnitValue(Nowhere),
@@ -235,7 +235,7 @@ class AstParserTest {
   }
 
   @Test
-  def indirectCallInst = {
+  def indirectCallInst {
     testInstruction("#icall <foo.w:1.2-3.4> foo = bar(123)",
                     AstIndirectCallInstruction(foo,
                                                AstSymbolValue(new Symbol("bar"), Nowhere),
@@ -280,7 +280,7 @@ class AstParserTest {
   }
 
   @Test
-  def intrinsicInst = {
+  def intrinsicInst {
     testInstruction("#intrinsic <foo.w:1.2-3.4> foo = exit(1)",
                     AstIntrinsicCallInstruction(foo,
                                                 new Symbol("exit"),
@@ -289,13 +289,13 @@ class AstParserTest {
   }
 
   @Test
-  def loadInst = {
+  def loadInst {
     testInstruction("#load <foo.w:1.2-3.4> foo = *()",
                     AstLoadInstruction(foo, AstUnitValue(Nowhere), fooLoc))
   }
 
   @Test
-  def loadElementInst = {
+  def loadElementInst {
     testInstruction("#loadelement <foo.w:1.2-3.4> foo = (), (), ()",
                     AstLoadElementInstruction(foo,
                                               AstUnitValue(Nowhere),
@@ -304,7 +304,7 @@ class AstParserTest {
   }
 
   @Test
-  def relopInst = {
+  def relopInst {
     testInstruction("#relop <foo.w:1.2-3.4> foo = 12 == 34",
                     AstRelationalOperatorInstruction(foo,
                                                      RelationalOperator("=="),
@@ -314,13 +314,13 @@ class AstParserTest {
   }
 
   @Test
-  def returnInst = {
+  def returnInst {
     testInstruction("#return <foo.w:1.2-3.4> foo = 123", 
                     AstReturnInstruction(foo, AstInt32Value(123, Nowhere), fooLoc))
   }
 
   @Test
-  def stackAllocateInst = {
+  def stackAllocateInst {
     testInstruction("#stack <foo.w:1.2-3.4> foo : #int32*",
                     AstStackAllocateInstruction(foo, 
                                                 AstPointerType(AstIntType(32, Nowhere),
@@ -329,7 +329,7 @@ class AstParserTest {
   }
 
   @Test
-  def stackArrayAllocateInst = {
+  def stackArrayAllocateInst {
     testInstruction("#stackarray <foo.w:1.2-3.4> foo = () * #unit",
                     AstStackAllocateArrayInstruction(foo,
                                                      AstUnitValue(Nowhere),
@@ -338,7 +338,7 @@ class AstParserTest {
   }
 
   @Test
-  def staticCallInst = {
+  def staticCallInst {
     testInstruction("#scall <foo.w:1.2-3.4> foo = bar(123)",
                     AstStaticCallInstruction(foo,
                                              new Symbol("bar"),
@@ -347,7 +347,7 @@ class AstParserTest {
   }
 
   @Test
-  def storeInst = {
+  def storeInst {
     testInstruction("#store <foo.w:1.2-3.4> foo = *() <- ()",
                     AstStoreInstruction(foo,
                                         AstUnitValue(Nowhere),
@@ -356,7 +356,7 @@ class AstParserTest {
   }
 
   @Test
-  def storeElementInst = {
+  def storeElementInst {
     testInstruction("#storeelement <foo.w:1.2-3.4> foo = (), (), () <- ()",
                     AstStoreElementInstruction(foo,
                                                AstUnitValue(Nowhere),
@@ -366,7 +366,7 @@ class AstParserTest {
   }
 
   @Test
-  def upcastInst = {
+  def upcastInst {
     testInstruction("#upcast <foo.w:1.2-3.4> foo = #null : #null",
                     AstUpcastInstruction(foo,
                                          AstNullValue(Nowhere),
@@ -375,7 +375,7 @@ class AstParserTest {
   }
 
   @Test
-  def parameter = {
+  def parameter {
     val tyLoc = Location("foo.w", 5, 6, 7, 8)
     val expected = AstParameter(new Symbol("foo"), AstIntType(32, tyLoc), fooLoc)
     test("foo <foo.w:1.2-3.4> : #int32 <foo.w:5.6-7.8>", AstParser.parameter, expected)
@@ -388,7 +388,7 @@ class AstParserTest {
   }    
 
   @Test
-  def block = {
+  def block {
     val program = "#block <foo.w:1.2-3.4> foo(bar : #int32,\n" +
                   "                           baz : #int32) {\n" +
                   "  #return quux = 123\n" +
@@ -405,21 +405,21 @@ class AstParserTest {
   }
 
   @Test
-  def global = {
+  def global {
     val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, Nowhere)
     val expected = new AstModule(List(global))
     testModule("#global foo: #unit", expected)
   }
 
   @Test
-  def globalWithLocation = {
+  def globalWithLocation {
     val global = AstGlobal(new Symbol("foo"), AstUnitType(Nowhere), None, fooLoc)
     val expected = new AstModule(List(global))
     testModule("#global <foo.w:1.2-3.4> foo: #unit", expected)
   }
 
   @Test
-  def globalWithValue = {
+  def globalWithValue {
     val global = AstGlobal(new Symbol("foo"), 
                            AstUnitType(Nowhere),
                            Some(AstUnitValue(Nowhere)),
@@ -429,7 +429,7 @@ class AstParserTest {
   }
 
   @Test
-  def functionExtern = {
+  def functionExtern {
     val program = "#function foo( ): #unit"
     val function = AstFunction("foo",
                                AstUnitType(Nowhere),
@@ -441,7 +441,7 @@ class AstParserTest {
   }
     
   @Test
-  def functionEmpty = {
+  def functionEmpty {
     val program = "#function foo( ): #unit { #block ret( ) { #return bar = () } }"
     val ret = AstBlock(new Symbol("ret"),
                        Nil,
@@ -459,7 +459,7 @@ class AstParserTest {
   }
 
   @Test
-  def function = {
+  def function {
     val program = "#function <foo.w:1.2-3.4> foo(bar: #unit, baz: #unit): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #branch quux = ret( )\n" + 
@@ -491,7 +491,7 @@ class AstParserTest {
   }
 
   @Test
-  def field = {
+  def field {
     val program = "#field <foo.w:1.2-3.4> foo: #unit"
     val expected = AstField(new Symbol("foo"), AstUnitType(Nowhere), fooLoc)
     test(program, AstParser.field, expected)
@@ -506,7 +506,7 @@ class AstParserTest {
   }
 
   @Test
-  def struct = {
+  def struct {
     val program = "#struct <foo.w:1.2-3.4> Foo {\n" +
                   "  #field bar: #unit\n" +
                   "  #field baz: #unit\n" +

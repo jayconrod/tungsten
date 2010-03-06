@@ -17,14 +17,14 @@ class UtilitiesTest {
   }
 
   @Test
-  def fileWithExtension = {
+  def fileWithExtension {
     val oldFile = new File("foo.txt")
     val newFile = Utilities.fileWithExtension(oldFile, ".txt", ".jpg")
     assertEquals(new File("foo.jpg").getCanonicalFile, newFile)
   }
 
   @Test
-  def fileWithExtensionMissing = {
+  def fileWithExtensionMissing {
     val oldFile = new File("foo.asdf")
     val newFile = Utilities.fileWithExtension(oldFile, ".txt", ".jpg")
     assertEquals(new File("foo.asdf.jpg").getCanonicalFile, newFile)

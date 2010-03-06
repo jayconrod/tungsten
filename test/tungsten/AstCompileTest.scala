@@ -49,45 +49,45 @@ class AstCompileTest {
   }
 
   @Test
-  def unitType = {
+  def unitType {
     assertEquals(UnitType(loc), AstUnitType(loc).compile(ctx))
   }
 
   @Test
-  def booleanType = {
+  def booleanType {
     assertEquals(BooleanType(loc), AstBooleanType(loc).compile(ctx))
   }
 
   @Test
-  def intType = {
+  def intType {
     assertEquals(IntType(32, loc), AstIntType(32, loc).compile(ctx))
   }
 
   @Test
-  def floatType = {
+  def floatType {
     assertEquals(FloatType(32, loc), AstFloatType(32, loc).compile(ctx))
     assertEquals(FloatType(64, loc), AstFloatType(64, loc).compile(ctx))
   }
 
   @Test
-  def pointerType = {
+  def pointerType {
     assertEquals(PointerType(UnitType(), loc), 
                  AstPointerType(AstUnitType(Nowhere), loc).compile(ctx))
   }
 
   @Test
-  def nullType = {
+  def nullType {
     assertEquals(NullType(loc), AstNullType(loc).compile(ctx))
   }
 
   @Test
-  def arrayType = {
+  def arrayType {
     assertEquals(ArrayType(Some(12), UnitType(), loc),
                  AstArrayType(Some(12), AstUnitType(Nowhere), loc).compile(ctx))
   }
 
   @Test
-  def structType = {
+  def structType {
     val struct = Struct(foo, Nil)
     ctx.addDefn(struct)
     val ast = AstClassType(foo, Nil, loc)
@@ -96,7 +96,7 @@ class AstCompileTest {
   }
 
   @Test
-  def defaultType = {
+  def defaultType {
     val ast = AstClassType(foo, Nil, loc)
     val ty = ast.compileOrElse(ctx)
     assertFalse(ctx.errors.isEmpty)
@@ -104,17 +104,17 @@ class AstCompileTest {
   }
 
   @Test
-  def unitValue = {
+  def unitValue {
     assertEquals(UnitValue(loc), AstUnitValue(loc).compile(ctx))
   }
 
   @Test
-  def booleanValue = {
+  def booleanValue {
     assertEquals(BooleanValue(true, loc), AstBooleanValue(true, loc).compile(ctx))
   }
 
   @Test
-  def intValues = {
+  def intValues {
     assertEquals(Int8Value(12, loc), AstInt8Value(12, loc).compile(ctx))
     assertEquals(Int16Value(12, loc), AstInt16Value(12, loc).compile(ctx))
     assertEquals(Int32Value(12, loc), AstInt32Value(12, loc).compile(ctx))
@@ -122,13 +122,13 @@ class AstCompileTest {
   }
 
   @Test
-  def floatValues = {
+  def floatValues {
     assertEquals(Float32Value(12.3f, loc), AstFloat32Value(12.3f, loc).compile(ctx))
     assertEquals(Float64Value(12.3, loc), AstFloat64Value(12.3, loc).compile(ctx))
   }
 
   @Test
-  def arrayValues = {
+  def arrayValues {
     assertEquals(ArrayValue(UnitType(), Nil, loc),
                  AstArrayValue(AstUnitType(Nowhere), Nil, loc).compile(ctx))
     assertEquals(ArrayValue(UnitType(), List(UnitValue()), loc),
@@ -136,7 +136,7 @@ class AstCompileTest {
   }
 
   @Test
-  def structValue = {
+  def structValue {
     val field = Field("A.b", UnitType())
     ctx.addDefn(field)
     val struct = Struct("A", List(field.name))
@@ -147,7 +147,7 @@ class AstCompileTest {
   }    
 
   @Test
-  def symbolValue = {
+  def symbolValue {
     ctx.names.push(foo)
     val param = Parameter(foo + bar, UnitType(Nowhere))
     ctx.addDefn(param)
@@ -157,7 +157,7 @@ class AstCompileTest {
   }
 
   @Test
-  def globalDefn = {
+  def globalDefn {
     val global = new Global(foo, UnitType(Nowhere), Some(UnitValue(Nowhere)), loc)
     val ast = AstGlobal(foo, AstUnitType(Nowhere), Some(AstUnitValue(Nowhere)), loc)
     ast.compile(ctx)
@@ -165,7 +165,7 @@ class AstCompileTest {
   }
 
   @Test
-  def parameter = {
+  def parameter {
     ctx.names.push(foo)
     val expected = Parameter(foo + bar, UnitType(Nowhere), loc)
     val ast = AstParameter(bar, AstUnitType(Nowhere), loc)
@@ -173,7 +173,7 @@ class AstCompileTest {
   }
 
   @Test
-  def addressInst = {
+  def addressInst {
     ctx.names.push(foo)
     val ast = AstAddressInstruction(bar,
                                     AstUnitValue(Nowhere),
@@ -187,7 +187,7 @@ class AstCompileTest {
   }
 
   @Test
-  def assignInst = {
+  def assignInst {
     ctx.names.push(foo)
     val ast = AstAssignInstruction(bar, AstUnitValue(Nowhere), loc)
     val expected = AssignInstruction(foo + bar, UnitValue(), loc)
@@ -195,7 +195,7 @@ class AstCompileTest {
   }
 
   @Test
-  def binopInst = {
+  def binopInst {
     ctx.names.push(foo)
     val ast = AstBinaryOperatorInstruction(bar,
                                            BinaryOperator.ADD,
@@ -211,7 +211,7 @@ class AstCompileTest {
   }
 
   @Test
-  def branchInst = {
+  def branchInst {
     ctx.names.push(foo)
     val block = Block(foo + baz, Nil, Nil, Nowhere)
     ctx.addDefn(block)
@@ -224,7 +224,7 @@ class AstCompileTest {
   }
 
   @Test
-  def condBranchInst = {
+  def condBranchInst {
     ctx.names.push(foo)
     val bazBlock = Block(foo + baz, Nil, Nil, Nowhere)
     ctx.addDefn(bazBlock)
@@ -314,7 +314,7 @@ class AstCompileTest {
   }
 
   @Test
-  def indirectCallInst = {
+  def indirectCallInst {
     ctx.names.push(foo)
     val ast = AstIndirectCallInstruction(bar, 
                                          AstSymbolValue(baz, Nowhere), 
@@ -384,7 +384,7 @@ class AstCompileTest {
   }
 
   @Test
-  def loadInst = {
+  def loadInst {
     ctx.names.push(foo)
     val ast = AstLoadInstruction(bar, AstUnitValue(Nowhere), loc)
     val expected = LoadInstruction(foo + bar, UnitValue(), loc)
@@ -392,7 +392,7 @@ class AstCompileTest {
   }
 
   @Test
-  def loadElementInst = {
+  def loadElementInst {
     ctx.names.push(foo)
     val ast = AstLoadElementInstruction(bar,
                                         AstUnitValue(Nowhere),
@@ -406,7 +406,7 @@ class AstCompileTest {
   }
 
   @Test
-  def relopInst = {
+  def relopInst {
     ctx.names.push(foo)
     val ast = AstRelationalOperatorInstruction(bar,
                                                RelationalOperator.EQUAL,
@@ -422,7 +422,7 @@ class AstCompileTest {
   }
 
   @Test
-  def stackAllocateInst = {
+  def stackAllocateInst {
     ctx.names.push(foo)
     val ast = AstStackAllocateInstruction(bar, 
                                           AstPointerType(AstUnitType(Nowhere), Nowhere), 
@@ -432,7 +432,7 @@ class AstCompileTest {
   }
 
   @Test
-  def stackArrayAllocInst = {
+  def stackArrayAllocInst {
     ctx.names.push(foo)
     val ast = AstStackAllocateArrayInstruction(bar,
                                                AstUnitValue(Nowhere),
@@ -446,7 +446,7 @@ class AstCompileTest {
   }
 
   @Test
-  def staticCallInst = {
+  def staticCallInst {
     ctx.names.push(foo)
     val baz = new Symbol("baz")
     val ast = AstStaticCallInstruction(bar, 
@@ -462,7 +462,7 @@ class AstCompileTest {
   }
 
   @Test
-  def storeInst = {
+  def storeInst {
     ctx.names.push(foo)
     val ast = AstStoreInstruction(bar, AstUnitValue(Nowhere), AstUnitValue(Nowhere), loc)
     val expected = StoreInstruction(foo + bar, UnitValue(), UnitValue(), loc)
@@ -470,7 +470,7 @@ class AstCompileTest {
   }
 
   @Test
-  def storeElementInst = {
+  def storeElementInst {
     ctx.names.push(foo)
     val ast = AstStoreElementInstruction(bar,
                                          AstUnitValue(Nowhere),
@@ -486,7 +486,7 @@ class AstCompileTest {
   }
 
   @Test
-  def returnInst = {
+  def returnInst {
     ctx.names.push(foo)
     val ast = AstReturnInstruction(bar, AstUnitValue(Nowhere), loc)
     val expected = ReturnInstruction(foo + bar, UnitValue(Nowhere), loc)
@@ -494,7 +494,7 @@ class AstCompileTest {
   }
 
   @Test
-  def upcastInst = {
+  def upcastInst {
     ctx.names.push(foo)
     val ast = AstUpcastInstruction(bar, AstNullValue(Nowhere), AstNullType(Nowhere), loc)
     val expected = UpcastInstruction(foo + bar, NullValue(), NullType(), loc)
@@ -502,7 +502,7 @@ class AstCompileTest {
   }
 
   @Test
-  def block = {
+  def block {
     ctx.names.push(foo)
     val ast = AstBlock(bar,
                        List(AstParameter(baz, AstUnitType(Nowhere), Nowhere)),
@@ -513,7 +513,7 @@ class AstCompileTest {
   }
 
   @Test
-  def function = {
+  def function {
     val List(a, b, c) = List("a", "b", "c").map(new Symbol(_))
     val ast = AstFunction(foo,
                           AstUnitType(Nowhere),
@@ -530,7 +530,7 @@ class AstCompileTest {
   }
 
   @Test
-  def field = {
+  def field {
     ctx.names.push(foo)
     val ast = AstField(bar, AstUnitType(Nowhere), loc)
     val expected = Field(foo + bar, UnitType(), loc)
@@ -538,7 +538,7 @@ class AstCompileTest {
   }
 
   @Test
-  def struct = {
+  def struct {
     val ast = AstStruct(foo,
                         List(AstField(bar, AstUnitType(Nowhere), Nowhere)),
                         loc)
@@ -548,14 +548,14 @@ class AstCompileTest {
   }
 
   @Test
-  def undefinedClassType = {
+  def undefinedClassType {
     val ast = AstClassType("A", Nil, Nowhere)
     ast.compile(ctx)
     assertTrue(ctx.errors.exists(_.isInstanceOf[UndefinedSymbolException]))
   }
 
   @Test
-  def undefinedAggregateValue = {
+  def undefinedAggregateValue {
     val ast = AstAggregateValue("A", Nil, Nowhere)
     ast.compile(ctx)
     assertTrue(ctx.errors.exists(_.isInstanceOf[UndefinedSymbolException]))

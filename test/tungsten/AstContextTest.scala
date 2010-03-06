@@ -8,7 +8,7 @@ class AstContextTest {
   val ctx = new AstContext
 
   @Test
-  def resolveEmpty = {
+  def resolveEmpty {
     val name = symbolFromString("foo")
     ctx.addDefn(Global(name, UnitType(), None))
     val resolved = ctx.resolve(name).get
@@ -16,7 +16,7 @@ class AstContextTest {
   }
 
   @Test
-  def resolveUsingStack = {
+  def resolveUsingStack {
     val name = symbolFromString("foo.bar")
     val global = Global(name, UnitType(), None)
     ctx.addDefn(global)
@@ -26,7 +26,7 @@ class AstContextTest {
   }
 
   @Test
-  def resolveWithoutStack = {
+  def resolveWithoutStack {
     val foo = symbolFromString("foo")
     ctx.addDefn(Global(foo, UnitType(), None))
     ctx.names.push("bar")
@@ -35,7 +35,7 @@ class AstContextTest {
   }
 
   @Test
-  def resolveShadowed = {
+  def resolveShadowed {
     ctx.names.push("foo")
     ctx.addDefn(Global("foo.bar", UnitType(), None))
     ctx.addDefn(Global("bar", UnitType(), None))

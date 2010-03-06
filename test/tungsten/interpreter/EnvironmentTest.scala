@@ -38,7 +38,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def basicValues = {
+  def basicValues {
     val (module, env) = prepareDefault
     assertEquals(tungsten.interpreter.UnitValue, env.create(tungsten.UnitValue()))
     assertEquals(tungsten.interpreter.BooleanValue(true), env.create(tungsten.BooleanValue(true)))
@@ -52,7 +52,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def arrayValue = {
+  def arrayValue {
     val (module, env) = prepareDefault
     val value = tungsten.ArrayValue(IntType(32), List(tungsten.Int32Value(12)))
     val ivalue = env.create(value)
@@ -61,7 +61,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def structValue = {
+  def structValue {
     val program = "#struct A {\n" +
                   "  #field b: #unit\n" +
                   "}\n" +
@@ -78,7 +78,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def setArguments = {
+  def setArguments {
     val env = new Environment(new Module)
     val names = List("foo", "bar", "baz").map(Symbol(_))
     val args = List(1, 2, 3).map(Int32Value(_))
@@ -88,7 +88,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def branch = {
+  def branch {
     val program = "#function main( ): #unit {\n" +
                   "  #block b1( ) { #return r1 = () }\n" +
                   "  #block b2(x: #int32, y: #int32) { #return r2 = () }\n" +
@@ -103,7 +103,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def branchKeepsParameters = {
+  def branchKeepsParameters {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #scall f(12)\n" +
@@ -126,7 +126,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def call = {
+  def call {
     val program = "#function main( ): #unit { #block entry( ) { #return r = () } }\n" +
                   "#function f(x: #int32): #unit { #block entry( ) { #return r = () } }\n"
     val (module, env) = prepare(program)
@@ -140,7 +140,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def addressArrayInst = {
+  def addressArrayInst {
     val code = "#stackarray a = 2L * [2 * #int32]\n" +
                "#address b = a, 1L, 1L"
     val (module, env) = prepareCode(code)
@@ -157,7 +157,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def addressStructInst = {
+  def addressStructInst {
     val program = "#struct A {\n" +
                   "  #field x: #int32\n" +
                   "}\n" +
@@ -185,7 +185,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def assignInst = {
+  def assignInst {
     val (module, env) = prepareCode("#assign a = 123\n#assign b = a")
     env.step
     assertEquals(Int32Value(123), env.state.get(prefix + "a"))
@@ -194,21 +194,21 @@ class EnvironmentTest {
   }
 
   @Test
-  def binopInst = {
+  def binopInst {
     val (module, env) = prepareCode("#binop a = 1 + 2")
     env.step
     assertEquals(Int32Value(3), env.state.get(prefix + "a"))
   }
 
   @Test
-  def floatBinopInst = {
+  def floatBinopInst {
     val (module, env) = prepareCode("#binop a = 1. + 2.")
     env.step
     assertEquals(Float64Value(3.), env.state.get(prefix + "a"))
   }
 
   @Test
-  def branchInst = {
+  def branchInst {
     val program = "#function main( ): #unit {\n" +
                   "  #block b1( ) { #branch b = b2(12, 34) }\n" +
                   "  #block b2(x: #int32, y: #int32) { #return r2 = () }\n" +
@@ -221,7 +221,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def condInst = {
+  def condInst {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #cond c = #false ? foo(12) : bar(12)\n" +
@@ -237,14 +237,14 @@ class EnvironmentTest {
   }
 
   @Test
-  def exitInst = {
+  def exitInst {
     val (module, env) = prepareCode("#intrinsic x = exit(12)")
     env.step
     assertEquals(12, env.returnCode)
   }
 
   @Test
-  def globalLoadInst = {
+  def globalLoadInst {
     val program = "#global foo: #int32 = 12\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
@@ -260,7 +260,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def globalStoreInst = {
+  def globalStoreInst {
     val program = "#global foo: #int32\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
@@ -310,7 +310,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def indirectCallInst = {
+  def indirectCallInst {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #assign g = f\n" +
@@ -354,7 +354,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def loadInst = {
+  def loadInst {
     val code = "#stack a : #int32*\n" +
                "#load b = *a"
     val (module, env) = prepareCode(code)
@@ -364,7 +364,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def loadArrayInst = {
+  def loadArrayInst {
     val code = "#stack a: [1 * #int32]*\n" +
                "#address b = a, 0L\n" +
                "#load c = *b"
@@ -374,7 +374,7 @@ class EnvironmentTest {
   }    
 
   @Test
-  def loadElementArrayInst = {
+  def loadElementArrayInst {
     val code = "#loadelement a = [#int32: 12, 34], 0L"
     val (module, env) = prepareCode(code)
     env.step
@@ -382,7 +382,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def loadElementStructInst = {
+  def loadElementStructInst {
     val program = "#struct A {\n" +
                   "  #field b: #int32\n" +
                   "}\n" +
@@ -398,14 +398,14 @@ class EnvironmentTest {
   }
 
   @Test
-  def relopInst = {
+  def relopInst {
     val (module, env) = prepareCode("#relop a = 1 == 2")
     env.step
     assertEquals(BooleanValue(false), env.state.get(prefix + "a"))
   }
 
   @Test
-  def stackAllocateInst = {
+  def stackAllocateInst {
     val (module, env) = prepareCode("#stack a : #int32*")
     env.step
     val a = env.state.get(prefix + "a").asInstanceOf[ScalarReference]
@@ -413,7 +413,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def stackAllocateArrayInst = {
+  def stackAllocateArrayInst {
     val (module, env) = prepareCode("#stackarray a = 12L * #unit")
     env.step
     val value = env.state.get(prefix + "a")
@@ -425,7 +425,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def staticCallAndReturnInst = {
+  def staticCallAndReturnInst {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #scall i1 = f( )\n" +
@@ -448,7 +448,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def storeInst = {
+  def storeInst {
     val code = "#stack a : #int32*\n" +
                "#store b = *a <- 12"
     val (module, env) = prepareCode(code)
@@ -459,7 +459,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def storeArrayInst = {
+  def storeArrayInst {
     val code = "#stack a : [1 * #int32]*\n" +
                "#address b = a, 0L\n" +
                "#store *b <- 12"
@@ -471,7 +471,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def storeElementInst = {
+  def storeElementInst {
     val code = "#assign a = [#int32: 12, 34]\n" +
                "#storeelement a, 0L <- 56"
     val (module, env) = prepareCode(code)
@@ -483,7 +483,7 @@ class EnvironmentTest {
   }
 
   @Test
-  def storeElementArrayInst = {
+  def storeElementArrayInst {
     val program = "#struct A {\n" +
                   "  #field b: #int32\n" +
                   "}\n" +
@@ -503,14 +503,14 @@ class EnvironmentTest {
   }
 
   @Test
-  def upcastInst = {
+  def upcastInst {
     val (module, env) = prepareCode("#upcast a = #null : #null")
     env.step
     assertEquals(NullReference, env.state.get(prefix + "a"))
   }
 
   @Test
-  def addressEquality = {
+  def addressEquality {
     val code = "#stack a: [1 * #int32]*\n" +
                "#address b = a, 0L\n" +
                "#address c = a, 0L\n" +

@@ -8,17 +8,17 @@ class ValueTest {
   var module = new Module
 
   @Test
-  def unit = {
+  def unit {
     assertEquals(UnitType(), UnitValue(loc).ty(module))
   }
 
   @Test
-  def int = {
+  def int {
     assertEquals(IntType(32), Int32Value(12, loc).ty(module))
   }
 
   @Test
-  def global = {
+  def global {
     val foo = new Symbol("foo")
     val global = Global(foo, UnitType(), Some(UnitValue()))
     module = module.add(global)

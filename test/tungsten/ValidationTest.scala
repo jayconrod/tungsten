@@ -41,26 +41,26 @@ class ValidationTest {
   }
 
   @Test
-  def stagedValidation = {
+  def stagedValidation {
     def f(x: Int) = if (x > 0) List(1, 2, 3) else throw new RuntimeException("stage failed")
     stage(f(1), f(-1))
     ()
   }
 
   @Test
-  def emptyBlockTermination = {
+  def emptyBlockTermination {
     val program = "#function main( ): #unit { #block empty( ) { } }"
     programContainsError[EmptyComponentsException](program)
   }
 
   @Test
-  def blockTermination = {
+  def blockTermination {
     val program = "#function main( ): #unit { #block entry( ) { #scall foo = main( ) } }"
     programContainsError[BlockTerminationException](program)
   }
 
   @Test
-  def earlyTermination = {
+  def earlyTermination {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #return a = ()\n" +
@@ -71,20 +71,20 @@ class ValidationTest {
   }
 
   @Test
-  def exitTermination = {
+  def exitTermination {
     val program = "#function main( ): #unit { #block entry( ) { #intrinsic foo = exit(12) } }"
     val errors = compileString(program).validate
     assertTrue(errors.isEmpty)
   }
 
   @Test
-  def returnTypeMismatch = {
+  def returnTypeMismatch {
     val program = "#function main( ): #unit { #block entry( ) { #return r = 12 } }"
     programContainsError[TypeMismatchException](program)
   }
 
   @Test
-  def duplicateComponent = {
+  def duplicateComponent {
     val (instName, blockName) = (new Symbol("ret"), new Symbol("block"))
     val inst = ReturnInstruction(instName, UnitValue())
     val block = Block(blockName, Nil, List(instName, instName))
@@ -94,7 +94,7 @@ class ValidationTest {
   }
 
   @Test
-  def nonLocalAssign = {
+  def nonLocalAssign {
     val program = "#global foo: #unit\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
@@ -106,7 +106,7 @@ class ValidationTest {
   }
 
   @Test
-  def nonLiteralGlobal = {
+  def nonLiteralGlobal {
     val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
     val gfoo = Global(foo, UnitType(), Some(UnitValue()))
     val gbar = Global(bar, UnitType(), Some(DefinedValue(foo)))
@@ -115,7 +115,7 @@ class ValidationTest {
   }
 
   @Test
-  def globalTypeMismatch = {
+  def globalTypeMismatch {
     val program = "#global foo: #unit\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
@@ -127,44 +127,44 @@ class ValidationTest {
   }
 
   @Test
-  def binopNonNumeric = {
+  def binopNonNumeric {
     val code = "#binop a = () + ()"
     codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
-  def binopMismatch = {
+  def binopMismatch {
     val code = "#binop a = 12 + 34b"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def assignOutOfOrder = {
+  def assignOutOfOrder {
     val code = "#assign a = b\n" +
                "#assign b = ()"
     codeContainsError[InstructionOrderException](code)
   }
 
   @Test
-  def relopMismatch = {
+  def relopMismatch {
     val code = "#relop a = 12 == ()"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def relopNonNumeric = {
+  def relopNonNumeric {
     val code = "#relop a = () < ()"
     codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
-  def nonExistantBranchCondition = {
+  def nonExistantBranchCondition {
     val code = "#cond a = #true ? foo( ) : bar( )"
     codeContainsError[UndefinedSymbolException](code)
   }
 
   @Test
-  def nonBooleanCondition = {
+  def nonBooleanCondition {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #cond a = 12 ? foo( ) : bar( )\n" +
@@ -176,7 +176,7 @@ class ValidationTest {
   }
 
   @Test
-  def conditionArgumentCount = {
+  def conditionArgumentCount {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #cond a = #true ? foo(12) : bar(12)\n" +
@@ -188,7 +188,7 @@ class ValidationTest {
   }
 
   @Test
-  def conditionTypeMismatch = {
+  def conditionTypeMismatch {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #cond a = #true ? foo(12) : bar(12)\n" +
@@ -200,7 +200,7 @@ class ValidationTest {
   }
 
   @Test
-  def conditionDuplicateBlock = {
+  def conditionDuplicateBlock {
     val program = "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #cond a = #true ? entry( ) : entry( )\n" +
@@ -210,50 +210,50 @@ class ValidationTest {
   }
 
   @Test
-  def staticCallMissingFunction = {
+  def staticCallMissingFunction {
     val code = "#scall c = foo( )"
     codeContainsError[UndefinedSymbolException](code)
   }
 
   @Test
-  def entryBlockWithParameters = {
+  def entryBlockWithParameters {
     val program = "#function main( ): #unit { #block entry(u: #unit) { #return r = () } }"
     programContainsError[EntryParametersException](program)
   }
 
   @Test
-  def floatBitOp = {
+  def floatBitOp {
     val code = "#binop a = 1. & 2."
     codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
-  def upcastToNonPointer = {
+  def upcastToNonPointer {
     val code = "#upcast a = #null : #int32"
     codeContainsError[UpcastException](code)
   }
 
   @Test
-  def upcastFromNonPointer = {
+  def upcastFromNonPointer {
     val code = "#upcast a = 12 : #int32*"
     codeContainsError[UpcastException](code)
   }
 
   @Test
-  def upcastDown = {
+  def upcastDown {
     val code = "#upcast a = #null : #int32*" + 
                "#upcast b = a : #null"
     codeContainsError[UpcastException](code)
   }
 
   @Test
-  def stackAllocateInt = {
+  def stackAllocateInt {
     val code = "#stack a : #int32"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def stackAllocateNull = {
+  def stackAllocateNull {
     val code = "#stack a : #null"
     codeContainsError[TypeMismatchException](code)
   }
@@ -271,31 +271,31 @@ class ValidationTest {
   }
 
   @Test
-  def loadInt = {
+  def loadInt {
     val code = "#load a = *12"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def loadNull = {
+  def loadNull {
     val code = "#load a = *#null"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def storeInt = {
+  def storeInt {
     val code = "#store a = *12 <- 34"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def storeNull = {
+  def storeNull {
     val code = "#store a = *#null <- 34"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def paramsInNonEntryBlockCorrect = {
+  def paramsInNonEntryBlockCorrect {
     val program = "#function main( ): #unit { #block entry( ) { #return r = () } }\n" +
                   "#function f(x: #unit): #unit {\n" +
                   "  #block b1( ) {\n" +
@@ -309,75 +309,75 @@ class ValidationTest {
   }
 
   @Test
-  def mainWithParameters = {
+  def mainWithParameters {
     val program = "#function main(x: #unit): #unit { #block entry( ) { #return r = () } }"
     programContainsError[MainNonEmptyParametersException](program)
   }
 
   @Test
-  def mainReturnType = {
+  def mainReturnType {
     val program = "#function main( ): #int32 { #block entry( ) { #return r = 12 } }"
     programContainsError[MainReturnTypeException](program)
   }
 
   @Test
-  def upcastSizelessArray = {
+  def upcastSizelessArray {
     val code = "#upcast a = [#int32: 12, 34] : [? * #int32]"
     codeIsCorrect(code)
   }
 
   @Test
-  def loadElementArrayOutOfBounds = {
+  def loadElementArrayOutOfBounds {
     val code = "#loadelement a = [#int32: 12, 34], 5L"
     codeIsCorrect(code)
   }
 
   @Test
-  def loadElementBadIndexType = {
+  def loadElementBadIndexType {
     val code = "#loadelement a = [#int32: 12, 34], 5"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def loadElementTooManyIndices = {
+  def loadElementTooManyIndices {
     val code = "#loadelement a = [#int32: 12, 34], 5, 6"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
-  def storeType = {
+  def storeType {
     val code = "#storeelement [#int32: 12, 34], 0L <- ()"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def stackArrayAllocCountType = {
+  def stackArrayAllocCountType {
     val code = "#stackarray a = () * #unit"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def addressNonPointer = {
+  def addressNonPointer {
     val code = "#address a = (), 0L"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def addressBadIndexType = {
+  def addressBadIndexType {
     val code = "#stackarray a = 5L * #unit\n" +
                "#address b = a, 1"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def addressTooManyIndices = {
+  def addressTooManyIndices {
     val code = "#stackarray a = 5L * #unit\n" +
                "#address b = a, 1L, 1L"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
-  def addressTwice = {
+  def addressTwice {
     val code = "#stackarray a = 2L * [2 * #int32]\n" +
                "#address b = a, 1L, 1L\n" +
                "#store *b <- 12"
@@ -385,7 +385,7 @@ class ValidationTest {
   }
 
   @Test
-  def globalAddress = {
+  def globalAddress {
     val program = "#global foo: [2 * #int32]\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
@@ -397,14 +397,14 @@ class ValidationTest {
   }
 
   @Test
-  def undefinedStructType = {
+  def undefinedStructType {
     val foo = Global("a", StructType("B"), None)
     val module = (new Module).add(foo)
     val errors = foo.validateComponents(module)
   }
 
   @Test
-  def duplicateStructField = {
+  def duplicateStructField {
     val field = Field("foo", UnitType())
     val struct = Struct("bar", List(field.name, field.name))
     val module = (new Module).add(field, struct)
@@ -413,7 +413,7 @@ class ValidationTest {
   }
 
   @Test
-  def invalidStructValueCount = {
+  def invalidStructValueCount {
     val program = "#struct A {\n" +
                   "  #field b: #unit\n" +
                   "}\n" +
@@ -427,7 +427,7 @@ class ValidationTest {
   }
 
   @Test
-  def structValueFieldType = {
+  def structValueFieldType {
     val program = "#struct A {\n" +
                   "  #field b: #unit\n" +
                   "}\n" +
@@ -441,7 +441,7 @@ class ValidationTest {
   }
 
   @Test
-  def loadElementFromStruct = {
+  def loadElementFromStruct {
     val program = "#struct A {\n" +
                   "  #field b: #unit\n" +
                   "}\n" +
@@ -455,7 +455,7 @@ class ValidationTest {
   }
 
   @Test
-  def loadElementNonLiteralIndex = {
+  def loadElementNonLiteralIndex {
     val program = "#struct A {\n" +
                   "  #field b: #unit\n" +
                   "}\n" +
@@ -470,7 +470,7 @@ class ValidationTest {
   }
 
   @Test
-  def storeElementDoubleIndex = {
+  def storeElementDoubleIndex {
     val program = "#struct A {\n" +
                   "  #field x: #int32\n" +
                   "}\n" +
@@ -488,7 +488,7 @@ class ValidationTest {
   }
 
   @Test
-  def nonExistantStructValue = {
+  def nonExistantStructValue {
     val i1 = AssignInstruction("i1", StructValue("A", Nil))
     val i2 = ReturnInstruction("i2", UnitValue())
     val block = Block("main.entry", Nil, List(i1, i2).map(_.name))
@@ -499,14 +499,14 @@ class ValidationTest {
   }
 
   @Test
-  def singleCyclicStruct = {
+  def singleCyclicStruct {
     val program = "#struct A { #field x: A }\n" +
                   "#function main( ): #unit { #block entry( ) { #return () } }\n"
     programContainsError[CyclicStructException](program)
   }
 
   @Test
-  def doubleCyclicStruct = {
+  def doubleCyclicStruct {
     val program = "#struct A { #field x: B }\n" +
                   "#struct B { #field y: A }\n" +
                   "#function main( ): #unit { #block entry( ) { #return () } }\n"

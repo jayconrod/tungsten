@@ -31,29 +31,29 @@ class AstLexerTest {
   }
 
   @Test
-  def empty = {
+  def empty {
     val scanner = new AstLexer.Scanner("")
     assertTrue(scanner.atEnd)
   }
 
   @Test
-  def emptyError = {
+  def emptyError {
     testToken("", ErrorToken(""))
   }
 
   @Test
-  def whitespace = {
+  def whitespace {
     val scanner = new AstLexer.Scanner(" \n\t")
     assertTrue(scanner.atEnd)
   }
 
   @Test
-  def whitespaceError = {
+  def whitespaceError {
      testToken(" \n\t", ErrorToken(""))
   }
 
   @Test
-  def reserved = {
+  def reserved {
     for (r <- AstLexer.reservedStrings) {
       val expected = ReservedToken(r)
       testToken(r, expected)
@@ -79,7 +79,7 @@ class AstLexerTest {
   }
 
   @Test
-  def integer = {
+  def integer {
     test("12b", AstLexer.byte, 12: Byte)
     test("12s", AstLexer.short, 12: Short)
     test("12", AstLexer.int, 12)
@@ -89,7 +89,7 @@ class AstLexerTest {
   }
 
   @Test
-  def integerToken = {
+  def integerToken {
     testToken("12b", ByteToken(12))
     testToken("12s", ShortToken(12))
     testToken("12", IntToken(12))
@@ -97,7 +97,7 @@ class AstLexerTest {
   }
 
   @Test
-  def floatToken = {
+  def floatToken {
     testToken("1.", Float64Token(1.))
     testToken("-1.", Float64Token(-1.))
     testToken("+1.", Float64Token(+1.))
@@ -126,42 +126,42 @@ class AstLexerTest {
   }
 
   @Test
-  def identifier = {
+  def identifier {
     test("_foo0", AstLexer.identifier, "_foo0")
   }
 
   @Test(expected=classOf[RuntimeException])
-  def identifierStartingWithDigit = {
+  def identifierStartingWithDigit {
     test("1foo", AstLexer.identifier, "")
   }
 
   @Test
-  def symbol = {
+  def symbol {
     test("foo.bar.baz", AstLexer.symbol, Symbol(List("foo", "bar", "baz"), 0))
   }
 
   @Test
-  def symbolWithId = {
+  def symbolWithId {
     test("foo#12", AstLexer.symbol, Symbol(List("foo"), 12))
   }
 
   @Test(expected=classOf[RuntimeException])
-  def symbolWithLargeId = {
+  def symbolWithLargeId {
     test("foo#10000000000", AstLexer.symbol, Symbol(List("foo"), 0))
   }
 
   @Test
-  def symbolToken = {
+  def symbolToken {
     testToken("foo.bar#12", SymbolToken(Symbol(List("foo", "bar"), 12)))
   }
 
   @Test
-  def location = {
+  def location {
     test("<foo/bar.w:12.34-56.78>", AstLexer.location, Location("foo/bar.w", 12, 34, 56, 78))
   }
 
   @Test
-  def functionTokens = {
+  def functionTokens {
     val program = "#function"
     val tokens = List(ReservedToken("#function"))
     testTokens(program, tokens)

@@ -5,7 +5,7 @@ import org.junit.Assert._
 
 class GraphTest {
   @Test
-  def initialGraphEmpty = {
+  def initialGraphEmpty {
     val g = new Graph[Symbol]
     assertTrue(g.nodes.isEmpty)
     assertTrue(g.incident.isEmpty)
@@ -13,7 +13,7 @@ class GraphTest {
   }
 
   @Test
-  def generatedIncident = {
+  def generatedIncident {
     val g = new Graph(List(1, 2), Map((1, Set(2))))
     assertEquals(Set(1, 2), g.nodes)
     assertEquals(Set(2), g.adjacent(1))
@@ -21,7 +21,7 @@ class GraphTest {
   }
 
   @Test
-  def addNode = {
+  def addNode {
     var g = new Graph[Symbol]
     val sym = Symbol("foo")
     g += sym
@@ -31,7 +31,7 @@ class GraphTest {
   }
 
   @Test
-  def addNodes = {
+  def addNodes {
     val u = Symbol("u")
     val v = Symbol("v")
     val g = new Graph[Symbol] ++ List(u, v)
@@ -39,7 +39,7 @@ class GraphTest {
   }
 
   @Test
-  def addEdge = {
+  def addEdge {
     val u = Symbol("u")
     val v = Symbol("v")
     var g = new Graph[Symbol] ++ List(u, v)
@@ -49,7 +49,7 @@ class GraphTest {
   }
 
   @Test
-  def addEdges = {
+  def addEdges {
     val u = Symbol("u")
     val v = Symbol("v")
     var g = new Graph[Symbol] ++ List(u, v)
@@ -59,7 +59,7 @@ class GraphTest {
   }    
 
   @Test
-  def addExistingNodeDoesNotResetEdges = {
+  def addExistingNodeDoesNotResetEdges {
     val u = Symbol("u")
     var g = new Graph[Symbol] + u & (u, u)
     g += u
@@ -67,7 +67,7 @@ class GraphTest {
   }
 
   @Test
-  def findSCCs = {
+  def findSCCs {
     val g = new Graph[Int](List(1, 2, 3, 4, 5),
                            Map((1, Set(2)),
                                (2, Set(3)),

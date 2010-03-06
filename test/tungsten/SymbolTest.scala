@@ -6,14 +6,14 @@ import Utilities._
 
 class SymbolTest {
   @Test
-  def createSimple = {
+  def createSimple {
     val sym = new Symbol("simple")
     assertEquals(List("simple"), sym.name)
     assertEquals(0, sym.id)
   }
 
   @Test
-  def createComplex = {
+  def createComplex {
     val name = List("not", "so", "simple")
     val sym = new Symbol(name, 36)
     assertEquals(name, sym.name)
@@ -21,46 +21,46 @@ class SymbolTest {
   }
 
   @Test(expected=classOf[IllegalArgumentException])
-  def emptyName = {
+  def emptyName {
     val sym = new Symbol(Nil, 0)
     ()
   }
 
   @Test(expected=classOf[IllegalArgumentException])
-  def emptyNamePart = {
+  def emptyNamePart {
     val sym = new Symbol(List("foo", "", "bar"), 0)
     ()
   }
 
   @Test(expected=classOf[IllegalArgumentException])
-  def negativeId = {
+  def negativeId {
     val id = new Symbol(List("foo"), -32)
     ()
   }
 
   @Test
-  def equals = {
+  def equals {
     val sym1 = new Symbol("foo", 2)
     val sym2 = new Symbol("foo", 2)
     assertTrue(sym1 == sym2)
   }
 
   @Test
-  def notEquals = {
+  def notEquals {
     val sym1 = new Symbol("foo", 2)
     val sym2 = new Symbol("bar", 3)
     assertFalse(sym1 == sym2)
   }
 
   @Test
-  def hash = {
+  def hash {
     val sym1 = new Symbol("foo", 2)
     val sym2 = new Symbol("foo", 2)
     assertEquals(sym1.hashCode, sym2.hashCode)
   }
 
   @Test
-  def factory = {
+  def factory {
     val factory = new SymbolFactory
     val sym1 = factory.symbol("foo")
     val sym2 = factory.symbol("foo")
@@ -68,7 +68,7 @@ class SymbolTest {
   }
 
   @Test
-  def strings = {
+  def strings {
     val sym1 = new Symbol(List("foo", "bar", "baz"), 33)
     assertEquals("foo.bar.baz#33", sym1.toString)
     val sym2 = new Symbol(List("foo", "bar", "baz"), 0)
@@ -76,7 +76,7 @@ class SymbolTest {
   }
 
   @Test
-  def concat = {
+  def concat {
     val base = new Symbol("foo")
     val expected = new Symbol(List("foo", "bar"))
     val result = base + "bar"
@@ -84,7 +84,7 @@ class SymbolTest {
   }
 
   @Test
-  def createImplicit = {
+  def createImplicit {
     import Symbol._
     val sym: Symbol = "this.is.a.test#12"
     assertEquals(new Symbol(List("this", "is", "a", "test"), 12), sym)

@@ -94,6 +94,13 @@ final case class IntType(width: Int,
   override def toString = "#int" + width
 }
 
+object IntType {
+  def wordType(module: Module) = {
+    val wordSize = if (module.is64Bit) 64 else 32
+    IntType(wordSize)
+  }
+}
+
 final case class FloatType(width: Int, 
                            override location: Location = Nowhere)
   extends Type(location)

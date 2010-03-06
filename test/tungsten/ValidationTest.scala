@@ -589,4 +589,17 @@ class ValidationTest {
     codeContainsError[TypeMismatchException]("#ftoi () : #int32")
     codeContainsError[TypeMismatchException]("#ftoi 3.4 : #unit")
   }
+
+  @Test
+  def indexTypeIn32Bit {
+    val program = "#is64bit #false\n" +
+                  "#function main( ): #unit {\n" +
+                  "  #block entry( ) {\n" +
+                  "    #stack a : [3 * #unit]*\n" +
+                  "    #address b = a, 0L\n" +
+                  "    #return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
 }

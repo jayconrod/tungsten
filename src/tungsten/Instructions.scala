@@ -82,6 +82,7 @@ sealed trait ElementInstruction extends Instruction {
                                       baseType: Type, 
                                       indices: List[Value]): List[CompileException] =
   {
+    val wordType = IntType.wordType(module)
     def check(baseType: Type, 
               indices: List[Value],
               errors: List[CompileException]): List[CompileException] =
@@ -90,10 +91,10 @@ sealed trait ElementInstruction extends Instruction {
         case Nil => errors
         case i :: is => {
           val indexType = i.ty(module)
-          val newErrors = if (indexType == IntType(64))
+          val newErrors = if (indexType == wordType)
             errors
           else
-            TypeMismatchException(indexType.toString, IntType(64), location) :: errors
+            TypeMismatchException(indexType.toString, wordType.toString, location) :: errors
 
           baseType match {
             case ArrayType(size, elementType, _) => 

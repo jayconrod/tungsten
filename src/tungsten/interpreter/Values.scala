@@ -1,6 +1,7 @@
 package tungsten.interpreter
 
 import tungsten.{Parameter, Instruction, Function}
+import tungsten.Utilities._
 
 sealed class IValue
 

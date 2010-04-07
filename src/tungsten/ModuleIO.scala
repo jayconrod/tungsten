@@ -416,7 +416,7 @@ object ModuleIO {
 
     def write {
       writeHeader
-      for (defn <- module.definitions.valuesIterable
+      for (defn <- module.definitions.values
            if isTopLevel(defn))
         writeDefinition(defn)
     }
@@ -755,11 +755,11 @@ object ModuleIO {
       strings.write(writeString _)
       locations.write(writeLocation _)
       symbols.write(writeSymbol _)
-      module.definitions.valuesIterable.foreach(writeDefinition _)
+      module.definitions.values.foreach(writeDefinition _)
     }
 
     def collect {
-      module.definitions.valuesIterable.foreach(collectDefinition _)
+      module.definitions.values.foreach(collectDefinition _)
     }
 
     def collectDefinition(defn: Definition) {

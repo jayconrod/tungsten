@@ -322,7 +322,8 @@ class ModuleIOWriteTextTest {
     val storeText        = "    #store <foo.w:1.1-1.1> store = *l <- ()\n"
     val storeElementText = "    #storeelement <foo.w:1.1-1.1> storeelement = [#unit: ()], 0L <- ()\n"
     val upcastText       = "    #upcast <foo.w:1.1-1.1> upcast = #null: #unit*\n"
-    val program = "#function main( ): #unit {\n" +
+    val program = "#is64bit #true\n" +
+                  "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   stackText +
                   addressText +

@@ -6,6 +6,7 @@ import Utilities._
 
 class ValidationTest {
   def programFromCode(code: String): String = {
+    "#is64bit #true\n" +
     "#function main( ): #unit {\n" +
     "  #block entry( ) {\n" +
     "    " + code + "\n" +
@@ -386,7 +387,8 @@ class ValidationTest {
 
   @Test
   def globalAddress = {
-    val program = "#global foo: [2 * #int32]\n" +
+    val program = "#is64bit #true\n" +
+                  "#global foo: [2 * #int32]\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +
                   "    #address a = foo, 1L\n" +
@@ -442,7 +444,8 @@ class ValidationTest {
 
   @Test
   def loadElementFromStruct = {
-    val program = "#struct A {\n" +
+    val program = "#is64bit #true\n" +
+                  "#struct A {\n" +
                   "  #field b: #unit\n" +
                   "}\n" +
                   "#function main( ): #unit {\n" +
@@ -471,7 +474,8 @@ class ValidationTest {
 
   @Test
   def storeElementDoubleIndex = {
-    val program = "#struct A {\n" +
+    val program = "#is64bit #true\n" +
+                  "#struct A {\n" +
                   "  #field x: #int32\n" +
                   "}\n" +
                   "#struct B {\n" +

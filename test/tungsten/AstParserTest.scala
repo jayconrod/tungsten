@@ -52,7 +52,8 @@ class AstParserTest {
                "#type #library\n" +
                "#version #1.2.3\n" +
                "#dependencies c.d#34:0.1-, e.f#56:-1.0, g.h#78\n" +
-               "#searchpaths \"/foo/bar\", \"/baz\"\n",
+               "#searchpaths \"/foo/bar\", \"/baz\"\n" +
+               "#is64bit #true",
                new AstModule("a.b#12",
                              ModuleType.LIBRARY,
                              Version(1, 2, 3),

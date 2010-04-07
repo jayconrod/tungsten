@@ -1,6 +1,6 @@
 package tungsten
 
-import Math.min
+import scala.math.min
 import Utilities._
 
 final class Graph[T](val nodes: Set[T],

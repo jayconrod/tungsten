@@ -145,7 +145,7 @@ class AstLexerTest {
     test("foo#12", AstLexer.symbol, Symbol(List("foo"), 12))
   }
 
-  @Test(expected=classOf[RuntimeException])
+  @Test(expected=classOf[AssertionError])
   def symbolWithLargeId = {
     test("foo#10000000000", AstLexer.symbol, Symbol(List("foo"), 0))
   }

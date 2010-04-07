@@ -311,7 +311,7 @@ final class Environment(val module: Module) {
   }
 
   def evalBinop(op: BinaryOperator, left: IValue, right: IValue) = {
-    val methodName = scala.util.NameTransformer.encode(op.name)
+    val methodName = scala.reflect.NameTransformer.encode(op.name)
     val method = left.getClass.getMethod(methodName, right.getClass)
     method.invoke(left, right).asInstanceOf[IValue]
   }
@@ -322,7 +322,7 @@ final class Environment(val module: Module) {
     else if (op == RelationalOperator.NOT_EQUAL)
       BooleanValue(!(left equals right))
     else {
-      val methodName = scala.util.NameTransformer.encode(op.name)
+      val methodName = scala.reflect.NameTransformer.encode(op.name)
       val method = left.getClass.getMethod(methodName, right.getClass)
       method.invoke(left, right).asInstanceOf[BooleanValue]
     }

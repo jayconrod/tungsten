@@ -102,11 +102,11 @@ final class Module(val name: Symbol,
     }
   
     def validateComponents = {
-      definitions.valuesIterable.flatMap(_.validateComponents(this)).toList
+      definitions.values.flatMap(_.validateComponents(this)).toList
     }
 
     def validateDefinitions = {
-      definitions.valuesIterable.flatMap(_.validate(this)).toList
+      definitions.values.flatMap(_.validate(this)).toList
     }
 
     def validateMain = {
@@ -135,7 +135,7 @@ final class Module(val name: Symbol,
         structDeps.toSet
       }
 
-      val structNames = definitions.valuesIterable.flatMap { defn =>
+      val structNames = definitions.values.flatMap { defn =>
         defn match {
           case s: Struct => Some(s.name)
           case _ => None
@@ -221,7 +221,7 @@ final class Module(val name: Symbol,
     hash("Module", name, ty, version, dependencies, searchPaths, is64Bit, definitions)
   }
 
-  override def toString = definitions.valuesIterable.mkString("\n")
+  override def toString = definitions.values.mkString("\n")
 }
 
 final class ModuleType(description: String) {

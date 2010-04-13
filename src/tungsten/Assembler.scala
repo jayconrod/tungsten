@@ -37,6 +37,7 @@ object Assembler {
     } catch {
       case exn: IOException => {
         System.err.println(file + ": IO error: " + exn.getMessage)
+        errorOccurred = true
         None
       }
     }

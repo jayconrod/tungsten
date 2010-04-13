@@ -1,12 +1,19 @@
 repositories.remote << 'http://www.ibiblio.org/maven2'
 require 'buildr/scala'
 
-layout = Layout.new
-layout[:source, :main, :scala] = 'src'
-layout[:source, :test, :scala] = 'test'
-
-define 'tungsten', :layout=>layout do
+define 'tungsten' do
+  puts Scala.version
   project.version = '0.3'
-  package :jar
-  test.using :junit
+  project.group = 'tungsten'
+
+  define 'core' do
+    package :jar
+    test.using :junit
+  end
+
+  define 'llvm' do
+    package :jar
+    test.using :junit
+    compile.with project('tungsten:core')
+  end
 end

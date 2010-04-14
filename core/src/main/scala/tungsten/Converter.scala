@@ -4,21 +4,20 @@ import java.io._
 import Utilities._
 
 trait Converter[S, T] {
-  var errorOccurred = false
+  private var errorOccurred = false
 
   def main(args: Array[String]) {
     if (args.isEmpty) {
-      readSourceFromStdin.foreach { source =>
-        val target = convert(source)
+      for (source <- readSourceFromStdin;
+           target <- convert(source))
         writeTargetToStdout(target)
-      }
     } else {
       for (filename <- args;
            val inputFile =  new File(filename);
-           source <- readSourceFromFile(inputFile))
+           source <- readSourceFromFile(inputFile);
+           target <- convert(source))
       {
         val outputFile = convertFile(inputFile)
-        val target = convert(source)
         writeTargetToFile(target, outputFile)
       }
     }
@@ -27,32 +26,58 @@ trait Converter[S, T] {
       System.exit(FAILURE_CODE)
   }
 
-  def readSourceFromStdin: Option[S] = {
-    readSource("<stdin>", System.in)
+  private final def readSourceFromStdin: Option[S] = {
+    readSourceWrapper("<stdin>", System.in)
   }
 
-  def readSourceFromFile(file: File): Option[S] = {
+  private final def readSourceFromFile(file: File): Option[S] = {
     val input = new BufferedInputStream(new FileInputStream(file))
-    val source = readSource(file.getName, input)
+    val source = readSourceWrapper(file.getName, input)
     input.close
     source
   }
 
-  def readSource(filename: String, input: InputStream): Option[S]
-
-  def writeTargetToStdout(target: T) {
-    writeTarget(target, "<stdout>", System.out)
+  private final def readSourceWrapper(filename: String, input: InputStream): Option[S] = {
+    try {
+      val source = readSource(filename, input)
+      if (!source.isDefined)
+        errorOccurred = true
+      source
+    } catch {
+      case exn: IOException => {
+        System.err.println(filename + ": IO error: " + exn.getMessage)
+        errorOccurred = true
+        None
+      }
+    }
   }
 
-  def writeTargetToFile(target: T, file: File) {
+  def readSource(filename: String, input: InputStream): Option[S]
+
+  private final def writeTargetToStdout(target: T) {
+    writeTargetWrapper(target, "<stdout>", System.out)
+  }
+
+  private final def writeTargetToFile(target: T, file: File) {
     val output = new BufferedOutputStream(new FileOutputStream(file))
-    writeTarget(target, file.getName, output)
+    writeTargetWrapper(target, file.getName, output)
     output.close
+  }
+
+  private final def writeTargetWrapper(target: T, filename: String, output: OutputStream) {
+    try {
+      writeTarget(target, filename, output)
+    } catch {
+      case exn: IOException => {
+        System.err.println(filename + ": IO error: " + exn.getMessage)
+        errorOccurred = true
+      }
+    }
   }
 
   def writeTarget(target: T, filename: String, output: OutputStream)
 
-  def convert(source: S): T
+  def convert(source: S): Option[T]
 
   def convertFile(sourceFile: File): File
 }

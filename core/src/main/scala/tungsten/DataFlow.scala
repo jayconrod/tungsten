@@ -59,7 +59,7 @@ abstract class DataFlow {
     for (u <- graph.nodes) {
       workList.enqueue(u)
       System.err.println("pushed " + u)
-      for (v <- graph.incident(u)) {
+      for (v <- graph.adjacent(u)) {
         System.err.println("set " + u + " -> " + v + " to " + bottom)
         edgeMap += (u, v) -> bottom
       }
@@ -68,13 +68,13 @@ abstract class DataFlow {
     while (!workList.isEmpty) {
       val v = workList.dequeue
       System.err.println("dequeued " + v)
-      val dataIn = (Map[Node, Data]() /: graph.adjacent(v)) { (data, u) =>
+      val dataIn = (Map[Node, Data]() /: graph.incident(v)) { (data, u) =>
         data + (u -> edgeMap((u, v)))
       }
       System.err.println("data in: " + dataIn)
       val dataOut = flow(graph, v, dataIn)
       System.err.println("data out: " + dataOut)
-      for (w <- graph.incident(v)) {
+      for (w <- graph.adjacent(v)) {
         System.err.println("updating " + w)
         val oldData = edgeMap((v, w))
         System.err.println("  old: " + oldData)

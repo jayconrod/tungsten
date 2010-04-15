@@ -7,8 +7,9 @@ import tungsten.Symbol
 import tungsten.Utilities._
 
 class LlvmToTungstenConverterTest {
-  val converter = new LlvmToTungstenConverter
-  import converter._  
+  var module = new Module(None, None, Map[String, Definition]())
+  val converter = new LlvmToTungstenConverter(module)
+  import converter._
 
   def testConversion[T <: tungsten.Definition](expected: T, actual: T) {
     assertEquals(expected, actual)
@@ -28,6 +29,51 @@ class LlvmToTungstenConverterTest {
     parents ::= "foo"
     testConversion(tungsten.Parameter(new Symbol(List("foo", "a")), tungsten.IntType(32)),
                    convertParameter(parameter))
+  }
+
+  @Test
+  def allocaInst {
+    parents = List("bar", "foo")
+    testConversion(tungsten.StackAllocateInstruction("foo.bar.a",
+                                                     tungsten.PointerType(tungsten.IntType(32))),
+                   convertInstruction(AllocaInstruction("a", IntType(32))))
+  }
+
+  @Test
+  def bitcastInst {
+    parents = List("bar", "foo")
+    testConversion(tungsten.AssignInstruction("foo.bar.a",
+                                              tungsten.Int32Value(0)),
+                   convertInstruction(BitcastInstruction("a", IntValue(0L, 32), IntType(32))))
+  }
+
+  // TODO: branchInst
+
+  @Test 
+  def loadInst {
+    parents = List("bar", "foo")
+    testConversion(tungsten.LoadInstruction("foo.bar.a", tungsten.DefinedValue("foo.bar.p")),
+                   convertInstruction(LoadInstruction("a",
+                                                      DefinedValue("p", PointerType(IntType(32))))))
+  }
+
+  @Test
+  def retInst {
+    parents = List("bar", "foo")
+    testConversion(tungsten.ReturnInstruction("foo.bar.anon$#1",
+                                              tungsten.Int32Value(12)),
+                   convertInstruction(ReturnInstruction(IntValue(12L, 32))))
+  }
+
+  @Test
+  def storeInst {
+    parents = List("bar", "foo")
+    testConversion(tungsten.StoreInstruction("foo.bar.anon$#1",
+                                             tungsten.DefinedValue("foo.bar.p"),
+                                             tungsten.DefinedValue("foo.bar.v")),
+                   convertInstruction(StoreInstruction(DefinedValue("v", IntType(32)), 
+                                                       DefinedValue("p", PointerType(IntType(32))), 
+                                                       4)))
   }
 
   @Test

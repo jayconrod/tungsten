@@ -63,6 +63,11 @@ object Utilities {
     contents
   }
 
+  def readContentsOfFile(input: InputStream): String = {
+    val reader = new InputStreamReader(input)
+    readContentsOfFile(reader)
+  }
+
   def readContentsOfFile(input: Reader): String = {
     val buffer = new StringBuffer
     val block = new Array[Char](4096)

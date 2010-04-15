@@ -7,6 +7,10 @@ final case object VoidType
 
 final case class IntType(width: Int)
   extends Type
+{
+  if (width <= 0)
+    throw new IllegalArgumentException
+}
 
 final case object LabelType
   extends Type

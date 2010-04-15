@@ -11,4 +11,5 @@ final case class IntValue(value: Long, width: Int)
 }
 
 final case class DefinedValue(name: String, ty: Type)
+  extends Value
 

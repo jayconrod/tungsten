@@ -1,54 +1,48 @@
 package tungsten.llvm
 
-import scala.collection.mutable.{Set => MSet}
 import tungsten.Symbol
 
-object LlvmToTungstenConverter {
+class LlvmToTungstenConverter {
+  var cDefinitions = Map[Symbol, tungsten.Definition]()
+  val symbolFactory = new tungsten.SymbolFactory
+  var parents: List[String] = Nil
+
   def convert(module: Module): tungsten.Module = {
-    val cDefinitions = MSet[tungsten.Definition]()
     module.definitions.foreach { (defn) =>
       val definition = defn._2
       definition match {
-        case function: Function => convertFunction(function, cDefinitions)
+        case function: Function => convertFunction(function)
         case _ => throw new UnsupportedOperationException
       }
     }
-    val defnMap = (Map[Symbol, tungsten.Definition]() /: cDefinitions) { (defnMap, definition) =>
-      defnMap + (definition.name -> definition)
-    }
-    new tungsten.Module(defnMap)
+    new tungsten.Module(cDefinitions)
   }
 
-  def convertFunction(function: Function, 
-                      cDefinitions: MSet[tungsten.Definition]): tungsten.Function =
+  def convertFunction(function: Function): tungsten.Function =
   {
+    parents ::= function.name
     val cName = new Symbol(function.name)
     val cReturnType = convertType(function.returnType)
-    val cParameters = function.parameters.map(convertParameter(_, cName, cDefinitions))
-    val cBlocks = function.blocks.map(convertBlock(_, cName, cDefinitions))
+    val cParameters = function.parameters.map(convertParameter _)
+    val cBlocks = function.blocks.map(convertBlock _)
     val cFunction = tungsten.Function(cName, 
                                       cParameters.map(_.name),
                                       cReturnType,
                                       cBlocks.map(_.name))
-    cDefinitions += cFunction
+    cDefinitions += cFunction.name -> cFunction
+    parents = parents.tail
     cFunction
   }
 
-  def convertParameter(parameter: Parameter,
-                       parentName: Symbol,
-                       cDefinitions: MSet[tungsten.Definition]): tungsten.Parameter =
-  {
-    val cName = parentName + parameter.name
+  def convertParameter(parameter: Parameter): tungsten.Parameter = {
+    val cName = makeChildSymbol(parameter.name)
     val cType = convertType(parameter.ty)
     val cParam = tungsten.Parameter(cName, cType)
-    cDefinitions += cParam
+    cDefinitions += cParam.name -> cParam
     cParam
   }
 
-  def convertBlock(block: Block,
-                   parentName: Symbol,
-                   cDefinitions: MSet[tungsten.Definition]): tungsten.Block =
-  {
+  def convertBlock(block: Block): tungsten.Block = {
     throw new UnsupportedOperationException
   }
 
@@ -74,7 +68,7 @@ object LlvmToTungstenConverter {
     }
   }
 
-  def convertValue(value: Value, parent: Option[Symbol] = None): tungsten.Value = {
+  def convertValue(value: Value): tungsten.Value = {
     value match {
       case IntValue(n, width) => {
         if (width == 1)
@@ -90,14 +84,19 @@ object LlvmToTungstenConverter {
         else
           throw new UnsupportedOperationException
       }
-      case DefinedValue(name, _) => {
-        val sym = parent match {
-          case Some(p) => p + name
-          case None => Symbol(name)
-        }
-        tungsten.DefinedValue(sym)
-      }
+      case DefinedValue(name, _) => tungsten.DefinedValue(makeChildSymbol(name))
     }
   }
-}
 
+  def makeChildSymbol(name: String): Symbol = {
+    val fullName = (name :: parents).reverse
+    new Symbol(fullName)
+  }
+
+  def makeUniqueChildSymbol(name: String): Symbol = {
+    val fullName = (name :: parents).reverse
+    symbolFactory.complexSymbol(fullName)
+  }
+
+  def makeAnonymousChildSymbol: Symbol = makeUniqueChildSymbol("anon$")
+}

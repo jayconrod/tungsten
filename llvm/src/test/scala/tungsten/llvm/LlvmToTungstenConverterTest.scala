@@ -7,28 +7,27 @@ import tungsten.Symbol
 import tungsten.Utilities._
 
 class LlvmToTungstenConverterTest {
-  import LlvmToTungstenConverter._
-
-  val cDefinitions = MSet[tungsten.Definition]()
+  val converter = new LlvmToTungstenConverter
+  import converter._  
 
   def testConversion[T <: tungsten.Definition](expected: T, actual: T) {
     assertEquals(expected, actual)
-    assertTrue(cDefinitions(expected))
+    assertEquals(cDefinitions(expected.name), expected)
   }
 
   @Test
   def emptyFunction {
     val function = Function("empty", VoidType, Nil, Nil, Nil)
     testConversion(tungsten.Function("empty", Nil, tungsten.UnitType(), Nil),
-                   convertFunction(function, cDefinitions))
+                   convertFunction(function))
   }
 
   @Test
   def parameterTest {
     val parameter = Parameter("a", IntType(32), Nil)
-    val parent = new Symbol("foo")
+    parents ::= "foo"
     testConversion(tungsten.Parameter(new Symbol(List("foo", "a")), tungsten.IntType(32)),
-                   convertParameter(parameter, parent, cDefinitions))
+                   convertParameter(parameter))
   }
 
   @Test
@@ -67,13 +66,12 @@ class LlvmToTungstenConverterTest {
 
   @Test
   def convertIntValue {
-    assertEquals(tungsten.Int32Value(12),
-                 convertValue(IntValue(12L, 32), Some("foo")))
+    assertEquals(tungsten.Int32Value(12), convertValue(IntValue(12L, 32)))
   }
 
   @Test
   def convertDefinedValue {
-    assertEquals(tungsten.DefinedValue("foo.a"),
-                 convertValue(DefinedValue("a", IntType(32)), Some("foo")))
+    parents ::= "foo"
+    assertEquals(tungsten.DefinedValue("foo.a"), convertValue(DefinedValue("a", IntType(32))))
   }
 }

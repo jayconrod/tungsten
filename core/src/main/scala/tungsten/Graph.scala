@@ -51,6 +51,18 @@ final class Graph[T](val nodes: Set[T],
 
   def && (es: Traversable[(T, T)]) = es.foldLeft(this)(_ & _)
 
+  def depthFirstList(node: T): List[T] = {
+    def depthFirstIter(node: T, list: List[T], visited: Set[T]): (List[T], Set[T]) = {
+      if (visited(node))
+        (list, visited)
+      else {
+        val state = (node :: list, visited + node)
+        (state /: adjacent(node)) { (state, n) => depthFirstIter(n, state._1, state._2) }
+      }
+    }
+    depthFirstIter(node, Nil, Set[T]())._1.reverse
+  }          
+
   def findSCCs: Graph[Set[T]] = {
     // The following is an implementation of Tarjan's SCC algorithm, adapted
     // from Wikipedia.

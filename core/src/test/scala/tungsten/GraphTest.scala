@@ -67,6 +67,16 @@ class GraphTest {
   }
 
   @Test
+  def depthFirstTest {
+    val g = new Graph[Int](Set(1, 2, 3),
+                           Map(1 -> Set(3), 2 -> Set(1), 3 -> Set(1)),
+                           Map(1 -> Set(2, 3), 2 -> Set(), 3 -> Set(1)))
+    assertEquals(List(1, 2, 3), g.depthFirstList(1))
+    assertEquals(List(2), g.depthFirstList(2))
+    assertEquals(List(3, 1, 2), g.depthFirstList(3))
+  }
+
+  @Test
   def findSCCs {
     val g = new Graph[Int](List(1, 2, 3, 4, 5),
                            Map((1, Set(2)),

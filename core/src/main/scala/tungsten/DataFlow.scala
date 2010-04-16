@@ -49,46 +49,53 @@ abstract class DataFlow {
    *  node removed from the worklist. If it returns a new value for any of the adjacent edges,
    *  the corresponding node is added to the worklist.
    *  @param graph the control flow graph to process
+   *  @param firstHint a hint indicating the first node to be processed. This is typically
+   *    the entry point into the control flow graph.
    *  @returns the least fixed point solution for the graph. This is a map from edges to data.
    */
-  final def apply(graph: Graph[Node]): Map[(Node, Node), Data] = {
-    var edgeMap = Map[(Node, Node), Data]()
-    val workList = new Queue[Node]
+  final def apply(graph: Graph[Node], 
+                  firstHint: Option[Node] = None): Map[(Node, Node), Data] = 
+  {
+    val edgeMap = new scala.collection.mutable.HashMap[(Node, Node), Data]
+    val workList = new scala.collection.mutable.Queue[Node]
+    val workSet = new scala.collection.mutable.HashSet[Node]
+    workSet ++= graph.nodes
 
-    System.err.println("Initializing")
-    for (u <- graph.nodes) {
-      workList.enqueue(u)
-      System.err.println("pushed " + u)
-      for (v <- graph.adjacent(u)) {
-        System.err.println("set " + u + " -> " + v + " to " + bottom)
-        edgeMap += (u, v) -> bottom
-      }
+    // Attempt to schedule nodes in depth first order. This will only work if all nodes are
+    // reachable from the hinted node.
+    if (!graph.nodes.isEmpty) {
+      val first = firstHint.getOrElse(graph.nodes.head)
+      val schedule = graph.depthFirstList(first)
+      if (schedule.size == graph.nodes.size)
+        workList ++= schedule
+      else
+        workList ++= graph.nodes.toList
     }
+
+    for (u <- graph.nodes;
+         v <- graph.adjacent(u))
+      edgeMap += (u, v) -> bottom
 
     while (!workList.isEmpty) {
       val v = workList.dequeue
-      System.err.println("dequeued " + v)
+      workSet -= v
       val dataIn = (Map[Node, Data]() /: graph.incident(v)) { (data, u) =>
         data + (u -> edgeMap((u, v)))
       }
-      System.err.println("data in: " + dataIn)
       val dataOut = flow(graph, v, dataIn)
-      System.err.println("data out: " + dataOut)
       for (w <- graph.adjacent(v)) {
-        System.err.println("updating " + w)
         val oldData = edgeMap((v, w))
-        System.err.println("  old: " + oldData)
         val newData = dataOut(w)
-        System.err.println("  new: " + newData)
         if (oldData != newData) {
-          System.err.println("  change detected! enqueueing " + w)
-          edgeMap += (v, w) -> newData
-          workList.enqueue(w)
+          edgeMap((v, w)) = newData
+          if (!workSet(w)) {
+            workList.enqueue(w)
+            workSet += w
+          }
         }
       }
-      System.err.println("work list is now: " + workList)
     }
 
-    edgeMap
+    (Map[(Node, Node), Data]() /: edgeMap) { (data, kv) => data + kv }
   }
 }

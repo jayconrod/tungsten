@@ -14,4 +14,12 @@ object Attribute {
   val NOUNWIND = new Attribute("nounwind")
 }
 
-final case class Block(name: String, instructions: List[Instruction])
+final case class Block(name: String, instructions: List[Instruction]) {
+  def successors: List[String] = {
+    instructions.last match {
+      case BranchInstruction(DefinedValue(name, LabelType)) => List(name)
+      case _ => Nil
+    }
+  }
+}
+

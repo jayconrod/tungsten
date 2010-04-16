@@ -30,9 +30,6 @@ abstract class DataFlow {
    */
   def bottom: Data
 
-  /** The most pessimistic (conservative) solution. For all elements a in S, a R top holds. */
-  def top: Data
-
   /** The flow function operates on data associated with the incident and adjacent edges of 
    *  a node. The result is used to update the edge map (final result). This function must
    *  be monotonic.

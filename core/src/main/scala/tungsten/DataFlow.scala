@@ -30,6 +30,13 @@ abstract class DataFlow {
    */
   def bottom: Data
 
+  /** Returns whether the analysis is forward (default) or backward. In a forward analysis,
+   *  the input to the flow function is the data on the incident (incoming) edges, and the 
+   *  output is new data for the adjacent (outgoing) edges. In a backward analysis,
+   *  the opposite is true.
+   */
+  def isForward: Boolean = true
+
   /** The flow function operates on data associated with the incident and adjacent edges of 
    *  a node. The result is used to update the edge map (final result). This function must
    *  be monotonic.
@@ -60,13 +67,16 @@ abstract class DataFlow {
 
     // Attempt to schedule nodes in depth first order. This will only work if all nodes are
     // reachable from the hinted node.
-    if (!graph.nodes.isEmpty) {
-      val first = firstHint.getOrElse(graph.nodes.head)
-      val schedule = graph.depthFirstList(first)
-      if (schedule.size == graph.nodes.size)
-        workList ++= schedule
-      else
-        workList ++= graph.nodes.toList
+    firstHint match {
+      case Some(hint) => {
+        assert(graph.nodes(hint))
+        val schedule = graph.depthFirstList(hint)
+        if (schedule.size == graph.nodes.size)
+          workList ++= schedule
+        else
+          workList ++= graph.nodes.toList
+      }
+      case _ => workList ++= graph.nodes.toList
     }
 
     for (u <- graph.nodes;
@@ -76,18 +86,38 @@ abstract class DataFlow {
     while (!workList.isEmpty) {
       val v = workList.dequeue
       workSet -= v
-      val dataIn = (Map[Node, Data]() /: graph.incident(v)) { (data, u) =>
-        data + (u -> edgeMap((u, v)))
+      val dataIn = if (isForward) {
+        (Map[Node, Data]() /: graph.incident(v)) { (data, u) =>
+          data + (u -> edgeMap((u, v)))
+        }
+      } else {
+        (Map[Node, Data]() /: graph.adjacent(v)) { (data, u) =>
+          data + (u -> edgeMap((v, u)))
+        }
       }
       val dataOut = flow(graph, v, dataIn)
-      for (w <- graph.adjacent(v)) {
-        val oldData = edgeMap((v, w))
-        val newData = dataOut(w)
-        if (oldData != newData) {
-          edgeMap((v, w)) = newData
-          if (!workSet(w)) {
-            workList.enqueue(w)
-            workSet += w
+      if (isForward) {
+        for (w <- graph.adjacent(v)) {
+          val oldData = edgeMap((v, w))
+          val newData = dataOut(w)
+          if (oldData != newData) {
+            edgeMap((v, w)) = newData
+            if (!workSet(w)) {
+              workList.enqueue(w)
+              workSet += w
+            }
+          }
+        }
+      } else {
+        for (w <- graph.incident(v)) {
+          val oldData = edgeMap((w, v))
+          val newData = dataOut(w)
+          if (oldData != newData) {
+            edgeMap((w, v)) = newData
+            if (!workSet(w)) {
+              workList.enqueue(w)
+              workSet += w
+            }
           }
         }
       }

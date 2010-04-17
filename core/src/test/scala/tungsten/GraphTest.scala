@@ -67,6 +67,15 @@ class GraphTest {
   }
 
   @Test
+  def reverseTest {
+    val inc = Map((2, Set(1)))
+    val adj = Map((1, Set(2)))
+    val g = new Graph[Int](Set(1, 2), inc, adj)
+    val greversed = new Graph[Int](Set(1, 2), adj, inc)
+    assertEquals(greversed, g.reverse)
+  }                           
+
+  @Test
   def depthFirstTest {
     val g = new Graph[Int](Set(1, 2, 3),
                            Map(1 -> Set(3), 2 -> Set(1), 3 -> Set(1)),

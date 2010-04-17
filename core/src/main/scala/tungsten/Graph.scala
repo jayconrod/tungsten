@@ -51,6 +51,8 @@ final class Graph[T](val nodes: Set[T],
 
   def && (es: Traversable[(T, T)]) = es.foldLeft(this)(_ & _)
 
+  def reverse: Graph[T] = new Graph(nodes, adjacent, incident)
+
   def depthFirstList(node: T): List[T] = {
     def depthFirstIter(node: T, list: List[T], visited: Set[T]): (List[T], Set[T]) = {
       if (visited(node))

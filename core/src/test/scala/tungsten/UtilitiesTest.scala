@@ -31,6 +31,12 @@ class UtilitiesTest {
   }
 
   @Test
+  def padMapTest {
+    val map = Map((1, 1), (2, 2))
+    assertEquals(Map((1, 1), (2, 2), (3, 0)), padMap(map, Set(1, 2, 3), 0))
+  }
+
+  @Test
   def parseVersionTest {
     assertEquals(new Version(List(12)), parseVersion("12"))
     assertEquals(new Version(List(0, 1, 2)), parseVersion("0.1.2"))

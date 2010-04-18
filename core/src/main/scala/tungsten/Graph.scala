@@ -21,16 +21,13 @@ final class Graph[T](val nodes: Set[T],
    */
   def this(nodes: Traversable[T], adjacent: Map[T, Set[T]]) = {
     this(nodes.toSet,
-         (Map[T, Set[T]]() /: nodes) { (inc, from) =>
+         (padMap[T, Set[T]](Map(), nodes.toSet, Set()) /: nodes) { (inc, from) =>
            val neighbors = adjacent.getOrElse(from, Set())
            (inc /: neighbors) { (inc, to) =>
-             inc + (to -> (inc.getOrElse(to, Set()) + from))
+             inc + (to -> (inc(to) + from))
            }
          },
-         (Map[T, Set[T]]() /: nodes) { (adj, from) =>
-           val neighbors = adjacent.getOrElse(from, Set())
-           adj + (from -> neighbors)
-         })
+         padMap(adjacent, nodes.toSet, Set()))
   }
 
   /** Constructs a graph given only a set of nodes. No edges are added. */

@@ -17,6 +17,7 @@ class GraphTest {
     val g = new Graph(List(1, 2), Map((1, Set(2))))
     assertEquals(Set(1, 2), g.nodes)
     assertEquals(Set(2), g.adjacent(1))
+    assertEquals(Set(), g.incident(1))
     assertEquals(Set(1), g.incident(2))
   }
 

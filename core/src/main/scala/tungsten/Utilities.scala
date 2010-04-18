@@ -49,6 +49,15 @@ object Utilities {
 
   def isJvm64Bit: Boolean = System.getProperty("sun.arch.data.model") == "64"
 
+  def padMap[K, V](map: Map[K, V], keys: Set[K], defaultValue: V): Map[K, V] = {
+    (map /: keys) { (map, k) =>
+      if (map.contains(k))
+        map
+      else
+        map + (k -> defaultValue)
+    }
+  }
+
   def parseVersion(string: String): Version = {
     tryParseVersion(string) match {
       case Some(v) => v

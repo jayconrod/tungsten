@@ -3,28 +3,41 @@ package tungsten
 import scala.math.min
 import Utilities._
 
+/** This class represents a directed graph and provides several algorithms for their 
+ *  manipulation. Nodes in the graph may be of any type that can be used efficiently in a 
+ *  set or as key for a map. Since this is an immutable data structure, incident (in) edges,
+ *  and adjacent (out) edges are stored separately from nodes to avoid cyclic references.
+ *  The incident and adjacent lists are stored as separate maps from nodes to sets of 
+ *  neighbors. For the main constructor, every node must have an entry in both lists. The
+ *  other constructors compensate for this.
+ */
 final class Graph[T](val nodes: Set[T],
                      val incident: Map[T, Set[T]],
                      val adjacent: Map[T, Set[T]])
 {
+  /** Constructs a graph given a set of nodes and an adjacency map. Entries may be missing
+   *  from the map (they will be filled in automatically). The incidency map is constructed
+   *  from the adjacency map.
+   */
   def this(nodes: Traversable[T], adjacent: Map[T, Set[T]]) = {
     this(nodes.toSet,
-         nodes.foldLeft(Map[T, Set[T]]()) { (incident, from) =>
-           adjacent.get(from) match {
-             case None => incident
-             case Some(fromNeighbors) => {
-               fromNeighbors.foldLeft(incident) { (incident, to) =>
-                 incident + (to -> (incident.getOrElse(to, Set()) + from))
-               }
-             }
+         (Map[T, Set[T]]() /: nodes) { (inc, from) =>
+           val neighbors = adjacent.getOrElse(from, Set())
+           (inc /: neighbors) { (inc, to) =>
+             inc + (to -> (inc.getOrElse(to, Set()) + from))
            }
          },
-         adjacent)
+         (Map[T, Set[T]]() /: nodes) { (adj, from) =>
+           val neighbors = adjacent.getOrElse(from, Set())
+           adj + (from -> neighbors)
+         })
   }
 
-  def this(nodes: Traversable[T]) = this(nodes, Map[T, Set[T]]())
+  /** Constructs a graph given only a set of nodes. No edges are added. */
+  def this(nodes: Traversable[T]) = this(nodes, Map())
 
-  def this() = this(Set(), Map(), Map())
+  /** Constructs an empty graph */
+  def this() = this(Set())
 
   private final def copy(nodes: Set[T] = this.nodes,
                          incident: Map[T, Set[T]] = this.incident,
@@ -33,6 +46,9 @@ final class Graph[T](val nodes: Set[T],
     new Graph[T](nodes, incident, adjacent)
   }
 
+  /** Returns copy of this graph with a new node added. If the node is already in this graph,
+   *  this graph is returned.
+   */
   def + (n: T) = {
     if (nodes.contains(n))
       this
@@ -40,8 +56,12 @@ final class Graph[T](val nodes: Set[T],
       copy(nodes = nodes + n)
   }
 
+  /** Returns a copy with a collection of nodes added */
   def ++ (ns: Traversable[T]) = ns.foldLeft(this)(_ + _)
 
+  /** Returns a copy of this graph with an edge added. The edge is represented as a pair,
+   *  going from the first node to the second. Both nodes must already be present in the graph.
+   */
   def & (e: (T, T)) = {
     assert(nodes.contains(e._1) && nodes.contains(e._2))
 
@@ -49,10 +69,15 @@ final class Graph[T](val nodes: Set[T],
          adjacent = adjacent + (e._1 -> (adjacent.getOrElse(e._1, Set()) + e._2)))
   }
 
+  /** Returns a copy of this graph with a collection of edges added */
   def && (es: Traversable[(T, T)]) = es.foldLeft(this)(_ & _)
 
+  /** Returns graph with the direction of every edge reversed */
   def reverse: Graph[T] = new Graph(nodes, adjacent, incident)
 
+  /** Performs a depth-first search on this graph from the given starting point and returns
+   *  a list of nodes in the order they were visited.
+   */
   def depthFirstList(node: T): List[T] = {
     def depthFirstIter(node: T, list: List[T], visited: Set[T]): (List[T], Set[T]) = {
       if (visited(node))
@@ -65,6 +90,10 @@ final class Graph[T](val nodes: Set[T],
     depthFirstIter(node, Nil, Set[T]())._1.reverse
   }          
 
+  /** Returns a graph of strongly connected components from this graph. An SCC is a subgraph 
+   *  in which every node is reachable from every other node. In the resulting graph, all the
+   *  nodes in each SCC are consolidated into a single node.
+   */
   def findSCCs: Graph[Set[T]] = {
     // The following is an implementation of Tarjan's SCC algorithm, adapted
     // from Wikipedia.

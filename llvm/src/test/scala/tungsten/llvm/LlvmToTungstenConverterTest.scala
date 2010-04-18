@@ -123,18 +123,3 @@ class LlvmToTungstenConverterTest {
   }
 }
 
-class LlvmLivenessAnalysisTest {
-  @Test
-  def cfgTest {
-    val bb1 = Block("bb1", List(BranchInstruction(DefinedValue("bb2", LabelType))))
-    val bb2 = Block("bb2", List(BranchInstruction(DefinedValue("bb1", LabelType))))
-    val blocks = List(bb1, bb2)
-    val f = Function("f", VoidType, Nil, Nil, blocks)
-    val analysis = new LlvmLivenessAnalysis(f)
-
-    val nodes = blocks.map(new analysis.Node(_))
-    var g = new Graph(nodes) & ((nodes(0), nodes(1))) & ((nodes(1), nodes(0)))
-
-    assertEquals(g, analysis.cfg)
-  }
-}

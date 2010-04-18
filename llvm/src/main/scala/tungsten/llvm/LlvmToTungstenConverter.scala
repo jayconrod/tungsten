@@ -165,28 +165,3 @@ class LlvmToTungstenConverter(val module: Module) {
 
 class LlvmConversionException(msg: String) extends Exception(msg)
 
-class LlvmLivenessAnalysis(val function: Function) {
-  class Node(val block: Block) {
-    val name = block.name
-
-    override def equals(that: Any) = {
-      that match { 
-        case n: Node if n.name == name => true
-        case _ => false
-      }
-    }
-
-    override def hashCode = name.hashCode
-  }
-
-  def cfg: Graph[Node] = {
-    val nodes = function.blocks.map(new Node(_)).toSet
-    val nodeMap = (Map[String, Node]() /: nodes) { (map, n) => map + (n.name -> n) }
-    val graph = new Graph(nodes)
-    (graph /: function.blocks) { (g, block) =>
-      (g /: block.successors) { (g, succ) =>
-        g & ((nodeMap(block.name), nodeMap(succ)))
-      }
-    }
-  }
-}

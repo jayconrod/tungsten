@@ -1,6 +1,8 @@
 repositories.remote << 'http://www.ibiblio.org/maven2'
 require 'buildr/scala'
 
+ENV['USE_FSC'] = 'yes'
+
 define 'tungsten' do
   puts Scala.version
   project.version = '0.3'

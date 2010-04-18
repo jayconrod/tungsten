@@ -6,6 +6,8 @@ import java.io._
 import Utilities._
 import ModuleIO._
 
+class ModuleIOTest  // generate a classfile so Buildr doesn't rebuild this file unnecessarily
+
 class ModuleIOWriteBinaryCollectTest {
   def makeWriter(program: String): BinaryModuleWriter = {
     val Left(module) = readText(program)

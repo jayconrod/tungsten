@@ -32,11 +32,20 @@ final case class BranchInstruction(label: Value)
 }
 
 final case class LoadInstruction(override name: String,
-                                 address: Value)
+                                 address: Value,
+                                 alignment: Option[Int])
   extends Instruction(name)
 {
   def ty = address.ty.asInstanceOf[PointerType].elementType
   def operands = List(address)
+}
+
+final case class PhiInstruction(override name: String,
+                                ty: Type,
+                                bindings: List[(Value, String)])
+  extends Instruction(name)
+{
+  def operands = Nil
 }
 
 final case class ReturnInstruction(value: Value)
@@ -48,7 +57,7 @@ final case class ReturnInstruction(value: Value)
 
 final case class StoreInstruction(value: Value,
                                   address: Value,
-                                  alignment: Int)
+                                  alignment: Option[Int])
   extends Instruction("")
 {
   def ty = VoidType

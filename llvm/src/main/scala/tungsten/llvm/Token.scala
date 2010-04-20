@@ -16,7 +16,7 @@ trait EscapeTranslation {
           if ('0' <= ch && ch <= '9')
             ch - '0'
           else if ('A' <= ch && ch <= 'F')
-            ch - 'A'
+            ch - 'A' + 10
           else
             throw new RuntimeException("must be hex character")
         }
@@ -41,6 +41,12 @@ final case class StringToken(chars: String)
     throw new IllegalArgumentException
 
   def value: String = translateEscapes(chars.substring(1, chars.length - 1))
+}
+
+final case class IntToken(chars: String) 
+  extends Token
+{
+  def value: Long = chars.toLong
 }
 
 final case class IntTypeToken(chars: String)

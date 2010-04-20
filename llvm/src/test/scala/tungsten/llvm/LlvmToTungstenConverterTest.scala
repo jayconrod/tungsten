@@ -10,6 +10,7 @@ import tungsten.Utilities._
 class LlvmToTungstenConverterTest {
   var module = new Module(None, None, Map[String, Definition]())
   val converter = new LlvmToTungstenConverter(module)
+  val defaultData = BlockParameterData(Nil, Map())
   import converter._
 
   def testConversion[T <: tungsten.Definition](expected: T, actual: T) {
@@ -37,7 +38,7 @@ class LlvmToTungstenConverterTest {
     parents = List("bar", "foo")
     testConversion(tungsten.StackAllocateInstruction("foo.bar.a",
                                                      tungsten.PointerType(tungsten.IntType(32))),
-                   convertInstruction(AllocaInstruction("a", IntType(32))))
+                   convertInstruction(AllocaInstruction("a", IntType(32)), defaultData))
   }
 
   @Test
@@ -45,17 +46,28 @@ class LlvmToTungstenConverterTest {
     parents = List("bar", "foo")
     testConversion(tungsten.AssignInstruction("foo.bar.a",
                                               tungsten.Int32Value(0)),
-                   convertInstruction(BitcastInstruction("a", IntValue(0L, 32), IntType(32))))
+                   convertInstruction(BitcastInstruction("a", IntValue(0L, 32), IntType(32)),
+                                      defaultData))
   }
 
-  // TODO: branchInst
+  @Test
+  def branchInst {
+    parents = List("bar", "foo")
+    val data = BlockParameterData(Nil, Map(("baz" -> List(IntValue(0L, 32)))))
+    testConversion(tungsten.BranchInstruction("foo.bar.anon$#1",
+                                              "foo.baz",
+                                              List(tungsten.Int32Value(0))),
+                   convertInstruction(BranchInstruction(DefinedValue("baz", LabelType)), data))
+  }
 
   @Test 
   def loadInst {
     parents = List("bar", "foo")
     testConversion(tungsten.LoadInstruction("foo.bar.a", tungsten.DefinedValue("foo.bar.p")),
                    convertInstruction(LoadInstruction("a",
-                                                      DefinedValue("p", PointerType(IntType(32))))))
+                                                      DefinedValue("p", PointerType(IntType(32))),
+                                                      None),
+                                      defaultData))
   }
 
   @Test
@@ -63,7 +75,7 @@ class LlvmToTungstenConverterTest {
     parents = List("bar", "foo")
     testConversion(tungsten.ReturnInstruction("foo.bar.anon$#1",
                                               tungsten.Int32Value(12)),
-                   convertInstruction(ReturnInstruction(IntValue(12L, 32))))
+                   convertInstruction(ReturnInstruction(IntValue(12L, 32)), defaultData))
   }
 
   @Test
@@ -74,7 +86,8 @@ class LlvmToTungstenConverterTest {
                                              tungsten.DefinedValue("foo.bar.v")),
                    convertInstruction(StoreInstruction(DefinedValue("v", IntType(32)), 
                                                        DefinedValue("p", PointerType(IntType(32))), 
-                                                       4)))
+                                                       Some(4)),
+                                      defaultData))
   }
 
   @Test

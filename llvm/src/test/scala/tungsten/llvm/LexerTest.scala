@@ -15,7 +15,7 @@ class LexerTest {
   def testToken(in: String, expected: Token) = {
     val scanner = new Scanner(in)
     val token = scanner.first
-     assertEquals(expected, token)
+    assertEquals(expected, token)
     assertTrue(scanner.rest.atEnd)
   }
 
@@ -84,8 +84,17 @@ class LexerTest {
   @Test
   def stringWithHex {
     val input = "\"this is\\0Aa multiline\\0A\\22test\\22\""
-    val scanner = new Scanner(input)
-    val expected = StringToken("\"this is\na multiline\n\\\"test\\\"")
+    val expectedToken = StringToken(input)
+    val expectedStr = "this is\na multiline\n\"test\"" 
+    testToken(input, expectedToken)
+    assertEquals(expectedStr, expectedToken.value)
+  }
+
+  @Test
+  def integers {
+    testToken("0", IntToken("0"))
+    testToken("123", IntToken("123"))
+    testToken("-123", IntToken("-123"))
   }
 
   @Test
@@ -129,5 +138,14 @@ class LexerTest {
     val expected = SymbolToken(input)
     testToken(input, expected)
     assertEquals("%\"", expected.value)
+  }
+
+  @Test
+  def numericSymbol {
+    val input = "%0"
+    val expected = SymbolToken(input)
+    testToken(input, expected)
+    assertEquals("%0", expected.value)
+    assertFalse(expected.isGlobal)
   }
 }

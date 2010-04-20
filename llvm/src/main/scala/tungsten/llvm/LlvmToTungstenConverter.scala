@@ -23,10 +23,14 @@ class LlvmToTungstenConverter(val module: Module) {
   def convertFunction(function: Function): tungsten.Function =
   {
     parents ::= function.name
+    val blockParameterData = BlockParameterAnalysis(function)
+
     val cName = new Symbol(function.name)
     val cReturnType = convertType(function.returnType)
     val cParameters = function.parameters.map(convertParameter _)
-    val cBlocks = function.blocks.map(convertBlock _)
+    val cBlocks = function.blocks.map { block => 
+      convertBlock(block, blockParameterData(block.name))
+    }
     val cFunction = tungsten.Function(cName, 
                                       cParameters.map(_.name),
                                       cReturnType,
@@ -44,11 +48,38 @@ class LlvmToTungstenConverter(val module: Module) {
     cParam
   }
 
-  def convertBlock(block: Block): tungsten.Block = {
-    throw new UnsupportedOperationException
+  def convertBlock(block: Block, data: BlockParameterData): tungsten.Block = {
+    val cName = makeChildSymbol(block.name)
+    parents ::= block.name
+    val cParameters = for ((name, ty) <- data.parameters) yield {
+      val cName = makeChildSymbol(name)
+      val cTy = convertType(ty)
+      val cParam = tungsten.Parameter(cName, cTy)
+      cDefinitions += cName -> cParam
+      cParam
+    }
+    val cInsts = block.instructions.filterNot(_.isInstanceOf[PhiInstruction]).map { inst =>
+      convertInstruction(inst, data)
+    }
+    val cBlock = tungsten.Block(cName, cParameters.map(_.name), cInsts.map(_.name))
+    cDefinitions += cName -> cBlock
+    cBlock
   }
 
-  def convertInstruction(instruction: Instruction): tungsten.Instruction = {
+  def convertInstruction(instruction: Instruction, 
+                         data: BlockParameterData): tungsten.Instruction = 
+  {
+    def convertLabel(label: Value): (Symbol, List[tungsten.Value]) = {
+      label match {
+        case DefinedValue(labelName, LabelType) => {
+          val cBlockName = Symbol(List(parents.last, labelName))
+          val cArguments = data.arguments(labelName).map(convertValue _)
+          (cBlockName, cArguments)
+        }
+        case _ => throw new LlvmConversionException("value " + label + " must be a label")
+      }
+    }
+
     val name = instruction.name
     val cName = if (name.isEmpty)
       makeAnonymousChildSymbol
@@ -75,26 +106,15 @@ class LlvmToTungstenConverter(val module: Module) {
       }
 
       case BranchInstruction(label) => {
-        label match {
-          case DefinedValue(labelName, LabelType) => {
-            assert(parents.size == 2)
-            val functionName = parents.last
-            val blockSymbol = Symbol(List(functionName, labelName))
-            module.definitions.get(functionName) match {
-              case Some(Function(_, _, _, _, blocks)) if blocks.exists(_.name == labelName) => {
-                // TODO: handle argument passing over blocks
-                tungsten.BranchInstruction(cName, blockSymbol, Nil)
-              }
-              case _ => throw new LlvmConversionException("could not branch to invalid label: " + labelName)
-            }
-          }
-          case _ => throw new LlvmConversionException("could not branch to invalid value: " + label)
-        }
+        val (cBlockName, cArguments) = convertLabel(label)
+        tungsten.BranchInstruction(cName, cBlockName, cArguments)
       }
             
-      case LoadInstruction(_, address) => {
+      case LoadInstruction(_, address, _) => {
         tungsten.LoadInstruction(cName, convertValue(address))
       }
+
+      case _: PhiInstruction => throw new UnsupportedOperationException
 
       case ReturnInstruction(value) => {
         tungsten.ReturnInstruction(cName, convertValue(value))

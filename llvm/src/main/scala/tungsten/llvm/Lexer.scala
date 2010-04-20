@@ -9,10 +9,10 @@ import scala.util.matching.Regex
 object Lexer extends Lexical with RegexParsers {
   override type Elem = Char
 
-  val reservedStrings = Set("=", ":", "{", "}", "(", ")", "*", ",",
+  val reservedStrings = Set("=", ":", "{", "}", "(", ")", "[", "]", "*", ",",
                             "datalayout", "define", "nounwind", "target", "triple", "to",
-                              "align", "label",
-                            "alloca", "bitcast", "br", "load", "ret", "store")
+                              "align", "label", "void",
+                            "alloca", "bitcast", "br", "phi", "load", "ret", "store")
 
   override def whitespaceChar: Parser[Elem] = elem(' ') | elem('\t') | elem('\n') | elem('\r')
 
@@ -51,6 +51,15 @@ object Lexer extends Lexical with RegexParsers {
     }
   }
 
+  def integer: Parser[IntToken] = {
+    opt('-') ~ rep1(digit) ^^ { 
+      case sign ~ digits => {
+        val signStr = sign.map(_.toString).getOrElse("")
+        IntToken(signStr + digits.mkString)
+      }
+    }
+  }
+
   def intType: Parser[IntTypeToken] = {
     elem('i') ~ rep1(digit) ^^ { case i ~ n => IntTypeToken(i + n.mkString) }
   }
@@ -60,14 +69,16 @@ object Lexer extends Lexical with RegexParsers {
     def quotedSymbol = elem('"') ~ rep1(chrExcept('"')) ~ elem('"') ^^ {
       case q1 ~ s ~ q2 => q1 + s.mkString + q2
     }
-    (elem('%') | elem('@')) ~ (normalSymbol | quotedSymbol) ^^ { 
+    def numericSymbol = rep1(digit) ^^ { _.mkString }
+    (elem('%') | elem('@')) ~ (normalSymbol | quotedSymbol | numericSymbol) ^^ { 
       case prefix ~ sym => SymbolToken(prefix + sym) }
   }
 
   def token: Parser[Token] = {
     reserved |
-    string |
-    intType |
+    string   |
+    integer  |
+    intType  |
     symbol
   }
 }

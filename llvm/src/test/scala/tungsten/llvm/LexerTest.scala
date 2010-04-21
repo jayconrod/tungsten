@@ -158,6 +158,11 @@ class LexerTest {
   }
 
   @Test
+  def quotedLabel {
+    testToken("\"bb 0\":", LabelToken("bb 0"))
+  }
+
+  @Test
   def labelConflict {
     testToken("return:", LabelToken("return"))
   }

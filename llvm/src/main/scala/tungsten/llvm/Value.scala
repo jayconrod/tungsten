@@ -1,5 +1,7 @@
 package tungsten.llvm
 
+import Utilities._
+
 sealed abstract class Value {
   def ty: Type
   def typedToString = ty.toString + " " + toString
@@ -16,6 +18,6 @@ final case class IntValue(value: Long, width: Int)
 final case class DefinedValue(name: String, ty: Type)
   extends Value
 {
-  override def toString = name
+  override def toString = escapeIdentifier(name)
 }
 

@@ -1,5 +1,7 @@
 package tungsten.llvm
 
+import Utilities._
+
 sealed abstract class Instruction(val name: String) {
   def ty: Type
   def operands: List[Value]
@@ -14,7 +16,7 @@ final case class AllocaInstruction(override name: String,
 {
   def ty = PointerType(elementType)
   def operands = Nil
-  override def toString = name + " = alloca " + elementType
+  override def toString = escapeIdentifier(name) + " = alloca " + elementType
 }
 
 final case class BitcastInstruction(override name: String,
@@ -23,7 +25,7 @@ final case class BitcastInstruction(override name: String,
   extends Instruction(name)
 {
   def operands = List(value)
-  override def toString = name + " = bitcast " + value.typedToString + " to " + ty
+  override def toString = escapeIdentifier(name) + " = bitcast " + value.typedToString + " to " + ty
 }
 
 final case class BranchInstruction(label: Value)
@@ -43,7 +45,7 @@ final case class LoadInstruction(override name: String,
   def operands = List(address)
   override def toString = {
     val alignmentStr = alignment.map(", " + _).getOrElse("")
-    name + " = load " + address.typedToString  + alignmentStr
+    escapeIdentifier(name) + " = load " + address.typedToString  + alignmentStr
   }
 }
 
@@ -54,8 +56,10 @@ final case class PhiInstruction(override name: String,
 {
   def operands = Nil
   override def toString = {
-    val bindingsStr = bindings.map { b => "[" + b._1 + ", " + b._2 + "]" }.mkString(",")
-    name + " = phi " + ty + bindingsStr
+    val bindingsStrs = bindings.map { b => 
+      "[" + b._1 + ", " + escapeIdentifier(b._2) + "]"
+    }
+    name + " = phi " + ty + bindingsStrs.mkString(", ")
   }
 }
 

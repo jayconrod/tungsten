@@ -1,6 +1,7 @@
 package tungsten.llvm
 
 import tungsten.Utilities._
+import Utilities._
 
 class Module(val targetDataLayout: Option[String],
              val targetTriple: Option[String],
@@ -19,16 +20,17 @@ class Module(val targetDataLayout: Option[String],
 
   override def toString = {
     val dataLayoutStr = targetDataLayout match {
-      case Some(dl) => "target datalayout = %s\n".format(dl)
+      case Some(dl) => "target datalayout = %s\n".format(escapeString(dl))
       case None     => ""
     }
     val tripleStr = targetTriple match {
-      case Some(t) => "target triple = %s\n".format(t)
+      case Some(t) => "target triple = %s\n".format(escapeString(t))
       case None    => ""
     }
     val buffer = new StringBuffer(dataLayoutStr + tripleStr + "\n")
     for (defn <- definitions.valuesIterator)
       buffer.append(defn.toString)
+    buffer.append("\n")
     buffer.toString
   }
 }

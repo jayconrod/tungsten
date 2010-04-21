@@ -5,6 +5,7 @@ import scala.util.parsing.combinator.RegexParsers
 import scala.util.parsing.combinator.lexical.Lexical
 import scala.util.parsing.input._
 import scala.util.matching.Regex
+import Utilities._
 
 object Lexer extends Lexical with RegexParsers {
   override type Elem = Char
@@ -84,15 +85,17 @@ object Lexer extends Lexical with RegexParsers {
       case prefix ~ sym => SymbolToken(prefix + sym) }
   }
 
-  def label: Parser[LabelToken] = identifier <~ ':' ^^ {
-    case id => LabelToken(id)
+  def label: Parser[LabelToken] = {
+    (identifier <~ ':' ^^ { case s => LabelToken(s) }) |
+    (string <~ ':' ^^ { case s => LabelToken(s.value) })
   }
 
-  def identifier: Parser[String] = regex(new Regex("[a-zA-Z$._][a-zA-Z$._0-9]*"))
+  def identifier: Parser[String] = regex(identifierRegex)
 
   def token: Parser[Token] = {
     operator |
     word     |
+    label    |
     string   |
     integer  |
     intType  |

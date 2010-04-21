@@ -1,5 +1,7 @@
 package tungsten.llvm
 
+import Utilities._
+
 final case class Function(override name: String,
                           returnType: Type,
                           attributes: List[Attribute],
@@ -11,14 +13,15 @@ final case class Function(override name: String,
     val paramStr = "(" + parameters.mkString(", ") + ") "
     val attribStr = if (attributes.isEmpty) "" else attributes.mkString(" ") + " "
     val blockStr = blocks.mkString("\n\n")
-    "define " + returnType + " " + name + paramStr + attribStr + "{\n" + blockStr + "\n}"
+    "define " + returnType + " " + escapeIdentifier(name) + paramStr + attribStr + 
+      "{\n" + blockStr + "\n}"
   }
 }     
 
 final case class Parameter(name: String, ty: Type, attributes: List[Attribute]) {
   override def toString = {
     val attribStr = if (attributes.isEmpty) "" else attributes.mkString(" ") + " "
-    ty + " " + attribStr + name
+    ty + " " + attribStr + escapeIdentifier(name)
   }
 }
 
@@ -37,6 +40,8 @@ final case class Block(name: String, instructions: List[Instruction]) {
     }
   }
 
-  override def toString = name.substring(1) + ":\n  " + instructions.mkString("\n  ")
+  override def toString = {
+    escapeIdentifier(name.substring(1)) + ":\n  " + instructions.mkString("\n  ")
+  }
 }
 

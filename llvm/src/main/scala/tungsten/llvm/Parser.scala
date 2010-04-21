@@ -113,7 +113,8 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   def value: Parser[Value] = {
-    ty >> untypedValue
+    ("void" ^^^ VoidValue) |
+    (ty >> untypedValue)
   }
 
   def untypedValue(ty: Type): Parser[Value] = {

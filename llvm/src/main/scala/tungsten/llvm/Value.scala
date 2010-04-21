@@ -7,6 +7,14 @@ sealed abstract class Value {
   def typedToString = ty.toString + " " + toString
 }
 
+final case object VoidValue 
+  extends Value
+{
+  def ty = VoidType
+  override def toString = "void"
+  override def typedToString = toString
+}
+
 final case class IntValue(value: Long, width: Int)
   extends Value
 {

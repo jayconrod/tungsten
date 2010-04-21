@@ -7,7 +7,8 @@ import tungsten.Graph
 class LlvmToTungstenConverter(val module: Module) {
   var cDefinitions = Map[Symbol, tungsten.Definition]()
   val symbolFactory = new tungsten.SymbolFactory
-  var parents: List[String] = Nil
+  var parent: String = ""
+  var localNameMapping = Map[String, Symbol]()
 
   def convert: tungsten.Module = {
     module.definitions.foreach { (defn) =>
@@ -22,10 +23,14 @@ class LlvmToTungstenConverter(val module: Module) {
 
   def convertFunction(function: Function): tungsten.Function =
   {
-    parents ::= function.name
+    assert(parent.isEmpty)
+    assert(localNameMapping.isEmpty)
+
+    val cName = convertName(function.name)
+    parent = function.name.tail
+
     val blockParameterData = BlockParameterAnalysis(function)
 
-    val cName = new Symbol(function.name)
     val cReturnType = convertType(function.returnType)
     val cParameters = function.parameters.map(convertParameter _)
     val cBlocks = function.blocks.map { block => 
@@ -36,12 +41,14 @@ class LlvmToTungstenConverter(val module: Module) {
                                       cReturnType,
                                       cBlocks.map(_.name))
     cDefinitions += cFunction.name -> cFunction
-    parents = parents.tail
+    parent = ""
+    localNameMapping = Map()
+    
     cFunction
   }
 
   def convertParameter(parameter: Parameter): tungsten.Parameter = {
-    val cName = makeChildSymbol(parameter.name)
+    val cName = convertName(parameter.name)
     val cType = convertType(parameter.ty)
     val cParam = tungsten.Parameter(cName, cType)
     cDefinitions += cParam.name -> cParam
@@ -49,10 +56,9 @@ class LlvmToTungstenConverter(val module: Module) {
   }
 
   def convertBlock(block: Block, data: BlockParameterData): tungsten.Block = {
-    val cName = makeChildSymbol(block.name)
-    parents ::= block.name
+    val cName = convertName(block.name)
     val cParameters = for ((name, ty) <- data.parameters) yield {
-      val cName = makeChildSymbol(name)
+      val cName = convertName(name)
       val cTy = convertType(ty)
       val cParam = tungsten.Parameter(cName, cTy)
       cDefinitions += cName -> cParam
@@ -72,7 +78,7 @@ class LlvmToTungstenConverter(val module: Module) {
     def convertLabel(label: Value): (Symbol, List[tungsten.Value]) = {
       label match {
         case DefinedValue(labelName, LabelType) => {
-          val cBlockName = Symbol(List(parents.last, labelName))
+          val cBlockName = convertName(labelName)
           val cArguments = data.arguments(labelName).map(convertValue _)
           (cBlockName, cArguments)
         }
@@ -82,9 +88,9 @@ class LlvmToTungstenConverter(val module: Module) {
 
     val name = instruction.name
     val cName = if (name.isEmpty)
-      makeAnonymousChildSymbol
+      anonymousName
     else
-      makeChildSymbol(name)
+      convertName(name)
 
     val cInst = instruction match {
       case AllocaInstruction(_, elementType) => {
@@ -152,6 +158,7 @@ class LlvmToTungstenConverter(val module: Module) {
 
   def convertValue(value: Value): tungsten.Value = {
     value match {
+      case VoidValue => tungsten.UnitValue()
       case IntValue(n, width) => {
         if (width == 1)
           tungsten.BooleanValue(if (n == 0L) false else true)
@@ -166,22 +173,38 @@ class LlvmToTungstenConverter(val module: Module) {
         else
           throw new UnsupportedOperationException
       }
-      case DefinedValue(name, _) => tungsten.DefinedValue(makeChildSymbol(name))
+      case DefinedValue(name, _) => tungsten.DefinedValue(convertName(name))
     }
   }
 
-  def makeChildSymbol(name: String): Symbol = {
-    val fullName = (name :: parents).reverse
-    new Symbol(fullName)
+  def convertName(name: String): Symbol = {
+    val (prefix, unprefixed) = (name.head, name.tail)
+    if (prefix == '@')
+      new Symbol(unprefixed)
+    else {
+      assert(!parent.isEmpty)
+      if (localNameMapping.contains(unprefixed))
+        localNameMapping(unprefixed)
+      else {
+        val fullName = List(parent, unprefixed)
+        val symbol = symbolFactory.complexSymbol(fullName)
+        localNameMapping += (unprefixed -> symbol)
+        symbol
+      }
+    }
   }
 
-  def makeUniqueChildSymbol(name: String): Symbol = {
-    val fullName = (name :: parents).reverse
+  def anonymousName: Symbol = {
+    assert(!parent.isEmpty)
+    val fullName = List(parent, "anon$")
     symbolFactory.complexSymbol(fullName)
   }
-
-  def makeAnonymousChildSymbol: Symbol = makeUniqueChildSymbol("anon$")
 }
 
 class LlvmConversionException(msg: String) extends Exception(msg)
 
+object LlvmToTungstenConverter {
+  def apply(module: Module): tungsten.Module = {
+    new LlvmToTungstenConverter(module).convert
+  }
+}

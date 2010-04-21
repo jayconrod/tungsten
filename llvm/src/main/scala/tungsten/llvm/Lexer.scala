@@ -9,10 +9,10 @@ import scala.util.matching.Regex
 object Lexer extends Lexical with RegexParsers {
   override type Elem = Char
 
-  val reservedStrings = Set("=", ":", "{", "}", "(", ")", "[", "]", "*", ",",
-                            "datalayout", "define", "nounwind", "target", "triple", "to",
-                              "align", "label", "void",
-                            "alloca", "bitcast", "br", "phi", "load", "ret", "store")
+  val reservedOperators = Set("=", ":", "{", "}", "(", ")", "[", "]", "*", ",")
+  val reservedWords = Set("datalayout", "define", "nounwind", "target", "triple", "to",
+                          "align", "label", "void",
+                          "alloca", "bitcast", "br", "phi", "load", "ret", "store")
 
   override def whitespaceChar: Parser[Elem] = elem(' ') | elem('\t') | elem('\n') | elem('\r')
 
@@ -24,14 +24,24 @@ object Lexer extends Lexical with RegexParsers {
     ErrorToken(message)
   }
 
-  def reserved: Parser[Token] = {
-    def parseReserved(r: String): Parser[ReservedToken] = {
+  def word: Parser[Token] = {
+    def checkReserved(s: String): Parser[Token] = {
+      if (reservedWords(s))
+        success(ReservedToken(s))
+      else
+        elem(':') ^^^ LabelToken(s)
+    }
+    regex(new Regex("[A-Za-z._$][A-Za-z0-9._$]*")) >> checkReserved
+  }
+
+  def operator: Parser[Token] = {
+    def parseOperator(r: String): Parser[ReservedToken] = {
       accept(r.toList) ^^ { s => ReservedToken(s.mkString) }
     }
-    val reservedArray = new Array[String](reservedStrings.size)
-    reservedStrings.copyToArray(reservedArray, 0)
+    val reservedArray = new Array[String](reservedOperators.size)
+    reservedOperators.copyToArray(reservedArray, 0)
     scala.util.Sorting.quickSort(reservedArray)
-    val reservedParsers = reservedArray.toList.map(parseReserved)
+    val reservedParsers = reservedArray.toList.map(parseOperator _)
     val fail: Parser[ReservedToken] = failure("no matching reserved string")
     (fail /: reservedParsers) {(x, y) => y | x}
   }
@@ -65,7 +75,7 @@ object Lexer extends Lexical with RegexParsers {
   }
 
   def symbol: Parser[SymbolToken] = {
-    def normalSymbol = regex(new Regex("[a-zA-Z$._][a-zA-Z$._0-9]*"))
+    def normalSymbol = identifier
     def quotedSymbol = elem('"') ~ rep1(chrExcept('"')) ~ elem('"') ^^ {
       case q1 ~ s ~ q2 => q1 + s.mkString + q2
     }
@@ -74,11 +84,26 @@ object Lexer extends Lexical with RegexParsers {
       case prefix ~ sym => SymbolToken(prefix + sym) }
   }
 
+  def label: Parser[LabelToken] = identifier <~ ':' ^^ {
+    case id => LabelToken(id)
+  }
+
+  def identifier: Parser[String] = regex(new Regex("[a-zA-Z$._][a-zA-Z$._0-9]*"))
+
   def token: Parser[Token] = {
-    reserved |
+    operator |
+    word     |
     string   |
     integer  |
     intType  |
     symbol
+  }
+
+  def test(input: String) = {
+    val reader = new CharArrayReader(input.toArray)
+    phrase(token)(reader) match {
+      case Success(tok, _) => tok
+      case error: NoSuccess => throw new RuntimeException(error.msg)
+    }
   }
 }

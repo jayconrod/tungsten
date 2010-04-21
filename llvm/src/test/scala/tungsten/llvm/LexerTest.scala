@@ -67,7 +67,7 @@ class LexerTest {
 
   @Test
   def reserved {
-    for (r <- reservedStrings) {
+    for (r <- reservedOperators ++ reservedWords) {
       val expected = ReservedToken(r)
       testToken(r, expected)
     }
@@ -147,5 +147,18 @@ class LexerTest {
     testToken(input, expected)
     assertEquals("%0", expected.value)
     assertFalse(expected.isGlobal)
+  }
+
+  @Test
+  def label {
+    val input = "bb0:"
+    val expected = LabelToken("bb0")
+    testToken(input, expected)
+    assertEquals("%bb0", expected.value)
+  }
+
+  @Test
+  def labelConflict {
+    testToken("return:", LabelToken("return"))
   }
 }

@@ -1,3 +1,3 @@
 package tungsten.llvm
 
-abstract class Definition
+abstract class Definition(val name: String)

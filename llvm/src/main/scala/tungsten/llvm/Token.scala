@@ -72,3 +72,9 @@ final case class SymbolToken(chars: String)
       chars(0) + chars.substring(1)
   }
 }
+
+final case class LabelToken(chars: String)
+  extends Token
+{
+  def value: String = '%' + chars
+}

@@ -10,8 +10,13 @@ object Parser extends Parsers with ImplicitConversions {
   implicit def reserved(r: String): Parser[String] = elem(ReservedToken(r)) ^^^ r
 
   def module: Parser[Module] = {
-    targetDataLayout ~ targetTriple ^^ {
-      case dl ~ t => new Module(dl, t, Map[String, Definition]())
+    targetDataLayout ~ targetTriple ~ rep(definition) ^^ {
+      case tdl ~ tt ~ ds => {
+        val defnMap = (Map[String, Definition]() /: ds) { (map, defn) =>
+          map + (defn.name -> defn)
+        }
+        new Module(tdl, tt, defnMap)
+      }
     }
   }
 
@@ -21,6 +26,33 @@ object Parser extends Parsers with ImplicitConversions {
 
   def targetTriple: Parser[Option[String]] = {
     opt("target" ~> "triple" ~> "=" ~> string)
+  }
+
+  def definition: Parser[Definition] = {
+    function
+  }
+
+  def function: Parser[Function] = {
+    "define" ~> ty ~ globalSymbol ~ 
+      ("(" ~> repsep(defnParameter, ",") <~ ")") ~ rep(attribute) ~
+      ("{" ~> rep1(block) <~ "}") ^^ {
+      case rty ~ n ~ ps ~ as ~ bs => Function(n, rty, as, ps, bs)
+    }
+  }
+
+  def defnParameter: Parser[Parameter] = {
+    ty ~ rep(attribute) ~ localSymbol ^^ { case t ~ as ~ n => Parameter(n, t, as) }
+  }
+
+  def attribute: Parser[Attribute] = {
+    import Attribute._
+    "nounwind" ^^^ NOUNWIND
+  }
+
+  def block: Parser[Block] = {
+    label ~ rep1(instruction) ^^ {
+      case n ~ is => Block(n, is)
+    }
   }
 
   def instruction: Parser[Instruction] = {
@@ -126,6 +158,10 @@ object Parser extends Parsers with ImplicitConversions {
 
   def globalSymbol: Parser[String] = {
     accept("global symbol", { case t: SymbolToken if t.isGlobal => t.value })
+  }
+
+  def label: Parser[String] = {
+    accept("label", { case t: LabelToken => t.value })
   }
 
   def test(input: String) = {

@@ -124,4 +124,60 @@ class ParserTest {
                           DefinedValue("%p", PointerType(IntType(32))),
                           Some(4)))
   }
+
+  @Test
+  def blockTest {
+    test("bb0:\n" +
+         "  ret i32 0\n",
+         Parser.block,
+         Block("%bb0", List(ReturnInstruction(IntValue(0L, 32)))))
+  }
+
+  @Test
+  def defnParameterTest {
+    test("i32 nounwind %x", Parser.defnParameter,
+         Parameter("%x", IntType(32), List(Attribute.NOUNWIND)))
+  }
+
+  @Test
+  def functionDefnTest {
+    test("define i32 @f(i32 %n) nounwind {\n" +
+         "entry:\n" +
+         "  ret i32 0\n" +
+         "}\n",
+         Parser.function,
+         Function("@f", IntType(32), List(Attribute.NOUNWIND),
+                  List(Parameter("%n", IntType(32), Nil)), 
+                  List(Block("%entry", List(ReturnInstruction(IntValue(0L, 32)))))))
+  }
+
+  @Test
+  def simpleModuleTest {
+    val targetDatalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128"
+    val targetTriple = "x86_64-linux-gnu"
+    val program = "; ModuleID = '<stdin>'\n" +
+                  "target datalayout = \"" + targetDatalayout + "\"\n" +
+                  "target triple = \"" + targetTriple + "\"\n" +
+                  "\n" +
+                  "define i32 @main() nounwind {\n" +
+                  "entry:\n" +
+                  "  %\"alloca point\" = bitcast i32 0 to i32          ; <i32> [#uses=0]\n" +
+                  "  br label %return\n" +
+                  "\n" +
+                  "return:                                           ; preds = %entry\n" +
+                  "  ret i32 0\n" +
+                  "}\n"
+    val function = Function("@main", IntType(32), List(Attribute.NOUNWIND), Nil,
+                            List(Block("%entry",
+                                       List(BitcastInstruction("%alloca point",
+                                                               IntValue(0L, 32),
+                                                               IntType(32)),
+                                            BranchInstruction(DefinedValue("%return",
+                                                                           LabelType)))),
+                                 Block("%return",
+                                       List(ReturnInstruction(IntValue(0L, 32))))))
+    val expected = new Module(Some(targetDatalayout), Some(targetTriple),
+                              Map((function.name -> function)))
+    test(program, Parser.module, expected)
+  }
 }

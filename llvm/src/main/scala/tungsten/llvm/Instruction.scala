@@ -14,6 +14,7 @@ final case class AllocaInstruction(override name: String,
 {
   def ty = PointerType(elementType)
   def operands = Nil
+  override def toString = name + " = alloca " + elementType
 }
 
 final case class BitcastInstruction(override name: String,
@@ -22,6 +23,7 @@ final case class BitcastInstruction(override name: String,
   extends Instruction(name)
 {
   def operands = List(value)
+  override def toString = name + " = bitcast " + value.typedToString + " to " + ty
 }
 
 final case class BranchInstruction(label: Value)
@@ -29,6 +31,7 @@ final case class BranchInstruction(label: Value)
 {
   def ty = VoidType
   def operands = List(label)
+  override def toString = "br " + label
 }
 
 final case class LoadInstruction(override name: String,
@@ -38,6 +41,10 @@ final case class LoadInstruction(override name: String,
 {
   def ty = address.ty.asInstanceOf[PointerType].elementType
   def operands = List(address)
+  override def toString = {
+    val alignmentStr = alignment.map(", " + _).getOrElse("")
+    name + " = load " + address.typedToString  + alignmentStr
+  }
 }
 
 final case class PhiInstruction(override name: String,
@@ -46,6 +53,10 @@ final case class PhiInstruction(override name: String,
   extends Instruction(name)
 {
   def operands = Nil
+  override def toString = {
+    val bindingsStr = bindings.map { b => "[" + b._1 + ", " + b._2 + "]" }.mkString(",")
+    name + " = phi " + ty + bindingsStr
+  }
 }
 
 final case class ReturnInstruction(value: Value)
@@ -53,6 +64,7 @@ final case class ReturnInstruction(value: Value)
 {
   def ty = VoidType
   def operands = List(value)
+  override def toString = "ret " + value.typedToString
 }
 
 final case class StoreInstruction(value: Value,
@@ -62,5 +74,8 @@ final case class StoreInstruction(value: Value,
 {
   def ty = VoidType
   def operands = List(value, address)
+  override def toString = {
+    val alignmentStr = alignment.map(", align " + _).getOrElse("")
+    "store " + value.typedToString + ", " + address.typedToString + alignmentStr
+  }
 }
-

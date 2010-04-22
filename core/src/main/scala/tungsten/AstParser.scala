@@ -377,40 +377,43 @@ object AstParser extends Parsers with ImplicitConversions {
 
   def definition: Parser[AstDefinition] = global | function | struct
 
-  def header: Parser[(Symbol, ModuleType, Version, Option[File], List[ModuleDependency], List[File], Boolean)] = {
+  def header: Parser[(Symbol, ModuleType, Version, Option[File], List[ModuleDependency], List[File], Boolean, Boolean)] = {
     opt("#name" ~> symbol) ~
       opt("#type" ~> ("#intermediate" | "#library" | "#program")) ~
       opt("#version" ~> version) ~
       opt("#filename" ~> string) ~
       opt("#dependencies" ~> repsep(dependency, ",")) ~
       opt("#searchpaths" ~> repsep(string, ",")) ~
-      opt("#is64bit" ~> boolean) ^^ {
-        case n ~ t ~ v ~ f ~ d ~ s ~ b => {
-          val name = n.getOrElse(Symbol("default"))
+      opt("#is64bit" ~> boolean) ~
+      opt("#isSafe" ~> boolean) ^^ {
+        case n ~ t ~ v ~ f ~ d ~ s ~ b ~ is => {
+          val defaultValues = new Module
+          val name = n.getOrElse(defaultValues.name)
           val ty = t match {
             case Some("#intermediate") => ModuleType.INTERMEDIATE
             case Some("#library") => ModuleType.LIBRARY
             case Some("#program") => ModuleType.PROGRAM
-            case None => ModuleType.INTERMEDIATE
+            case None => defaultValues.ty
             case _ => throw new AssertionError("Invalid module type")
           }
-          val version = v.getOrElse(Version.MIN)
+          val version = v.getOrElse(defaultValues.version)
           val filename = f.map(new File(_))
-          val dependencies = d.getOrElse(Nil)
-          val searchPaths = s.getOrElse(Nil).map(new File(_))
-          val is64Bit = b.getOrElse(Utilities.isJvm64Bit)
-          (name, ty, version, filename, dependencies, searchPaths, is64Bit)
+          val dependencies = d.getOrElse(defaultValues.dependencies)
+          val searchPaths = s.map(_.map(new File(_))).getOrElse(defaultValues.searchPaths)
+          val is64Bit = b.getOrElse(defaultValues.is64Bit)
+          val isSafe = b.getOrElse(defaultValues.isSafe)
+          (name, ty, version, filename, dependencies, searchPaths, is64Bit, isSafe)
         }
       }
   }
 
   def module(file: Option[File]): Parser[AstModule] = header ~ rep(definition) ^^ { 
-    case (n, t, v, f, d, s, b) ~ definitions => {
+    case (n, t, v, f, d, s, b, is) ~ definitions => {
       val moduleFile = f match {
         case Some(_) => f
         case None => file
       }
-      new AstModule(n, t, v, moduleFile, d, s, b, definitions)
+      new AstModule(n, t, v, moduleFile, d, s, b, is, definitions)
     }
   }
 

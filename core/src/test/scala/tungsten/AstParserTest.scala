@@ -53,7 +53,8 @@ class AstParserTest {
                "#version #1.2.3\n" +
                "#dependencies c.d#34:0.1-, e.f#56:-1.0, g.h#78\n" +
                "#searchpaths \"/foo/bar\", \"/baz\"\n" +
-               "#is64bit #true",
+               "#is64bit #true\n" +
+               "#isSafe #true",
                new AstModule("a.b#12",
                              ModuleType.LIBRARY,
                              Version(1, 2, 3),
@@ -68,6 +69,7 @@ class AstParserTest {
                                                    Version.MIN,
                                                    Version.MAX)),
                              List(new File("/foo/bar"), new File("/baz")),
+                             true,
                              true,
                              Nil))
   }

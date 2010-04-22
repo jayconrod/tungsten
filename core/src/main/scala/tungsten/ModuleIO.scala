@@ -103,7 +103,7 @@ object ModuleIO {
           throw new IOException("Duplicate definition")
         definitions + (defn.name -> defn)
       }
-      new Module(header._1, header._2, header._3, header._4, header._5, header._6, header._7, 
+      new Module(header._1, header._2, header._3, header._4, header._5, header._6, header._7, header._8,
                  definitions)
     }
 
@@ -122,7 +122,8 @@ object ModuleIO {
       val dependencies = readList(readModuleDependency)
       val searchPaths = readList(new File(readString))
       val is64Bit = readBoolean
-      (name, ty, version, filename, dependencies, searchPaths, is64Bit)
+      val isSafe = readBoolean
+      (name, ty, version, filename, dependencies, searchPaths, is64Bit, isSafe)
     }
 
     def readHeaderSymbol: Symbol = {
@@ -440,6 +441,8 @@ object ModuleIO {
       if (!module.searchPaths.isEmpty)
         output.write("#searchpaths " + module.searchPaths.mkString(", ") + "\n")
       output.write("#is64bit #" + module.is64Bit + "\n")
+      if (module.isSafe)
+        output.write("#isSafe #true\n")
       output.write("\n")
     }
 
@@ -867,6 +870,7 @@ object ModuleIO {
       writeList(module.dependencies, writeModuleDependency _)
       writeList(module.searchPaths.map(_.toString), writeString _)
       writeBoolean(module.is64Bit)
+      writeBoolean(module.isSafe)
     }
 
     def writeHeaderSymbol(sym: Symbol) {

@@ -13,6 +13,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
                    val dependencies: List[ModuleDependency]  = Nil,
                    val searchPaths:  List[File]              = Nil,
                    val is64Bit:      Boolean                 = Utilities.isJvm64Bit,
+                   val isSafe:       Boolean                 = false,
                    val definitions:  Map[Symbol, Definition] = new TreeMap[Symbol, Definition])
 {
   private def copyWith(name: Symbol = name,
@@ -24,7 +25,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
                        is64Bit: Boolean = is64Bit,
                        definitions: Map[Symbol, Definition] = definitions) =
   {
-    new Module(name, ty, version, filename, dependencies, searchPaths, is64Bit, definitions)
+    new Module(name, ty, version, filename, dependencies, searchPaths, is64Bit, isSafe, definitions)
   }
 
   def add(defn: Definition): Module = {
@@ -198,6 +199,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
         dependencies == m.dependencies &&
         searchPaths  == m.searchPaths  &&
         is64Bit      == m.is64Bit      &&
+        isSafe       == m.isSafe       &&
         definitions  == m.definitions
       }
       case _ => false
@@ -205,7 +207,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
   }
 
   override def hashCode = {
-    hash("Module", name, ty, version, dependencies, searchPaths, is64Bit, definitions)
+    hash("Module", name, ty, version, dependencies, searchPaths, is64Bit, isSafe, definitions)
   }
 
   override def toString = definitions.values.mkString("\n")

@@ -166,8 +166,9 @@ object Linker {
       val (name, (definition, _)) = kv
       (name, definition)
     }
+    val isSafe = (true /: modules.map(_.isSafe)) { _ & _ }
     new Module(name, ty, version, 
-               filename, allDependencies, searchPaths, is64Bit, 
+               filename, allDependencies, searchPaths, is64Bit, isSafe,
                linkedDefinitions)
   }
 

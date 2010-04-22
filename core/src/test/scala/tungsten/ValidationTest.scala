@@ -519,14 +519,7 @@ class ValidationTest {
 
   @Test
   def programMissingMain {
-    val module = new Module("default",
-                            ModuleType.PROGRAM,
-                            Version.MIN,
-                            None,
-                            Nil,
-                            Nil,
-                            true,
-                            Map[Symbol, Definition]())
+    val module = new Module(ty = ModuleType.PROGRAM)
     val errors = module.validateProgram
     containsError[MissingMainException](errors)
   }
@@ -548,15 +541,8 @@ class ValidationTest {
 
   @Test
   def duplicateDependency {
-    val module = new Module("default",
-                            ModuleType.INTERMEDIATE,
-                            Version.MIN,
-                            None,
-                            List(ModuleDependency("a", Version.MIN, Version.MAX),
-                                 ModuleDependency("a", Version.MIN, Version.MAX)),
-                            Nil,
-                            true,
-                            Map[Symbol, Definition]())
+    val module = new Module(dependencies = List(ModuleDependency("a", Version.MIN, Version.MAX),
+                                                ModuleDependency("a", Version.MIN, Version.MAX)))
     val errors = module.validate
     containsError[DuplicateDependencyException](errors)
   }

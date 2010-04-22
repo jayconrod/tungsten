@@ -46,10 +46,8 @@ class LinkerTest {
       new ModuleDependency(_, Version.MIN, Version.MAX)
     }
     val definitions = Map[Symbol, Definition]()
-    val m1 = new Module("default", ModuleType.INTERMEDIATE, Version.MIN, 
-                        None, List(b, c), Nil, true, definitions)
-    val m2 = new Module("default", ModuleType.INTERMEDIATE, Version.MIN,
-                        None, List(d, c), Nil, true, definitions)
+    val m1 = new Module(dependencies = List(b, c), is64Bit = true, definitions = definitions)
+    val m2 = new Module(dependencies = List(d, c), is64Bit = true, definitions = definitions)
     val linked = Linker.linkModules(List(m1, m2), "default", ModuleType.INTERMEDIATE,
                                     Version.MIN, None, List(a), Nil)
     assertEquals(dependencies, linked.dependencies)

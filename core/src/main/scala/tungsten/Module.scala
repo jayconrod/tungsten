@@ -6,28 +6,15 @@ import scala.reflect.Manifest
 import java.io.File
 import Utilities._
 
-final class Module(val name: Symbol,
-                   val ty: ModuleType,
-                   val version: Version,
-                   val filename: Option[File],
-                   val dependencies: List[ModuleDependency],
-                   val searchPaths: List[File],
-                   val is64Bit: Boolean,
-                   val definitions: Map[Symbol, Definition])
+final class Module(val name:         Symbol                  = Symbol("default"),
+                   val ty:           ModuleType              = ModuleType.INTERMEDIATE,
+                   val version:      Version                 = Version.MIN,
+                   val filename:     Option[File]            = None,
+                   val dependencies: List[ModuleDependency]  = Nil,
+                   val searchPaths:  List[File]              = Nil,
+                   val is64Bit:      Boolean                 = Utilities.isJvm64Bit,
+                   val definitions:  Map[Symbol, Definition] = new TreeMap[Symbol, Definition])
 {
-  def this(definitions: Map[Symbol, Definition]) = {
-    this(Symbol("default"),
-         ModuleType.INTERMEDIATE,
-         Version.MIN,
-         None,
-         Nil,
-         Nil,
-         Utilities.isJvm64Bit,
-         definitions)
-  }
-
-  def this() = this(new TreeMap[Symbol, Definition])
-
   private def copyWith(name: Symbol = name,
                        ty: ModuleType = ty,
                        version: Version = version,

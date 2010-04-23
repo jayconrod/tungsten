@@ -258,7 +258,7 @@ object ModuleIO {
         case NULL_TYPE_ID => NullType(location)
         case ARRAY_TYPE_ID => {
           val size = readOption(readInt)
-          size.filter(_ < 0).foreach(throw new IOException("Invalid array type"))
+          size.filter(_ < 0).foreach { sz: Int => throw new IOException("Invalid array size: " + sz) }
           ArrayType(size, readType, location)
         }
         case STRUCT_TYPE_ID => StructType(symbol, location)

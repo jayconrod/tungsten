@@ -4,9 +4,9 @@ final case class Parameter(override name: Symbol,
                            ty: Type,
                            override annotations: List[AnnotationValue] = Nil,
                            override location: Location = Nowhere)
-  extends Definition(name, annotations, location) with TypedDefinition
+  extends Definition(name, annotations, location)
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 

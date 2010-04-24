@@ -6,8 +6,9 @@ sealed abstract class Instruction(name: Symbol,
                                   annotations: List[AnnotationValue] = Nil,
                                   location: Location)
   extends Definition(name, annotations, location)
-  with TypedDefinition
 {
+  def ty(module: Module): Type
+
   def isTerminating = false
 
   def operands: List[Value]
@@ -343,7 +344,7 @@ sealed abstract class FloatCastInstruction(name: Symbol,
                                            location: Location)
   extends Instruction(name, annotations, location)
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   def operands = List(value)
 
@@ -391,7 +392,7 @@ final case class FloatToIntegerInstruction(override name: Symbol,
                                            override location: Location = Nowhere)
   extends Instruction(name, annotations, location)
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   def operands = List(value)
 
@@ -439,7 +440,7 @@ final case class HeapAllocateInstruction(override name: Symbol,
                                          override location: Location = Nowhere)
   extends Instruction(name, annotations, location)
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   def operands = Nil
 
@@ -508,7 +509,7 @@ final case class IntegerToFloatInstruction(override name: Symbol,
                                            override location: Location = Nowhere)
   extends Instruction(name, annotations, location)
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   def operands = List(value)
 
@@ -541,7 +542,7 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
                                              location: Location = Nowhere)
   extends Instruction(name, annotations, location)
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   def operands = List(value)
 
@@ -807,7 +808,7 @@ final case class StackAllocateInstruction(override name: Symbol,
                                           override location: Location = Nowhere)
   extends Instruction(name, annotations, location)
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   def operands = Nil
 
@@ -886,7 +887,7 @@ final case class UpcastInstruction(override name: Symbol,
 {
   def operands = List(value)
 
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   override def validate(module: Module) = {
     def validateCast = {

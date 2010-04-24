@@ -2,7 +2,7 @@ package tungsten
 
 import Utilities._
 
-sealed abstract class Value(location: Location) extends TungstenObject(location) {
+sealed abstract class Value(val location: Location) {
   def ty(module: Module): Type
  
   def validateComponents(module: Module): List[CompileException] = Nil

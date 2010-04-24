@@ -8,9 +8,8 @@ final case class Global(override name: Symbol,
                         override annotations: List[AnnotationValue] = Nil,
                         override location: Location = Nowhere)
   extends Definition(name, annotations, location)
-  with TypedDefinition
 {
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
 
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 

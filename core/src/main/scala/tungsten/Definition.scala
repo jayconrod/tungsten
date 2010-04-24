@@ -4,8 +4,7 @@ import Utilities._
 
 abstract class Definition(val name: Symbol, 
                           val annotations: List[AnnotationValue],
-                          location: Location = Nowhere) 
-  extends TungstenObject(location)
+                          val location: Location = Nowhere) 
 {
   def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[Annotation](module, annotations.map(_.name)) ++
@@ -75,8 +74,4 @@ abstract class Definition(val name: Symbol,
     else
       validateComponentsOfClass[T](module, componentNames)
   }
-}
-
-trait TypedDefinition extends Definition {
-  def ty(module: Module): Type
 }

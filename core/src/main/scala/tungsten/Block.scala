@@ -8,7 +8,6 @@ final case class Block(override name: Symbol,
                        override annotations: List[AnnotationValue] = Nil,
                        override location: Location = Nowhere)
   extends Definition(name, annotations, location)
-  with TypedDefinition
 {
   def ty(module: Module): FunctionType = {
     val parameterTypes = module.getParameters(parameters).map(_.ty)

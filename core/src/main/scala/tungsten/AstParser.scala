@@ -206,12 +206,6 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
-  def indirectCallInst: Parser[AstIndirectCallInstruction] = {
-    "#icall" ~> location ~ optName ~ value ~ argumentList ^^ {
-      case l ~ n ~ t ~ a => AstIndirectCallInstruction(n, t, a, l)
-    }
-  }
-
   def intSignExtendInst: Parser[AstIntegerSignExtendInstruction] = {
     "#isextend" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
       case l ~ n ~ v ~ t => AstIntegerSignExtendInstruction(n, v, t, l)
@@ -313,7 +307,6 @@ object AstParser extends Parsers with ImplicitConversions {
     floatTruncateInst |
     heapAllocateInst |
     heapAllocateArrayInst |
-    indirectCallInst |
     intSignExtendInst |
     intToFloatInst |
     intTruncateInst |

@@ -392,22 +392,6 @@ final case class AstHeapAllocateArrayInstruction(override name: Symbol,
   }
 }
 
-final case class AstIndirectCallInstruction(override name: Symbol,
-                                            target: AstValue,
-                                            arguments: List[AstValue],
-                                            override location: Location)
-  extends AstInstruction(name, location)
-{
-  def compile(ctx: AstContext) = {
-    val fullName = ctx.createName(name)
-    val cTarget = target.compileOrElse(ctx)
-    val cArgs = arguments.map(_.compile(ctx))
-    val cCall = IndirectCallInstruction(fullName, cTarget, cArgs, Nil, location)
-    ctx.replaceDefn(cCall)
-    cCall
-  }
-}
-
 final case class AstIntegerSignExtendInstruction(override name: Symbol,
                                                  value: AstValue,
                                                  ty: AstType,

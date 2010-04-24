@@ -238,15 +238,6 @@ class AstParserTest {
   }
 
   @Test
-  def indirectCallInst {
-    testInstruction("#icall <foo.w:1.2-3.4> foo = bar(123)",
-                    AstIndirectCallInstruction(foo,
-                                               AstSymbolValue(new Symbol("bar"), Nowhere),
-                                               List(AstInt32Value(123, Nowhere)),
-                                               fooLoc))
-  }
-
-  @Test
   def intSignExtendInst {
     testInstruction("#isextend <foo.w:1.2-3.4> foo = () : #unit",
                     AstIntegerSignExtendInstruction(foo,

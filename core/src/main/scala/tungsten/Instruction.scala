@@ -481,27 +481,6 @@ final case class HeapAllocateArrayInstruction(override name: Symbol,
   }
 }
 
-final case class IndirectCallInstruction(override name: Symbol,
-                                         target: Value,
-                                         arguments: List[Value],
-                                         override annotations: List[AnnotationValue] = Nil,
-                                         override location: Location = Nowhere)
-  extends Instruction(name, annotations, location) with CallInstruction
-{
-  def ty(module: Module) = targetType(module).returnType
-
-  def operands = target :: arguments
-
-  private def targetName = target.asInstanceOf[DefinedValue].value
-
-  private def targetType(module: Module) = target.ty(module).asInstanceOf[FunctionType]
-
-  override def validate(module: Module): List[CompileException] = {
-    // TODO: implement or delete
-    throw new UnsupportedOperationException
-  }
-}
-
 final case class IntegerToFloatInstruction(override name: Symbol,
                                            value: Value,
                                            ty: Type,

@@ -198,9 +198,6 @@ object ModuleIO {
         case HEAP_ALLOCATE_ARRAY_INST_ID => {
           HeapAllocateArrayInstruction(name, readValue, readType, readAnnotations, location)
         }
-        case INDIRECT_CALL_INST_ID => {
-          IndirectCallInstruction(name, readValue, readList(readValue), readAnnotations, location)
-        }
         case INTEGER_SIGN_EXTEND_INST_ID => {
           IntegerSignExtendInstruction(name, readValue, readType, readAnnotations, location)
         }
@@ -587,10 +584,6 @@ object ModuleIO {
           output.write("#heaparray " + locationString(location) + localName + " = " +
             count + " * " + elementType)
         }
-        case IndirectCallInstruction(name, target, arguments, _, location) => {
-          output.write("#icall " + locationString(location) + localName + " = " + target)
-          writeArgumentList(arguments)
-        }
         case IntegerSignExtendInstruction(name, value, ty, _, location) => {
           output.write("#isextend " + locationString(location) + localName + " = " +
             localValue(value) + " : " + ty)
@@ -806,7 +799,6 @@ object ModuleIO {
             case IntegerToFloatInstruction(_, _, ty, _, _) => collectType(ty)
             case IntegerTruncateInstruction(_, _, ty, _, _) => collectType(ty)
             case IntegerZeroExtendInstruction(_, _, ty, _, _) => collectType(ty)
-            case _: IndirectCallInstruction => ()
             case _: IntrinsicCallInstruction => ()
             case _: LoadInstruction => ()
             case _: LoadElementInstruction => ()
@@ -995,11 +987,6 @@ object ModuleIO {
             writeValue(count)
             writeType(elementType)
           }
-          case IndirectCallInstruction(_, target, arguments, _, _) => {
-            output.writeByte(INDIRECT_CALL_INST_ID)
-            writeValue(target)
-            writeList(arguments, writeValue _)
-          }            
           case IntegerSignExtendInstruction(_, value, ty, _, _) => {
             output.writeByte(INTEGER_SIGN_EXTEND_INST_ID)
             writeValue(value)
@@ -1271,7 +1258,7 @@ object ModuleIO {
   val BINARY_OPERATOR_INST_ID: Byte = 102
   val BRANCH_INST_ID: Byte = 103
   val CONDITIONAL_BRANCH_INST_ID: Byte = 104
-  val INDIRECT_CALL_INST_ID: Byte = 105
+  // 105 available
   val INTRINSIC_CALL_INST_ID: Byte = 106
   val LOAD_INST_ID: Byte = 107
   val LOAD_ELEMENT_INST_ID: Byte = 108

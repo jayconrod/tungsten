@@ -5,8 +5,9 @@ import Utilities._
 final case class Block(override name: Symbol,
                        parameters: List[Symbol],
                        instructions: List[Symbol],
+                       override annotations: List[AnnotationValue] = Nil,
                        override location: Location = Nowhere)
-  extends Definition(name, location)
+  extends Definition(name, annotations, location)
   with TypedDefinition
 {
   def ty(module: Module): FunctionType = {
@@ -14,12 +15,13 @@ final case class Block(override name: Symbol,
     FunctionType(UnitType(location), parameterTypes)
   }
 
-  def validateComponents(module: Module) = {
-    stage(validateComponentsOfClass[Parameter](module, parameters),
-          validateNonEmptyComponentsOfClass[Instruction](module, instructions))
+  override def validateComponents(module: Module) = {
+    super.validateComponents(module) ++ 
+      validateComponentsOfClass[Parameter](module, parameters) ++
+      validateNonEmptyComponentsOfClass[Instruction](module, instructions)
   }
 
-  def validate(module: Module) = {
+  override def validate(module: Module) = {
     def checkTermination(insts: List[Instruction]): List[CompileException] = {
       insts match {
         case Nil => throw new RuntimeException("instructions must be non-empty")
@@ -38,12 +40,7 @@ final case class Block(override name: Symbol,
       }
     }
 
-    checkTermination(module.getInstructions(instructions))
-  }
-
-  override def toString = {
-    val parametersStr = parameters.mkString("(", ", ", ")")
-    val instructionsStr = instructions.mkString("\n{\n  ", "\n  ", "\n}")
-    name.toString + parametersStr + instructionsStr
+    super.validate(module) ++ 
+      checkTermination(module.getInstructions(instructions))
   }
 }

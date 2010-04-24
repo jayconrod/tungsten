@@ -2,8 +2,10 @@ package tungsten
 
 import Utilities._
 
-sealed abstract class Instruction(name: Symbol, location: Location)
-  extends Definition(name, location)
+sealed abstract class Instruction(name: Symbol, 
+                                  annotations: List[AnnotationValue] = Nil,
+                                  location: Location)
+  extends Definition(name, annotations, location)
   with TypedDefinition
 {
   def isTerminating = false
@@ -23,9 +25,10 @@ sealed abstract class Instruction(name: Symbol, location: Location)
 
   def usedSymbols = operandSymbols
 
-  def validateComponents(module: Module): List[CompileException] = validateOperands(module)
-
-  def validate(module: Module): List[CompileException] = Nil
+  override def validateComponents(module: Module): List[CompileException] = {
+    super.validateComponents(module) ++
+      validateOperands(module)
+  }
 
   protected final def validateOperands(module: Module) = {
     operands.flatMap(_.validateComponents(module))
@@ -128,8 +131,9 @@ sealed trait ElementInstruction extends Instruction {
 final case class AddressInstruction(override name: Symbol,
                                     base: Value,
                                     indices: List[Value],
+                                    override annotations: List[AnnotationValue] = Nil,
                                     override location: Location = Nowhere)
-  extends Instruction(name, location) with ElementInstruction
+  extends Instruction(name, annotations, location) with ElementInstruction
 {
   def ty(module: Module) = {
     base.ty(module) match {
@@ -157,15 +161,17 @@ final case class AddressInstruction(override name: Symbol,
       validateIndices(module, elementType, indices)
     }
 
-    stage(baseIsPointer,
+    stage(super.validate(module),
+          baseIsPointer,
           indicesAreValid)
   }
 }
 
 final case class AssignInstruction(override name: Symbol,
                                    value: Value,
+                                   override annotations: List[AnnotationValue] = Nil,
                                    override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def operands = List(value)
 
@@ -237,30 +243,36 @@ final case class BinaryOperatorInstruction(override name: Symbol,
                                            operator: BinaryOperator,
                                            left: Value,
                                            right: Value,
+                                           override annotations: List[AnnotationValue] = Nil,
                                            override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def operands = List(left, right)
 
   def ty(module: Module) = left.ty(module)
 
   override def validate(module: Module) = {
-    val lty = left.ty(module)
-    val rty = right.ty(module)
-    if (!lty.supportsOperator(operator))
-      List(UnsupportedNumericOperationException(lty, operator, left.location))
-    else if (lty != rty)
-      List(TypeMismatchException(rty.toString, lty.toString, right.location))
-    else
-      Nil
+    def validateOperation = { 
+      val lty = left.ty(module)
+      val rty = right.ty(module)
+      if (!lty.supportsOperator(operator))
+        List(UnsupportedNumericOperationException(lty, operator, left.location))
+      else if (lty != rty)
+        List(TypeMismatchException(rty.toString, lty.toString, right.location))
+      else
+        Nil
+    }
+
+    super.validate(module) ++ validateOperation
   }
 }
 
 final case class BranchInstruction(override name: Symbol, 
                                    target: Symbol,
                                    arguments: List[Value],
+                                   override annotations: List[AnnotationValue] = Nil,
                                    override location: Location = Nowhere)
-  extends Instruction(name, location) with CallInstruction
+  extends Instruction(name, annotations, location) with CallInstruction
 {
   override def isTerminating = true
 
@@ -271,15 +283,16 @@ final case class BranchInstruction(override name: Symbol,
   override def usedSymbols = target :: operandSymbols
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          validateComponentOfClass[Block](module, target))
+    super.validateComponents(module) ++ 
+      validateComponentOfClass[Block](module, target)
   }
 
   override def validate(module: Module) = {
     val block = module.getBlock(target)
     val parameters = module.getParameters(block.parameters)
     val parameterTypes = parameters.map(_.ty)
-    validateCall(module, target, parameterTypes, arguments)
+    super.validate(module) ++ 
+      validateCall(module, target, parameterTypes, arguments)
   }
 }
 
@@ -289,8 +302,9 @@ final case class ConditionalBranchInstruction(override name: Symbol,
                                               trueArguments: List[Value],
                                               falseTarget: Symbol,
                                               falseArguments: List[Value],
+                                              override annotations: List[AnnotationValue] = Nil,
                                               override location: Location = Nowhere)
-  extends Instruction(name, location) with CallInstruction
+  extends Instruction(name, annotations, location) with CallInstruction
 {
   def ty(module: Module) = UnitType(location)
 
@@ -301,8 +315,8 @@ final case class ConditionalBranchInstruction(override name: Symbol,
   override def usedSymbols = trueTarget :: falseTarget :: operandSymbols
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          validateComponentsOfClass[Block](module, List(trueTarget, falseTarget)))
+    super.validateComponents(module) ++ 
+      validateComponentsOfClass[Block](module, List(trueTarget, falseTarget))
   }
 
   override def validate(module: Module) = {
@@ -315,7 +329,8 @@ final case class ConditionalBranchInstruction(override name: Symbol,
       validateCall(module, target, parameterTypes, arguments)
     }
 
-    stage(validateBranch(trueTarget, trueArguments),
+    stage(super.validate(module),
+          validateBranch(trueTarget, trueArguments),
           validateBranch(falseTarget, falseArguments),
           condition.validateType(BooleanType(), module))
   }
@@ -324,8 +339,9 @@ final case class ConditionalBranchInstruction(override name: Symbol,
 sealed abstract class FloatCastInstruction(name: Symbol,
                                            value: Value,
                                            ty: Type,
+                                           annotations: List[AnnotationValue] = Nil,
                                            location: Location)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = ty
 
@@ -339,21 +355,26 @@ sealed abstract class FloatCastInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
-    (value.ty(module), ty) match {
-      case (fromTy: FloatType, toTy: FloatType) => validateWidths(fromTy, toTy)
-      case (fromTy, _: FloatType) => {
-        List(TypeMismatchException(fromTy.toString, "float type", value.location))
+    def validateCast = { 
+      (value.ty(module), ty) match {
+        case (fromTy: FloatType, toTy: FloatType) => validateWidths(fromTy, toTy)
+        case (fromTy, _: FloatType) => {
+          List(TypeMismatchException(fromTy.toString, "float type", value.location))
+        }
+        case (_, toTy) => List(TypeMismatchException(toTy.toString, "float type", location))
       }
-      case (_, toTy) => List(TypeMismatchException(toTy.toString, "float type", location))
     }
+
+    super.validate(module) ++ validateCast    
   }
 }
 
 final case class FloatExtendInstruction(override name: Symbol,
                                         value: Value,
                                         ty: Type,
+                                        override annotations: List[AnnotationValue] = Nil,
                                         override location: Location = Nowhere)
-  extends FloatCastInstruction(name, value, ty, location)
+  extends FloatCastInstruction(name, value, ty, annotations, location)
 {
   protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
     if (toTy.width > fromTy.width)
@@ -366,37 +387,43 @@ final case class FloatExtendInstruction(override name: Symbol,
 final case class FloatToIntegerInstruction(override name: Symbol,
                                            value: Value,
                                            ty: Type,
+                                           override annotations: List[AnnotationValue] = Nil,
                                            override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = ty
 
   def operands = List(value)
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          ty.validate(module))
+    super.validateComponents(module) ++ 
+      ty.validate(module)
   }
 
   override def validate(module: Module) = {
-    val fromTy = value.ty(module)
-    val fromTyErrors = if (!fromTy.isInstanceOf[FloatType])
-      List(TypeMismatchException(fromTy.toString, "float type", location))
-    else
-      Nil
-    val toTyErrors = if (!ty.isInstanceOf[IntType])
-      List(TypeMismatchException(ty.toString, "integer type", location))
-    else
-      Nil
-    fromTyErrors ++ toTyErrors
+    def validateCast = { 
+      val fromTy = value.ty(module)
+      val fromTyErrors = if (!fromTy.isInstanceOf[FloatType])
+        List(TypeMismatchException(fromTy.toString, "float type", location))
+      else
+        Nil
+      val toTyErrors = if (!ty.isInstanceOf[IntType])
+        List(TypeMismatchException(ty.toString, "integer type", location))
+      else
+        Nil
+      fromTyErrors ++ toTyErrors
+    }
+
+    super.validate(module) ++ validateCast
   }
 }
 
 final case class FloatTruncateInstruction(override name: Symbol,
-                                        value: Value,
-                                        ty: Type,
-                                        override location: Location = Nowhere)
-  extends FloatCastInstruction(name, value, ty, location)
+                                          value: Value,
+                                          ty: Type,
+                                          override annotations: List[AnnotationValue] = Nil,
+                                          override location: Location = Nowhere)
+  extends FloatCastInstruction(name, value, ty, annotations, location)
 {
   protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
     if (toTy.width < fromTy.width)
@@ -408,51 +435,57 @@ final case class FloatTruncateInstruction(override name: Symbol,
 
 final case class HeapAllocateInstruction(override name: Symbol,
                                          ty: Type,
+                                         override annotations: List[AnnotationValue] = Nil,
                                          override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = ty
 
   def operands = Nil
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          ty.validate(module))
+    super.validateComponents(module) ++ 
+      ty.validate(module)
   }
 
   override def validate(module: Module) = {
-    if (!ty.isPointer || ty.isInstanceOf[NullType])
-      List(TypeMismatchException(ty.toString, "non-null pointer type", location))
-    else
-      Nil
+    def validateType = {
+      if (!ty.isPointer || ty.isInstanceOf[NullType])
+        List(TypeMismatchException(ty.toString, "non-null pointer type", location))
+      else
+        Nil
+    }
+    super.validate(module) ++ validateType
   }
 }
 
 final case class HeapAllocateArrayInstruction(override name: Symbol,
                                               count: Value,
                                               elementType: Type,
+                                              override annotations: List[AnnotationValue] = Nil,
                                               override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = PointerType(ArrayType(None, elementType, location), location)
 
   def operands = List(count)
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          elementType.validate(module))
+    super.validateComponents(module) ++ 
+      elementType.validate(module)
   }
 
   override def validate(module: Module) = {
-    count.validateType(IntType(64), module)
+    super.validate(module) ++ count.validateType(IntType(64), module)
   }
 }
 
 final case class IndirectCallInstruction(override name: Symbol,
                                          target: Value,
                                          arguments: List[Value],
+                                         override annotations: List[AnnotationValue] = Nil,
                                          override location: Location = Nowhere)
-  extends Instruction(name, location) with CallInstruction
+  extends Instruction(name, annotations, location) with CallInstruction
 {
   def ty(module: Module) = targetType(module).returnType
 
@@ -471,37 +504,42 @@ final case class IndirectCallInstruction(override name: Symbol,
 final case class IntegerToFloatInstruction(override name: Symbol,
                                            value: Value,
                                            ty: Type,
+                                           override annotations: List[AnnotationValue] = Nil,
                                            override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = ty
 
   def operands = List(value)
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          ty.validate(module))
+    super.validateComponents(module) ++ 
+      ty.validate(module)
   }
 
   override def validate(module: Module) = {
-    val fromTy = value.ty(module)
-    val fromTyErrors = if (!fromTy.isInstanceOf[IntType])
-      List(TypeMismatchException(fromTy.toString, "integer type", location))
-    else
-      Nil
-    val toTyErrors = if (!ty.isInstanceOf[FloatType])
-      List(TypeMismatchException(ty.toString, "float type", location))
-    else
-      Nil
-    fromTyErrors ++ toTyErrors
+    def validateCast = {
+      val fromTy = value.ty(module)
+      val fromTyErrors = if (!fromTy.isInstanceOf[IntType])
+        List(TypeMismatchException(fromTy.toString, "integer type", location))
+      else
+        Nil
+      val toTyErrors = if (!ty.isInstanceOf[FloatType])
+        List(TypeMismatchException(ty.toString, "float type", location))
+      else
+        Nil
+      fromTyErrors ++ toTyErrors
+    }
+    super.validate(module) ++ validateCast
   }    
 }
 
 sealed abstract class IntegerCastInstruction(name: Symbol,
                                              value: Value,
                                              ty: Type,
+                                             annotations: List[AnnotationValue] = Nil,
                                              location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = ty
 
@@ -510,26 +548,30 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
   protected def validateWidths(fromTy: IntType, toTy: IntType): List[CompileException]
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          ty.validate(module))
+    super.validateComponents(module) ++ 
+      ty.validate(module)
   }
 
   override def validate(module: Module) = {
-    (value.ty(module), ty) match {
-      case (fromTy: IntType, toTy: IntType) => validateWidths(fromTy, toTy)
-      case (fromTy, _: IntType) => {
-        List(TypeMismatchException(fromTy.toString, "integer type", value.location))
+    def validateCast = { 
+      (value.ty(module), ty) match {
+        case (fromTy: IntType, toTy: IntType) => validateWidths(fromTy, toTy)
+        case (fromTy, _: IntType) => {
+          List(TypeMismatchException(fromTy.toString, "integer type", value.location))
+        }
+        case (_, toTy) => List(TypeMismatchException(toTy.toString, "integer type", location))
       }
-      case (_, toTy) => List(TypeMismatchException(toTy.toString, "integer type", location))
     }
+    super.validate(module) ++ validateCast
   }
 }
 
 final case class IntegerSignExtendInstruction(override name: Symbol,
                                               value: Value,
                                               ty: Type,
+                                              override annotations: List[AnnotationValue] = Nil,
                                               override location: Location = Nowhere)
-  extends IntegerCastInstruction(name, value, ty, location)
+  extends IntegerCastInstruction(name, value, ty, annotations, location)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
     if (toTy.width >= fromTy.width)
@@ -542,8 +584,9 @@ final case class IntegerSignExtendInstruction(override name: Symbol,
 final case class IntegerTruncateInstruction(override name: Symbol,
                                             value: Value,
                                             ty: Type,
+                                            override annotations: List[AnnotationValue] = Nil,
                                             override location: Location = Nowhere)
-  extends IntegerCastInstruction(name, value, ty, location)
+  extends IntegerCastInstruction(name, value, ty, annotations, location)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
     if (toTy.width < fromTy.width)
@@ -556,8 +599,9 @@ final case class IntegerTruncateInstruction(override name: Symbol,
 final case class IntegerZeroExtendInstruction(override name: Symbol,
                                               value: Value,
                                               ty: Type,
+                                              override annotations: List[AnnotationValue] = Nil,
                                               override location: Location = Nowhere)
-  extends IntegerCastInstruction(name, value, ty, location)
+  extends IntegerCastInstruction(name, value, ty, annotations, location)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
     if (toTy.width > fromTy.width)
@@ -579,8 +623,9 @@ object Intrinsic {
 final case class IntrinsicCallInstruction(override name: Symbol,
                                           intrinsic: IntrinsicFunction,
                                           arguments: List[Value],
+                                          override annotations: List[AnnotationValue] = Nil,
                                           override location: Location = Nowhere)
-  extends Instruction(name, location) with CallInstruction
+  extends Instruction(name, annotations, location) with CallInstruction
 {
   def ty(module: Module) = intrinsic.ty.returnType
 
@@ -589,14 +634,16 @@ final case class IntrinsicCallInstruction(override name: Symbol,
   def operands = arguments
 
   override def validate(module: Module) = {
-    validateCall(module, new Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments)
+    super.validate(module) ++ 
+      validateCall(module, new Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments)
   }
 }
 
 final case class LoadInstruction(override name: Symbol,
                                  pointer: Value,
+                                 override annotations: List[AnnotationValue] = Nil,
                                  override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def operands = List(pointer)
 
@@ -606,19 +653,23 @@ final case class LoadInstruction(override name: Symbol,
   }
   
   override def validate(module: Module) = {
-    val pointerType = pointer.ty(module)
-    if (!pointerType.isInstanceOf[PointerType])
-      List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
-    else
-      Nil
+    def validateType = {
+      val pointerType = pointer.ty(module)
+      if (!pointerType.isInstanceOf[PointerType])
+        List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
+      else
+        Nil
+    }
+    super.validate(module) ++ validateType
   }
 }
 
 final case class LoadElementInstruction(override name: Symbol,
                                         base: Value,
                                         indices: List[Value],
+                                        override annotations: List[AnnotationValue] = Nil,
                                         override location: Location = Nowhere)
-  extends Instruction(name, location) with ElementInstruction
+  extends Instruction(name, annotations, location) with ElementInstruction
 {
   if (indices.isEmpty)
     throw new IllegalArgumentException
@@ -627,7 +678,9 @@ final case class LoadElementInstruction(override name: Symbol,
 
   def ty(module: Module) = getElementType(module, base.ty(module), indices)
 
-  override def validate(module: Module) = validateIndices(module, base.ty(module), indices)
+  override def validate(module: Module) = {
+    super.validate(module) ++ validateIndices(module, base.ty(module), indices)
+  }
 }
 
 final case class RelationalOperator(name: String)
@@ -656,29 +709,34 @@ final case class RelationalOperatorInstruction(override name: Symbol,
                                                operator: RelationalOperator,
                                                left: Value,
                                                right: Value,
+                                               override annotations: List[AnnotationValue] = Nil,
                                                override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def operands = List(left, right)
 
   def ty(module: Module) = BooleanType(location)
 
   override def validate(module: Module) = {
-    val lty = left.ty(module)
-    val rty = right.ty(module)
-    if (!lty.supportsOperator(operator))
-      List(UnsupportedNumericOperationException(lty, operator, left.location))
-    else if (lty != rty)
-      List(TypeMismatchException(rty.toString, lty.toString, right.location))
-    else
-      Nil
+    def validateOperation = {
+      val lty = left.ty(module)
+      val rty = right.ty(module)
+      if (!lty.supportsOperator(operator))
+        List(UnsupportedNumericOperationException(lty, operator, left.location))
+      else if (lty != rty)
+        List(TypeMismatchException(rty.toString, lty.toString, right.location))
+      else
+        Nil
+    }
+    super.validate(module) ++ validateOperation
   }
 }
 
 final case class ReturnInstruction(override name: Symbol,
                                    value: Value,
+                                   override annotations: List[AnnotationValue] = Nil,
                                    override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def operands = List(value)
 
@@ -690,26 +748,30 @@ final case class ReturnInstruction(override name: Symbol,
 final case class StoreInstruction(override name: Symbol,
                                   pointer: Value,
                                   value: Value,
+                                  override annotations: List[AnnotationValue] = Nil,
                                   override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def operands = List(pointer, value)
 
   def ty(module: Module) = UnitType(location)
 
   override def validate(module: Module) = {
-    val pointerType = pointer.ty(module)
-    pointerType match {
-      case PointerType(elementType, _) => {
-        val valueType = value.ty(module)
-        if (valueType != elementType)
-          List(TypeMismatchException(valueType.toString, elementType.toString, location))
-        else
-          Nil
+    def validateTypes = {
+      val pointerType = pointer.ty(module)
+      pointerType match {
+        case PointerType(elementType, _) => {
+          val valueType = value.ty(module)
+          if (valueType != elementType)
+            List(TypeMismatchException(valueType.toString, elementType.toString, location))
+          else
+            Nil
+        }
+        case _ => 
+          List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
       }
-      case _ => 
-        List(TypeMismatchException(pointerType.toString, "non-null pointer type", location))
     }
+    super.validate(module) ++ validateTypes
   }
 }
 
@@ -717,8 +779,9 @@ final case class StoreElementInstruction(override name: Symbol,
                                          base: Value,
                                          indices: List[Value],
                                          value: Value,
+                                         override annotations: List[AnnotationValue] = Nil,
                                          override location: Location = Nowhere)
-  extends Instruction(name, location) with ElementInstruction
+  extends Instruction(name, annotations, location) with ElementInstruction
 {
   if (indices.isEmpty)
     throw new IllegalArgumentException
@@ -732,58 +795,66 @@ final case class StoreElementInstruction(override name: Symbol,
       val elementType = getElementType(module, base.ty(module), indices)
       value.validateType(elementType, module)
     }
-    stage(validateIndices(module, base.ty(module), indices),
-          validateValueType)
+    super.validate(module) ++ 
+      validateIndices(module, base.ty(module), indices) ++ 
+      validateValueType
   }
 }
 
 final case class StackAllocateInstruction(override name: Symbol,
                                           ty: Type,
+                                          override annotations: List[AnnotationValue] = Nil,
                                           override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = ty
 
   def operands = Nil
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          ty.validate(module))
+    super.validateComponents(module) ++ 
+      ty.validate(module)
   }
 
   override def validate(module: Module) = {
-    if (!ty.isPointer || ty.isInstanceOf[NullType])
-      List(TypeMismatchException(ty.toString, "non-null pointer type", location))
-    else
-      Nil
+    def validateType = {
+      if (!ty.isPointer || ty.isInstanceOf[NullType])
+        List(TypeMismatchException(ty.toString, "non-null pointer type", location))
+      else
+        Nil
+    }
+    super.validate(module) ++ validateType
   }
 }
 
 final case class StackAllocateArrayInstruction(override name: Symbol,
                                                count: Value,
                                                elementType: Type,
+                                               override annotations: List[AnnotationValue] = Nil,
                                                override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def ty(module: Module) = PointerType(ArrayType(None, elementType, location), location)
 
   def operands = List(count)
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          elementType.validate(module))
+    super.validateComponents(module) ++ 
+      elementType.validate(module)
   }
 
   override def validate(module: Module) = {
-    count.validateType(IntType(64), module)
+    super.validate(module) ++ 
+      count.validateType(IntType(64), module)
   }
 }
 
 final case class StaticCallInstruction(override name: Symbol,
                                        target: Symbol,
                                        arguments: List[Value],
+                                       override annotations: List[AnnotationValue] = Nil,
                                        override location: Location = Nowhere)
-  extends Instruction(name, location) with CallInstruction
+  extends Instruction(name, annotations, location) with CallInstruction
 {
   def ty(module: Module) = targetType(module).returnType
 
@@ -792,12 +863,13 @@ final case class StaticCallInstruction(override name: Symbol,
   override def usedSymbols = target :: operandSymbols
 
   override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          validateComponentOfClass[Function](module, target))
+    super.validateComponents(module) ++ 
+      validateComponentOfClass[Function](module, target)
   }
 
   override def validate(module: Module) = {
-    validateCall(module, target, targetType(module).parameterTypes, arguments)
+    super.validate(module) ++ 
+      validateCall(module, target, targetType(module).parameterTypes, arguments)
   }
 
   private def targetName = target
@@ -808,18 +880,22 @@ final case class StaticCallInstruction(override name: Symbol,
 final case class UpcastInstruction(override name: Symbol,
                                    value: Value,
                                    ty: Type,
+                                   override annotations: List[AnnotationValue] = Nil,
                                    override location: Location = Nowhere)
-  extends Instruction(name, location)
+  extends Instruction(name, annotations, location)
 {
   def operands = List(value)
 
   def ty(module: Module) = ty
 
   override def validate(module: Module) = {
-    val valueTy = value.ty(module)
-    if (valueTy <<: ty)
-      Nil
-    else
-      List(UpcastException(valueTy.toString, ty.toString, location))
+    def validateCast = {
+      val valueTy = value.ty(module)
+      if (valueTy <<: ty)
+        Nil
+      else
+        List(UpcastException(valueTy.toString, ty.toString, location))
+    }
+    super.validate(module) ++ validateCast
   }
 }

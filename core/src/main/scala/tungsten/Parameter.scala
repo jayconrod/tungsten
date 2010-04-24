@@ -1,24 +1,24 @@
 package tungsten
 
 final case class Parameter(override name: Symbol, 
-                           ty: Type, 
+                           ty: Type,
+                           override annotations: List[AnnotationValue] = Nil,
                            override location: Location = Nowhere)
-  extends Definition(name, location) with TypedDefinition
+  extends Definition(name, annotations, location) with TypedDefinition
 {
   def ty(module: Module) = ty
 
-  def validateComponents(module: Module) = ty.validate(module)
-
-  def validate(module: Module) = Nil
+  override def validateComponents(module: Module) = {
+    super.validateComponents(module) ++ 
+      ty.validate(module)
+  }
 
   override def equals(that: Any) = {
     that match {
-      case Parameter(n, t, _) if name == n && ty == t => true
+      case Parameter(n, t, as, _) if name == n && ty == t && annotations == as => true
       case _ => false
     }
   }
 
   override def hashCode = Utilities.hash("parameter", name, ty)
-
-  override def toString = name.toString + ": " + ty
 }

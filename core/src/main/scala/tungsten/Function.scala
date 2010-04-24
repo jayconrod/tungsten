@@ -6,21 +6,23 @@ final case class Function(override name: Symbol,
                           parameters: List[Symbol],
                           returnType: Type,
                           blocks: List[Symbol],
+                          override annotations: List[AnnotationValue] = Nil,
                           override location: Location = Nowhere)
-  extends Definition(name, location)
+  extends Definition(name, annotations, location)
 {
   def ty(module: Module): FunctionType = {
     FunctionType(returnType, module.getParameters(parameters).map(_.ty))
     // TODO: include type parameters
   }
 
-  def validateComponents(module: Module) = {
-    stage(validateComponentsOfClass[Parameter](module, parameters),
-          returnType.validate(module),
-          validateComponentsOfClass[Block](module, blocks))
+  override def validateComponents(module: Module) = {
+    super.validateComponents(module) ++ 
+      validateComponentsOfClass[Parameter](module, parameters) ++
+      returnType.validate(module) ++
+      validateComponentsOfClass[Block](module, blocks)
   }
 
-  def validate(module: Module) = {
+  override def validate(module: Module) = {
     def validateReturnType = {
       blocks flatMap { blockName =>
         val block = module.getBlock(blockName)
@@ -59,8 +61,8 @@ final case class Function(override name: Symbol,
         block.instructions flatMap { instName =>
           val inst = module.getInstruction(instName)
           val blockNames = inst match {
-            case BranchInstruction(_, target, _, _) => List(target)
-            case ConditionalBranchInstruction(_, _, trueTarget, _, falseTarget, _, _) =>
+            case BranchInstruction(_, target, _, _, _) => List(target)
+            case ConditionalBranchInstruction(_, _, trueTarget, _, falseTarget, _, _, _) =>
               List(trueTarget, falseTarget)
             case _ => Nil
           }
@@ -103,7 +105,8 @@ final case class Function(override name: Symbol,
       blocks.flatMap(checkBlock _)
     }
     
-    stage(validateEntryParameters,
+    stage(super.validate(module),
+          validateEntryParameters,
           validateInstructionOrder,
           validateBranches,
           validateReturnType)

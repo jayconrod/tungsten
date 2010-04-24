@@ -160,7 +160,7 @@ class AstCompileTest {
 
   @Test
   def globalDefn {
-    val global = new Global(foo, UnitType(Nowhere), Some(UnitValue(Nowhere)), loc)
+    val global = new Global(foo, UnitType(Nowhere), Some(UnitValue(Nowhere)), Nil, loc)
     val ast = AstGlobal(foo, AstUnitType(Nowhere), Some(AstUnitValue(Nowhere)), loc)
     ast.compile(ctx)
     assertEquals(global, get(foo))
@@ -169,7 +169,7 @@ class AstCompileTest {
   @Test
   def parameter {
     ctx.names.push(foo)
-    val expected = Parameter(foo + bar, UnitType(Nowhere), loc)
+    val expected = Parameter(foo + bar, UnitType(Nowhere), Nil, loc)
     val ast = AstParameter(bar, AstUnitType(Nowhere), loc)
     testDefinition(expected, ast)
   }
@@ -184,6 +184,7 @@ class AstCompileTest {
     val expected = AddressInstruction(foo + bar,
                                       UnitValue(),
                                       List(UnitValue(), UnitValue()),
+                                      Nil,
                                       loc)
     testDefinition(expected, ast)
   }
@@ -192,7 +193,7 @@ class AstCompileTest {
   def assignInst {
     ctx.names.push(foo)
     val ast = AstAssignInstruction(bar, AstUnitValue(Nowhere), loc)
-    val expected = AssignInstruction(foo + bar, UnitValue(), loc)
+    val expected = AssignInstruction(foo + bar, UnitValue(), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -208,19 +209,20 @@ class AstCompileTest {
                                              BinaryOperator.ADD,
                                              Int32Value(12),
                                              Int32Value(34),
-                                             loc)
+                                             Nil, loc)
     testDefinition(expected, ast)
   }
 
   @Test
   def branchInst {
     ctx.names.push(foo)
-    val block = Block(foo + baz, Nil, Nil, Nowhere)
+    val block = Block(foo + baz, Nil, Nil)
     ctx.addDefn(block)
     val ast = AstBranchInstruction(bar, baz, List(AstInt32Value(12, Nowhere)), loc)
     val expected = BranchInstruction(foo + bar, 
                                      block.name,
                                      List(Int32Value(12, Nowhere)),
+                                     Nil,
                                      loc)
     testDefinition(expected, ast)
   }
@@ -228,9 +230,9 @@ class AstCompileTest {
   @Test
   def condBranchInst {
     ctx.names.push(foo)
-    val bazBlock = Block(foo + baz, Nil, Nil, Nowhere)
+    val bazBlock = Block(foo + baz, Nil, Nil)
     ctx.addDefn(bazBlock)
-    val quuxBlock = Block(foo + quux, Nil, Nil, Nowhere)
+    val quuxBlock = Block(foo + quux, Nil, Nil)
     ctx.addDefn(quuxBlock)
     val ast = AstConditionalBranchInstruction(bar,
                                               AstUnitValue(Nowhere),
@@ -245,6 +247,7 @@ class AstCompileTest {
                                                 List(Int32Value(12)),
                                                 quuxBlock.name,
                                                 List(Int32Value(34)),
+                                                Nil,
                                                 loc)
     testDefinition(expected, ast)
   }
@@ -259,6 +262,7 @@ class AstCompileTest {
     val expected = FloatExtendInstruction(foo + bar,
                                           UnitValue(),
                                           UnitType(),
+                                          Nil,
                                           loc)
     testDefinition(expected, ast)
   }
@@ -273,7 +277,7 @@ class AstCompileTest {
     val expected = FloatToIntegerInstruction(foo + bar,
                                              UnitValue(),
                                              UnitType(),
-                                             loc)
+                                             Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -287,6 +291,7 @@ class AstCompileTest {
     val expected = FloatTruncateInstruction(foo + bar,
                                           UnitValue(),
                                           UnitType(),
+                                          Nil,
                                           loc)
     testDefinition(expected, ast)
   }
@@ -297,7 +302,7 @@ class AstCompileTest {
     val ast = AstHeapAllocateInstruction(bar,
                                          AstPointerType(AstUnitType(Nowhere), Nowhere),
                                          loc)
-    val expected = HeapAllocateInstruction(foo + bar, PointerType(UnitType()), loc)
+    val expected = HeapAllocateInstruction(foo + bar, PointerType(UnitType()), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -311,6 +316,7 @@ class AstCompileTest {
     val expected = HeapAllocateArrayInstruction(foo + bar,
                                                 UnitValue(),
                                                 UnitType(),
+                                                Nil,
                                                 loc)
     testDefinition(expected, ast)
   }
@@ -325,6 +331,7 @@ class AstCompileTest {
     val expected = IndirectCallInstruction(foo + bar, 
                                            DefinedValue(baz),
                                            List(Int32Value(12)),
+                                           Nil,
                                            loc)
     testDefinition(expected, ast)
   }
@@ -339,6 +346,7 @@ class AstCompileTest {
     val expected = IntegerSignExtendInstruction(foo + bar,
                                                 UnitValue(),
                                                 UnitType(),
+                                                Nil,
                                                 loc)
     testDefinition(expected, ast)
   }
@@ -353,6 +361,7 @@ class AstCompileTest {
     val expected = IntegerToFloatInstruction(foo + bar,
                                              UnitValue(),
                                              UnitType(),
+                                             Nil,
                                              loc)
     testDefinition(expected, ast)
   }
@@ -367,6 +376,7 @@ class AstCompileTest {
     val expected = IntegerTruncateInstruction(foo + bar,
                                               UnitValue(),
                                               UnitType(),
+                                              Nil,
                                               loc)
     testDefinition(expected, ast)
   }
@@ -381,6 +391,7 @@ class AstCompileTest {
     val expected = IntegerZeroExtendInstruction(foo + bar,
                                                 UnitValue(),
                                                 UnitType(),
+                                                Nil,
                                                 loc)
     testDefinition(expected, ast)
   }
@@ -389,7 +400,7 @@ class AstCompileTest {
   def loadInst {
     ctx.names.push(foo)
     val ast = AstLoadInstruction(bar, AstUnitValue(Nowhere), loc)
-    val expected = LoadInstruction(foo + bar, UnitValue(), loc)
+    val expected = LoadInstruction(foo + bar, UnitValue(), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -403,6 +414,7 @@ class AstCompileTest {
     val expected = LoadElementInstruction(foo + bar,
                                           UnitValue(), 
                                           List(UnitValue(), UnitValue()),
+                                          Nil,
                                           loc)
     testDefinition(expected, ast)
   }
@@ -419,6 +431,7 @@ class AstCompileTest {
                                                  RelationalOperator.EQUAL,
                                                  Int32Value(12),
                                                  Int32Value(34),
+                                                 Nil,
                                                  loc)
     testDefinition(expected, ast)
   }
@@ -429,7 +442,7 @@ class AstCompileTest {
     val ast = AstStackAllocateInstruction(bar, 
                                           AstPointerType(AstUnitType(Nowhere), Nowhere), 
                                           loc)
-    val expected = StackAllocateInstruction(foo + bar, PointerType(UnitType()), loc)
+    val expected = StackAllocateInstruction(foo + bar, PointerType(UnitType()), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -443,7 +456,7 @@ class AstCompileTest {
     val expected = StackAllocateArrayInstruction(foo + bar,
                                                  UnitValue(),
                                                  UnitType(),
-                                                 loc)
+                                                 Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -459,7 +472,7 @@ class AstCompileTest {
     val expected = StaticCallInstruction(foo + bar,
                                          baz,
                                          List(Int32Value(12), Int32Value(34)),
-                                         loc)
+                                         Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -467,7 +480,7 @@ class AstCompileTest {
   def storeInst {
     ctx.names.push(foo)
     val ast = AstStoreInstruction(bar, AstUnitValue(Nowhere), AstUnitValue(Nowhere), loc)
-    val expected = StoreInstruction(foo + bar, UnitValue(), UnitValue(), loc)
+    val expected = StoreInstruction(foo + bar, UnitValue(), UnitValue(), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -483,7 +496,7 @@ class AstCompileTest {
                                            UnitValue(),
                                            List(UnitValue(), UnitValue()),
                                            UnitValue(),
-                                           loc)
+                                           Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -491,7 +504,7 @@ class AstCompileTest {
   def returnInst {
     ctx.names.push(foo)
     val ast = AstReturnInstruction(bar, AstUnitValue(Nowhere), loc)
-    val expected = ReturnInstruction(foo + bar, UnitValue(Nowhere), loc)
+    val expected = ReturnInstruction(foo + bar, UnitValue(Nowhere), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -499,7 +512,7 @@ class AstCompileTest {
   def upcastInst {
     ctx.names.push(foo)
     val ast = AstUpcastInstruction(bar, AstNullValue(Nowhere), AstNullType(Nowhere), loc)
-    val expected = UpcastInstruction(foo + bar, NullValue(), NullType(), loc)
+    val expected = UpcastInstruction(foo + bar, NullValue(), NullType(), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -510,7 +523,7 @@ class AstCompileTest {
                        List(AstParameter(baz, AstUnitType(Nowhere), Nowhere)),
                        List(AstReturnInstruction(quux, AstUnitValue(Nowhere), Nowhere)),
                        loc)
-    val expected = Block(foo + bar, List(foo + bar + baz), List(foo + bar + quux), loc)
+    val expected = Block(foo + bar, List(foo + bar + baz), List(foo + bar + quux), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -527,7 +540,7 @@ class AstCompileTest {
                                                                   Nowhere)),
                                         Nowhere)),
                           loc)
-    val expected = Function(foo, List(foo + b), UnitType(), List(foo + bar), loc)
+    val expected = Function(foo, List(foo + b), UnitType(), List(foo + bar), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -535,7 +548,7 @@ class AstCompileTest {
   def field {
     ctx.names.push(foo)
     val ast = AstField(bar, AstUnitType(Nowhere), loc)
-    val expected = Field(foo + bar, UnitType(), loc)
+    val expected = Field(foo + bar, UnitType(), Nil, loc)
     testDefinition(expected, ast)
   }
 
@@ -545,7 +558,7 @@ class AstCompileTest {
                         List(AstField(bar, AstUnitType(Nowhere), Nowhere)),
                         loc)
     ctx.addDefn(Field(foo + bar, UnitType()))
-    val expected = Struct(foo, List(foo + bar), loc)
+    val expected = Struct(foo, List(foo + bar), Nil, loc)
     testDefinition(expected, ast)
   }
 

@@ -153,8 +153,8 @@ final case class DefinedValue(value: Symbol, override location: Location = Nowhe
 {
   def ty(module: Module) = {
     module.getDefn(value) match {
-      case Some(Global(_, t, _, _)) => PointerType(t, location)
-      case Some(Parameter(_, t, _)) => t
+      case Some(Global(_, t, _, _, _)) => PointerType(t, location)
+      case Some(Parameter(_, t, _, _)) => t
       case Some(inst: Instruction) => inst.ty(module)
       case _ => throw new RuntimeException("symbol " + value + " cannot be used as a value")
     }

@@ -53,6 +53,8 @@ final class Module(val name:         Symbol                  = Symbol("default")
 
   def getDefn(name: Symbol) = definitions.get(name)
 
+  def getAnnotation(name: Symbol) = definitions(name).asInstanceOf[Annotation]
+  def getAnnotations(names: List[Symbol]) = names.map(getAnnotation _)
   def getBlock(name: Symbol) = definitions(name).asInstanceOf[Block]
   def getBlocks(names: List[Symbol]) = names.map(getBlock _)
   def getField(name: Symbol) = definitions(name).asInstanceOf[Field]
@@ -162,7 +164,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
   def validateIsLinked: List[CompileException] = {
     def isDefined(defn: Definition) = {
       defn match {
-        case Function(_, _, _, Nil, _) => false
+        case Function(_, _, _, Nil, _, _) => false
         case _ => true
       }
     }

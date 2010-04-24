@@ -174,8 +174,8 @@ object Linker {
 
   def isStrong(defn: Definition): Boolean = {
     defn match {
-      case Function(_, _, _, Nil, _) => false
-      case Global(_, _, None, _) => false
+      case f: Function if f.blocks.isEmpty => false
+      case g: Global if !g.value.isDefined => false
       case _: Parameter => false
       case _ => true
     }

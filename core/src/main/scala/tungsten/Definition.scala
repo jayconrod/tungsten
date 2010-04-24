@@ -2,12 +2,36 @@ package tungsten
 
 import Utilities._
 
-abstract class Definition(val name: Symbol, location: Location = Nowhere) 
+abstract class Definition(val name: Symbol, 
+                          val annotations: List[AnnotationValue],
+                          location: Location = Nowhere) 
   extends TungstenObject(location)
 {
-  def validateComponents(module: Module): List[CompileException]
+  def validateComponents(module: Module): List[CompileException] = {
+    validateComponentsOfClass[Annotation](module, annotations.map(_.name)) ++
+      annotations.flatMap(_.fields).flatMap(_.validateComponents(module))
+  }
 
-  def validate(module: Module): List[CompileException]
+  def validate(module: Module): List[CompileException] = {
+    def validateFieldCount(av: AnnotationValue) = {
+      val ann = module.getAnnotation(av.name)
+      val given = av.fields.size
+      val required = ann.fields.size
+      if (given != required)
+        List(AnnotationFieldCountException(ann.name, given, required, location))
+      else
+        Nil
+    }
+
+    def validateFieldTypes(av: AnnotationValue) = {
+      val ann = module.getAnnotation(av.name)
+      val fieldTypes = module.getFields(ann.fields).map(_.ty)
+      av.fields.zip(fieldTypes).flatMap { vt => vt._1.validateType(vt._2, module) }
+    }
+
+    stage(annotations.flatMap(validateFieldCount _),
+          annotations.flatMap(validateFieldTypes _))
+  }
 
   protected def validateComponentsOfClass[T <: Definition](module: Module,
                                                            componentNames: List[Symbol])

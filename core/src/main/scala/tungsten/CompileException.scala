@@ -6,6 +6,14 @@ sealed abstract class CompileException(message: String, location: Location) exte
   }
 }
 
+final case class AnnotationFieldCountException(annotationName: Symbol,
+                                               given: Int,
+                                               required: Int,
+                                               location: Location)
+  extends CompileException("annotation %s was given %d fields; %d are required".
+                             format(annotationName, given, required),
+                           location)
+
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 

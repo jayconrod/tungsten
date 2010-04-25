@@ -6,9 +6,18 @@ abstract class Definition(val name: Symbol,
                           val annotations: List[AnnotationValue])
 {
   def getLocation: Location = {
-    val locationAnnotation = annotations.find(_.name == "tungsten.Location")
+    val locationAnnotation = annotations.find(_.name == symbolFromString("tungsten.Location"))
     locationAnnotation match {
-      // TODO: extract location value when StringValue is implemented
+      case Some(AnnotationValue(_, fields)) => fields match {
+        case List(StringValue(filename),
+                  IntValue(beginLine, 32),
+                  IntValue(beginColumn, 32),
+                  IntValue(endLine, 32),
+                  IntValue(endColumn, 32)) => {
+          Location(filename, beginLine.toInt, beginColumn.toInt, endLine.toInt, endColumn.toInt)
+        }
+        case _ => Nowhere
+      }
       case _ => Nowhere
     }
   }

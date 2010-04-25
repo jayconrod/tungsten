@@ -30,7 +30,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
 
   def add(defn: Definition): Module = {
     definitions.get(defn.name) match {
-      case Some(d) => throw new RedefinedSymbolException(defn.name, defn.location, d.location)
+      case Some(d) => throw new RedefinedSymbolException(defn.name, defn.getLocation, d.getLocation)
       case None => copyWith(definitions = definitions + (defn.name -> defn))
     }
   }
@@ -103,9 +103,9 @@ final class Module(val name:         Symbol                  = Symbol("default")
       getDefn("main") match {
         case Some(main: Function) => {
           if (!main.parameters.isEmpty)
-            List(MainNonEmptyParametersException(main.location))
-          else if (main.returnType != UnitType())
-            List(MainReturnTypeException(main.location))
+            List(MainNonEmptyParametersException(main.getLocation))
+          else if (main.returnType != UnitType)
+            List(MainReturnTypeException(main.getLocation))
           else
             Nil
         }
@@ -118,7 +118,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
         val fieldTypes = struct.fields.map(getField(_).ty)
         val structDeps = fieldTypes.flatMap { fty =>
           fty match {
-            case StructType(structName, _) => Some(structName)
+            case StructType(structName) => Some(structName)
             case _ => None
           }
         }
@@ -138,7 +138,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
       val sccDependencyGraph = dependencyGraph.findSCCs
       for (scc <- sccDependencyGraph.nodes;
            if sccDependencyGraph.adjacent(scc).contains(scc);
-           val location = getStruct(scc.head).location)
+           val location = getStruct(scc.head).getLocation)
         yield CyclicStructException(scc.toList, location)
     }
 
@@ -164,7 +164,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
   def validateIsLinked: List[CompileException] = {
     def isDefined(defn: Definition) = {
       defn match {
-        case Function(_, _, _, Nil, _, _) => false
+        case f: Function if f.blocks == Nil => false
         case _ => true
       }
     }
@@ -185,7 +185,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
       case Some(defn) => {
         List(InappropriateSymbolException(name,
                                           location,
-                                          defn.location,
+                                          location,
                                           humanReadableClassName[T]))
       }
       case None => List(UndefinedSymbolException(name, location))

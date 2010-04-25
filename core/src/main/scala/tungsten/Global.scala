@@ -5,28 +5,27 @@ import Utilities._
 final case class Global(override name: Symbol,
                         ty: Type,
                         value: Option[Value],
-                        override annotations: List[AnnotationValue] = Nil,
-                        override location: Location = Nowhere)
-  extends Definition(name, annotations, location)
+                        override annotations: List[AnnotationValue] = Nil)
+  extends Definition(name, annotations)
 {
   def ty(module: Module): Type = ty
 
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
-      ty.validate(module) ++ 
-      value.toList.flatMap(_.validateComponents(module))
+      ty.validate(module, getLocation) ++ 
+      value.toList.flatMap(_.validateComponents(module, getLocation))
   }
 
   override def validate(module: Module) = {
     def validateValueLiteral = {
       value match {
-        case Some(DefinedValue(_, _)) => List(GlobalValueNonLiteralException(name, location))
+        case Some(_: DefinedValue) => List(GlobalValueNonLiteralException(name, getLocation))
         case _ => Nil
       }
     }
 
     stage(super.validate(module),
           validateValueLiteral,
-          value.toList.flatMap(_.validateType(ty, module)))
+          value.toList.flatMap(_.validateType(ty, module, getLocation)))
   }
 }

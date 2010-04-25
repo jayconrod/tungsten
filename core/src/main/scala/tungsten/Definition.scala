@@ -3,12 +3,19 @@ package tungsten
 import Utilities._
 
 abstract class Definition(val name: Symbol, 
-                          val annotations: List[AnnotationValue],
-                          val location: Location = Nowhere) 
+                          val annotations: List[AnnotationValue])
 {
+  def getLocation: Location = {
+    val locationAnnotation = annotations.find(_.name == "tungsten.Location")
+    locationAnnotation match {
+      // TODO: extract location value when StringValue is implemented
+      case _ => Nowhere
+    }
+  }
+
   def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[Annotation](module, annotations.map(_.name)) ++
-      annotations.flatMap(_.fields).flatMap(_.validateComponents(module))
+      annotations.flatMap(_.fields).flatMap(_.validateComponents(module, getLocation))
   }
 
   def validate(module: Module): List[CompileException] = {
@@ -17,7 +24,7 @@ abstract class Definition(val name: Symbol,
       val given = av.fields.size
       val required = ann.fields.size
       if (given != required)
-        List(AnnotationFieldCountException(ann.name, given, required, location))
+        List(AnnotationFieldCountException(ann.name, given, required, getLocation))
       else
         Nil
     }
@@ -25,7 +32,7 @@ abstract class Definition(val name: Symbol,
     def validateFieldTypes(av: AnnotationValue) = {
       val ann = module.getAnnotation(av.name)
       val fieldTypes = module.getFields(ann.fields).map(_.ty)
-      av.fields.zip(fieldTypes).flatMap { vt => vt._1.validateType(vt._2, module) }
+      av.fields.zip(fieldTypes).flatMap { vt => vt._1.validateType(vt._2, module, getLocation) }
     }
 
     stage(annotations.flatMap(validateFieldCount _),
@@ -46,9 +53,9 @@ abstract class Definition(val name: Symbol,
         case Nil => errors
         case n :: ns => {
           val newErrors = if (seen.contains(n))
-            DuplicateComponentException(name, n, className, location) :: errors
+            DuplicateComponentException(name, n, className, getLocation) :: errors
           else
-            module.validateName[T](n, location) ++ errors
+            module.validateName[T](n, getLocation) ++ errors
           check(ns, seen + n, newErrors)
         }
       }
@@ -70,7 +77,7 @@ abstract class Definition(val name: Symbol,
   {
     val className = humanReadableClassName[T]
     if (componentNames.isEmpty)
-      List(EmptyComponentsException(name, className, location))
+      List(EmptyComponentsException(name, className, getLocation))
     else
       validateComponentsOfClass[T](module, componentNames)
   }

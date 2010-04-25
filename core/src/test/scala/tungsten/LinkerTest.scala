@@ -32,11 +32,11 @@ class LinkerTest {
 
   @Test
   def isStrongTest {
-    assertFalse(isStrong(Function("f", Nil, UnitType(), Nil)))
-    assertTrue(isStrong(Function("f", Nil, UnitType(), List("p"))))
-    assertFalse(isStrong(Global("g", UnitType(), None)))
-    assertTrue(isStrong(Global("g", UnitType(), Some(UnitValue()))))
-    assertFalse(isStrong(Parameter("p", UnitType())))
+    assertFalse(isStrong(Function("f", Nil, UnitType, Nil)))
+    assertTrue(isStrong(Function("f", Nil, UnitType, List("p"))))
+    assertFalse(isStrong(Global("g", UnitType, None)))
+    assertTrue(isStrong(Global("g", UnitType, Some(UnitValue))))
+    assertFalse(isStrong(Parameter("p", UnitType)))
     assertTrue(isStrong(Struct("s", Nil)))
   }
 

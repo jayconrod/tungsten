@@ -17,17 +17,6 @@ object AstParser extends Parsers with ImplicitConversions {
     }
   }
 
-  def location: Parser[Location] = {
-    val locParser = elem("location", _.isInstanceOf[LocationToken]) ^^ {
-      case LocationToken(loc) => loc
-      case _ => throw new AssertionError
-    }
-    opt(locParser) ^^ {
-      case Some(l) => l
-      case None => Nowhere
-    }
-  }
-
   def version: Parser[Version] = {
     elem("version", _.isInstanceOf[VersionToken]) ^^ { _.asInstanceOf[VersionToken].version }
   }
@@ -50,38 +39,36 @@ object AstParser extends Parsers with ImplicitConversions {
       def size: Parser[Option[Int]] = {
         accept("int", { case IntToken(i) => Some(i) }) | ("?" ^^^ None)
       }
-      "[" ~> (size <~ "*") ~ (ty <~ "]") ~ location ^^ { 
-        case s ~ t ~ l => AstArrayType(s, t, l)
+      "[" ~> (size <~ "*") ~ (ty <~ "]") ^^ { 
+        case s ~ t => AstArrayType(s, t)
       }
     }
     def elementTy: Parser[AstType] = {
-      ("#unit" ~> location ^^ { AstUnitType(_) }) |
-      ("#boolean" ~> location ^^ { AstBooleanType(_) }) |
-      ("#int8" ~> location ^^ { AstIntType(8, _) }) |
-      ("#int16" ~> location ^^ { AstIntType(16, _) }) |
-      ("#int32" ~> location ^^ { AstIntType(32, _) }) |
-      ("#int64" ~> location ^^ { AstIntType(64, _) }) |
-      ("#float32" ~> location ^^ { AstFloatType(32, _) }) |
-      ("#float64" ~> location ^^ { AstFloatType(64, _) }) |
-      ("#null" ~> location ^^ { AstNullType(_) }) |
+      ("#unit" ^^^ AstUnitType) |
+      ("#boolean" ^^^ AstBooleanType) |
+      ("#int8" ^^^ AstIntType(8)) |
+      ("#int16" ^^^ AstIntType(16)) |
+      ("#int32" ^^^ AstIntType(32)) |
+      ("#int64" ^^^ AstIntType(64)) |
+      ("#float32" ^^^ AstFloatType(32)) |
+      ("#float64" ^^^ AstFloatType(64)) |
+      ("#null" ^^^ AstNullType) |
       arrayTy |
-      (symbol ~ typeArguments ~ location ^^ { 
-        case name ~ args ~ loc => AstClassType(name, args, loc)
+      (symbol ~ typeArguments ^^ { 
+        case name ~ args => AstClassType(name, args)
       })
     }
-    def makePointerType(ety: AstType, stars: List[Location]): AstType = {
-      stars match {
-        case Nil => ety
-        case l :: ls => {
-          val pty = AstPointerType(ety, l)
-          makePointerType(pty, ls)
-        }
-        case _ => throw new RuntimeException("token must be location")
+    def makePointerType(ety: AstType, stars: Int): AstType = {
+      if (stars == 0)
+        ety
+      else {
+        val pty = AstPointerType(ety)
+        makePointerType(pty, stars - 1)
       }
     }
 
-    elementTy ~ rep("*" ~> location) ^^ { 
-      case ety ~ stars => makePointerType(ety, stars)
+    elementTy ~ rep("*") ^^ { 
+      case ety ~ stars => makePointerType(ety, stars.size)
     }   
   }
 
@@ -105,27 +92,27 @@ object AstParser extends Parsers with ImplicitConversions {
     def double = accept("double", { case Float64Token(d) => d })
 
     def array = {
-      "[" ~> (ty <~ ":") ~ (repsep(value, ",") <~"]") ~ location ^^ 
-        flatten3(AstArrayValue(_, _, _))
+      "[" ~> (ty <~ ":") ~ (repsep(value, ",") <~"]") ^^ 
+        flatten2(AstArrayValue(_, _))
     }
 
     def aggregate = {
-      "{" ~> (symbol <~ ":") ~ (repsep(value, ",") <~ "}") ~ location ^^
-        flatten3(AstAggregateValue(_, _, _))
+      "{" ~> (symbol <~ ":") ~ (repsep(value, ",") <~ "}") ^^
+        flatten2(AstAggregateValue(_, _))
     }
 
-    ("(" ~ ")" ~> location ^^ { AstUnitValue(_) }) |
-    (boolean ~ location ^^ { case b ~ l => AstBooleanValue(b, l) }) |
-    (byte ~ location ^^ flatten2(AstInt8Value(_, _))) |
-    (short ~ location ^^ flatten2(AstInt16Value(_, _))) |
-    (int ~ location ^^ flatten2(AstInt32Value(_, _))) |
-    (long ~ location ^^ flatten2(AstInt64Value(_, _))) |
-    (float ~ location ^^ flatten2(AstFloat32Value(_, _))) |
-    (double ~ location ^^ flatten2(AstFloat64Value(_, _))) |
-    ("#null" ~> location ^^ { AstNullValue(_) }) |
+    ("(" ~ ")" ^^^ AstUnitValue) |
+    (boolean ^^ { case b => AstBooleanValue(b) }) |
+    (byte ^^ { AstInt8Value(_) }) |
+    (short ^^  { AstInt16Value(_) }) |
+    (int ^^ { AstInt32Value(_) }) |
+    (long ^^ { AstInt64Value(_) }) |
+    (float ^^ { AstFloat32Value(_) }) |
+    (double ^^ { AstFloat64Value(_) }) |
+    ("#null" ^^^ AstNullValue) |
     array |
     aggregate |
-    (symbol ~ location ^^ flatten2(AstSymbolValue(_, _)))
+    (symbol ^^ { AstSymbolValue(_) })
   }
 
   def argumentList: Parser[List[AstValue]] = "(" ~> repsep(value, ",") <~ ")"
@@ -146,153 +133,153 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def addressInst: Parser[AstAddressInstruction] = {
-    "#address" ~> location ~ optName ~ value ~ ("," ~> rep1sep(value, ",")) ^^ {
-      case l ~ n ~ b ~ is => AstAddressInstruction(n, b, is, l)
+    "#address" ~> optName ~ value ~ ("," ~> rep1sep(value, ",")) ^^ {
+      case n ~ b ~ is => AstAddressInstruction(n, b, is)
     }
   }
 
   def assignInst: Parser[AstAssignInstruction] = {
-    "#assign" ~> location ~ optName ~ value ^^ {
-      case l ~ n ~ v => AstAssignInstruction(n, v, l)
+    "#assign" ~> optName ~ value ^^ {
+      case n ~ v => AstAssignInstruction(n, v)
     }
   }
 
   def binopInst: Parser[AstBinaryOperatorInstruction] = {
-    "#binop" ~> location ~ optName ~ value ~ binop ~ value ^^ {
-      case loc ~ n ~ l ~ op ~ r => AstBinaryOperatorInstruction(n, op, l, r, loc)
+    "#binop" ~> optName ~ value ~ binop ~ value ^^ {
+      case n ~ l ~ op ~ r => AstBinaryOperatorInstruction(n, op, l, r)
     }
   }
 
   def branchInst: Parser[AstBranchInstruction] = {
-    "#branch" ~> location ~ optName ~ symbol ~ argumentList ^^ {
-      case l ~ n ~ v ~ a => AstBranchInstruction(n, v, a, l)
+    "#branch" ~> optName ~ symbol ~ argumentList ^^ {
+      case n ~ v ~ a => AstBranchInstruction(n, v, a)
     }
   }
 
   def condInst: Parser[AstConditionalBranchInstruction] = {
-    "#cond" ~> location ~ optName ~ (value <~ "?") ~
+    "#cond" ~> optName ~ (value <~ "?") ~
       symbol ~ (argumentList <~ ":") ~ symbol ~ argumentList ^^ {
-      case l ~ n ~ c ~ t ~ ta ~ f ~ fa => AstConditionalBranchInstruction(n, c, t, ta, f, fa, l)
+      case  n ~ c ~ t ~ ta ~ f ~ fa => AstConditionalBranchInstruction(n, c, t, ta, f, fa)
     }
   }
 
   def floatExtendInst: Parser[AstFloatExtendInstruction] = {
-    "#fextend" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstFloatExtendInstruction(n, v, t, l)
+    "#fextend" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstFloatExtendInstruction(n, v, t)
     }
   }
 
   def floatToIntInst: Parser[AstFloatToIntegerInstruction] = {
-    "#ftoi" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstFloatToIntegerInstruction(n, v, t, l)
+    "#ftoi" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstFloatToIntegerInstruction(n, v, t)
     }
   }
 
   def floatTruncateInst: Parser[AstFloatTruncateInstruction] = {
-    "#ftruncate" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstFloatTruncateInstruction(n, v, t, l)
+    "#ftruncate" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstFloatTruncateInstruction(n, v, t)
     }
   }
 
   def heapAllocateInst: Parser[AstHeapAllocateInstruction] = {
-    "#heap" ~> location ~ (symbol <~ ":") ~ ty ^^ {
-      case l ~ n ~ t => AstHeapAllocateInstruction(n, t, l)
+    "#heap" ~> (symbol <~ ":") ~ ty ^^ {
+      case n ~ t => AstHeapAllocateInstruction(n, t)
     }
   }
 
   def heapAllocateArrayInst: Parser[AstHeapAllocateArrayInstruction] = {
-    "#heaparray" ~> location ~ optName ~ value ~ ("*" ~> ty) ^^ {
-      case l ~ n ~ c ~ t => AstHeapAllocateArrayInstruction(n, c, t, l)
+    "#heaparray" ~> optName ~ value ~ ("*" ~> ty) ^^ {
+      case n ~ c ~ t => AstHeapAllocateArrayInstruction(n, c, t)
     }
   }
 
   def intSignExtendInst: Parser[AstIntegerSignExtendInstruction] = {
-    "#isextend" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstIntegerSignExtendInstruction(n, v, t, l)
+    "#isextend" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstIntegerSignExtendInstruction(n, v, t)
     }
   }
 
   def intToFloatInst: Parser[AstIntegerToFloatInstruction] = {
-    "#itof" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstIntegerToFloatInstruction(n, v, t, l)
+    "#itof" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstIntegerToFloatInstruction(n, v, t)
     }
   }
 
   def intTruncateInst: Parser[AstIntegerTruncateInstruction] = {
-    "#itruncate" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstIntegerTruncateInstruction(n, v, t, l)
+    "#itruncate" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstIntegerTruncateInstruction(n, v, t)
     }
   }
 
   def intZeroExtendInst: Parser[AstIntegerZeroExtendInstruction] = {
-    "#izextend" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstIntegerZeroExtendInstruction(n, v, t, l)
+    "#izextend" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstIntegerZeroExtendInstruction(n, v, t)
     }
   }
 
   def intrinsicCallInst: Parser[AstIntrinsicCallInstruction] = {
-    "#intrinsic" ~> location ~ optName ~ symbol ~ argumentList ^^ {
-      case l ~ n ~ t ~ a => AstIntrinsicCallInstruction(n, t, a, l)
+    "#intrinsic" ~> optName ~ symbol ~ argumentList ^^ {
+      case n ~ t ~ a => AstIntrinsicCallInstruction(n, t, a)
     }
   }
 
   def loadInst: Parser[AstLoadInstruction] = {
-    "#load" ~> location ~ optName ~ ("*" ~> value) ^^ {
-      case l ~ n ~ v => AstLoadInstruction(n, v, l)
+    "#load" ~> optName ~ ("*" ~> value) ^^ {
+      case n ~ v => AstLoadInstruction(n, v)
     }
   }
 
   def loadElementInst: Parser[AstLoadElementInstruction] = {
-    "#loadelement" ~> location ~ optName ~ value ~ ("," ~> rep1sep(value, ",")) ^^ {
-      case l ~ n ~ b ~ is => AstLoadElementInstruction(n, b, is, l)
+    "#loadelement" ~> optName ~ value ~ ("," ~> rep1sep(value, ",")) ^^ {
+      case n ~ b ~ is => AstLoadElementInstruction(n, b, is)
     }
   }
 
   def relopInst: Parser[AstRelationalOperatorInstruction] = {
-    "#relop" ~> location ~ optName ~ value ~ relop ~ value ^^ {
-      case loc ~ n ~ l ~ op ~ r => AstRelationalOperatorInstruction(n, op, l, r, loc)
+    "#relop" ~> optName ~ value ~ relop ~ value ^^ {
+      case n ~ l ~ op ~ r => AstRelationalOperatorInstruction(n, op, l, r)
     }
   }
 
   def returnInst: Parser[AstReturnInstruction] = {
-    "#return" ~> location ~ optName ~ value ^^ { 
-      case l ~ n ~ v => AstReturnInstruction(n, v, l) }
+    "#return" ~> optName ~ value ^^ { 
+      case n ~ v => AstReturnInstruction(n, v) }
   }
 
   def stackAllocateInst: Parser[AstStackAllocateInstruction] = {
-    "#stack" ~> location ~ (symbol <~ ":") ~ ty ^^ {
-      case l ~ n ~ t => AstStackAllocateInstruction(n, t, l)
+    "#stack" ~> (symbol <~ ":") ~ ty ^^ {
+      case n ~ t => AstStackAllocateInstruction(n, t)
     }
   }
 
   def stackAllocateArrayInst: Parser[AstStackAllocateArrayInstruction] = {
-    "#stackarray" ~> location ~ optName ~ value ~ ("*" ~> ty) ^^ {
-      case l ~ n ~ c ~ t => AstStackAllocateArrayInstruction(n, c, t, l)
+    "#stackarray" ~> optName ~ value ~ ("*" ~> ty) ^^ {
+      case n ~ c ~ t => AstStackAllocateArrayInstruction(n, c, t)
     }
   }
 
   def staticCallInst: Parser[AstStaticCallInstruction] = {
-    "#scall" ~> location ~ optName ~ symbol ~ argumentList ^^ {
-      case l ~ n ~ t ~ a => AstStaticCallInstruction(n, t, a, l)
+    "#scall" ~> optName ~ symbol ~ argumentList ^^ {
+      case n ~ t ~ a => AstStaticCallInstruction(n, t, a)
     }
   }
 
   def storeInst: Parser[AstStoreInstruction] = {
-    "#store" ~> location ~ optName ~ ("*" ~> value) ~ ("<-" ~> value) ^^ {
-      case l ~ n ~ p ~ v => AstStoreInstruction(n, p, v, l)
+    "#store" ~> optName ~ ("*" ~> value) ~ ("<-" ~> value) ^^ {
+      case n ~ p ~ v => AstStoreInstruction(n, p, v)
     }
   }
 
   def storeElementInst: Parser[AstStoreElementInstruction] = {
-    "#storeelement" ~> location ~ optName ~ value ~ ("," ~> rep1sep(value, ",")) ~ 
+    "#storeelement" ~> optName ~ value ~ ("," ~> rep1sep(value, ",")) ~ 
       ("<-" ~> value) ^^ {
-        case l ~ n ~ b ~ is ~ v => AstStoreElementInstruction(n, b, is, v, l)
+        case n ~ b ~ is ~ v => AstStoreElementInstruction(n, b, is, v)
       }
   }
 
   def upcastInst: Parser[AstUpcastInstruction] = {
-    "#upcast" ~> location ~ optName ~ value ~ (":" ~> ty) ^^ {
-      case l ~ n ~ v ~ t => AstUpcastInstruction(n, v, t, l)
+    "#upcast" ~> optName ~ value ~ (":" ~> ty) ^^ {
+      case n ~ v ~ t => AstUpcastInstruction(n, v, t)
     }
   }
 
@@ -325,7 +312,7 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def parameter: Parser[AstParameter] = {
-    symbol ~ location ~ ":" ~ ty ^^ { case name ~ loc ~ _ ~ t => AstParameter(name, t, loc) }
+    (symbol <~ ":") ~ ty ^^ { case name ~ t => AstParameter(name, t) }
   }
 
   def parameterList: Parser[List[AstParameter]] = {
@@ -337,34 +324,34 @@ object AstParser extends Parsers with ImplicitConversions {
   }
 
   def block: Parser[AstBlock] = {
-    "#block" ~> location ~ symbol ~ parameterList ~ body(instruction) ^^ { 
-      case loc ~ name ~ params ~ body => AstBlock(name, params, body, loc)
+    "#block" ~> symbol ~ parameterList ~ body(instruction) ^^ { 
+      case name ~ params ~ body => AstBlock(name, params, body)
     }
   }
 
   def field: Parser[AstField] = {
-    "#field" ~> location ~ symbol ~ (":" ~> ty) ^^ {
-      case loc ~ name ~ ty => AstField(name, ty, loc)
+    "#field" ~> symbol ~ (":" ~> ty) ^^ {
+      case name ~ ty => AstField(name, ty)
     }
   }
 
   def global: Parser[AstGlobal] = {
-    "#global" ~ location ~ symbol ~ ":" ~ ty ~ opt("=" ~> value) ^^ { 
-      case _ ~ loc ~ name ~ _ ~ t ~ iv => AstGlobal(name, t, iv, loc)
+    "#global" ~> symbol ~ (":" ~> ty) ~ opt("=" ~> value) ^^ { 
+      case name ~ t ~ iv => AstGlobal(name, t, iv)
     }
   }
 
   def function: Parser[AstFunction] = {
-    "#function" ~> location ~ symbol ~ parameterList ~ (":" ~> ty) ~ body(block) ^^ {
-        case loc ~ name ~ params ~ retTy ~ blocks => {
-          AstFunction(name, retTy, params, blocks, loc)
+    "#function" ~> symbol ~ parameterList ~ (":" ~> ty) ~ body(block) ^^ {
+        case name ~ params ~ retTy ~ blocks => {
+          AstFunction(name, retTy, params, blocks)
         }
       }
   }
 
   def struct: Parser[AstStruct] = {
-    "#struct" ~> location ~ symbol ~ body(field) ^^ {
-        case loc ~ name ~ fields => AstStruct(name, fields, loc)
+    "#struct" ~> symbol ~ body(field) ^^ {
+        case name ~ fields => AstStruct(name, fields)
       }
   }  
 

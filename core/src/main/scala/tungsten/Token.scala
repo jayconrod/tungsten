@@ -1,8 +1,7 @@
 package tungsten
 
-sealed abstract class Token {
-  var location: Location = Nowhere
-}
+sealed abstract class Token
+
 
 final case class ErrorToken(msg: String) extends Token {
   override def equals(that: Any) = that.isInstanceOf[ErrorToken]
@@ -10,7 +9,6 @@ final case class ErrorToken(msg: String) extends Token {
 }
 final case class ReservedToken(text: String) extends Token
 final case class SymbolToken(symbol: Symbol) extends Token
-final case class LocationToken(loc: Location) extends Token
 final case class VersionToken(version: Version) extends Token
 final case class ModuleDependencyToken(dependency: ModuleDependency) extends Token
 

@@ -6,9 +6,8 @@ final case class Function(override name: Symbol,
                           parameters: List[Symbol],
                           returnType: Type,
                           blocks: List[Symbol],
-                          override annotations: List[AnnotationValue] = Nil,
-                          override location: Location = Nowhere)
-  extends Definition(name, annotations, location)
+                          override annotations: List[AnnotationValue] = Nil)
+  extends Definition(name, annotations)
 {
   def ty(module: Module): FunctionType = {
     FunctionType(returnType, module.getParameters(parameters).map(_.ty))
@@ -18,7 +17,7 @@ final case class Function(override name: Symbol,
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
       validateComponentsOfClass[Parameter](module, parameters) ++
-      returnType.validate(module) ++
+      returnType.validate(module, getLocation) ++
       validateComponentsOfClass[Block](module, blocks)
   }
 
@@ -31,7 +30,7 @@ final case class Function(override name: Symbol,
             case Some(ret) => {          
               val retTy = ret.value.ty(module)
               if (returnType != retTy)
-                List(TypeMismatchException(retTy.toString, returnType.toString, ret.location))
+                List(TypeMismatchException(retTy.toString, returnType.toString, ret.getLocation))
               else
                 Nil
             }
@@ -50,7 +49,7 @@ final case class Function(override name: Symbol,
           if (entry.parameters.isEmpty)
             Nil
           else
-            List(EntryParametersException(name, entry.name, location))
+            List(EntryParametersException(name, entry.name, getLocation))
         }
       }
     }
@@ -61,16 +60,16 @@ final case class Function(override name: Symbol,
         block.instructions flatMap { instName =>
           val inst = module.getInstruction(instName)
           val blockNames = inst match {
-            case BranchInstruction(_, target, _, _, _) => List(target)
-            case ConditionalBranchInstruction(_, _, trueTarget, _, falseTarget, _, _, _) =>
+            case BranchInstruction(_, target, _, _) => List(target)
+            case ConditionalBranchInstruction(_, _, trueTarget, _, falseTarget, _, _) =>
               List(trueTarget, falseTarget)
             case _ => Nil
           }
           blockNames flatMap { n =>
             if (!blocks.contains(n)) {
               module.getDefn(n) match {
-                case Some(_) => List(NonLocalBranchException(name, n, inst.location))
-                case None => List(UndefinedSymbolException(n, inst.location))
+                case Some(_) => List(NonLocalBranchException(name, n, inst.getLocation))
+                case None => List(UndefinedSymbolException(n, inst.getLocation))
               }
             } else
               Nil
@@ -89,7 +88,7 @@ final case class Function(override name: Symbol,
           case i :: is => {
             val instNames = i.operandSymbols.toSet
             val invalidNames = instNames &~ validNames
-            val newErrors = invalidNames.toList.map(InstructionOrderException(_, i.location))
+            val newErrors = invalidNames.toList.map(InstructionOrderException(_, i.getLocation))
             checkOrder(is, validNames + i.name, newErrors ++ errors)
           }
         }

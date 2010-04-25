@@ -28,10 +28,8 @@ object AstLexer extends Parsers {
 
   def whitespace = rep(whitespaceChar)
 
-  def errorToken(msg: String, loc: Location) = {
-    val e = ErrorToken(msg)
-    e.location = loc
-    e
+  def errorToken(msg: String) = {
+    ErrorToken(msg)
   }
 
   def reserved: Parser[Token] = {
@@ -127,21 +125,6 @@ object AstLexer extends Parsers {
     }
   }
 
-  def location: Parser[Location] = {
-    val filename: Parser[String] = {
-      val filenameChar: Parser[Char] = elem("letter", _.isLetter) |
-                                       elem("digit", _.isDigit) |
-                                       elem('_') | elem('-') | elem('.') | elem('/')
-      rep1(filenameChar) ^^ { _.mkString }
-    }
-    (elem('<') ~> filename) ~ 
-      (elem(':') ~> int) ~ (elem('.') ~> int) ~
-      (elem('-') ~> int) ~ (elem('.') ~> int) <~ elem('>') ^^ {
-      case filename ~ beginLine ~ beginColumn ~ endLine ~ endColumn =>
-        Location(filename, beginLine, beginColumn, endLine, endColumn)
-      }
-  }
-
   def version: Parser[Version] = {
     elem('#') ~> rep1sep(rep1(digit), elem('.')) ^^ { (parts: List[List[Char]]) =>
       val elements = parts.map(_.mkString.toInt)
@@ -169,7 +152,6 @@ object AstLexer extends Parsers {
   }
 
   def token: Parser[Token] = {
-    (location ^^ { LocationToken(_) }) | 
     (dependency ^^ { ModuleDependencyToken(_) }) |
     (symbol ^^ { SymbolToken(_) }) | 
     float |
@@ -192,24 +174,16 @@ object AstLexer extends Parsers {
   class Scanner(filename: String, in: Reader[Elem]) extends Reader[Token] {
     def this(in: String) = this("<UNKNOWN>", new CharArrayReader(in.toCharArray))
 
-    implicit private def locationFromPosition(pos: Position): Location = {
-      new Location(filename, pos.line, pos.column, pos.line, pos.column)
-    }
-
     private val (tok, rest1, rest2) = whitespace(in) match {
       case Success(_, in1) => {
         token(in1) match {
           case Success(tok, in2) => {
-            val endLoc = new Location(filename, in2.pos.line, in2.pos.column - 1)
-            tok.location = in1.pos combine endLoc
             (tok, in1, in2)
           }
-          case ns: NoSuccess => {
-            (errorToken(ns.msg, ns.next.pos), ns.next, skip(ns.next))
-          }
+          case ns: NoSuccess => (ErrorToken(ns.msg), ns.next, skip(ns.next))
         }
       }
-      case ns: NoSuccess => (errorToken(ns.msg, ns.next.pos), ns.next, skip(ns.next))
+      case ns: NoSuccess => (ErrorToken(ns.msg), ns.next, skip(ns.next))
     }
     private def skip(in: Reader[Elem]) = if (in.atEnd) in else in.rest
 

@@ -4,25 +4,24 @@ import org.junit.Test
 import org.junit.Assert._
 
 class ValueTest {
-  val loc = Location("foo.w", 1, 2, 3, 4)
   var module = new Module
 
   @Test
   def unit {
-    assertEquals(UnitType(), UnitValue(loc).ty(module))
+    assertEquals(UnitType, UnitValue.ty(module))
   }
 
   @Test
   def int {
-    assertEquals(IntType(32), Int32Value(12, loc).ty(module))
+    assertEquals(IntType(32), Int32Value(12).ty(module))
   }
 
   @Test
   def global {
     val foo = new Symbol("foo")
-    val global = Global(foo, UnitType(), Some(UnitValue()))
+    val global = Global(foo, UnitType, Some(UnitValue))
     module = module.add(global)
 
-    assertEquals(PointerType(UnitType()), DefinedValue(foo).ty(module))
+    assertEquals(PointerType(UnitType), DefinedValue(foo).ty(module))
   }
 }

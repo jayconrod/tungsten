@@ -156,11 +156,6 @@ class AstLexerTest {
   }
 
   @Test
-  def location {
-    test("<foo/bar.w:12.34-56.78>", AstLexer.location, Location("foo/bar.w", 12, 34, 56, 78))
-  }
-
-  @Test
   def functionTokens {
     val program = "#function"
     val tokens = List(ReservedToken("#function"))

@@ -87,9 +87,9 @@ class ValidationTest {
   @Test
   def duplicateComponent {
     val (instName, blockName) = (new Symbol("ret"), new Symbol("block"))
-    val inst = ReturnInstruction(instName, UnitValue())
+    val inst = ReturnInstruction(instName, UnitValue)
     val block = Block(blockName, Nil, List(instName, instName))
-    val function = Function(new Symbol("main"), Nil, UnitType(), List(blockName))
+    val function = Function(new Symbol("main"), Nil, UnitType, List(blockName))
     var module = (new Module).add(inst, block, function)
     containsError[DuplicateComponentException](module.validate)
   }
@@ -109,8 +109,8 @@ class ValidationTest {
   @Test
   def nonLiteralGlobal {
     val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
-    val gfoo = Global(foo, UnitType(), Some(UnitValue()))
-    val gbar = Global(bar, UnitType(), Some(DefinedValue(foo)))
+    val gfoo = Global(foo, UnitType, Some(UnitValue))
+    val gbar = Global(bar, UnitType, Some(DefinedValue(foo)))
     val module = (new Module).add(gfoo, gbar)
     containsError[GlobalValueNonLiteralException](gbar.validate(module))
   }
@@ -407,7 +407,7 @@ class ValidationTest {
 
   @Test
   def duplicateStructField {
-    val field = Field("foo", UnitType())
+    val field = Field("foo", UnitType)
     val struct = Struct("bar", List(field.name, field.name))
     val module = (new Module).add(field, struct)
     val errors = struct.validateComponents(module)
@@ -494,9 +494,9 @@ class ValidationTest {
   @Test
   def nonExistantStructValue {
     val i1 = AssignInstruction("i1", StructValue("A", Nil))
-    val i2 = ReturnInstruction("i2", UnitValue())
+    val i2 = ReturnInstruction("i2", UnitValue)
     val block = Block("main.entry", Nil, List(i1, i2).map(_.name))
-    val function = Function("main", Nil, UnitType(), List(block.name))
+    val function = Function("main", Nil, UnitType, List(block.name))
     val module = (new Module).add(i1, i2, block, function)
     val errors = module.validate
     containsError[UndefinedSymbolException](errors)

@@ -5,13 +5,12 @@ import Utilities._
 final case class Block(override name: Symbol,
                        parameters: List[Symbol],
                        instructions: List[Symbol],
-                       override annotations: List[AnnotationValue] = Nil,
-                       override location: Location = Nowhere)
-  extends Definition(name, annotations, location)
+                       override annotations: List[AnnotationValue] = Nil)
+  extends Definition(name, annotations)
 {
   def ty(module: Module): FunctionType = {
     val parameterTypes = module.getParameters(parameters).map(_.ty)
-    FunctionType(UnitType(location), parameterTypes)
+    FunctionType(UnitType, parameterTypes)
   }
 
   override def validateComponents(module: Module) = {
@@ -28,13 +27,13 @@ final case class Block(override name: Symbol,
           if (i.isTerminating) 
             Nil
           else
-            List(BlockTerminationException(name, location))
+            List(BlockTerminationException(name, getLocation))
         }
         case i :: is => {
           if (!i.isTerminating) 
             checkTermination(is)
           else
-            List(EarlyTerminationException(name, i.name, location))
+            List(EarlyTerminationException(name, i.name, getLocation))
         }
       }
     }

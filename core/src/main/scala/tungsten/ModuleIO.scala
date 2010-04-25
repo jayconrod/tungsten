@@ -88,13 +88,11 @@ object ModuleIO {
   /* readBinary helpers */
   class BinaryModuleReader(input: DataInputStream) {
     val strings = new ArrayBuffer[String]
-    val locations = new ArrayBuffer[Location]
     val symbols = new ArrayBuffer[Symbol]
 
     def read: Module = {
       val header = readHeader
       readTable(strings, readString)
-      readTable(locations, readLocation)
       readTable(symbols, readSymbol)
       val empty = scala.collection.immutable.Map[Symbol, Definition]()
       val definitions = (0 until symbols.size).foldLeft(empty) { (definitions, _) =>
@@ -160,77 +158,77 @@ object ModuleIO {
     def readDefinition: Definition = {
       val name = symbol
       input.readByte match {
-        case BLOCK_ID => Block(name, readList(symbol), readList(symbol), readAnnotations, location)
-        case FIELD_ID => Field(name, readType, readAnnotations, location)
+        case BLOCK_ID => Block(name, readList(symbol), readList(symbol), readAnnotations)
+        case FIELD_ID => Field(name, readType, readAnnotations)
         case FUNCTION_ID => {
-          Function(name, readList(symbol), readType, readList(symbol), readAnnotations, location)
+          Function(name, readList(symbol), readType, readList(symbol), readAnnotations)
         }
-        case GLOBAL_ID => Global(name, readType, readOption(readValue), readAnnotations, location)
-        case PARAMETER_ID => Parameter(name, readType, readAnnotations, location)
-        case STRUCT_ID => Struct(name, readList(symbol), readAnnotations, location)
+        case GLOBAL_ID => Global(name, readType, readOption(readValue), readAnnotations)
+        case PARAMETER_ID => Parameter(name, readType, readAnnotations)
+        case STRUCT_ID => Struct(name, readList(symbol), readAnnotations)
 
         case ADDRESS_INST_ID => {
-          AddressInstruction(name, readValue, readList(readValue), readAnnotations, location)
+          AddressInstruction(name, readValue, readList(readValue), readAnnotations)
         }
-        case ASSIGN_INST_ID => AssignInstruction(name, readValue, readAnnotations, location)
+        case ASSIGN_INST_ID => AssignInstruction(name, readValue, readAnnotations)
         case BINARY_OPERATOR_INST_ID => {
-          BinaryOperatorInstruction(name, readBinaryOperator, readValue, readValue, readAnnotations, location)
+          BinaryOperatorInstruction(name, readBinaryOperator, readValue, readValue, readAnnotations)
         }
         case BRANCH_INST_ID => {
-          BranchInstruction(name, symbol, readList(readValue), readAnnotations, location)
+          BranchInstruction(name, symbol, readList(readValue), readAnnotations)
         }
         case CONDITIONAL_BRANCH_INST_ID => {
           ConditionalBranchInstruction(name, readValue, symbol, readList(readValue),
-                                       symbol, readList(readValue), readAnnotations, location)
+                                       symbol, readList(readValue), readAnnotations)
         }
         case FLOAT_EXTEND_INST_ID => {
-          FloatExtendInstruction(name, readValue, readType, readAnnotations, location)
+          FloatExtendInstruction(name, readValue, readType, readAnnotations)
         }
         case FLOAT_TO_INTEGER_INST_ID => {
-          FloatToIntegerInstruction(name, readValue, readType, readAnnotations, location)
+          FloatToIntegerInstruction(name, readValue, readType, readAnnotations)
         }
         case FLOAT_TRUNCATE_INST_ID => {
-          FloatTruncateInstruction(name, readValue, readType, readAnnotations, location)
+          FloatTruncateInstruction(name, readValue, readType, readAnnotations)
         }
         case HEAP_ALLOCATE_INST_ID => {
-          HeapAllocateInstruction(name, readType, readAnnotations, location)
+          HeapAllocateInstruction(name, readType, readAnnotations)
         }
         case HEAP_ALLOCATE_ARRAY_INST_ID => {
-          HeapAllocateArrayInstruction(name, readValue, readType, readAnnotations, location)
+          HeapAllocateArrayInstruction(name, readValue, readType, readAnnotations)
         }
         case INTEGER_SIGN_EXTEND_INST_ID => {
-          IntegerSignExtendInstruction(name, readValue, readType, readAnnotations, location)
+          IntegerSignExtendInstruction(name, readValue, readType, readAnnotations)
         }
         case INTEGER_TO_FLOAT_INST_ID => {
-          IntegerToFloatInstruction(name, readValue, readType, readAnnotations, location)
+          IntegerToFloatInstruction(name, readValue, readType, readAnnotations)
         }
         case INTEGER_TRUNCATE_INST_ID => {
-          IntegerTruncateInstruction(name, readValue, readType, readAnnotations, location)
+          IntegerTruncateInstruction(name, readValue, readType, readAnnotations)
         }
         case INTEGER_ZERO_EXTEND_INST_ID => {
-          IntegerZeroExtendInstruction(name, readValue, readType, readAnnotations, location)
+          IntegerZeroExtendInstruction(name, readValue, readType, readAnnotations)
         }
         case INTRINSIC_CALL_INST_ID => {
-          IntrinsicCallInstruction(name, readIntrinsic, readList(readValue), readAnnotations, location)
+          IntrinsicCallInstruction(name, readIntrinsic, readList(readValue), readAnnotations)
         }
-        case LOAD_INST_ID => LoadInstruction(name, readValue, readAnnotations, location)
+        case LOAD_INST_ID => LoadInstruction(name, readValue, readAnnotations)
         case LOAD_ELEMENT_INST_ID => {
-          LoadElementInstruction(name, readValue, readList(readValue), readAnnotations, location)
+          LoadElementInstruction(name, readValue, readList(readValue), readAnnotations)
         }
         case RELATIONAL_OPERATOR_INST_ID => {
           RelationalOperatorInstruction(name, readRelationalOperator, 
-                                        readValue, readValue, readAnnotations, location)
+                                        readValue, readValue, readAnnotations)
         }
-        case RETURN_INST_ID => ReturnInstruction(name, readValue, readAnnotations, location)
-        case STORE_INST_ID => StoreInstruction(name, readValue, readValue, readAnnotations, location)
+        case RETURN_INST_ID => ReturnInstruction(name, readValue, readAnnotations)
+        case STORE_INST_ID => StoreInstruction(name, readValue, readValue, readAnnotations)
         case STORE_ELEMENT_INST_ID => {
-          StoreElementInstruction(name, readValue, readList(readValue), readValue, readAnnotations, location)
+          StoreElementInstruction(name, readValue, readList(readValue), readValue, readAnnotations)
         }
-        case STACK_ALLOCATE_INST_ID => StackAllocateInstruction(name, readType, readAnnotations, location)
+        case STACK_ALLOCATE_INST_ID => StackAllocateInstruction(name, readType, readAnnotations)
         case STATIC_CALL_INST_ID => {
-          StaticCallInstruction(name, symbol, readList(readValue), readAnnotations, location)
+          StaticCallInstruction(name, symbol, readList(readValue), readAnnotations)
         }
-        case UPCAST_INST_ID => UpcastInstruction(name, readValue, readType, readAnnotations, location)
+        case UPCAST_INST_ID => UpcastInstruction(name, readValue, readType, readAnnotations)
         case _ => throw new IOException("Invalid definition ID")
       }
     }
@@ -245,47 +243,47 @@ object ModuleIO {
 
     def readType: Type = {
       input.readByte match {
-        case UNIT_TYPE_ID => UnitType(location)
-        case BOOLEAN_TYPE_ID => BooleanType(location)
+        case UNIT_TYPE_ID => UnitType
+        case BOOLEAN_TYPE_ID => BooleanType
         case INT_TYPE_ID => {
           val width = input.readByte.asInstanceOf[Int]
           if (!List(8, 16, 32, 64).contains(width))
             throw new IOException("Invalid integer type")
-          IntType(width, location)
+          IntType(width)
         }
         case FLOAT_TYPE_ID => {
           val width = input.readByte
           if (!List(32, 64).contains(width))
             throw new IOException("Invalid float type")
-          FloatType(width, location)
+          FloatType(width)
         }
-        case POINTER_TYPE_ID => PointerType(readType, location)
-        case NULL_TYPE_ID => NullType(location)
+        case POINTER_TYPE_ID => PointerType(readType)
+        case NULL_TYPE_ID => NullType
         case ARRAY_TYPE_ID => {
           val size = readOption(readInt)
           size.filter(_ < 0).foreach { sz: Int => throw new IOException("Invalid array size: " + sz) }
-          ArrayType(size, readType, location)
+          ArrayType(size, readType)
         }
-        case STRUCT_TYPE_ID => StructType(symbol, location)
-        case FUNCTION_TYPE_ID => FunctionType(readType, readList(readType), location)
+        case STRUCT_TYPE_ID => StructType(symbol)
+        case FUNCTION_TYPE_ID => FunctionType(readType, readList(readType))
         case _ => throw new IOException("Invalid type ID")
       }
     }
 
     def readValue: Value = {
       input.readByte match {
-        case UNIT_VALUE_ID => UnitValue(location)
-        case BOOLEAN_VALUE_ID => BooleanValue(readBoolean, location)
-        case INT8_VALUE_ID => Int8Value(input.readByte, location)
-        case INT16_VALUE_ID => Int16Value(input.readShort, location)
-        case INT32_VALUE_ID => Int32Value(input.readInt, location)
-        case INT64_VALUE_ID => Int64Value(input.readLong, location)
-        case FLOAT32_VALUE_ID => Float32Value(input.readFloat, location)
-        case FLOAT64_VALUE_ID => Float64Value(input.readDouble, location)
-        case NULL_VALUE_ID => NullValue(location)
-        case ARRAY_VALUE_ID => ArrayValue(readType, readList(readValue), location)
-        case STRUCT_VALUE_ID => StructValue(symbol, readList(readValue), location)
-        case DEFINED_VALUE_ID => DefinedValue(symbol, location)
+        case UNIT_VALUE_ID => UnitValue
+        case BOOLEAN_VALUE_ID => BooleanValue(readBoolean)
+        case INT8_VALUE_ID => Int8Value(input.readByte)
+        case INT16_VALUE_ID => Int16Value(input.readShort)
+        case INT32_VALUE_ID => Int32Value(input.readInt)
+        case INT64_VALUE_ID => Int64Value(input.readLong)
+        case FLOAT32_VALUE_ID => Float32Value(input.readFloat)
+        case FLOAT64_VALUE_ID => Float64Value(input.readDouble)
+        case NULL_VALUE_ID => NullValue
+        case ARRAY_VALUE_ID => ArrayValue(readType, readList(readValue))
+        case STRUCT_VALUE_ID => StructValue(symbol, readList(readValue))
+        case DEFINED_VALUE_ID => DefinedValue(symbol)
         case _ => throw new IOException("Invalid value ID")
       }
     }
@@ -302,12 +300,6 @@ object ModuleIO {
       val id = readInt
       Symbol(name, id)
     }
-
-    def readLocation: Location = {
-      Location(get(strings, readInt), readInt, readInt, readInt, readInt)
-    }
-
-    def location = get(locations, readInt)
 
     def symbol = get(symbols, readInt)
 
@@ -410,13 +402,6 @@ object ModuleIO {
     }
   }    
 
-  def locationString(loc: Location): String = {
-    if (loc == Nowhere)
-      ""
-    else
-      loc.toString + " "
-  }
-
   class TextModuleWriter(module: Module, output: Writer) {
     val parentNames = new Stack[Symbol]
 
@@ -465,7 +450,7 @@ object ModuleIO {
     }
 
     def writeDefinition(block: Block) {
-      output.write(INDENT + "#block " + locationString(block.location) + localSymbol(block.name))
+      output.write(INDENT + "#block " + localSymbol(block.name))
       parentNames.push(block.name)
       writeParameterList(block.parameters)
       if (block.instructions.isEmpty)
@@ -481,12 +466,11 @@ object ModuleIO {
     }
 
     def writeDefinition(field: Field) {
-      output.write(INDENT + "#field " + locationString(field.location) + 
-        localSymbol(field.name) + ": " + field.ty + "\n")
+      output.write(INDENT + "#field " + localSymbol(field.name) + ": " + field.ty + "\n")
     }
 
     def writeDefinition(function: Function) {
-      output.write("#function " + locationString(function.location) + function.name)
+      output.write("#function " + function.name)
       parentNames.push(function.name)
       writeParameterList(function.parameters)
       output.write(": " + function.returnType)
@@ -501,8 +485,7 @@ object ModuleIO {
     }
 
     def writeDefinition(global: Global) { 
-      output.write("#global " + locationString(global.location) + global.name + 
-        ": " + global.ty)
+      output.write("#global " + global.name + ": " + global.ty)
       global.value match {
         case Some(v) => output.write(" = " + v)
         case None => ()
@@ -511,15 +494,11 @@ object ModuleIO {
     }
 
     def writeDefinition(param: Parameter) {
-      val locStr = if (param.location == Nowhere)
-        ""
-      else
-        " " + param.location + " "
-      output.write(localSymbol(param.name).toString + locStr + ": " + param.ty)
+      output.write(localSymbol(param.name).toString + ": " + param.ty)
     }
 
     def writeDefinition(struct: Struct) {
-      output.write("#struct " + locationString(struct.location) + struct.name)
+      output.write("#struct " + struct.name)
       parentNames.push(struct.name)
       if (struct.fields.isEmpty)
         output.write("\n")
@@ -538,113 +517,111 @@ object ModuleIO {
       }
       output.write(INDENT + INDENT)
       inst match {
-        case AddressInstruction(name, base, indices, _, location) => {
-          output.write("#address " + locationString(location) + localName + " = " + 
-            localValue(base) + ", ")
+        case AddressInstruction(name, base, indices, _) => {
+          output.write("#address " + localName + " = " + localValue(base) + ", ")
           writeList(indices, writeLocalValue _, ", ")
         }
-        case AssignInstruction(name, value, _, location) => {
-          output.write("#assign " + locationString(location) + localName + 
-            " = " + localValue(value))
+        case AssignInstruction(name, value, _) => {
+          output.write("#assign " + localName + " = " + localValue(value))
         }
-        case BinaryOperatorInstruction(name, operator, left, right, _, location) => {
-          output.write("#binop " + locationString(location) + localName + " = " +
+        case BinaryOperatorInstruction(name, operator, left, right, _) => {
+          output.write("#binop " + localName + " = " +
             localValue(left) + " " + operator.name + " " + localValue(right))
         }
-        case BranchInstruction(name, target, arguments, _, location) => {
-          output.write("#branch " + locationString(location) + localName + 
+        case BranchInstruction(name, target, arguments, _) => {
+          output.write("#branch " + localName + 
             " = " + target.simple)
           writeArgumentList(arguments)
         }
         case ConditionalBranchInstruction(name, condition, trueTarget, trueArgs,
-                                          falseTarget, falseArgs, _, location) =>
+                                          falseTarget, falseArgs, _) =>
         {
-          output.write("#cond " + locationString(location) + localName + " = " +
+          output.write("#cond " + localName + " = " +
             condition + " ? " + localSymbol(trueTarget))
           writeArgumentList(trueArgs)
           output.write(" : " + localSymbol(falseTarget))
           writeArgumentList(falseArgs)
         }
-        case FloatExtendInstruction(name, value, ty, _, location) => {
-          output.write("#fextend " + locationString(location) + localName + " = " + 
+        case FloatExtendInstruction(name, value, ty, _) => {
+          output.write("#fextend " + localName + " = " + 
             localValue(value) + " : " + ty)
         }
-        case FloatToIntegerInstruction(name, value, ty, _, location) => {
-          output.write("#ftoi " + locationString(location) + localName + " = " +
+        case FloatToIntegerInstruction(name, value, ty, _) => {
+          output.write("#ftoi " + localName + " = " +
             localValue(value) + " : " + ty)
         }
-        case FloatTruncateInstruction(name, value, ty, _, location) => {
-          output.write("#ftruncate " + locationString(location) + localName + " = " +
+        case FloatTruncateInstruction(name, value, ty, _) => {
+          output.write("#ftruncate " + localName + " = " +
             localValue(value) + " : " + ty)
         }
-        case HeapAllocateInstruction(name, ty, _, location) => {
-          output.write("#heap " + locationString(location) + localName + ": " + ty)
+        case HeapAllocateInstruction(name, ty, _) => {
+          output.write("#heap " + localName + ": " + ty)
         }
-        case HeapAllocateArrayInstruction(name, count, elementType, _, location) => {
-          output.write("#heaparray " + locationString(location) + localName + " = " +
+        case HeapAllocateArrayInstruction(name, count, elementType, _) => {
+          output.write("#heaparray " + localName + " = " +
             count + " * " + elementType)
         }
-        case IntegerSignExtendInstruction(name, value, ty, _, location) => {
-          output.write("#isextend " + locationString(location) + localName + " = " +
+        case IntegerSignExtendInstruction(name, value, ty, _) => {
+          output.write("#isextend " + localName + " = " +
             localValue(value) + " : " + ty)
         }
-        case IntegerToFloatInstruction(name, value, ty, _, location) => {
-          output.write("#itof " + locationString(location) + localName + " = " +
+        case IntegerToFloatInstruction(name, value, ty, _) => {
+          output.write("#itof " + localName + " = " +
             localValue(value) + " : " + ty)
         }
-        case IntegerTruncateInstruction(name, value, ty, _, location) => {
-          output.write("#itruncate " + locationString(location) + localName + " = " +
+        case IntegerTruncateInstruction(name, value, ty, _) => {
+          output.write("#itruncate " + localName + " = " +
             localValue(value) + " : " + ty)
         }
-        case IntegerZeroExtendInstruction(name, value, ty, _, location) => {
-          output.write("#izextend " + locationString(location) + localName + " = " +
+        case IntegerZeroExtendInstruction(name, value, ty, _) => {
+          output.write("#izextend " + localName + " = " +
             localValue(value) + " : " + ty)
         }
-        case IntrinsicCallInstruction(name, intrinsic, arguments, _, location) => {
-          output.write("#intrinsic " + locationString(location) + localName + 
+        case IntrinsicCallInstruction(name, intrinsic, arguments, _) => {
+          output.write("#intrinsic " + localName + 
             " = " + intrinsic.name)
           writeArgumentList(arguments)
         }
-        case LoadInstruction(name, pointer, _, location) => {
-          output.write("#load " + locationString(location) + localName + 
+        case LoadInstruction(name, pointer, _) => {
+          output.write("#load " + localName + 
             " = *" + localValue(pointer))
         }
-        case LoadElementInstruction(name, base, indices, _, location) => {
-          output.write("#loadelement " + locationString(location) + localName + " = " +
+        case LoadElementInstruction(name, base, indices, _) => {
+          output.write("#loadelement " + localName + " = " +
             base + ", ")
           writeList(indices, writeLocalValue _, ", ")
         }
-        case RelationalOperatorInstruction(name, operator, left, right, _, location) => {
-          output.write("#relop " + locationString(location) + localName + " = " + 
+        case RelationalOperatorInstruction(name, operator, left, right, _) => {
+          output.write("#relop " + localName + " = " + 
             left + " " + operator.name + " " + right)
         }
-        case ReturnInstruction(name, value, _, location) => {
-          output.write("#return " + locationString(location) + localName + 
+        case ReturnInstruction(name, value, _) => {
+          output.write("#return " + localName + 
             " = " + localValue(value))
         }
-        case StackAllocateInstruction(name, ty, _, location) => {
-          output.write("#stack " + locationString(location) + localName + ": " + ty)
+        case StackAllocateInstruction(name, ty, _) => {
+          output.write("#stack " + localName + ": " + ty)
         }
-        case StackAllocateArrayInstruction(name, count, elementType, _, location) => {
-          output.write("#stackarray " + locationString(location) + localName + " = " +
+        case StackAllocateArrayInstruction(name, count, elementType, _) => {
+          output.write("#stackarray " + localName + " = " +
             count + " * " + elementType)
         }
-        case StaticCallInstruction(name, target, arguments, _, location) => {
-          output.write("#scall " + locationString(location) + localName + " = " + target)
+        case StaticCallInstruction(name, target, arguments, _) => {
+          output.write("#scall " + localName + " = " + target)
           writeArgumentList(arguments)
         }
-        case StoreInstruction(name, pointer, value, _, location) => {
-          output.write("#store " + locationString(location) + localName + " = *" + 
+        case StoreInstruction(name, pointer, value, _) => {
+          output.write("#store " + localName + " = *" + 
             localValue(pointer) + " <- " + localValue(value))
         }
-        case StoreElementInstruction(name, base, indices, value, _, location) => {
-          output.write("#storeelement " + locationString(location) + localName + " = " + 
+        case StoreElementInstruction(name, base, indices, value, _) => {
+          output.write("#storeelement " + localName + " = " + 
             localValue(base) + ", ")
           writeList(indices, writeLocalValue _, ", ")
           output.write(" <- " + localValue(value))
         }
-        case UpcastInstruction(name, value, ty, _, location) => {
-          output.write("#upcast " + locationString(location) + localName + 
+        case UpcastInstruction(name, value, ty, _) => {
+          output.write("#upcast " + localName + 
             " = " + localValue(value) + ": " + ty)
         }
       }
@@ -712,14 +689,14 @@ object ModuleIO {
 
     def localValue(value: Value): Value = {
       value match {
-        case DefinedValue(name, location) => DefinedValue(localSymbol(name), location)
-        case ArrayValue(elementType, elements, location) => {
+        case DefinedValue(name) => DefinedValue(localSymbol(name))
+        case ArrayValue(elementType, elements) => {
           val localElements = elements.map(localValue _)
-          ArrayValue(elementType, localElements, location)
+          ArrayValue(elementType, localElements)
         }
-        case StructValue(structName, fields, location) => {
+        case StructValue(structName, fields) => {
           val localFields = fields.map(localValue _)
-          StructValue(structName, localFields, location)
+          StructValue(structName, localFields)
         }
         case _ => value
       }
@@ -750,14 +727,12 @@ object ModuleIO {
     }
 
     val strings = new Table[String]
-    val locations = new Table[Location] 
     val symbols = new Table[Symbol]
 
     def write {
       collect
       writeHeader
       strings.write(writeString _)
-      locations.write(writeLocation _)
       symbols.write(writeSymbol _)
       module.definitions.values.foreach(writeDefinition _)
     }
@@ -768,18 +743,17 @@ object ModuleIO {
 
     def collectDefinition(defn: Definition) {
       collectSymbol(defn.name)
-      collectLocation(defn.location)
       defn.annotations.flatMap(_.fields).foreach(collectValue _)
       defn match {
         case _: Annotation => ()
         case _: Block => ()
-        case Field(_, ty, _, _) => collectType(ty)
-        case Function(_, _, returnType, _, _, _) => collectType(returnType)
-        case Global(_, ty, value, _, _) => {
+        case Field(_, ty, _) => collectType(ty)
+        case Function(_, _, returnType, _, _) => collectType(returnType)
+        case Global(_, ty, value, _) => {
           collectType(ty)
           value.foreach(collectValue _)
         }
-        case Parameter(_, ty, _, _) => collectType(ty)
+        case Parameter(_, ty, _) => collectType(ty)
         case _: Struct => ()
 
         case inst: Instruction => {
@@ -790,15 +764,15 @@ object ModuleIO {
             case _: BinaryOperatorInstruction => ()
             case _: BranchInstruction => ()
             case _: ConditionalBranchInstruction => ()
-            case FloatExtendInstruction(_, _, ty, _, _) => collectType(ty)
-            case FloatToIntegerInstruction(_, _, ty, _, _) => collectType(ty)
-            case FloatTruncateInstruction(_, _, ty, _, _) => collectType(ty)
-            case HeapAllocateInstruction(_, ty, _, _) => collectType(ty)
-            case HeapAllocateArrayInstruction(_, _, ty, _, _) => collectType(ty)
-            case IntegerSignExtendInstruction(_, _, ty, _, _) => collectType(ty)
-            case IntegerToFloatInstruction(_, _, ty, _, _) => collectType(ty)
-            case IntegerTruncateInstruction(_, _, ty, _, _) => collectType(ty)
-            case IntegerZeroExtendInstruction(_, _, ty, _, _) => collectType(ty)
+            case FloatExtendInstruction(_, _, ty, _) => collectType(ty)
+            case FloatToIntegerInstruction(_, _, ty, _) => collectType(ty)
+            case FloatTruncateInstruction(_, _, ty, _) => collectType(ty)
+            case HeapAllocateInstruction(_, ty, _) => collectType(ty)
+            case HeapAllocateArrayInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerSignExtendInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerToFloatInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerTruncateInstruction(_, _, ty, _) => collectType(ty)
+            case IntegerZeroExtendInstruction(_, _, ty, _) => collectType(ty)
             case _: IntrinsicCallInstruction => ()
             case _: LoadInstruction => ()
             case _: LoadElementInstruction => ()
@@ -806,27 +780,26 @@ object ModuleIO {
             case _: ReturnInstruction => ()
             case _: StoreInstruction => ()
             case _: StoreElementInstruction => ()
-            case StackAllocateInstruction(_, ty, _, _) => collectType(ty)
-            case StackAllocateArrayInstruction(_, _, ty, _, _) => collectType(ty)
+            case StackAllocateInstruction(_, ty, _) => collectType(ty)
+            case StackAllocateArrayInstruction(_, _, ty, _) => collectType(ty)
             case _: StaticCallInstruction => ()
-            case UpcastInstruction(_, _, ty, _, _) => collectType(ty)
+            case UpcastInstruction(_, _, ty, _) => collectType(ty)
           }
         }
       }
     }
 
     def collectType(ty: Type) {
-      collectLocation(ty.location)
       ty match {
-        case _: UnitType => ()
-        case _: BooleanType => ()
+        case UnitType => ()
+        case BooleanType => ()
         case _: IntType => ()
         case _: FloatType => ()
-        case PointerType(elementType, _) => collectType(elementType)
-        case _: NullType => ()
-        case ArrayType(_, elementType, _) => collectType(elementType)
-        case _: StructType => ()
-        case FunctionType(returnType, parameterTypes, _) => {
+        case PointerType(elementType) => collectType(elementType)
+        case NullType => ()
+        case ArrayType(_, elementType) => collectType(elementType)
+        case StructType(name) => collectSymbol(name)
+        case FunctionType(returnType, parameterTypes) => {
           collectType(returnType)
           parameterTypes.foreach(collectType _)
         }
@@ -834,18 +807,20 @@ object ModuleIO {
     }
 
     def collectValue(value: Value) {
-      collectLocation(value.location)
       value match {
-        case _: UnitValue => ()
+        case UnitValue => ()
         case _: BooleanValue => ()
         case _: Int8Value | _: Int16Value | _: Int32Value | _: Int64Value => ()
         case _: Float32Value | _: Float64Value => ()
-        case _: NullValue => ()
-        case ArrayValue(elementType, elements, _) => {
+        case NullValue => ()
+        case ArrayValue(elementType, elements) => {
           collectType(elementType)
           elements.foreach(collectValue _)
         }
-        case StructValue(_, fields, _) => fields.foreach(collectValue _)
+        case StructValue(name, fields) => {
+          collectSymbol(name)
+          fields.foreach(collectValue _)
+        }
         case _: DefinedValue => ()
       }
     }
@@ -853,11 +828,6 @@ object ModuleIO {
     def collectSymbol(symbol: Symbol) {
       symbol.name.foreach(strings.add(_))
       symbols.add(symbol)
-    }
-
-    def collectLocation(loc: Location) {
-      strings.add(loc.filename)
-      locations.add(loc)
     }
 
     def writeHeader {
@@ -903,58 +873,58 @@ object ModuleIO {
     def writeDefinition(defn: Definition) {
       writeInt(symbols(defn.name))
       defn match {
-        case Block(_, parameters, instructions, _, _) => {
+        case Block(_, parameters, instructions, _) => {
           output.writeByte(BLOCK_ID)
           writeSymbolList(parameters)
           writeSymbolList(instructions)
         }
-        case Field(_, ty, _, _) => {
+        case Field(_, ty, _) => {
           output.writeByte(FIELD_ID)
           writeType(ty)
         }
-        case Function(_, parameters, returnType, blocks, _, _) => {
+        case Function(_, parameters, returnType, blocks, _) => {
           output.writeByte(FUNCTION_ID)
           writeSymbolList(parameters)
           writeType(returnType)
           writeSymbolList(blocks)
         }          
-        case Global(_, ty, value, _, _) => {
+        case Global(_, ty, value, _) => {
           output.writeByte(GLOBAL_ID)
           writeType(ty)
           writeOption(value, writeValue _)
         }
-        case Parameter(_, ty, _, _) => {
+        case Parameter(_, ty, _) => {
           output.writeByte(PARAMETER_ID)
           writeType(ty)
         }
-        case Struct(_, fields, _, _) => {
+        case Struct(_, fields, _) => {
           output.writeByte(STRUCT_ID)
           writeSymbolList(fields)
         }
 
         case inst: Instruction => inst match {
-          case AddressInstruction(_, base, indices, _, _) => {
+          case AddressInstruction(_, base, indices, _) => {
             output.writeByte(ADDRESS_INST_ID)
             writeValue(base)
             writeList(indices, writeValue _)
           }
-          case AssignInstruction(_, value, _, _) => {
+          case AssignInstruction(_, value, _) => {
             output.writeByte(ASSIGN_INST_ID)
             writeValue(value)
           }
-          case BinaryOperatorInstruction(_, operator, left, right, _, _) => {
+          case BinaryOperatorInstruction(_, operator, left, right, _) => {
             output.writeByte(BINARY_OPERATOR_INST_ID)
             writeBinaryOperator(operator)
             writeValue(left)
             writeValue(right)
           }
-          case BranchInstruction(_, target, arguments, _, _) => {
+          case BranchInstruction(_, target, arguments, _) => {
             output.writeByte(BRANCH_INST_ID)
             writeInt(symbols(target))
             writeList(arguments, writeValue _)
           }
           case ConditionalBranchInstruction(_, condition, trueTarget, trueArgs,
-                                            falseTarget, falseArgs, _, _) =>
+                                            falseTarget, falseArgs, _) =>
           {
             output.writeByte(CONDITIONAL_BRANCH_INST_ID)
             writeValue(condition)
@@ -963,100 +933,100 @@ object ModuleIO {
             writeInt(symbols(falseTarget))
             writeList(falseArgs, writeValue _)
           }
-          case FloatExtendInstruction(_, value, ty, _, _) => {
+          case FloatExtendInstruction(_, value, ty, _) => {
             output.writeByte(FLOAT_EXTEND_INST_ID)
             writeValue(value)
             writeType(ty)
           }
-          case FloatToIntegerInstruction(_, value, ty, _, _) => {
+          case FloatToIntegerInstruction(_, value, ty, _) => {
             output.writeByte(FLOAT_TO_INTEGER_INST_ID)
             writeValue(value)
             writeType(ty)
           }
-          case FloatTruncateInstruction(_, value, ty, _, _) => {
+          case FloatTruncateInstruction(_, value, ty, _) => {
             output.writeByte(FLOAT_TRUNCATE_INST_ID)
             writeValue(value)
             writeType(ty)
           }
-          case HeapAllocateInstruction(_, ty, _, _) => {
+          case HeapAllocateInstruction(_, ty, _) => {
             output.writeByte(HEAP_ALLOCATE_INST_ID)
             writeType(ty)
           }
-          case HeapAllocateArrayInstruction(_, count, elementType, _, _) => {
+          case HeapAllocateArrayInstruction(_, count, elementType, _) => {
             output.writeByte(HEAP_ALLOCATE_ARRAY_INST_ID)
             writeValue(count)
             writeType(elementType)
           }
-          case IntegerSignExtendInstruction(_, value, ty, _, _) => {
+          case IntegerSignExtendInstruction(_, value, ty, _) => {
             output.writeByte(INTEGER_SIGN_EXTEND_INST_ID)
             writeValue(value)
             writeType(ty)
           }
-          case IntegerToFloatInstruction(_, value, ty, _, _) => {
+          case IntegerToFloatInstruction(_, value, ty, _) => {
             output.writeByte(INTEGER_TO_FLOAT_INST_ID)
             writeValue(value)
             writeType(ty)
           }
-          case IntegerTruncateInstruction(_, value, ty, _, _) => {
+          case IntegerTruncateInstruction(_, value, ty, _) => {
             output.writeByte(INTEGER_TRUNCATE_INST_ID)
             writeValue(value)
             writeType(ty)
           }
-          case IntegerZeroExtendInstruction(_, value, ty, _, _) => {
+          case IntegerZeroExtendInstruction(_, value, ty, _) => {
             output.writeByte(INTEGER_ZERO_EXTEND_INST_ID)
             writeValue(value)
             writeType(ty)
           }
-          case IntrinsicCallInstruction(_, intrinsic, arguments, _, _) => {
+          case IntrinsicCallInstruction(_, intrinsic, arguments, _) => {
             output.writeByte(INTRINSIC_CALL_INST_ID)
             writeIntrinsic(intrinsic)
             writeList(arguments, writeValue _)
           }
-          case LoadInstruction(_, pointer, _, _) => {
+          case LoadInstruction(_, pointer, _) => {
             output.writeByte(LOAD_INST_ID)
             writeValue(pointer)
           }
-          case LoadElementInstruction(_, base, indices, _, _) => {
+          case LoadElementInstruction(_, base, indices, _) => {
             output.writeByte(LOAD_ELEMENT_INST_ID)
             writeValue(base)
             writeList(indices, writeValue _)
           }
-          case RelationalOperatorInstruction(_, operator, left, right, _, _) => {
+          case RelationalOperatorInstruction(_, operator, left, right, _) => {
             output.writeByte(RELATIONAL_OPERATOR_INST_ID)
             writeRelationalOperator(operator)
             writeValue(left)
             writeValue(right)
           }
-          case ReturnInstruction(_, value, _, _) => {
+          case ReturnInstruction(_, value, _) => {
             output.writeByte(RETURN_INST_ID)
             writeValue(value)
           }
-          case StoreInstruction(_, pointer, value, _, _) => {
+          case StoreInstruction(_, pointer, value, _) => {
             output.writeByte(STORE_INST_ID)
             writeValue(pointer)
             writeValue(value)
           }
-          case StoreElementInstruction(_, base, indices, value, _, _) => {
+          case StoreElementInstruction(_, base, indices, value, _) => {
             output.writeByte(STORE_ELEMENT_INST_ID)
             writeValue(base)
             writeList(indices, writeValue _)
             writeValue(value)
           }
-          case StackAllocateInstruction(_, ty, _, _) => {
+          case StackAllocateInstruction(_, ty, _) => {
             output.writeByte(STACK_ALLOCATE_INST_ID)
             writeType(ty)
           }
-          case StackAllocateArrayInstruction(_, count, elementType, _, _) => {
+          case StackAllocateArrayInstruction(_, count, elementType, _) => {
             output.writeByte(STACK_ALLOCATE_ARRAY_INST_ID)
             writeValue(count)
             writeType(elementType)
           }
-          case StaticCallInstruction(_, target, arguments, _, _) => {
+          case StaticCallInstruction(_, target, arguments, _) => {
             output.writeByte(STATIC_CALL_INST_ID)
             writeInt(symbols(target))
             writeList(arguments, writeValue _)
           }
-          case UpcastInstruction(_, value, ty, _, _) => {
+          case UpcastInstruction(_, value, ty, _) => {
             output.writeByte(UPCAST_INST_ID)
             writeValue(value)
             writeType(ty)
@@ -1064,7 +1034,6 @@ object ModuleIO {
         }
       }
       writeList(defn.annotations, writeAnnotationValue _)
-      writeInt(locations(defn.location))
     }
 
     def writeAnnotationValue(av: AnnotationValue) {
@@ -1074,87 +1043,85 @@ object ModuleIO {
 
     def writeType(ty: Type) {
       ty match {
-        case UnitType(_) => output.writeByte(UNIT_TYPE_ID)
-        case BooleanType(_) => output.writeByte(BOOLEAN_TYPE_ID)
-        case IntType(width, _) => {
+        case UnitType => output.writeByte(UNIT_TYPE_ID)
+        case BooleanType => output.writeByte(BOOLEAN_TYPE_ID)
+        case IntType(width) => {
           output.writeByte(INT_TYPE_ID)
           output.writeByte(width)
         }
-        case FloatType(width, _) => {
+        case FloatType(width) => {
           output.writeByte(FLOAT_TYPE_ID)
           output.writeByte(width)
         }
-        case PointerType(elementType, _) => {
+        case PointerType(elementType) => {
           output.writeByte(POINTER_TYPE_ID)
           writeType(elementType)
         }
-        case NullType(_) => output.writeByte(NULL_TYPE_ID)
-        case ArrayType(size, elementType, _) => {
+        case NullType => output.writeByte(NULL_TYPE_ID)
+        case ArrayType(size, elementType) => {
           output.writeByte(ARRAY_TYPE_ID)
           writeOption(size, writeInt _)
           writeType(elementType)
         }
-        case StructType(structName, _) => {
+        case StructType(structName) => {
           output.writeByte(STRUCT_TYPE_ID)
           writeInt(symbols(structName))
         }
-        case FunctionType(returnType, parameterTypes, _) => {
+        case FunctionType(returnType, parameterTypes) => {
           output.writeByte(FUNCTION_TYPE_ID)
           writeType(returnType)
           writeList(parameterTypes, writeType _)
         }
       }
-      writeInt(locations(ty.location))
     }
 
     def writeValue(value: Value) {
       value match {
-        case UnitValue(_) => output.writeByte(UNIT_VALUE_ID)
-        case BooleanValue(b, _) => {
+        case UnitValue => output.writeByte(UNIT_VALUE_ID)
+        case BooleanValue(b) => {
           output.writeByte(BOOLEAN_VALUE_ID)
           writeBoolean(b)
         }
-        case Int8Value(b, _) => {
+        case Int8Value(b) => {
           output.writeByte(INT8_VALUE_ID)
           output.writeByte(b)
         }
-        case Int16Value(s, _) => {
+        case Int16Value(s) => {
           output.writeByte(INT16_VALUE_ID)
           output.writeShort(s)
         }
-        case Int32Value(i, _) => {
+        case Int32Value(i) => {
           output.writeByte(INT32_VALUE_ID)
           output.writeInt(i)
         }
-        case Int64Value(l, _) => {
+        case Int64Value(l) => {
           output.writeByte(INT64_VALUE_ID)
           output.writeLong(l)
         }
-        case Float32Value(f, _) => {
+        case Float32Value(f) => {
           output.writeByte(FLOAT32_VALUE_ID)
           output.writeFloat(f)
         }
-        case Float64Value(d, _) => {
+        case Float64Value(d) => {
           output.writeByte(FLOAT64_VALUE_ID)
           output.writeDouble(d)
         }
-        case NullValue(_) => output.writeByte(NULL_VALUE_ID)
-        case ArrayValue(elementType, elements, _) => {
+        case NullValue => output.writeByte(NULL_VALUE_ID)
+        case ArrayValue(elementType, elements) => {
           output.writeByte(ARRAY_VALUE_ID)
           writeType(elementType)
           writeList(elements, writeValue _)
         }
-        case StructValue(structName, fields, _) => {
+        case StructValue(structName, fields) => {
           output.writeByte(STRUCT_VALUE_ID)
           writeInt(symbols(structName))
           writeList(fields, writeValue _)
         }
-        case DefinedValue(name, _) => {
+        case DefinedValue(name) => {
           output.writeByte(DEFINED_VALUE_ID)
           writeInt(symbols(name))
         }
       }
-      writeInt(locations(value.location))
     }
 
     def writeBinaryOperator(operator: BinaryOperator) = {
@@ -1199,14 +1166,6 @@ object ModuleIO {
     def writeSymbol(symbol: Symbol) {
       writeList(symbol.name.toList, { (n: String) => writeInt(strings(n)) })
       writeInt(symbol.id)
-    }
-
-    def writeLocation(loc: Location) {
-      writeInt(strings(loc.filename))
-      writeInt(loc.beginLine)
-      writeInt(loc.beginColumn)
-      writeInt(loc.endLine)
-      writeInt(loc.endColumn)
     }
 
     def writeString(str: String) {

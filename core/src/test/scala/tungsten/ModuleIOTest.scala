@@ -44,14 +44,6 @@ class ModuleIOWriteBinaryCollectTest {
   }
 
   @Test
-  def collectLocationCollectsString {
-    val writer = makeWriter("")
-    val loc = new Location("foo.w", 1, 2, 3, 4)
-    writer.collectLocation(loc)
-    assertEquals("foo.w", writer.strings.get(writer.strings("foo.w")))
-  }
-
-  @Test
   def collectDefinitionNameStrings {
     val program = "#global foo.bar: #unit"
     testCollect(program, _.strings, "foo")
@@ -59,43 +51,9 @@ class ModuleIOWriteBinaryCollectTest {
   }
 
   @Test
-  def collectDefinitionLocations {
-    val program = "#global <foo.w:1.2-3.4> g: #unit"
-    val loc = Location("foo.w", 1, 2, 3, 4)
-    testCollect(program, _.locations, loc)
-  }
-
-  @Test
-  def collectDefinitionLocationStrings {
-    val program = "#global <foo.w:1.2-3.4> g: #unit"
-    testCollect(program, _.strings, "foo.w")
-  }
-
-  @Test
   def collectDefinitionNames {
     val program = "#global foo.bar#32: #unit"
     testCollect(program, _.symbols, symbolFromString("foo.bar#32"))
-  }
-
-  @Test
-  def collectTypeLocation {
-    val program = "#global g: #unit <foo.w:1.2-3.4>"
-    val loc = Location("foo.w", 1, 2, 3, 4)
-    testCollect(program, _.locations, loc)
-  }
-
-  @Test
-  def collectValueLocation {
-    val program = "#global g: #unit = () <foo.w:1.2-3.4>"
-    val loc = Location("foo.w", 1, 2, 3, 4)
-    testCollect(program, _.locations, loc)
-  }
-
-  @Test
-  def collectNestedValueLocation {
-    val program = "#global g: [1 * #unit] = [#unit: () <foo.w:1.2-3.4>]"
-    val loc = Location("foo.w", 1, 2, 3, 4)
-    testCollect(program, _.locations, loc)
   }
 }
 
@@ -157,13 +115,6 @@ class ModuleIOWriteBinaryTest {
     writer.writeSymbol("foo.bar#32")
     testOutput(2, writer.strings("foo"), writer.strings("bar"), 32)
   }
-
-  @Test
-  def testWriteLocation {
-    writer.strings.add("foo.w")
-    writer.writeLocation(Location("foo.w", 1, 2, 3, 4))
-    testOutput(writer.strings("foo.w"), 1, 2, 3, 4)
-  }
 }
 
 class ModuleIOWriteTextTest {
@@ -189,29 +140,18 @@ class ModuleIOWriteTextTest {
     prefixes.foreach(writer.parentNames.push _)
     writer.writeDefinition(defn)
 
-    if (expected != output.toString) {
-      System.err.println(expected)
-      System.err.println(output.toString)
-    }
     assertEquals(expected, output.toString)
   }
 
   @Test
   def isTopLevelTest {
     assertFalse(isTopLevel(Block("a", Nil, Nil)))
-    assertFalse(isTopLevel(Field("a", UnitType())))
-    assertTrue(isTopLevel(Function("a", Nil, UnitType(), Nil)))
-    assertTrue(isTopLevel(Global("a", UnitType(), None)))
-    assertFalse(isTopLevel(ReturnInstruction("a", UnitValue())))
-    assertFalse(isTopLevel(Parameter("a", UnitType())))
+    assertFalse(isTopLevel(Field("a", UnitType)))
+    assertTrue(isTopLevel(Function("a", Nil, UnitType, Nil)))
+    assertTrue(isTopLevel(Global("a", UnitType, None)))
+    assertFalse(isTopLevel(ReturnInstruction("a", UnitValue)))
+    assertFalse(isTopLevel(Parameter("a", UnitType)))
     assertTrue(isTopLevel(Struct("a", Nil)))
-  }
-
-  @Test
-  def locationStringTest {
-    val loc = Location("foo.w", 1, 2, 3, 4)
-    assertEquals(loc.toString + " ", locationString(loc))
-    assertEquals("", locationString(Nowhere))
   }
 
   @Test
@@ -252,9 +192,9 @@ class ModuleIOWriteTextTest {
 
   @Test
   def writeStructTest {
-    val structText = "#struct <foo.w:1.2-3.4> A {\n" +
-                     "  #field <foo.w:5.6-7.8> x: #unit\n" +
-                     "  #field <foo.w:9.10-11.12> y: #unit\n" +
+    val structText = "#struct A {\n" +
+                     "  #field x: #unit\n" +
+                     "  #field y: #unit\n" +
                      "}\n"
     val program = structText +
                   "#function main( ): #unit {\n" +
@@ -267,7 +207,7 @@ class ModuleIOWriteTextTest {
 
   @Test
   def writeFunctionTest {
-      val functionText = "#function <foo.w:1.1-1.1> foo(a <foo.w:2.2-2.2> : #unit, b: #unit): #unit {\n" +
+      val functionText = "#function foo(a: #unit, b: #unit): #unit {\n" +
                          "  #block entry( ) {\n" +
                          "    #return x = ()\n" +
                          "  }\n" +
@@ -298,32 +238,32 @@ class ModuleIOWriteTextTest {
 
   @Test
   def writeInstructionsTest {
-    val stackText        = "    #stack <foo.w:1.1-1.1> stack: [1 * [1 * #unit]]*\n"
-    val addressText      = "    #address <foo.w:1.1-1.1> address = stack, 0L, 0L\n"
-    val assignText       = "    #assign <foo.w:1.1-1.1> assign = ()\n"
-    val binopText        = "    #binop <foo.w:1.1-1.1> binop = 1 + 1\n"
-    val branch1Text      = "    #branch <foo.w:1.1-1.1> branch1 = b1(1, 2)\n"
-    val branch2Text      = "    #branch <foo.w:1.1-1.1> branch2 = b2( )\n"
-    val condText         = "    #cond <foo.w:1.1-1.1> cond = #true ? b3(1, 2) : b4( )\n"
-    val fextendText      = "    #fextend <foo.w:1.1-1.1> fextend = 3.0f : #float64\n"
-    val ftoiText         = "    #ftoi <foo.w:1.1-1.1> ftoi = 3.0 : #int64\n"
-    val ftruncateText    = "    #ftruncate <foo.w:1.1-1.1> ftruncate = 3.0 : #float32\n"
+    val stackText        = "    #stack stack: [1 * [1 * #unit]]*\n"
+    val addressText      = "    #address address = stack, 0L, 0L\n"
+    val assignText       = "    #assign assign = ()\n"
+    val binopText        = "    #binop binop = 1 + 1\n"
+    val branch1Text      = "    #branch branch1 = b1(1, 2)\n"
+    val branch2Text      = "    #branch branch2 = b2( )\n"
+    val condText         = "    #cond cond = #true ? b3(1, 2) : b4( )\n"
+    val fextendText      = "    #fextend fextend = 3.0f : #float64\n"
+    val ftoiText         = "    #ftoi ftoi = 3.0 : #int64\n"
+    val ftruncateText    = "    #ftruncate ftruncate = 3.0 : #float32\n"
     val heapText         = "    #heap heap: #unit*\n"
     val heapArrayText    = "    #heaparray heaparray = 12L * #unit\n"
-//    val icallText        = "    #icall <foo.w:1.1-1.1> icall = main( )\n"
-    val isextendText     = "    #isextend <foo.w:1.1-1.1> isextend = -1 : #int64\n"
-    val itofText         = "    #itof <foo.w:1.1-1.1> itof = 3 : #float64\n"
-    val itruncateText    = "    #itruncate <foo.w:1.1-1.1> itruncate = 3L : #int8\n"
-    val izextendText     = "    #izextend <foo.w:1.1-1.1> izextend = 12 : #int64\n"
-    val loadText         = "    #load <foo.w:1.1-1.1> load = *l\n"
-    val loadElementText  = "    #loadelement <foo.w:1.1-1.1> loadelement = [#unit: ()], 0L\n"
-    val relopText        = "    #relop <foo.w:1.1-1.1> relop = 1 < 2\n"
+//    val icallText        = "    #icall icall = main( )\n"
+    val isextendText     = "    #isextend isextend = -1 : #int64\n"
+    val itofText         = "    #itof itof = 3 : #float64\n"
+    val itruncateText    = "    #itruncate itruncate = 3L : #int8\n"
+    val izextendText     = "    #izextend izextend = 12 : #int64\n"
+    val loadText         = "    #load load = *l\n"
+    val loadElementText  = "    #loadelement loadelement = [#unit: ()], 0L\n"
+    val relopText        = "    #relop relop = 1 < 2\n"
     val returnText       = "    #return return = ()\n"
-    val stackArrayText   = "    #stackarray <foo.w:1.1-1.1> stackarray = 1L * #unit\n"
-    val scallText        = "    #scall <foo.w:1.1-1.1> scall = main( )\n"
-    val storeText        = "    #store <foo.w:1.1-1.1> store = *l <- ()\n"
-    val storeElementText = "    #storeelement <foo.w:1.1-1.1> storeelement = [#unit: ()], 0L <- ()\n"
-    val upcastText       = "    #upcast <foo.w:1.1-1.1> upcast = #null: #unit*\n"
+    val stackArrayText   = "    #stackarray stackarray = 1L * #unit\n"
+    val scallText        = "    #scall scall = main( )\n"
+    val storeText        = "    #store store = *l <- ()\n"
+    val storeElementText = "    #storeelement storeelement = [#unit: ()], 0L <- ()\n"
+    val upcastText       = "    #upcast upcast = #null: #unit*\n"
     val program = "#is64bit #true\n" +
                   "#function main( ): #unit {\n" +
                   "  #block entry( ) {\n" +

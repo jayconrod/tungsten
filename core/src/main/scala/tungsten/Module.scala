@@ -183,10 +183,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
     getDefn(name) match {
       case Some(defn) if m.erasure.isInstance(defn) => Nil
       case Some(defn) => {
-        List(InappropriateSymbolException(name,
-                                          location,
-                                          location,
-                                          humanReadableClassName[T]))
+        List(InappropriateSymbolException(name, location, humanReadableClassName[T]))
       }
       case None => List(UndefinedSymbolException(name, location))
     }

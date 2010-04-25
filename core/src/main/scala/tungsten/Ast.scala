@@ -79,7 +79,7 @@ final case class AstClassType(val name: Symbol,
     ctx.module.getDefn(name) match {
       case Some(s: Struct) => StructType(s.name)
       case Some(other) => {
-        ctx.errors += InappropriateSymbolException(name, Nowhere, Nowhere, "type")
+        ctx.errors += InappropriateSymbolException(name, Nowhere, "type")
         UnitType
       }
       case None => {
@@ -180,7 +180,6 @@ final case class AstAggregateValue(aggregateName: Symbol,
       case Some(s: Struct) => StructValue(aggregateName, cFields)
       case Some(other) => {
         ctx.errors += InappropriateSymbolException(aggregateName, 
-                                                   Nowhere,
                                                    Nowhere,
                                                    "aggregate name")
         UnitValue

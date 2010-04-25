@@ -167,7 +167,6 @@ final case class DefinedValue(value: Symbol)
       case Some(defn) => {
         List(InappropriateSymbolException(value, 
                                           defn.getLocation,
-                                          defn.getLocation,
                                           "global, parameter, or instruction"))
       }
       case None => List(UndefinedSymbolException(value, location))

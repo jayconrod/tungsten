@@ -1,8 +1,15 @@
 package tungsten
 
+/** A compile exception represents an error with a module. These are usually simply found and 
+ *  returned as lists during validation. However, they are exceptions, so it also possible
+ *  to throw them. All exceptions have a message (which will be printed for the user) and a 
+ *  location that indicates where in the source the message came from. If the location is
+ *  Nowhere, no location is printed.
+ */
 sealed abstract class CompileException(message: String, location: Location) extends Exception {
   override def toString = {
-    location + ": error: " + message
+    val locStr = if (location == Nowhere) "" else location + ": "
+    locStr + "error: " + message
   }
 }
 
@@ -83,10 +90,8 @@ final case class GlobalValueNonLiteralException(symbol: Symbol, location: Locati
 
 final case class InappropriateSymbolException(symbol: Symbol,
                                               location: Location,
-                                              defnLocation: Location,
                                               expected: String)
-  extends CompileException(symbol.toString + " defined at " + defnLocation + 
-                             " does not refer to a(n) " + expected,
+  extends CompileException(symbol.toString + " does not refer to a(n) " + expected,
                            location)
 
 final case class InstructionOrderException(symbol: Symbol,
@@ -96,7 +101,7 @@ final case class InstructionOrderException(symbol: Symbol,
                            location)
 
 final case class InvalidIndexException(value: String, ty: String, location: Location)
-  extends CompileException("The value " + value + 
+  extends CompileException("the value " + value + 
                              " cannot be used as an index into type " + ty,
                            location)
 

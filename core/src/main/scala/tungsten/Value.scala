@@ -35,52 +35,37 @@ final case class BooleanValue(value: Boolean)
   override def toString = if (value) "#true" else "#false"
 }
 
-final case class Int8Value(value: Byte)
+final case class IntValue(value: Long, width: Int)
   extends Value
 {
-  def ty(module: Module): IntType = IntType(8)
+  if (width < 8 || !isPowerOf2(width) || width > 64)
+    throw new IllegalArgumentException
 
-  override def toString = value + "b"
+  def ty(module: Module) = IntType(width)
+
+  override def toString = {
+    val suffix = width match {
+      case 8 => "b"
+      case 16 => "s"
+      case 32 => ""
+      case _ => "L"
+    }
+    value + suffix
+  }
 }
 
-final case class Int16Value(value: Short)
+final case class FloatValue(value: Double, width: Int) 
   extends Value
 {
-  def ty(module: Module): IntType = IntType(16)
+  if (width != 32 && width != 64)
+    throw new IllegalArgumentException
 
-  override def toString = value + "s"
-}
+  def ty(module: Module) = FloatType(width)
 
-final case class Int32Value(value: Int)
-  extends Value
-{
-  def ty(module: Module): IntType = IntType(32)
-
-  override def toString = value.toString
-}
-
-final case class Int64Value(value: Long)
-  extends Value
-{
-  def ty(module: Module): IntType = IntType(64)
-
-  override def toString = value + "L"
-}
-
-final case class Float32Value(value: Float)
-  extends Value
-{
-  def ty(module: Module): FloatType = FloatType(32)
-
-  override def toString = value + "f"
-}
-
-final case class Float64Value(value: Double)
-  extends Value
-{
-  def ty(module: Module): FloatType = FloatType(64)
-
-  override def toString = value.toString
+  override def toString = {
+    val suffix = if (width == 32) "f" else ""
+    value + suffix
+  }
 }
 
 final case object NullValue

@@ -67,8 +67,9 @@ sealed trait ElementInstruction extends Instruction {
           case ArrayType(_, elementType) => getElementType(module, elementType, is)
           case StructType(structName) => {
             val struct = module.getStruct(structName)
+            val wordSize = IntType.wordSize(module)
             i match {
-              case Int64Value(ix) if 0 <= ix && ix < struct.fields.size => {
+              case IntValue(ix, wordSize) if 0 <= ix && ix < struct.fields.size => {
                 val field = module.getField(struct.fields(ix.asInstanceOf[Int]))
                 getElementType(module, field.ty, is)
               }
@@ -105,8 +106,9 @@ sealed trait ElementInstruction extends Instruction {
             case StructType(structName) => {
               val struct = module.getStruct(structName)
               val numFields = struct.fields.size
+              val wordSize = IntType.wordSize(module)
               i match {
-                case Int64Value(ix) if 0 <= ix && ix < numFields => {
+                case IntValue(ix, wordSize) if 0 <= ix && ix < numFields => {
                   val field = module.getField(struct.fields(ix.asInstanceOf[Int]))
                   check(field.ty, is, newErrors)
                 }

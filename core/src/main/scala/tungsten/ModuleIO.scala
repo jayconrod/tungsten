@@ -274,12 +274,12 @@ object ModuleIO {
       input.readByte match {
         case UNIT_VALUE_ID => UnitValue
         case BOOLEAN_VALUE_ID => BooleanValue(readBoolean)
-        case INT8_VALUE_ID => Int8Value(input.readByte)
-        case INT16_VALUE_ID => Int16Value(input.readShort)
-        case INT32_VALUE_ID => Int32Value(input.readInt)
-        case INT64_VALUE_ID => Int64Value(input.readLong)
-        case FLOAT32_VALUE_ID => Float32Value(input.readFloat)
-        case FLOAT64_VALUE_ID => Float64Value(input.readDouble)
+        case INT8_VALUE_ID => IntValue(input.readByte, 8)
+        case INT16_VALUE_ID => IntValue(input.readShort, 16)
+        case INT32_VALUE_ID => IntValue(input.readInt, 32)
+        case INT64_VALUE_ID => IntValue(input.readLong, 64)
+        case FLOAT32_VALUE_ID => FloatValue(input.readFloat, 32)
+        case FLOAT64_VALUE_ID => FloatValue(input.readDouble, 64)
         case NULL_VALUE_ID => NullValue
         case ARRAY_VALUE_ID => ArrayValue(readType, readList(readValue))
         case STRUCT_VALUE_ID => StructValue(symbol, readList(readValue))
@@ -810,8 +810,8 @@ object ModuleIO {
       value match {
         case UnitValue => ()
         case _: BooleanValue => ()
-        case _: Int8Value | _: Int16Value | _: Int32Value | _: Int64Value => ()
-        case _: Float32Value | _: Float64Value => ()
+        case _: IntValue => ()
+        case _: FloatValue => ()
         case NullValue => ()
         case ArrayValue(elementType, elements) => {
           collectType(elementType)
@@ -1082,29 +1082,29 @@ object ModuleIO {
           output.writeByte(BOOLEAN_VALUE_ID)
           writeBoolean(b)
         }
-        case Int8Value(b) => {
+        case IntValue(v, 8) => {
           output.writeByte(INT8_VALUE_ID)
-          output.writeByte(b)
+          output.writeByte(v.toByte)
         }
-        case Int16Value(s) => {
+        case IntValue(v, 16) => {
           output.writeByte(INT16_VALUE_ID)
-          output.writeShort(s)
+          output.writeShort(v.toShort)
         }
-        case Int32Value(i) => {
+        case IntValue(v, 32) => {
           output.writeByte(INT32_VALUE_ID)
-          output.writeInt(i)
+          output.writeInt(v.toInt)
         }
-        case Int64Value(l) => {
+        case IntValue(v, _) => {
           output.writeByte(INT64_VALUE_ID)
-          output.writeLong(l)
+          output.writeLong(v)
         }
-        case Float32Value(f) => {
+        case FloatValue(v, 32) => {
           output.writeByte(FLOAT32_VALUE_ID)
-          output.writeFloat(f)
+          output.writeFloat(v.toFloat)
         }
-        case Float64Value(d) => {
+        case FloatValue(v, _) => {
           output.writeByte(FLOAT64_VALUE_ID)
-          output.writeDouble(d)
+          output.writeDouble(v)
         }
         case NullValue => output.writeByte(NULL_VALUE_ID)
         case ArrayValue(elementType, elements) => {

@@ -47,10 +47,10 @@ final case class IntType(width: Int)
 
   def defaultValue(module: Module) = {
     width match {
-      case 8 => Int8Value(0)
-      case 16 => Int16Value(0)
-      case 32 => Int32Value(0)
-      case 64 => Int64Value(0)
+      case 8 => IntValue(0, 8)
+      case 16 => IntValue(0, 16)
+      case 32 => IntValue(0, 32)
+      case 64 => IntValue(0, 64)
     }
   }
 
@@ -64,10 +64,9 @@ final case class IntType(width: Int)
 }
 
 object IntType {
-  def wordType(module: Module) = {
-    val wordSize = if (module.is64Bit) 64 else 32
-    IntType(wordSize)
-  }
+  def wordSize(module: Module) = if (module.is64Bit) 64 else 32
+
+  def wordType(module: Module) = IntType(wordSize(module))
 }
 
 final case class FloatType(width: Int)
@@ -78,8 +77,8 @@ final case class FloatType(width: Int)
 
   def defaultValue(module: Module) = {
     width match {
-      case 32 => Float32Value(0.0f)
-      case 64 => Float64Value(0.0)
+      case 32 => FloatValue(0.0, 32)
+      case 64 => FloatValue(0.0, 64)
     }
   }
 

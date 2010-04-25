@@ -120,37 +120,37 @@ final case class AstBooleanValue(value: Boolean)
 final case class AstInt8Value(value: Byte)
   extends AstValue
 {
-  def compile(ctx: AstContext) = Int8Value(value)
+  def compile(ctx: AstContext) = IntValue(value, 8)
 }
 
 final case class AstInt16Value(value: Short)
   extends AstValue
 {
-  def compile(ctx: AstContext) = Int16Value(value)
+  def compile(ctx: AstContext) = IntValue(value, 16)
 }
 
 final case class AstInt32Value(value: Int)
   extends AstValue
 {
-  def compile(ctx: AstContext) = Int32Value(value)
+  def compile(ctx: AstContext) = IntValue(value, 32)
 }
 
 final case class AstInt64Value(value: Long)
   extends AstValue
 {
-  def compile(ctx: AstContext) = Int64Value(value)
+  def compile(ctx: AstContext) = IntValue(value, 64)
 }
 
 final case class AstFloat32Value(value: Float)
   extends AstValue
 {
-  def compile(ctx: AstContext) = Float32Value(value)
+  def compile(ctx: AstContext) = FloatValue(value, 32)
 }
 
 final case class AstFloat64Value(value: Double)
   extends AstValue
 {
-  def compile(ctx: AstContext) = Float64Value(value)
+  def compile(ctx: AstContext) = FloatValue(value, 64)
 }
 
 final case object AstNullValue

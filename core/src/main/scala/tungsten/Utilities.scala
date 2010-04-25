@@ -6,6 +6,13 @@ object Utilities {
   val ERROR_CODE = 127
   val FAILURE_CODE = 1
 
+  def charIsPrintable(ch: Char): Boolean = {
+    val block = Character.UnicodeBlock.of(ch)
+    !Character.isISOControl(ch) &&
+      block != null &&
+      block != Character.UnicodeBlock.SPECIALS
+  }
+
   def compileString(program: String): Module = {
     val ast = AstParser.test(program)
     ast.compile.left.get

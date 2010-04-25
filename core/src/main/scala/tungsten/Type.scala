@@ -39,6 +39,30 @@ final case object BooleanType extends Type {
   override def toString = "#boolean"
 }
 
+final case object CharType 
+  extends Type
+{
+  def defaultValue(module: Module) = CharValue(0.toChar)
+
+  def isNumeric = false
+
+  override def supportsOperator(op: RelationalOperator) = true
+
+  override def toString = "#char"
+}
+
+final case object StringType
+  extends Type
+{
+  def defaultValue(module: Module) = StringValue("")
+
+  def isNumeric = false
+
+  override def supportsOperator(op: RelationalOperator) = true
+
+  override def toString = "#string"
+}
+
 final case class IntType(width: Int)
   extends Type
 {

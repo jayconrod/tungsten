@@ -35,6 +35,41 @@ final case class BooleanValue(value: Boolean)
   override def toString = if (value) "#true" else "#false"
 }
 
+final case class CharValue(value: Char)
+  extends Value
+{
+  def ty(module: Module) = CharType
+
+  def isPrintable: Boolean = Utilities.charIsPrintable(value)
+
+  override def toString = {
+    val valueStr = if (isPrintable) 
+      value.toString 
+    else
+      "\\%04d".format(value.toInt)
+    "'" + valueStr + "'"
+  }
+}
+
+final case class StringValue(value: String)
+  extends Value
+{
+  def ty(module: Module) = StringType
+
+  override def toString = {
+    val buffer = new StringBuffer
+    buffer.append("\"")
+    for (ch <- value) {
+      if (charIsPrintable(ch))
+        buffer.append(ch)
+      else
+        buffer.append("%04d".format(ch.toInt))
+    }
+    buffer.append("\"")
+    buffer.toString
+  }
+}      
+
 final case class IntValue(value: Long, width: Int)
   extends Value
 {

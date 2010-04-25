@@ -245,6 +245,8 @@ object ModuleIO {
       input.readByte match {
         case UNIT_TYPE_ID => UnitType
         case BOOLEAN_TYPE_ID => BooleanType
+        case CHAR_TYPE_ID => CharType
+        case STRING_TYPE_ID => StringType
         case INT_TYPE_ID => {
           val width = input.readByte.asInstanceOf[Int]
           if (!List(8, 16, 32, 64).contains(width))
@@ -274,6 +276,8 @@ object ModuleIO {
       input.readByte match {
         case UNIT_VALUE_ID => UnitValue
         case BOOLEAN_VALUE_ID => BooleanValue(readBoolean)
+        case CHAR_VALUE_ID => CharValue(readChar)
+        case STRING_VALUE_ID => StringValue(string)
         case INT8_VALUE_ID => IntValue(input.readByte, 8)
         case INT16_VALUE_ID => IntValue(input.readShort, 16)
         case INT32_VALUE_ID => IntValue(input.readInt, 32)
@@ -301,6 +305,8 @@ object ModuleIO {
       Symbol(name, id)
     }
 
+    def string = get(strings, readInt)
+
     def symbol = get(symbols, readInt)
 
     def get[T](table: ArrayBuffer[T], index: Int) = {
@@ -312,6 +318,8 @@ object ModuleIO {
     def readString: String = input.readUTF
 
     def readInt: Int = input.readInt
+
+    def readChar: Char = input.readChar
 
     def readBoolean: Boolean = {
       input.readByte match {
@@ -793,6 +801,8 @@ object ModuleIO {
       ty match {
         case UnitType => ()
         case BooleanType => ()
+        case CharType => ()
+        case StringType => ()
         case _: IntType => ()
         case _: FloatType => ()
         case PointerType(elementType) => collectType(elementType)
@@ -810,6 +820,8 @@ object ModuleIO {
       value match {
         case UnitValue => ()
         case _: BooleanValue => ()
+        case _: CharValue => ()
+        case StringValue(s) => collectString(s)
         case _: IntValue => ()
         case _: FloatValue => ()
         case NullValue => ()
@@ -828,6 +840,10 @@ object ModuleIO {
     def collectSymbol(symbol: Symbol) {
       symbol.name.foreach(strings.add(_))
       symbols.add(symbol)
+    }
+
+    def collectString(string: String) {
+      strings.add(string)
     }
 
     def writeHeader {
@@ -1045,6 +1061,8 @@ object ModuleIO {
       ty match {
         case UnitType => output.writeByte(UNIT_TYPE_ID)
         case BooleanType => output.writeByte(BOOLEAN_TYPE_ID)
+        case CharType => output.writeByte(CHAR_TYPE_ID)
+        case StringType => output.writeByte(STRING_TYPE_ID)
         case IntType(width) => {
           output.writeByte(INT_TYPE_ID)
           output.writeByte(width)
@@ -1081,6 +1099,14 @@ object ModuleIO {
         case BooleanValue(b) => {
           output.writeByte(BOOLEAN_VALUE_ID)
           writeBoolean(b)
+        }
+        case CharValue(ch) => {
+          output.writeByte(CHAR_VALUE_ID)
+          writeChar(ch)
+        }
+        case StringValue(s) => {
+          output.writeByte(STRING_VALUE_ID)
+          writeInt(strings(s))
         }
         case IntValue(v, 8) => {
           output.writeByte(INT8_VALUE_ID)
@@ -1176,6 +1202,10 @@ object ModuleIO {
       output.writeInt(n)
     }
 
+    def writeChar(ch: Char) {
+      output.writeChar(ch)
+    }
+
     def writeBoolean(b: Boolean) {
       output.writeByte(if (b) 1 else 0)
     }
@@ -1262,24 +1292,28 @@ object ModuleIO {
 
   val UNIT_TYPE_ID = 1
   val BOOLEAN_TYPE_ID = 2
-  val INT_TYPE_ID = 3
-  val FLOAT_TYPE_ID = 4
-  val POINTER_TYPE_ID = 5
-  val NULL_TYPE_ID = 6
-  val ARRAY_TYPE_ID = 7
-  val STRUCT_TYPE_ID = 8
-  val FUNCTION_TYPE_ID = 9
+  val CHAR_TYPE_ID = 3
+  val STRING_TYPE_ID = 4
+  val INT_TYPE_ID = 5
+  val FLOAT_TYPE_ID = 6
+  val POINTER_TYPE_ID = 7
+  val NULL_TYPE_ID = 8
+  val ARRAY_TYPE_ID = 9
+  val STRUCT_TYPE_ID = 10
+  val FUNCTION_TYPE_ID = 11
 
   val UNIT_VALUE_ID = 1
   val BOOLEAN_VALUE_ID = 2
-  val INT8_VALUE_ID = 3
-  val INT16_VALUE_ID = 4
-  val INT32_VALUE_ID = 5
-  val INT64_VALUE_ID = 6
-  val FLOAT32_VALUE_ID = 7
-  val FLOAT64_VALUE_ID = 8
-  val NULL_VALUE_ID = 9
-  val ARRAY_VALUE_ID = 10
-  val STRUCT_VALUE_ID = 11
-  val DEFINED_VALUE_ID = 12
+  val CHAR_VALUE_ID = 3
+  val STRING_VALUE_ID = 4
+  val INT8_VALUE_ID = 5
+  val INT16_VALUE_ID = 6
+  val INT32_VALUE_ID = 7
+  val INT64_VALUE_ID = 8
+  val FLOAT32_VALUE_ID = 9
+  val FLOAT64_VALUE_ID = 10
+  val NULL_VALUE_ID = 11
+  val ARRAY_VALUE_ID = 12
+  val STRUCT_VALUE_ID = 13
+  val DEFINED_VALUE_ID = 14
 }

@@ -10,8 +10,7 @@ import Utilities._
 object Lexer extends Lexical with RegexParsers {
   override type Elem = Char
 
-  val reservedOperators = Set[String]()
-  val reservedWords = Set[String]()
+  val reservedStrings = Set("{", "}", "(", ")", "[", "]")
 
   override lazy val whitespaceChar: Parser[Elem] = {
     elem(' ') | elem('\t') | elem('\n') | elem('\r')
@@ -73,11 +72,24 @@ object Lexer extends Lexical with RegexParsers {
     }
   }
 
+  lazy val reserved: Parser[String] = {
+    def parseReserved(r: String): Parser[String] = {
+      accept(r.toList) ^^ { _.mkString }
+    }
+    val reservedArray = new Array[String](reservedStrings.size)
+    reservedStrings.copyToArray(reservedArray, 0)
+    scala.util.Sorting.quickSort(reservedArray)
+    val reservedParsers = reservedArray.toList.map(parseReserved _)
+    val fail: Parser[String] = failure("no matching reserved string")
+    (fail /: reservedParsers) { (res, p) => p | res }
+  } 
+
   def token: Parser[Token] = {
-    (integer      ^^ { v => IntTok(v) })    |
-    (quotedChar   ^^ { v => CharTok(v) })   |
-    (quotedString ^^ { v => StringTok(v) }) |
-    (symbol       ^^ { v => SymbolTok(v) })
+    (integer      ^^ { v => IntTok(v) })      |
+    (quotedChar   ^^ { v => CharTok(v) })     |
+    (quotedString ^^ { v => StringTok(v) })   |
+    (symbol       ^^ { v => SymbolTok(v) })   |
+    (reserved     ^^ { v => ReservedTok(v) })
   }
 
   def test[T](input: String, parser: Parser[T]): T = {

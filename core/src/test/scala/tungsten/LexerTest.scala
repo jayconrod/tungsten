@@ -81,4 +81,10 @@ class LexerTest {
     testToken("%\"multi\\0Aline\"", SymbolTok(Symbol("%multi\nline")))
     testToken("%\"multi\\000aline\"", SymbolTok(Symbol("%multi\nline")))
   }
+
+  @Test
+  def reserved {
+    for (r <- Lexer.reservedStrings)
+      testToken(r, ReservedTok(r))
+  }
 }

@@ -13,17 +13,19 @@ object Lexer extends Lexical with RegexParsers {
   val reservedOperators = Set[String]()
   val reservedWords = Set[String]()
 
-  override def whitespaceChar: Parser[Elem] = elem(' ') | elem('\t') | elem('\n') | elem('\r')
+  override lazy val whitespaceChar: Parser[Elem] = {
+    elem(' ') | elem('\t') | elem('\n') | elem('\r')
+  }
 
-  def comment: Parser[Any] = elem(';') ~ rep(chrExcept('\n') ~ elem('\n'))
+  lazy val comment: Parser[Any] = elem(';') ~ rep(chrExcept('\n') ~ elem('\n'))
 
-  def whitespace: Parser[Any] = rep(whitespaceChar | comment)
+  lazy val whitespace: Parser[Any] = rep(whitespaceChar | comment)
 
   override def errorToken(message: String): Token = {
     ErrorTok(message)
   }
 
-  def integer: Parser[Long] = {
+  lazy val integer: Parser[Long] = {
     opt('-') ~ rep1(digit) ^^ {
       case sign ~ digits => {
         val intStr = sign.map(_.toString).getOrElse("") + digits.mkString
@@ -32,12 +34,56 @@ object Lexer extends Lexical with RegexParsers {
     }
   }
 
-  def token: Parser[Token] = {
-    (integer ^^ { v => IntTok(v) })
+  def char(except: Set[Char] = Set()): Parser[Char] = {
+    def isPrintable(c: Char): Boolean = charIsPrintable(c) && !except(c) && c != '\\'
+    val printableChar =  elem("printable character", isPrintable _)
+    val escapedChar = regex("\\\\[0-9A-Fa-f]{1,4}"r) ^^ { (s: String) =>
+      val digits = s.substring(1)
+      val code = (0 /: digits) { (code, digit) => 
+        val digitValue = if ('0' <= digit && digit <= '9')
+          digit - '0'
+        else if ('A' <= digit && digit <= 'F')
+          digit - 'A' + 10
+        else
+          digit - 'a' + 10
+        code * 16 + digitValue
+      }
+      code.toChar
+    }
+    printableChar | escapedChar
   }
 
-  def test(input: String) = {
+  lazy val quotedChar: Parser[Char] = {
+    elem('\'') ~> char(Set('\'')) <~ elem('\'')
+  }
+
+  lazy val quotedString: Parser[String] = {
+    elem('"') ~> rep(char(Set('"'))) <~ elem('"') ^^ { case s => s.mkString }
+  }
+
+  lazy val symbol: Parser[Symbol] = {
+    val prefix = elem('@') | elem('%')
+    val element = regex("[A-Za-z_$][A-Za-z0-9_$]*"r) | quotedString
+    val id = opt(elem('#') ~> integer) ^^ { case i => i.map(_.toInt).getOrElse(0) }
+    prefix ~ rep1sep(element, '.') ~ id ^^ { 
+      case p ~ es ~ i => {
+        val prefixedElements = (p + es.head) :: es.tail
+        Symbol(prefixedElements, i)
+      }
+    }
+  }
+
+  def token: Parser[Token] = {
+    (integer      ^^ { v => IntTok(v) })    |
+    (quotedChar   ^^ { v => CharTok(v) })   |
+    (quotedString ^^ { v => StringTok(v) }) |
+    (symbol       ^^ { v => SymbolTok(v) })
+  }
+
+  def test[T](input: String, parser: Parser[T]): T = {
     val reader = new CharArrayReader(input.toArray)
-    phrase(token)(reader).get
-  }      
+    phrase(parser)(reader).get
+  }
+
+  def test(input: String): Token = test(input, token)
 }

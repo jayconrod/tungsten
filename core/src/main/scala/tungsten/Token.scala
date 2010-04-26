@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 sealed abstract class Token
 
 final case class ErrorToken(msg: String) extends Token {
@@ -43,3 +45,24 @@ final case class IntTok(value: Long) extends Tok {
   def chars = value.toString
 }
 
+final case class CharTok(value: Char) extends Tok {
+  def chars = {
+    val charStr = if (charIsPrintable(value)) value.toString else "%04x".format(value.toInt)
+    "'" + charStr + "'"
+  }
+}
+
+final case class StringTok(value: String) extends Tok {
+  def chars = {
+    val buffer = new StringBuffer
+    buffer.append("\"")
+    for (ch <- value) {
+      if (charIsPrintable(ch))
+        buffer.append(ch)
+      else
+        buffer.append("%04x".format(ch.toInt))
+    }
+    buffer.append("\"")
+    buffer.toString
+  }
+}

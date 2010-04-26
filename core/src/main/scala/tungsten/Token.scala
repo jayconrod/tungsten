@@ -2,7 +2,6 @@ package tungsten
 
 sealed abstract class Token
 
-
 final case class ErrorToken(msg: String) extends Token {
   override def equals(that: Any) = that.isInstanceOf[ErrorToken]
   override val hashCode = "ErrorToken".hashCode
@@ -23,3 +22,24 @@ final case class Float32Token(value: Float) extends FloatToken
 final case class Float64Token(value: Double) extends FloatToken
 
 final case class StringToken(value: String) extends Token
+
+import Lexer.{Token => Tok}
+
+final case class ErrorTok(msg: String) extends Tok {
+  def chars = throw new UnsupportedOperationException
+  override def equals(that: Any) = that.isInstanceOf[ErrorTok]
+  override def hashCode = "ErrorToken".hashCode
+}
+
+final case class ReservedTok(text: String) extends Tok {
+  def chars = text
+}
+
+final case class SymbolTok(symbol: Symbol) extends Tok {
+  def chars = symbol.toString
+}
+
+final case class IntTok(value: Long) extends Tok {
+  def chars = value.toString
+}
+

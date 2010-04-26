@@ -13,7 +13,7 @@ class ValueTest {
 
   @Test
   def int {
-    assertEquals(IntType(32), Int32Value(12).ty(module))
+    assertEquals(IntType(32), IntValue(12, 32).ty(module))
   }
 
   @Test

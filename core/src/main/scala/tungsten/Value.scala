@@ -172,6 +172,8 @@ final case class StructValue(structName: Symbol,
 final case class DefinedValue(value: Symbol)
   extends Value
 {
+  var ty: Type = UnitType
+
   def ty(module: Module) = {
     module.getDefn(value) match {
       case Some(Global(_, t, _, _)) => PointerType(t)
@@ -194,4 +196,11 @@ final case class DefinedValue(value: Symbol)
   }
 
   override def toString = value.toString
+}
+object DefinedValue {
+  def apply(value: Symbol, ty: Type): DefinedValue = {
+    val dv = DefinedValue(value)
+    dv.ty = ty
+    dv
+  }
 }

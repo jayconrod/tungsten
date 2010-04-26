@@ -33,6 +33,27 @@ object Lexer extends Lexical with RegexParsers {
     }
   }
 
+  lazy val float: Parser[Double] = {
+    val optSign = opt(elem('-') | elem('+')) ^^ { c => c.map(_.toString).getOrElse("") }
+    val num = rep1(digit) ^^ { _.mkString }
+    val optNum = opt(num) ^^ { _.getOrElse("") }
+    val exp = (elem('e') | elem('E')) ~ optSign ~ num ^^ {
+      case e ~ s ~ n => e + s + n
+    }
+    val optExp = opt(exp) ^^ { _.getOrElse("") }
+
+    val float1 = optSign ~ (num <~ '.') ~ optNum ~ optExp ^^ {
+      case s ~ n ~ f ~ e => s + n + '.' + f + e
+    }
+    val float2 = (optSign <~ '.') ~ num ~ optExp ^^ {
+      case s ~ f ~ e => s + '.' + f + e
+    }
+    val float3 = optSign ~ num ~ exp ^^ {
+      case s ~ n ~ e => s + n + e
+    }
+    (float1 | float2 | float3) ^^ { _.toDouble }
+  }
+
   def char(except: Set[Char] = Set()): Parser[Char] = {
     def isPrintable(c: Char): Boolean = charIsPrintable(c) && !except(c) && c != '\\'
     val printableChar =  elem("printable character", isPrintable _)
@@ -85,6 +106,7 @@ object Lexer extends Lexical with RegexParsers {
   } 
 
   def token: Parser[Token] = {
+    (float        ^^ { v => FloatTok(v) })    |
     (integer      ^^ { v => IntTok(v) })      |
     (quotedChar   ^^ { v => CharTok(v) })     |
     (quotedString ^^ { v => StringTok(v) })   |

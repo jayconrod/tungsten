@@ -56,6 +56,23 @@ class LexerTest {
   }
 
   @Test
+  def floats {
+    testToken("1.", FloatTok(1.))
+    testToken("-1.", FloatTok(-1.))
+    testToken("+1.", FloatTok(+1.))
+    testToken("1.5", FloatTok(1.5))
+    testToken("1.5e2", FloatTok(1.5e2))
+    testToken("1.5E2", FloatTok(1.5E2))
+    testToken("1.5e-2", FloatTok(1.5e-2))
+    testToken("1.5e+2", FloatTok(1.5e+2))
+    testToken(".5", FloatTok(.5))
+    testToken("-.5", FloatTok(-.5))
+    testToken(".5e2", FloatTok(.5e2))
+    testToken("1e2", FloatTok(1e2))
+    testToken("-1e2", FloatTok(-1e2))
+  }
+
+  @Test
   def chars {
     testToken("'a'", CharTok('a'))
     testToken("'\\41'", CharTok('A'))

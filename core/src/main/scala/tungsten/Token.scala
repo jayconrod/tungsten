@@ -45,6 +45,10 @@ final case class IntTok(value: Long) extends Tok {
   def chars = value.toString
 }
 
+final case class FloatTok(value: Double) extends Tok {
+  def chars = value.toString
+}
+
 final case class CharTok(value: Char) extends Tok {
   def chars = {
     val charStr = if (charIsPrintable(value)) value.toString else "%04x".format(value.toInt)

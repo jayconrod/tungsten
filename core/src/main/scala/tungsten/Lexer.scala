@@ -12,7 +12,14 @@ object Lexer extends Lexical with RegexParsers {
 
   val reservedStrings = {
     Set("{", "}", "(", ")", "[", "]",
-        "*", "?", "x", ",",
+        "*", "?", "x", ",", "=", ":", "to",
+        "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|",
+        "<", "<=", ">", ">=", "==", "!=",
+        "exit",
+        "address", "assign", "binop", "branch", "cond", "fextend", "ftoi", "ftruncate", 
+          "heap", "heaparray", "isextend", "itof", "itruncate", "izextend",
+          "intrinsic", "load", "loadelement", "relop", "return", "scall", "stack",
+          "stackarray", "store", "storeelement", "upcast",
         "unit", "boolean", "char", "string", "int8", "int16", "int32", "int64", "float32",
           "float64", "nulltype", "struct",
         "true", "false", "null")

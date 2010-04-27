@@ -25,6 +25,20 @@ class ParserTest {
     test(input, Parser.instruction, expected)
   }
 
+  def testDefinition(input: String, 
+                     parser: Parser.Parser[(List[Definition], Symbol)], 
+                     expected: Definition) 
+  {
+    val scanner = new Lexer.Scanner(input)
+    Parser.phrase(parser)(scanner) match {
+      case Parser.Success((defns, name), _) => defns.find(_.name == name) match {
+        case Some(defn) => assertEquals(expected, defn)
+        case None => fail("could not find a definition in the list named " + name)
+      }
+      case error: Parser.NoSuccess => fail(error.msg)
+    }
+  }
+
   @Test
   def reserved {
     test("{", Parser.reserved("{"), "{")
@@ -336,4 +350,73 @@ class ParserTest {
     testInstruction("upcast %x = () to unit",
                     UpcastInstruction("%x", UnitValue, UnitType))
   }
+
+  @Test
+  def parameter {
+    testDefinition("@ann unit %p", Parser.parameter,
+                   Parameter("%p", UnitType, List(AnnotationValue("@ann", Nil))))
+  }
+
+  @Test
+  def parameterList {
+    val scanner = new Lexer.Scanner("(unit %a, unit %b)")
+    val parser = Parser.defnList(Parser.parameter, "(", ",", ")")
+    val (definitions, symbols) = Parser.phrase(parser)(scanner).get
+    assertEquals(List(Parameter("%a", UnitType), Parameter("%b", UnitType)), definitions)
+    assertEquals(List[Symbol]("%a", "%b"), symbols)
+  }
+
+  @Test
+  def block {
+    testDefinition("block %b(unit %x) {\n" +
+                   "  return %i = ()\n" +
+                   "}", 
+                   Parser.block,
+                   Block("%b", List("%x"), List("%i")))
+  }
+
+  @Test
+  def field {
+    testDefinition("field unit %a", Parser.field,
+                   Field("%a", UnitType))
+  }
+
+  @Test
+  def annotation {
+    testDefinition("annotation @ann(field unit %a, field unit %b)", Parser.annotation,
+                   Annotation("@ann", List("%a", "%b")))
+  }
+
+  @Test
+  def function {
+    testDefinition("function unit @f(unit %a, unit %b) {\n" +
+                   "  block %c() {\n" +
+                   "    return ()\n" +
+                   "  }\n" +
+                   "  block %d() {\n" +
+                   "    return ()\n" +
+                   "  }\n" +
+                   "}\n",
+                   Parser.function,
+                   Function("@f", List("%a", "%b"), UnitType, List("%c", "%d"), Nil))
+  }
+
+  @Test
+  def global {
+    testDefinition("global unit @g", Parser.global,
+                   Global("@g", UnitType, None))
+    testDefinition("global unit @g = ()", Parser.global,
+                   Global("@g", UnitType, Some(UnitValue)))
+  }
+
+  @Test
+  def struct {
+    testDefinition("struct @s {\n" +
+                   "  field unit %a\n" +
+                   "  field unit %b\n" +
+                   "}\n",
+                   Parser.struct,
+                   Struct("@s", List("%a", "%b")))
+  }
 }
+

@@ -16,6 +16,7 @@ object Lexer extends Lexical with RegexParsers {
         "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|",
         "<", "<=", ">", ">=", "==", "!=",
         "exit",
+        "annotation", "block", "field", "function", "global", "struct",
         "address", "assign", "binop", "branch", "cond", "fextend", "ftoi", "ftruncate", 
           "heap", "heaparray", "isextend", "itof", "itruncate", "izextend",
           "intrinsic", "load", "loadelement", "relop", "return", "scall", "stack",

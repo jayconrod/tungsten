@@ -12,19 +12,43 @@ object Parser extends Parsers with ImplicitConversions {
     failure("not implemented")
   }
 
+  lazy val value: Parser[Value] = {
+    def arrayValue: Parser[Value] = {
+      arrayTy ~ ("{" ~> repsep(value, ",") <~ "}") ^? { 
+        case ArrayType(Some(size), elementType) ~ es if size == es.size => {
+          ArrayValue(elementType, es)
+        }
+      }
+    }
+    def structValue: Parser[Value] = {
+      structTy ~ ("{" ~> repsep(value, ",") <~ "}") ^? {
+        case StructType(name) ~ es => StructValue(name, es)
+      }
+    }
+
+    ("(" ~ ")"           ^^^ UnitValue)                  |
+    ("true"              ^^^ BooleanValue(true))         |
+    ("false"             ^^^ BooleanValue(false))        |
+    (char                 ^^ { v => CharValue(v) })      |
+    (string               ^^ { v => StringValue(v) })    |
+    ("int8" ~> integer    ^^ { v => IntValue(v, 8) })    |
+    ("int16" ~> integer   ^^ { v => IntValue(v, 16) })   |
+    ("int32" ~> integer   ^^ { v => IntValue(v, 32) })   |
+    ("int64" ~> integer   ^^ { v => IntValue(v, 64) })   |
+    ("float32" ~> float   ^^ { v => FloatValue(v, 32) }) |
+    ("float64" ~> float   ^^ { v => FloatValue(v, 64) }) |
+    ("null"              ^^^ NullValue)                  |
+    arrayValue                                           |
+    structValue                                          |
+    (ty ~ symbol          ^^ { case t ~ n => DefinedValue(n, t) })
+  }
+
   lazy val ty: Parser[Type] = {
     def makePointerType(elementType: Type, count: Int): Type = {
       if (count == 0)
         elementType
       else
         makePointerType(PointerType(elementType), count - 1)
-    }
-    def arrayTy: Parser[Type] = {
-      def arraySize = {
-        ("?" ^^^ None) |
-        (integer ^^ { case i => Some(i.toInt) })
-      }
-      "[" ~> (arraySize <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
     }
     def basicTy: Parser[Type] = {
       ("unit"     ^^^ UnitType)      |
@@ -38,14 +62,29 @@ object Parser extends Parsers with ImplicitConversions {
       ("float32"  ^^^ FloatType(32)) |
       ("float64"  ^^^ FloatType(64)) |
       ("nulltype" ^^^ NullType)      |
-      ("struct" ~> symbol ^^ { case name => StructType(name) }) |
+      structTy                       |
       arrayTy 
     }
                   
     basicTy ~ rep("*") ^^ { case ety ~ stars => makePointerType(ety, stars.size) }    
   }
 
-  implicit def reserved(r: String): Parser[String] = elem(ReservedTok(r)) ^^^ r
+  lazy val arrayTy: Parser[ArrayType] = {
+    def arraySize = {
+      ("?" ^^^ None) |
+      (integer ^^ { case i => Some(i.toInt) })
+    }
+    "[" ~> (arraySize <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
+  }
+
+  lazy val structTy: Parser[StructType] = {
+    "struct" ~> symbol ^^ { case name => StructType(name) }
+  }
+
+  implicit def reserved(r: String): Parser[String] = {
+    assert(Lexer.reservedStrings(r))
+    elem(ReservedTok(r)) ^^^ r
+  }
   lazy val symbol: Parser[Symbol] = accept("symbol", { case SymbolTok(v) => v })
   lazy val integer: Parser[Long] = accept("integer", { case IntTok(v) => v })
   lazy val float: Parser[Double] = accept("float", { case FloatTok(v) => v })

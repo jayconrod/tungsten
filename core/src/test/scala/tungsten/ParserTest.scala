@@ -17,6 +17,10 @@ class ParserTest {
     test(input, Parser.ty, expected)
   }
 
+  def testValue(input: String, expected: Value) {
+    test(input, Parser.value, expected)
+  }
+
   @Test
   def reserved {
     test("{", Parser.reserved("{"), "{")
@@ -100,5 +104,62 @@ class ParserTest {
   @Test
   def pointerType {
     testType("unit**", PointerType(PointerType(UnitType)))
+  }
+
+  @Test
+  def unitValue {
+    testValue("()", UnitValue)
+  }
+
+  @Test
+  def booleanValues {
+    testValue("true", BooleanValue(true))
+    testValue("false", BooleanValue(false))
+  }
+
+  @Test
+  def charValue {
+    testValue("'a'", CharValue('a'))
+  }
+
+  @Test
+  def stringValue {
+    testValue("\"hello\"", StringValue("hello"))
+  }
+
+  @Test
+  def integerValues {
+    testValue("int8 12", IntValue(12L, 8))
+    testValue("int16 12", IntValue(12L, 16))
+    testValue("int32 12", IntValue(12L, 32))
+    testValue("int64 12", IntValue(12L, 64))
+  }
+
+  @Test
+  def floatValues {
+    testValue("float32 1.5", FloatValue(1.5, 32))
+    testValue("float64 1.5", FloatValue(1.5, 64))
+  }
+
+  @Test
+  def nullValue {
+    testValue("null", NullValue)
+  }
+
+  @Test
+  def arrayValue {
+    testValue("[0 x unit] {}", ArrayValue(UnitType, Nil))
+    testValue("[1 x unit] {()}", ArrayValue(UnitType, List(UnitValue)))
+    testValue("[2 x unit] {(), ()}", ArrayValue(UnitType, List(UnitValue, UnitValue)))
+  }
+
+  @Test
+  def structValue {
+    testValue("struct @T {(), ()}", StructValue("@T", List(UnitValue, UnitValue)))
+  }
+
+  @Test
+  def definedValue {
+    testValue("unit %x", DefinedValue("%x"))
   }
 }

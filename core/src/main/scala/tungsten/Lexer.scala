@@ -12,9 +12,10 @@ object Lexer extends Lexical with RegexParsers {
 
   val reservedStrings = {
     Set("{", "}", "(", ")", "[", "]",
-        "*", "?", "x",
+        "*", "?", "x", ",",
         "unit", "boolean", "char", "string", "int8", "int16", "int32", "int64", "float32",
-          "float64", "nulltype", "struct")
+          "float64", "nulltype", "struct",
+        "true", "false", "null")
   }
                             
 

@@ -87,8 +87,16 @@ object Lexer extends Lexical with RegexParsers {
     elem('"') ~> rep(char(Set('"'))) <~ elem('"') ^^ { case s => s.mkString }
   }
 
-  lazy val symbol: Parser[Symbol] = {
-    val prefix = elem('@') | elem('%')
+  /** This is not directly used by the lexer. Instead, Utilities.symbolFromString uses it
+   *  to create symbols concisely in the compiler source code (mainly in tests).
+   */
+  def generalSymbol(prefixOptional: Boolean): Parser[Symbol] = {
+    val prefix: Parser[String] = {
+      if (prefixOptional)
+        opt(elem('@') | elem('%')) ^^ { _.map(_.toString).getOrElse("") }
+      else
+        (elem('@') | elem('%')) ^^ { _.toString }
+    }
     val element = regex("[A-Za-z_$][A-Za-z0-9_$]*"r) | quotedString
     val id = opt(elem('#') ~> integer) ^^ { case i => i.map(_.toInt).getOrElse(0) }
     prefix ~ rep1sep(element, '.') ~ id ^^ { 
@@ -98,6 +106,8 @@ object Lexer extends Lexical with RegexParsers {
       }
     }
   }
+
+  lazy val symbol: Parser[Symbol] = generalSymbol(false)
 
   lazy val reserved: Parser[String] = {
     def parseReserved(r: String): Parser[String] = {

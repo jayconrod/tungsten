@@ -10,7 +10,13 @@ import Utilities._
 object Lexer extends Lexical with RegexParsers {
   override type Elem = Char
 
-  val reservedStrings = Set("{", "}", "(", ")", "[", "]")
+  val reservedStrings = {
+    Set("{", "}", "(", ")", "[", "]",
+        "*", "?", "x",
+        "unit", "boolean", "char", "string", "int8", "int16", "int32", "int64", "float32",
+          "float64", "nulltype", "struct")
+  }
+                            
 
   override lazy val whitespaceChar: Parser[Elem] = {
     elem(' ') | elem('\t') | elem('\n') | elem('\r')

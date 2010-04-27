@@ -12,6 +12,39 @@ object Parser extends Parsers with ImplicitConversions {
     failure("not implemented")
   }
 
+  lazy val ty: Parser[Type] = {
+    def makePointerType(elementType: Type, count: Int): Type = {
+      if (count == 0)
+        elementType
+      else
+        makePointerType(PointerType(elementType), count - 1)
+    }
+    def arrayTy: Parser[Type] = {
+      def arraySize = {
+        ("?" ^^^ None) |
+        (integer ^^ { case i => Some(i.toInt) })
+      }
+      "[" ~> (arraySize <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
+    }
+    def basicTy: Parser[Type] = {
+      ("unit"     ^^^ UnitType)      |
+      ("boolean"  ^^^ BooleanType)   |
+      ("char"     ^^^ CharType)      |
+      ("string"   ^^^ StringType)    |
+      ("int8"     ^^^ IntType(8))    |
+      ("int16"    ^^^ IntType(16))   |
+      ("int32"    ^^^ IntType(32))   |
+      ("int64"    ^^^ IntType(64))   |
+      ("float32"  ^^^ FloatType(32)) |
+      ("float64"  ^^^ FloatType(64)) |
+      ("nulltype" ^^^ NullType)      |
+      ("struct" ~> symbol ^^ { case name => StructType(name) }) |
+      arrayTy 
+    }
+                  
+    basicTy ~ rep("*") ^^ { case ety ~ stars => makePointerType(ety, stars.size) }    
+  }
+
   implicit def reserved(r: String): Parser[String] = elem(ReservedTok(r)) ^^^ r
   lazy val symbol: Parser[Symbol] = accept("symbol", { case SymbolTok(v) => v })
   lazy val integer: Parser[Long] = accept("integer", { case IntTok(v) => v })

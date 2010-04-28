@@ -59,100 +59,73 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
-  def defnList[T](defnParser: Parser[(List[Definition], Symbol)],
-                  leftDelim: String = "",
-                  separator: String = "",
-                  rightDelim: String = ""): Parser[(List[Definition], List[Symbol])] = 
-  {
-    val listParser = if (separator.isEmpty)
-      rep(defnParser)
-    else
-      repsep(defnParser, separator)
-
-    val delimParser = if (leftDelim.isEmpty || rightDelim.isEmpty)
-      listParser
-    else
-      leftDelim ~> listParser <~ rightDelim
-
-    delimParser ^^ {
-      case defnSymbolLists => {
-        val definitions = defnSymbolLists.map(_._1).flatten
-        val symbols = defnSymbolLists.map(_._2)
-        (definitions, symbols)
-      }
-    }
-  }
-
-  def combineDefinitions(defn: Definition, 
-                         defnLists: (List[Definition], Any)*): (List[Definition], Symbol) =
-  {
-    (defn :: defnLists.toList.map(_._1).flatten, defn.name)
-  }
-
-  lazy val annotation: Parser[(List[Definition], Symbol)] = {
-    annotations ~ ("annotation" ~> symbol) ~ defnList(field, "(", ",", ")") ^^ {
+  lazy val annotation: Parser[AstNode] = {
+    annotations ~ ("annotation" ~> symbol) ~ ("(" ~> repsep(field, ",") <~ ")") ^^ {
       case anns ~ n ~ ps => {
-        val annotation = Annotation(n, ps._2, anns)
-        combineDefinitions(annotation, ps)
+        val annotation = Annotation(n, ps.map(_.name), anns)
+        AstNode(annotation, ps)
       }
     }
   }
 
-  lazy val function: Parser[(List[Definition], Symbol)] = {
-    annotations ~ ("function" ~> ty) ~ symbol ~ defnList(parameter, "(", ",", ")") ~
-      defnList(block, "{", "", "}") ^^ {
+  lazy val function: Parser[AstNode] = {
+    annotations ~ ("function" ~> ty) ~ symbol ~ ("(" ~> repsep(parameter, ",") <~ ")") ~
+      ("{" ~> rep(block) <~ "}") ^^ {
         case anns ~ rty ~ n ~ ps ~ bs => {
-          val function = Function(n, ps._2, rty, bs._2, anns)
-          combineDefinitions(function, ps, bs)
+          val function = Function(n, ps.map(_.name), rty, bs.map(_.name), anns)
+          AstNode(function, ps ++ bs)
         }
     }
   }
 
-  lazy val global: Parser[(List[Definition], Symbol)] = {
+  lazy val global: Parser[AstNode] = {
     annotations ~ ("global" ~> ty) ~ symbol ~ opt("=" ~> value) ^^ {
       case anns ~ t ~ n ~ v => {
         val global = Global(n, t, v, anns)
-        (List(global), n)
+        AstNode(global, Nil)
       }
     }
   }
 
-  lazy val struct: Parser[(List[Definition], Symbol)] = {
-    annotations ~ ("struct" ~> symbol) ~ defnList(field, "{", "", "}") ^^ {
+  lazy val struct: Parser[AstNode] = {
+    annotations ~ ("struct" ~> symbol) ~ ("{" ~> rep(field) <~ "}") ^^ {
       case anns ~ n ~ fs => {
-        val struct = Struct(n, fs._2, anns)
-        combineDefinitions(struct, fs)
+        val struct = Struct(n, fs.map(_.name), anns)
+        AstNode(struct, fs)
       }
     }
   }
 
-  lazy val block: Parser[(List[Definition], Symbol)] = {
-    annotations ~ ("block" ~> symbol) ~ defnList(parameter, "(", ",", ")") ~ 
-      defnList(instructionDefn, "{", "", "}") ^^ {
+  lazy val block: Parser[AstNode] = {
+    annotations ~ ("block" ~> symbol) ~ ("(" ~> repsep(parameter, ",") <~ ")") ~ 
+      ("{" ~> rep(instructionDefn) <~ "}") ^^ {
         case anns ~ n ~ ps ~ is => {
-          val block = Block(n, ps._2, is._2, anns)
-          combineDefinitions(block, ps, is)
+          val block = Block(n, ps.map(_.name), is.map(_.name), anns)
+          AstNode(block, ps ++ is)
         }
     }
   }
 
-  lazy val field: Parser[(List[Definition], Symbol)] = {
+  lazy val field: Parser[AstNode] = {
     annotations ~ ("field" ~> ty) ~ symbol ^^ {
       case anns ~ t ~ n => { 
         val field = Field(n, t, anns)
-        (List(field), n)
+        AstNode(field, Nil)
       }
     }
   }
 
-  lazy val parameter: Parser[(List[Definition], Symbol)] = {
+  lazy val parameter: Parser[AstNode] = {
     annotations ~ ty ~ symbol ^^ {
-      case anns ~ t ~ n => (List(Parameter(n, t, anns)), n)
+      case anns ~ t ~ n => {
+        val parameter = Parameter(n, t, anns)
+        AstNode(parameter, Nil)
+      }
     }
   }
 
-  lazy val instructionDefn: Parser[(List[Definition], Symbol)] = {
-    instruction ^^ { i => (List(i), i.name) }
+  lazy val instructionDefn: Parser[AstNode] = {
+    instruction ^^ { i => AstNode(i, Nil) }
   }
 
   lazy val instruction: Parser[Instruction] = {
@@ -480,4 +453,8 @@ object Parser extends Parsers with ImplicitConversions {
   def test(input: String): Module = {
     test(input, module)
   }
+}
+
+final case class AstNode(definition: Definition, children: List[AstNode]) {
+  def name = definition.name
 }

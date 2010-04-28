@@ -27,15 +27,12 @@ class ParserTest {
   }
 
   def testDefinition(input: String, 
-                     parser: Parser.Parser[(List[Definition], Symbol)], 
+                     parser: Parser.Parser[AstNode], 
                      expected: Definition) 
   {
     val scanner = new Lexer.Scanner(input)
     Parser.phrase(parser)(scanner) match {
-      case Parser.Success((defns, name), _) => defns.find(_.name == name) match {
-        case Some(defn) => assertEquals(expected, defn)
-        case None => fail("could not find a definition in the list named " + name)
-      }
+      case Parser.Success(node, _) => assertEquals(expected, node.definition)
       case error: Parser.NoSuccess => fail(error.msg)
     }
   }
@@ -356,15 +353,6 @@ class ParserTest {
   def parameter {
     testDefinition("@ann unit %p", Parser.parameter,
                    Parameter("%p", UnitType, List(AnnotationValue("@ann", Nil))))
-  }
-
-  @Test
-  def parameterList {
-    val scanner = new Lexer.Scanner("(unit %a, unit %b)")
-    val parser = Parser.defnList(Parser.parameter, "(", ",", ")")
-    val (definitions, symbols) = Parser.phrase(parser)(scanner).get
-    assertEquals(List(Parameter("%a", UnitType), Parameter("%b", UnitType)), definitions)
-    assertEquals(List[Symbol]("%a", "%b"), symbols)
   }
 
   @Test

@@ -10,8 +10,53 @@ object Parser extends Parsers with ImplicitConversions {
 
   private val symbolFactory = new SymbolFactory
 
-  def module(file: Option[File]): Parser[Module] = {
-    failure("not implemented")
+  lazy val module: Parser[Module] = {
+    headers
+  }
+
+  def module(file: File): Parser[Module] = {
+    module ^^ { _.copyWith(filename=Some(file)) }
+  }
+
+  lazy val headers: Parser[Module] = {
+    opt("name" ~> ":" ~> symbol) ~
+    opt("type" ~> ":" ~> ("intermediate" | "library" | "program")) ~
+    opt("version" ~> ":" ~> version) ~
+    opt("filename" ~> ":" ~> string) ~
+    opt("dependencies" ~> ":" ~> repsep(moduleDependency, ",")) ~
+    opt("searchpaths" ~> ":" ~> repsep(string, ",")) ~
+    opt("is64bit" ~> ":" ~> boolean) ~
+    opt("safe" ~> ":" ~> boolean) ^^ {
+      case n ~ t ~ v ~ f ~ ds ~ sps ~ b ~ s => {
+        val defaultValues = new Module
+        def stripPrefix(sym: Symbol) = {
+          val name = sym.name.toList
+          Symbol(name.head.substring(1) :: name.tail, sym.id)
+        }
+        val name = n.map(stripPrefix _).getOrElse(defaultValues.name)
+        val ty = t match {
+          case Some("intermediate") => ModuleType.INTERMEDIATE
+          case Some("library") => ModuleType.LIBRARY
+          case Some("program") => ModuleType.PROGRAM
+          case None => defaultValues.ty
+          case _ => throw new AssertionError("Invalid module type")
+        }
+        val version = v.getOrElse(defaultValues.version)
+        val filename = f.map(new File(_))
+        val dependencies = ds.getOrElse(defaultValues.dependencies)
+        val searchPaths = sps.map(_.map(new File(_))).getOrElse(defaultValues.searchPaths)
+        val is64Bit = b.getOrElse(defaultValues.is64Bit)
+        val isSafe = b.getOrElse(defaultValues.isSafe)
+        new Module(name=name,
+                   ty=ty,
+                   version=version,
+                   filename=filename,
+                   dependencies=dependencies,
+                   searchPaths=searchPaths,
+                   is64Bit=is64Bit,
+                   isSafe=isSafe)
+      }
+    }
   }
 
   def defnList[T](defnParser: Parser[(List[Definition], Symbol)],
@@ -385,6 +430,10 @@ object Parser extends Parsers with ImplicitConversions {
   }
   lazy val symbol: Parser[Symbol] = accept("symbol", { case SymbolTok(v) => v })
   lazy val integer: Parser[Long] = accept("integer", { case IntTok(v) => v })
+  lazy val boolean: Parser[Boolean] = {
+    ("true" ^^^ true) |
+    ("false" ^^^ false)
+  }
   lazy val float: Parser[Double] = accept("float", { case FloatTok(v) => v })
   lazy val char: Parser[Char] = accept("char", { case CharTok(v) => v })
   lazy val string: Parser[String] = accept("string", { case StringTok(v) => v })
@@ -415,6 +464,10 @@ object Parser extends Parsers with ImplicitConversions {
     import Intrinsic._
     ("exit" ^^^ EXIT)
   }
+  lazy val version: Parser[Version] = accept("version", { case VersionTok(v) => v })
+  lazy val moduleDependency: Parser[ModuleDependency] = {
+    accept("module dependency", { case ModuleDependencyTok(v) => v })
+  }
 
   def test[T](input: String, parser: Parser[T]): T = {
     val reader = new Lexer.Scanner(input)
@@ -425,6 +478,6 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   def test(input: String): Module = {
-    test(input, module(None))
+    test(input, module)
   }
 }

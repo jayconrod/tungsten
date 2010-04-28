@@ -70,3 +70,11 @@ final case class StringTok(value: String) extends Tok {
     buffer.toString
   }
 }
+
+final case class VersionTok(value: Version) extends Tok {
+  def chars = value.toString
+}
+
+final case class ModuleDependencyTok(value: ModuleDependency) extends Tok {
+  def chars = value.toString
+}

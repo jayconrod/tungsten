@@ -104,4 +104,17 @@ class LexerTest {
     for (r <- Lexer.reservedStrings)
       testToken(r, ReservedTok(r))
   }
+
+  @Test
+  def version {
+    testToken("v1", VersionTok(Version(1)))
+    testToken("v12.34", VersionTok(Version(12, 34)))
+  }
+
+  @Test
+  def moduleDependency {
+    testToken("-lfoo", ModuleDependencyTok(ModuleDependency("foo", Version.MIN, Version.MAX)))
+    testToken("-lbar:0.1-", ModuleDependencyTok(ModuleDependency("bar", Version(0, 1), Version.MAX)))
+    testToken("-lbaz:-1.0", ModuleDependencyTok(ModuleDependency("baz", Version.MIN, Version(1, 0))))
+  }
 }

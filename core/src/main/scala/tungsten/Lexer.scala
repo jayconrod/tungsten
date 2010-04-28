@@ -16,6 +16,8 @@ object Lexer extends Lexical with RegexParsers {
         "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|",
         "<", "<=", ">", ">=", "==", "!=",
         "exit",
+        "name", "type", "intermediate", "library", "program", "version", "filename",
+          "dependencies", "searchpaths", "is64bit", "safe",
         "annotation", "block", "field", "function", "global", "struct",
         "address", "assign", "binop", "branch", "cond", "fextend", "ftoi", "ftruncate", 
           "heap", "heaparray", "isextend", "itof", "itruncate", "izextend",
@@ -38,6 +40,10 @@ object Lexer extends Lexical with RegexParsers {
   override def errorToken(message: String): Token = {
     ErrorTok(message)
   }
+
+  lazy val unsignedInteger: Parser[Long] = {
+    rep1(digit) ^^ { _.mkString.toLong }
+  }      
 
   lazy val integer: Parser[Long] = {
     opt('-') ~ rep1(digit) ^^ {
@@ -96,6 +102,14 @@ object Lexer extends Lexical with RegexParsers {
     elem('"') ~> rep(char(Set('"'))) <~ elem('"') ^^ { case s => s.mkString }
   }
 
+  lazy val bareSymbol: Parser[Symbol] = {
+    val element = regex("[A-Za-z_$][A-Za-z0-9_$]*"r) | quotedString
+    val id = opt(elem('#') ~> integer) ^^ { case i => i.map(_.toInt).getOrElse(0) }
+    rep1sep(element, '.') ~ id ^^ { 
+      case es ~ i => Symbol(es, i)
+    }
+  }    
+
   /** This is not directly used by the lexer. Instead, Utilities.symbolFromString uses it
    *  to create symbols concisely in the compiler source code (mainly in tests).
    */
@@ -106,12 +120,11 @@ object Lexer extends Lexical with RegexParsers {
       else
         (elem('@') | elem('%')) ^^ { _.toString }
     }
-    val element = regex("[A-Za-z_$][A-Za-z0-9_$]*"r) | quotedString
-    val id = opt(elem('#') ~> integer) ^^ { case i => i.map(_.toInt).getOrElse(0) }
-    prefix ~ rep1sep(element, '.') ~ id ^^ { 
-      case p ~ es ~ i => {
-        val prefixedElements = (p + es.head) :: es.tail
-        Symbol(prefixedElements, i)
+    prefix ~ bareSymbol ^^ {
+      case p ~ sym => {
+        val name = sym.name.toList
+        val prefixedName = p + name.head :: name.tail
+        Symbol(prefixedName, sym.id)
       }
     }
   }
@@ -130,13 +143,38 @@ object Lexer extends Lexical with RegexParsers {
     (fail /: reservedParsers) { (res, p) => p | res }
   } 
 
+  lazy val bareVersion: Parser[Version] = {
+    rep1sep(unsignedInteger, ".") ^^ { vs => Version(vs.map(_.toInt)) }
+  }
+
+  lazy val version: Parser[Version] = {
+    elem('v') ~> bareVersion
+  }
+
+  lazy val moduleDependency: Parser[ModuleDependency] = {
+    val versionRange: Parser[(Version, Version)] = {
+      ((bareVersion <~ elem('-')) ~ opt(bareVersion) ^^ {
+        case vmin ~ vmax => (vmin, vmax.getOrElse(Version.MAX))
+      }) |
+      (elem('-') ~> bareVersion) ^^ {
+        case vmax => (Version.MIN, vmax)
+      }
+    }
+    elem('-') ~> elem('l') ~> bareSymbol ~ opt(elem(':') ~> versionRange) ^^ {
+      case name ~ None => ModuleDependency(name, Version.MIN, Version.MAX)
+      case name ~ Some((vmin, vmax)) => ModuleDependency(name, vmin, vmax)
+    }
+  }
+
   def token: Parser[Token] = {
-    (float        ^^ { v => FloatTok(v) })    |
-    (integer      ^^ { v => IntTok(v) })      |
-    (quotedChar   ^^ { v => CharTok(v) })     |
-    (quotedString ^^ { v => StringTok(v) })   |
-    (symbol       ^^ { v => SymbolTok(v) })   |
-    (reserved     ^^ { v => ReservedTok(v) })
+    (version          ^^ { v => VersionTok(v) })          |
+    (moduleDependency ^^ { v => ModuleDependencyTok(v) }) |
+    (float            ^^ { v => FloatTok(v) })            |
+    (integer          ^^ { v => IntTok(v) })              |
+    (quotedChar       ^^ { v => CharTok(v) })             |
+    (quotedString     ^^ { v => StringTok(v) })           |
+    (symbol           ^^ { v => SymbolTok(v) })           |
+    (reserved         ^^ { v => ReservedTok(v) })
   }
 
   def test[T](input: String, parser: Parser[T]): T = {

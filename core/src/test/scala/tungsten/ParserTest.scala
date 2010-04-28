@@ -2,6 +2,7 @@ package tungsten
 
 import org.junit.Test
 import org.junit.Assert._
+import java.io.File
 import Utilities._
 
 class ParserTest {
@@ -417,6 +418,35 @@ class ParserTest {
                    "}\n",
                    Parser.struct,
                    Struct("@s", List("%a", "%b")))
+  }
+
+  @Test
+  def emptyModule {
+    test("", Parser.module,
+         new Module())    
+  }
+
+  @Test
+  def headers {
+    test("name: @m\n" +
+         "type: library\n" +
+         "version: v0.1\n" +
+         "filename: \"foo.w\"\n" +
+         "dependencies: -lfoo, -lbar:0.1-, -lbaz:-1.0\n" +
+         "searchpaths: \"/foo/bar\", \"/baz\"\n" +
+         "is64bit: true\n" +
+         "safe: true\n",
+         Parser.module,
+         new Module(name=Symbol("m"),
+                    ty=ModuleType.LIBRARY,
+                    version=Version(0, 1),
+                    filename=Some(new File("foo.w")),
+                    dependencies=List(ModuleDependency("foo", Version.MIN, Version.MAX),
+                                      ModuleDependency("bar", Version(0, 1), Version.MAX),
+                                      ModuleDependency("baz", Version.MIN, Version(1, 0))),
+                    searchPaths=List(new File("/foo/bar"), new File("/baz")),
+                    is64Bit=true,
+                    isSafe=true))
   }
 }
 

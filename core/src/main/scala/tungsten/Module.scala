@@ -16,14 +16,14 @@ final class Module(val name:         Symbol                  = Symbol("default")
                    val isSafe:       Boolean                 = false,
                    val definitions:  Map[Symbol, Definition] = new TreeMap[Symbol, Definition])
 {
-  private def copyWith(name: Symbol = name,
-                       ty: ModuleType = ty,
-                       version: Version = version,
-                       filename: Option[File] = filename,
-                       dependencies: List[ModuleDependency] = dependencies,
-                       searchPaths: List[File] = searchPaths,
-                       is64Bit: Boolean = is64Bit,
-                       definitions: Map[Symbol, Definition] = definitions) =
+  def copyWith(name: Symbol = name,
+               ty: ModuleType = ty,
+               version: Version = version,
+               filename: Option[File] = filename,
+               dependencies: List[ModuleDependency] = dependencies,
+               searchPaths: List[File] = searchPaths,
+               is64Bit: Boolean = is64Bit,
+               definitions: Map[Symbol, Definition] = definitions) =
   {
     new Module(name, ty, version, filename, dependencies, searchPaths, is64Bit, isSafe, definitions)
   }
@@ -209,7 +209,17 @@ final class Module(val name:         Symbol                  = Symbol("default")
     hash("Module", name, ty, version, dependencies, searchPaths, is64Bit, isSafe, definitions)
   }
 
-  override def toString = definitions.values.mkString("\n")
+  override def toString = {
+    "name: " + name + "\n" +
+    "type: " + ty + "\n" +
+    "version: " + version + "\n" +
+    "filename: " + filename + "\n" +
+    "dependencies: " + dependencies.mkString(", ") + "\n" +
+    "searchpaths: " + searchPaths.mkString(", ") + "\n" +
+    "is64bit: " + is64Bit + "\n" +
+    "safe: " + isSafe + "\n\n" +
+    definitions.values.mkString("\n")
+  }
 }
 
 final class ModuleType(description: String) {

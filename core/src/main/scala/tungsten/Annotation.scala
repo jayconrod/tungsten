@@ -12,3 +12,4 @@ final case class Annotation(override name: Symbol,
 }
 
 final case class AnnotationValue(name: Symbol, fields: List[Value])
+  extends Copying[AnnotationValue]

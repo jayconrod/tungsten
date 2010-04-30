@@ -4,6 +4,7 @@ import Utilities._
 
 abstract class Definition(val name: Symbol, 
                           val annotations: List[AnnotationValue])
+  extends Copying[Definition]
 {
   def getLocation: Location = {
     val locationAnnotation = annotations.find(_.name == symbolFromString("tungsten.Location"))

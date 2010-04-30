@@ -2,7 +2,9 @@ package tungsten
 
 import Utilities._
 
-abstract sealed class Type {
+abstract sealed class Type
+  extends Copying[Type]
+{
   def validate(module: Module, location: Location): List[CompileException] = Nil
   def defaultValue(module: Module): Value
   def isNumeric: Boolean

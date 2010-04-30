@@ -2,7 +2,9 @@ package tungsten
 
 import Utilities._
 
-sealed abstract class Value {
+sealed abstract class Value 
+  extends Copying[Value]
+{
   def ty(module: Module): Type
  
   def validateComponents(module: Module, location: Location): List[CompileException] = Nil

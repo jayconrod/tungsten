@@ -361,7 +361,7 @@ class ParserTest {
                    "  return %i = ()\n" +
                    "}", 
                    Parser.block,
-                   Block("%b", List("%x"), List("%i")))
+                   Block("%b", List("%b.x"), List("%b.i")))
   }
 
   @Test
@@ -373,7 +373,7 @@ class ParserTest {
   @Test
   def annotation {
     testDefinition("annotation @ann(field unit %a, field unit %b)", Parser.annotation,
-                   Annotation("@ann", List("%a", "%b")))
+                   Annotation("@ann", List("@ann.a", "@ann.b")))
   }
 
   @Test
@@ -387,7 +387,7 @@ class ParserTest {
                    "  }\n" +
                    "}\n",
                    Parser.function,
-                   Function("@f", List("%a", "%b"), UnitType, List("%c", "%d"), Nil))
+                   Function("@f", List("@f.a", "@f.b"), UnitType, List("@f.c", "@f.d"), Nil))
   }
 
   @Test
@@ -405,7 +405,14 @@ class ParserTest {
                    "  field unit %b\n" +
                    "}\n",
                    Parser.struct,
-                   Struct("@s", List("%a", "%b")))
+                   Struct("@s", List("@s.a", "@s.b")))
+  }
+
+  @Test
+  def childNames {
+    val child = Parameter("%p", UnitType)
+    val childNodes = List(AstNode(child, Nil))
+    assertEquals(List(Symbol(List("@a", "p"))), Parser.childNames(childNodes, "@a"))
   }
 
   @Test

@@ -2,11 +2,11 @@ package tungsten
 
 import Utilities._
 
-final case class Global(override name: Symbol,
+final case class Global(name: Symbol,
                         ty: Type,
                         value: Option[Value],
-                        override annotations: List[AnnotationValue] = Nil)
-  extends Definition(name, annotations)
+                        annotations: List[AnnotationValue] = Nil)
+  extends Definition
 {
   def ty(module: Module): Type = ty
 

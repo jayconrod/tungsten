@@ -6,16 +6,21 @@ trait Mapping[T]
 {
   def mapFields(function: (ReflectedField, AnyRef) => AnyRef): T = {
     val clas = getClass
-    val constructor = clas.getDeclaredConstructors.head
-    val fields = clas.getDeclaredFields
+    val constructor = clas.getDeclaredConstructors.head    
     val argumentCount = constructor.getParameterTypes.size
-    val arguments = for (i <- 0 until argumentCount) yield {
-      val fieldName = fields(i).getName
-      val getter = clas.getMethod(fieldName)
-      val oldValue = getter.invoke(this)
-      function(fields(i), oldValue)
+    if (argumentCount == 0) 
+      this.asInstanceOf[T]
+    else {
+      val fields = clas.getDeclaredFields
+      assert(argumentCount <= fields.size)
+      val arguments = for (i <- 0 until argumentCount) yield {
+        val fieldName = fields(i).getName
+        val getter = clas.getMethod(fieldName)
+        val oldValue = getter.invoke(this)
+        function(fields(i), oldValue)
+      }
+      constructor.newInstance(arguments: _*).asInstanceOf[T]
     }
-    constructor.newInstance(arguments: _*).asInstanceOf[T]
   }
 
   def mapFieldsRecursively[S <: AnyRef](function: S => S)(implicit m: Manifest[S]): T = {
@@ -23,6 +28,7 @@ trait Mapping[T]
     def mapper(field: ReflectedField, oldValue: AnyRef): AnyRef = {
       oldValue match {
         case s if SClass.isInstance(s) => function(s.asInstanceOf[S])
+        case v: Mapping[_] => v.asInstanceOf[Mapping[AnyRef]].mapFieldsRecursively(function)
         case list: List[_] if !list.isEmpty => {
           if (SClass.isInstance(list.head))
             list.map { s => function(s.asInstanceOf[S]) }

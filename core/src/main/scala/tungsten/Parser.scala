@@ -14,8 +14,10 @@ object Parser extends Parsers with ImplicitConversions {
     headers
   }
 
-  def module(file: File): Parser[Module] = {
-    module ^^ { _.copyWith(filename=Some(file)) }
+  def module(file: File): Parser[(Module, List[AstNode])] = {
+    module ~ rep(definition) ^^ { 
+      case m ~ ds => (m.copyWith(filename=Some(file)), ds) 
+    }
   }
 
   lazy val headers: Parser[Module] = {
@@ -59,10 +61,14 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
+  lazy val definition: Parser[AstNode] = {
+    annotation | function | global | struct
+  }
+
   lazy val annotation: Parser[AstNode] = {
     annotations ~ ("annotation" ~> symbol) ~ ("(" ~> repsep(field, ",") <~ ")") ^^ {
       case anns ~ n ~ ps => {
-        val annotation = Annotation(n, ps.map(_.name), anns)
+        val annotation = Annotation(n, childNames(ps, n), anns)
         AstNode(annotation, ps)
       }
     }
@@ -72,7 +78,7 @@ object Parser extends Parsers with ImplicitConversions {
     annotations ~ ("function" ~> ty) ~ symbol ~ ("(" ~> repsep(parameter, ",") <~ ")") ~
       ("{" ~> rep(block) <~ "}") ^^ {
         case anns ~ rty ~ n ~ ps ~ bs => {
-          val function = Function(n, ps.map(_.name), rty, bs.map(_.name), anns)
+          val function = Function(n, childNames(ps, n), rty, childNames(bs, n), anns)
           AstNode(function, ps ++ bs)
         }
     }
@@ -90,7 +96,7 @@ object Parser extends Parsers with ImplicitConversions {
   lazy val struct: Parser[AstNode] = {
     annotations ~ ("struct" ~> symbol) ~ ("{" ~> rep(field) <~ "}") ^^ {
       case anns ~ n ~ fs => {
-        val struct = Struct(n, fs.map(_.name), anns)
+        val struct = Struct(n, childNames(fs, n), anns)
         AstNode(struct, fs)
       }
     }
@@ -100,7 +106,7 @@ object Parser extends Parsers with ImplicitConversions {
     annotations ~ ("block" ~> symbol) ~ ("(" ~> repsep(parameter, ",") <~ ")") ~ 
       ("{" ~> rep(instructionDefn) <~ "}") ^^ {
         case anns ~ n ~ ps ~ is => {
-          val block = Block(n, ps.map(_.name), is.map(_.name), anns)
+          val block = Block(n, childNames(ps, n), childNames(is, n), anns)
           AstNode(block, ps ++ is)
         }
     }
@@ -120,6 +126,21 @@ object Parser extends Parsers with ImplicitConversions {
       case anns ~ t ~ n => {
         val parameter = Parameter(n, t, anns)
         AstNode(parameter, Nil)
+      }
+    }
+  }
+
+  def childNames(children: List[AstNode], parentName: Symbol): List[Symbol] = {
+    children map { child =>
+      val fullChildName = child.name.name.toList
+      val prefix = fullChildName.head.charAt(0)
+      val isGlobal = prefix == '@'
+      if (isGlobal)
+        child.name
+      else {
+        val strippedChildName = fullChildName.head.substring(1) :: fullChildName.tail
+        val newChildName = parentName.name ++ strippedChildName
+        Symbol(newChildName, child.name.id)
       }
     }
   }

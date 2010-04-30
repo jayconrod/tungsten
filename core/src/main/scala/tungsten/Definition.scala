@@ -2,10 +2,13 @@ package tungsten
 
 import Utilities._
 
-abstract class Definition(val name: Symbol, 
-                          val annotations: List[AnnotationValue])
+abstract class Definition
   extends Copying[Definition]
 {
+  def name: Symbol
+
+  def annotations: List[AnnotationValue]
+
   def getLocation: Location = {
     val locationAnnotation = annotations.find(_.name == symbolFromString("tungsten.Location"))
     locationAnnotation match {

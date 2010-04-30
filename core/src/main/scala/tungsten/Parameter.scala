@@ -1,9 +1,9 @@
 package tungsten
 
-final case class Parameter(override name: Symbol, 
+final case class Parameter(name: Symbol, 
                            ty: Type,
-                           override annotations: List[AnnotationValue] = Nil)
-  extends Definition(name, annotations)
+                           annotations: List[AnnotationValue] = Nil)
+  extends Definition
 {
   def ty(module: Module): Type = ty
 

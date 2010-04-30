@@ -44,19 +44,14 @@ object ModuleIO {
                filename: String = "<STDIN>"): Either[Module, List[CompileException]] =
   {
     parse(text, filename) match {
-      case Right(error) => Right(List(ParseException(error, Nowhere)))
-      case Left(ast) => {
-        ast.compile match {
-          case Right(errors) => Right(errors)
-          case Left(module) => {
-            val errors = module.validate
-            if (!errors.isEmpty)
-              Right(errors)
-            else
-              Left(module)
-          }
-        }
+      case Left(module) => {
+        val errors = module.validate
+        if (errors.isEmpty)
+          Left(module)
+        else
+          Right(errors)
       }
+      case errors => errors
     }
   }
 
@@ -388,15 +383,49 @@ object ModuleIO {
   }
 
   /* readText helpers */
-  def parse(text: String, filename: String): Either[AstModule, String] = {
-    val file = Some(new File(filename))
+  def parse(text: String, filename: String): Either[Module, List[CompileException]] = {
+    val file = new File(filename)
     val reader = new CharSequenceReader(text)
-    val scanner = new AstLexer.Scanner(filename, reader)
-    AstParser.phrase(AstParser.module(file))(scanner) match {
-      case AstParser.Success(ast, _) => Left(ast)
-      case parseError: AstParser.NoSuccess => Right(parseError.msg)
+    val scanner = new Lexer.Scanner(reader)
+    Parser.phrase(Parser.module(file))(scanner) match {
+      case Parser.Success((headers, asts), _) => {
+        val definitions = asts.flatMap(processAst(_, Nil))
+        var module = headers
+        var errors: List[CompileException] = Nil
+        for (defn <- definitions) {
+          if (module.definitions.contains(defn.name))
+            errors ::= RedefinedSymbolException(defn.name, defn.getLocation, module.definitions(defn.name).getLocation)
+          else
+            module = module.add(defn)
+        }
+        if (errors.isEmpty)
+          Left(module)
+        else
+          Right(errors)
+      }
+      case error: Parser.NoSuccess => Right(List(ParseException(error.msg, Nowhere)))
     }
+  }            
+
+  def processAst(ast: AstNode, scope: List[String]): List[Definition] = {
+    val definition = ast.definition.mapSymbols(renameInScope(_, scope))
+    val newScope = definition.name.name.toList
+    val children = ast.children.flatMap(processAst(_, newScope))
+    definition :: children
   }    
+
+  def renameInScope(symbol: Symbol, scope: List[String]): Symbol = {
+    val name = symbol.name.toList
+    val prefix = name.head(0)
+    val strippedName = name.head.substring(1) :: name.tail
+    assert(prefix == '%' || prefix == '@')
+    val isGlobal = prefix == '@'
+    val newName = if (isGlobal)
+      strippedName
+    else
+      scope ++ strippedName
+    Symbol(newName, symbol.id)
+  }
 
   /* writeBinary helpers */
   

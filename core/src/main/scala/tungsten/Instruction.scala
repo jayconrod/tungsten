@@ -2,9 +2,8 @@ package tungsten
 
 import Utilities._
 
-sealed abstract class Instruction(name: Symbol, 
-                                  annotations: List[AnnotationValue] = Nil)
-  extends Definition(name, annotations)
+sealed abstract class Instruction
+  extends Definition
 {
   def ty(module: Module): Type
 
@@ -130,11 +129,11 @@ sealed trait ElementInstruction extends Instruction {
   }
 }
 
-final case class AddressInstruction(override name: Symbol,
+final case class AddressInstruction(name: Symbol,
                                     base: Value,
                                     indices: List[Value],
-                                    override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations) 
+                                    annotations: List[AnnotationValue] = Nil)
+  extends Instruction 
   with ElementInstruction
 {
   def ty(module: Module) = {
@@ -169,10 +168,10 @@ final case class AddressInstruction(override name: Symbol,
   }
 }
 
-final case class AssignInstruction(override name: Symbol,
+final case class AssignInstruction(name: Symbol,
                                    value: Value,
-                                   override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                   annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def operands = List(value)
 
@@ -240,12 +239,12 @@ final class LogicalOperator(name: String) extends BinaryOperator(name) {
   override def isLogical = true
 }
 
-final case class BinaryOperatorInstruction(override name: Symbol,
+final case class BinaryOperatorInstruction(name: Symbol,
                                            operator: BinaryOperator,
                                            left: Value,
                                            right: Value,
-                                           override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                           annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def operands = List(left, right)
 
@@ -267,11 +266,11 @@ final case class BinaryOperatorInstruction(override name: Symbol,
   }
 }
 
-final case class BranchInstruction(override name: Symbol, 
+final case class BranchInstruction(name: Symbol, 
                                    target: Symbol,
                                    arguments: List[Value],
-                                   override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                   annotations: List[AnnotationValue] = Nil)
+  extends Instruction
   with CallInstruction
 {
   override def isTerminating = true
@@ -296,14 +295,14 @@ final case class BranchInstruction(override name: Symbol,
   }
 }
 
-final case class ConditionalBranchInstruction(override name: Symbol,
+final case class ConditionalBranchInstruction(name: Symbol,
                                               condition: Value,
                                               trueTarget: Symbol,
                                               trueArguments: List[Value],
                                               falseTarget: Symbol,
                                               falseArguments: List[Value],
-                                              override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations) 
+                                              annotations: List[AnnotationValue] = Nil)
+  extends Instruction 
   with CallInstruction
 {
   def ty(module: Module) = UnitType
@@ -340,7 +339,7 @@ sealed abstract class FloatCastInstruction(name: Symbol,
                                            value: Value,
                                            ty: Type,
                                            annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+  extends Instruction
 {
   def ty(module: Module): Type = ty
 
@@ -368,10 +367,10 @@ sealed abstract class FloatCastInstruction(name: Symbol,
   }
 }
 
-final case class FloatExtendInstruction(override name: Symbol,
+final case class FloatExtendInstruction(name: Symbol,
                                         value: Value,
                                         ty: Type,
-                                        override annotations: List[AnnotationValue] = Nil)
+                                        annotations: List[AnnotationValue] = Nil)
   extends FloatCastInstruction(name, value, ty, annotations)
 {
   protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
@@ -382,11 +381,11 @@ final case class FloatExtendInstruction(override name: Symbol,
   }
 }
 
-final case class FloatToIntegerInstruction(override name: Symbol,
+final case class FloatToIntegerInstruction(name: Symbol,
                                            value: Value,
                                            ty: Type,
-                                           override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                           annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def ty(module: Module): Type = ty
 
@@ -415,10 +414,10 @@ final case class FloatToIntegerInstruction(override name: Symbol,
   }
 }
 
-final case class FloatTruncateInstruction(override name: Symbol,
+final case class FloatTruncateInstruction(name: Symbol,
                                           value: Value,
                                           ty: Type,
-                                          override annotations: List[AnnotationValue] = Nil)
+                                          annotations: List[AnnotationValue] = Nil)
   extends FloatCastInstruction(name, value, ty, annotations)
 {
   protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
@@ -429,10 +428,10 @@ final case class FloatTruncateInstruction(override name: Symbol,
   }
 }
 
-final case class HeapAllocateInstruction(override name: Symbol,
+final case class HeapAllocateInstruction(name: Symbol,
                                          ty: Type,
-                                         override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                         annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def ty(module: Module): Type = ty
 
@@ -454,11 +453,11 @@ final case class HeapAllocateInstruction(override name: Symbol,
   }
 }
 
-final case class HeapAllocateArrayInstruction(override name: Symbol,
+final case class HeapAllocateArrayInstruction(name: Symbol,
                                               count: Value,
                                               elementType: Type,
-                                              override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                              annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def ty(module: Module) = PointerType(ArrayType(None, elementType))
 
@@ -474,11 +473,11 @@ final case class HeapAllocateArrayInstruction(override name: Symbol,
   }
 }
 
-final case class IntegerToFloatInstruction(override name: Symbol,
+final case class IntegerToFloatInstruction(name: Symbol,
                                            value: Value,
                                            ty: Type,
-                                           override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                           annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def ty(module: Module): Type = ty
 
@@ -510,7 +509,7 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
                                              value: Value,
                                              ty: Type,
                                              annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+  extends Instruction
 {
   def ty(module: Module): Type = ty
 
@@ -537,10 +536,10 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
   }
 }
 
-final case class IntegerSignExtendInstruction(override name: Symbol,
+final case class IntegerSignExtendInstruction(name: Symbol,
                                               value: Value,
                                               ty: Type,
-                                              override annotations: List[AnnotationValue] = Nil)
+                                              annotations: List[AnnotationValue] = Nil)
   extends IntegerCastInstruction(name, value, ty, annotations)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
@@ -551,10 +550,10 @@ final case class IntegerSignExtendInstruction(override name: Symbol,
   }
 }
 
-final case class IntegerTruncateInstruction(override name: Symbol,
+final case class IntegerTruncateInstruction(name: Symbol,
                                             value: Value,
                                             ty: Type,
-                                            override annotations: List[AnnotationValue] = Nil)
+                                            annotations: List[AnnotationValue] = Nil)
   extends IntegerCastInstruction(name, value, ty, annotations)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
@@ -565,10 +564,10 @@ final case class IntegerTruncateInstruction(override name: Symbol,
   }      
 }
 
-final case class IntegerZeroExtendInstruction(override name: Symbol,
+final case class IntegerZeroExtendInstruction(name: Symbol,
                                               value: Value,
                                               ty: Type,
-                                              override annotations: List[AnnotationValue] = Nil)
+                                              annotations: List[AnnotationValue] = Nil)
   extends IntegerCastInstruction(name, value, ty, annotations)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
@@ -588,11 +587,11 @@ object Intrinsic {
   val INTRINSICS = List(EXIT)
 }
 
-final case class IntrinsicCallInstruction(override name: Symbol,
+final case class IntrinsicCallInstruction(name: Symbol,
                                           intrinsic: IntrinsicFunction,
                                           arguments: List[Value],
-                                          override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations) with CallInstruction
+                                          annotations: List[AnnotationValue] = Nil)
+  extends Instruction with CallInstruction
 {
   def ty(module: Module) = intrinsic.ty.returnType
 
@@ -606,10 +605,10 @@ final case class IntrinsicCallInstruction(override name: Symbol,
   }
 }
 
-final case class LoadInstruction(override name: Symbol,
+final case class LoadInstruction(name: Symbol,
                                  pointer: Value,
-                                 override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                 annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def operands = List(pointer)
 
@@ -630,11 +629,11 @@ final case class LoadInstruction(override name: Symbol,
   }
 }
 
-final case class LoadElementInstruction(override name: Symbol,
+final case class LoadElementInstruction(name: Symbol,
                                         base: Value,
                                         indices: List[Value],
-                                        override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations) with ElementInstruction
+                                        annotations: List[AnnotationValue] = Nil)
+  extends Instruction with ElementInstruction
 {
   if (indices.isEmpty)
     throw new IllegalArgumentException
@@ -670,12 +669,12 @@ object RelationalOperator {
   }
 }
 
-final case class RelationalOperatorInstruction(override name: Symbol,
+final case class RelationalOperatorInstruction(name: Symbol,
                                                operator: RelationalOperator,
                                                left: Value,
                                                right: Value,
-                                               override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                               annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def operands = List(left, right)
 
@@ -696,10 +695,10 @@ final case class RelationalOperatorInstruction(override name: Symbol,
   }
 }
 
-final case class ReturnInstruction(override name: Symbol,
+final case class ReturnInstruction(name: Symbol,
                                    value: Value,
-                                   override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                   annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def operands = List(value)
 
@@ -708,11 +707,11 @@ final case class ReturnInstruction(override name: Symbol,
   def ty(module: Module) = UnitType
 }
 
-final case class StoreInstruction(override name: Symbol,
+final case class StoreInstruction(name: Symbol,
                                   pointer: Value,
                                   value: Value,
-                                  override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                  annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def operands = List(pointer, value)
 
@@ -737,12 +736,12 @@ final case class StoreInstruction(override name: Symbol,
   }
 }
 
-final case class StoreElementInstruction(override name: Symbol,
+final case class StoreElementInstruction(name: Symbol,
                                          base: Value,
                                          indices: List[Value],
                                          value: Value,
-                                         override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                         annotations: List[AnnotationValue] = Nil)
+  extends Instruction
   with ElementInstruction
 {
   if (indices.isEmpty)
@@ -763,10 +762,10 @@ final case class StoreElementInstruction(override name: Symbol,
   }
 }
 
-final case class StackAllocateInstruction(override name: Symbol,
+final case class StackAllocateInstruction(name: Symbol,
                                           ty: Type,
-                                          override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                          annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def ty(module: Module): Type = ty
 
@@ -788,11 +787,11 @@ final case class StackAllocateInstruction(override name: Symbol,
   }
 }
 
-final case class StackAllocateArrayInstruction(override name: Symbol,
+final case class StackAllocateArrayInstruction(name: Symbol,
                                                count: Value,
                                                elementType: Type,
-                                               override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                               annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def ty(module: Module) = PointerType(ArrayType(None, elementType))
 
@@ -809,11 +808,11 @@ final case class StackAllocateArrayInstruction(override name: Symbol,
   }
 }
 
-final case class StaticCallInstruction(override name: Symbol,
+final case class StaticCallInstruction(name: Symbol,
                                        target: Symbol,
                                        arguments: List[Value],
-                                       override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations) with CallInstruction
+                                       annotations: List[AnnotationValue] = Nil)
+  extends Instruction with CallInstruction
 {
   def ty(module: Module) = targetType(module).returnType
 
@@ -836,11 +835,11 @@ final case class StaticCallInstruction(override name: Symbol,
   private def targetType(module: Module) = module.getFunction(target).ty(module)
 }
 
-final case class UpcastInstruction(override name: Symbol,
+final case class UpcastInstruction(name: Symbol,
                                    value: Value,
                                    ty: Type,
-                                   override annotations: List[AnnotationValue] = Nil)
-  extends Instruction(name, annotations)
+                                   annotations: List[AnnotationValue] = Nil)
+  extends Instruction
 {
   def operands = List(value)
 

@@ -2,12 +2,12 @@ package tungsten
 
 import Utilities._
 
-final case class Function(override name: Symbol,
+final case class Function(name: Symbol,
                           parameters: List[Symbol],
                           returnType: Type,
                           blocks: List[Symbol],
-                          override annotations: List[AnnotationValue] = Nil)
-  extends Definition(name, annotations)
+                          annotations: List[AnnotationValue] = Nil)
+  extends Definition
 {
   def ty(module: Module): FunctionType = {
     FunctionType(returnType, module.getParameters(parameters).map(_.ty))

@@ -2,10 +2,10 @@ package tungsten
 
 import Utilities._
 
-final case class Struct(override name: Symbol,
+final case class Struct(name: Symbol,
                         fields: List[Symbol],
-                        override annotations: List[AnnotationValue] = Nil)
-  extends Definition(name, annotations)
+                        annotations: List[AnnotationValue] = Nil)
+  extends Definition
 {
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 

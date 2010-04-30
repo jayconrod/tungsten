@@ -28,16 +28,14 @@ final class Module(val name:         Symbol                  = Symbol("default")
     new Module(name, ty, version, filename, dependencies, searchPaths, is64Bit, isSafe, definitions)
   }
 
-  def add(defn: Definition): Module = {
-    definitions.get(defn.name) match {
-      case Some(d) => throw new RedefinedSymbolException(defn.name, defn.getLocation, d.getLocation)
-      case None => copyWith(definitions = definitions + (defn.name -> defn))
+  def add(defns: Definition*): Module = {
+    val newDefinitions = (definitions /: defns) { (map, d) =>
+      map.get(d.name) match {
+        case Some(orig) => throw new RedefinedSymbolException(d.name, d.getLocation, orig.getLocation)
+        case None => map + (d.name -> d)
+      }
     }
-  }
-
-  def add(defn: Definition, defns: Definition*): Module = {
-    val ds = defn :: defns.toList
-    ds.foldLeft(this)(_.add(_))
+    copyWith(definitions = newDefinitions)
   }
 
   def replace(defn: Definition) = copyWith(definitions = definitions + (defn.name -> defn))

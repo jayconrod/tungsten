@@ -2,11 +2,11 @@ package tungsten
 
 import Utilities._
 
-final case class Block(override name: Symbol,
+final case class Block(name: Symbol,
                        parameters: List[Symbol],
                        instructions: List[Symbol],
-                       override annotations: List[AnnotationValue] = Nil)
-  extends Definition(name, annotations)
+                       annotations: List[AnnotationValue] = Nil)
+  extends Definition
 {
   def ty(module: Module): FunctionType = {
     val parameterTypes = module.getParameters(parameters).map(_.ty)

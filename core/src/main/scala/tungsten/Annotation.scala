@@ -1,9 +1,9 @@
 package tungsten
 
-final case class Annotation(override name: Symbol,
+final case class Annotation(name: Symbol,
                             fields: List[Symbol],
-                            override annotations: List[AnnotationValue] = Nil)
-  extends Definition(name, annotations)
+                            annotations: List[AnnotationValue] = Nil)
+  extends Definition
 {
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 

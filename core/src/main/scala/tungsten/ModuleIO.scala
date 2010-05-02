@@ -257,8 +257,8 @@ object ModuleIO {
         case POINTER_TYPE_ID => PointerType(readType)
         case NULL_TYPE_ID => NullType
         case ARRAY_TYPE_ID => {
-          val size = readOption(readInt)
-          size.filter(_ < 0).foreach { sz: Int => throw new IOException("Invalid array size: " + sz) }
+          val size = readOption(readLong)
+          size.filter(_ < 0).foreach { sz => throw new IOException("Invalid array size: " + sz) }
           ArrayType(size, readType)
         }
         case STRUCT_TYPE_ID => StructType(symbol)
@@ -313,6 +313,8 @@ object ModuleIO {
     def readString: String = input.readUTF
 
     def readInt: Int = input.readInt
+
+    def readLong: Long = input.readLong
 
     def readChar: Char = input.readChar
 
@@ -1111,7 +1113,7 @@ object ModuleIO {
         case NullType => output.writeByte(NULL_TYPE_ID)
         case ArrayType(size, elementType) => {
           output.writeByte(ARRAY_TYPE_ID)
-          writeOption(size, writeInt _)
+          writeOption(size, writeLong _)
           writeType(elementType)
         }
         case StructType(structName) => {
@@ -1234,6 +1236,10 @@ object ModuleIO {
 
     def writeInt(n: Int) {
       output.writeInt(n)
+    }
+
+    def writeLong(n: Long) {
+      output.writeLong(n)
     }
 
     def writeChar(ch: Char) {

@@ -103,7 +103,7 @@ sealed trait ElementInstruction extends Instruction {
             TypeMismatchException(indexType.toString, wordType.toString, getLocation) :: errors
 
           baseType match {
-            case ArrayType(size, elementType) => 
+            case ArrayType(_, elementType) => 
               check(elementType, is, newErrors)
             case StructType(structName) => {
               val struct = module.getStruct(structName)

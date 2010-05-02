@@ -426,7 +426,7 @@ object Parser extends Parsers with ImplicitConversions {
   lazy val arrayTy: Parser[ArrayType] = {
     def arraySize = {
       ("?" ^^^ None) |
-      (integer ^^ { case i => Some(i.toInt) })
+      (integer ^^ { case i => Some(i) })
     }
     "[" ~> (arraySize <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
   }

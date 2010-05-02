@@ -150,7 +150,7 @@ final case object NullType
   override def toString = "#null"
 }
 
-final case class ArrayType(size: Option[Int], elementType: Type)
+final case class ArrayType(size: Option[Long], elementType: Type)
   extends Type
 {
   size match {
@@ -159,13 +159,23 @@ final case class ArrayType(size: Option[Int], elementType: Type)
   }
 
   override def validate(module: Module, location: Location) = {
-    elementType.validate(module, location)
+    def validateLength = {
+      size match {
+        case Some(s) if s > Integer.MAX_VALUE => {
+          List(ArrayTypeWidthException(s, location))
+        }
+        case _ => Nil
+      }
+    }
+
+    stage(validateLength,    
+          elementType.validate(module, location))
   }
 
   def defaultValue(module: Module) = {
     val defaultElementValue = elementType.defaultValue(module)
-    val defaultSize = size.getOrElse(0)
-    ArrayValue(elementType, List.fill(defaultSize)(defaultElementValue))
+    val defaultSize = size.getOrElse(0L)
+    ArrayValue(elementType, List.fill(defaultSize.toInt)(defaultElementValue))
   }
 
   def isNumeric = false

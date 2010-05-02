@@ -21,6 +21,11 @@ final case class AnnotationFieldCountException(annotationName: Symbol,
                              format(annotationName, given, required),
                            location)
 
+final case class ArrayTypeWidthException(length: Long, location: Location)
+  extends CompileException("array type has length %d which is too large for a 32-bit module".
+                             format(length),
+                           location)
+
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 

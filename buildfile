@@ -10,7 +10,7 @@ define 'tungsten' do
 
   define 'core' do
     package :jar
-    test.using :junit
+    test.using :junit, :fork => false, :clonevm => false
   end
 
   define 'llvm' do

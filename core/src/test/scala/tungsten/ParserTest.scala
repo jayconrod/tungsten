@@ -322,7 +322,7 @@ class ParserTest {
   @Test
   def storeElementInst {
     testInstruction("storeelement %x = (), (), ()",
-                    StoreElementInstruction("%x", UnitValue, List(UnitValue), UnitValue))
+                    StoreElementInstruction("%x", UnitValue, UnitValue, List(UnitValue)))
   }
 
   @Test

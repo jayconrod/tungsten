@@ -711,8 +711,8 @@ final case class ReturnInstruction(name: Symbol,
 }
 
 final case class StoreInstruction(name: Symbol,
-                                  pointer: Value,
                                   value: Value,
+                                  pointer: Value,
                                   annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
@@ -740,9 +740,9 @@ final case class StoreInstruction(name: Symbol,
 }
 
 final case class StoreElementInstruction(name: Symbol,
+                                         value: Value,
                                          base: Value,
                                          indices: List[Value],
-                                         value: Value,
                                          annotations: List[AnnotationValue] = Nil)
   extends Instruction
   with ElementInstruction

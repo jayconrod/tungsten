@@ -381,7 +381,7 @@ class ValidationTest {
   def addressTwice {
     val code = "stackarray %a = int64 2 x [2 x int32]\n" +
                "address %b = [? x [? x int32]]* %a, int64 1, int64 1\n" +
-               "store int32* %b, int32 12"
+               "store int32 12, int32* %b"
     codeIsCorrect(code)
   }
 

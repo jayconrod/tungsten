@@ -297,13 +297,13 @@ object Parser extends Parsers with ImplicitConversions {
 
   lazy val storeInst: Parser[StoreInstruction] = {
     instName("store") ~ (value <~ ",") ~ value ^^ {
-      case anns ~ n ~ p ~ v => StoreInstruction(n, p, v, anns)
+      case anns ~ n ~ v ~ p => StoreInstruction(n, v, p, anns)
     }
   }
 
   lazy val storeElementInst: Parser[StoreElementInstruction] = {
     instName("storeelement") ~ (value <~ ",") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
-      case anns ~ n ~ v ~ p ~ is => StoreElementInstruction(n, p, is, v, anns)
+      case anns ~ n ~ v ~ p ~ is => StoreElementInstruction(n, v, p, is, anns)
     }
   }
 

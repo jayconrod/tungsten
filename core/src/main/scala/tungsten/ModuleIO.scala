@@ -217,7 +217,7 @@ object ModuleIO {
         case RETURN_INST_ID => ReturnInstruction(name, readValue, readAnnotations)
         case STORE_INST_ID => StoreInstruction(name, readValue, readValue, readAnnotations)
         case STORE_ELEMENT_INST_ID => {
-          StoreElementInstruction(name, readValue, readList(readValue), readValue, readAnnotations)
+          StoreElementInstruction(name, readValue, readValue, readList(readValue), readAnnotations)
         }
         case STACK_ALLOCATE_INST_ID => StackAllocateInstruction(name, readType, readAnnotations)
         case STATIC_CALL_INST_ID => {
@@ -656,14 +656,14 @@ object ModuleIO {
           output.write("scall " + localName + " = " + localSymbol(target))
           writeArguments(arguments, parentName)
         }
-        case StoreInstruction(_, pointer, value, _) => {
+        case StoreInstruction(_, value, pointer, _) => {
           output.write("store " + localName + " = " + 
-            localValue(pointer) + ", " + localValue(value))
+            localValue(value) + ", " + localValue(pointer))
         }
-        case StoreElementInstruction(_, base, indices, value, _) => {
+        case StoreElementInstruction(_, value, base, indices, _) => {
           output.write("storeelement " + localName + " = " + 
-            localValue(base) + ", " + indices.map(localValue _).mkString(", ") + ", " + 
-            localValue(value))
+            localValue(value) + ", " + localValue(base) + ", " + 
+            indices.map(localValue _).mkString(", "))
         }
         case UpcastInstruction(_, value, ty, _) => {
           output.write("upcast " + localName + 
@@ -1050,16 +1050,16 @@ object ModuleIO {
             output.writeByte(RETURN_INST_ID)
             writeValue(value)
           }
-          case StoreInstruction(_, pointer, value, _) => {
+          case StoreInstruction(_, value, pointer, _) => {
             output.writeByte(STORE_INST_ID)
-            writeValue(pointer)
             writeValue(value)
+            writeValue(pointer)
           }
-          case StoreElementInstruction(_, base, indices, value, _) => {
+          case StoreElementInstruction(_, value, base, indices, _) => {
             output.writeByte(STORE_ELEMENT_INST_ID)
+            writeValue(value)
             writeValue(base)
             writeList(indices, writeValue _)
-            writeValue(value)
           }
           case StackAllocateInstruction(_, ty, _) => {
             output.writeByte(STACK_ALLOCATE_INST_ID)

@@ -86,10 +86,10 @@ class ValidationTest {
 
   @Test
   def duplicateComponent {
-    val (instName, blockName) = (new Symbol("ret"), new Symbol("block"))
+    val (instName, blockName) = (Symbol("ret"), Symbol("block"))
     val inst = ReturnInstruction(instName, UnitValue)
     val block = Block(blockName, Nil, List(instName, instName))
-    val function = Function(new Symbol("main"), Nil, UnitType, List(blockName))
+    val function = Function(Symbol("main"), Nil, UnitType, List(blockName))
     var module = (new Module).add(inst, block, function)
     containsError[DuplicateComponentException](module.validate)
   }
@@ -108,7 +108,7 @@ class ValidationTest {
 
   @Test
   def nonLiteralGlobal {
-    val (foo, bar) = (new Symbol("foo"), new Symbol("bar"))
+    val (foo, bar) = (Symbol("foo"), Symbol("bar"))
     val gfoo = Global(foo, UnitType, Some(UnitValue))
     val gbar = Global(bar, UnitType, Some(DefinedValue(foo)))
     val module = (new Module).add(gfoo, gbar)

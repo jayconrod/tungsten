@@ -122,7 +122,7 @@ object Lexer extends Lexical with RegexParsers {
     }
     prefix ~ bareSymbol ^^ {
       case p ~ sym => {
-        val name = sym.name.toList
+        val name = sym.name
         val prefixedName = p + name.head :: name.tail
         Symbol(prefixedName, sym.id)
       }

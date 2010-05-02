@@ -18,7 +18,7 @@ class ValueTest {
 
   @Test
   def global {
-    val foo = new Symbol("foo")
+    val foo = Symbol("foo")
     val global = Global(foo, UnitType, Some(UnitValue))
     module = module.add(global)
 

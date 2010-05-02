@@ -32,7 +32,7 @@ object Parser extends Parsers with ImplicitConversions {
       case n ~ t ~ v ~ f ~ ds ~ sps ~ b ~ s => {
         val defaultValues = new Module
         def stripPrefix(sym: Symbol) = {
-          val name = sym.name.toList
+          val name = sym.name
           Symbol(name.head.substring(1) :: name.tail, sym.id)
         }
         val name = n.map(stripPrefix _).getOrElse(defaultValues.name)
@@ -132,7 +132,7 @@ object Parser extends Parsers with ImplicitConversions {
 
   def childNames(children: List[AstNode], parentName: Symbol): List[Symbol] = {
     children map { child =>
-      val fullChildName = child.name.name.toList
+      val fullChildName = child.name.name
       val prefix = fullChildName.head.charAt(0)
       val isGlobal = prefix == '@'
       if (isGlobal)

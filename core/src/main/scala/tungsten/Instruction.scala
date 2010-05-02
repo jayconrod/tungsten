@@ -601,7 +601,7 @@ final case class IntrinsicCallInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ 
-      validateCall(module, new Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments)
+      validateCall(module, Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments)
   }
 }
 

@@ -409,13 +409,13 @@ object ModuleIO {
 
   def processAst(ast: AstNode, scope: List[String]): List[Definition] = {
     val definition = ast.definition.mapSymbols(renameInScope(_, scope))
-    val newScope = definition.name.name.toList
+    val newScope = definition.name.name
     val children = ast.children.flatMap(processAst(_, newScope))
     definition :: children
   }    
 
   def renameInScope(symbol: Symbol, scope: List[String]): Symbol = {
-    val name = symbol.name.toList
+    val name = symbol.name
     val prefix = name.head(0)
     val strippedName = name.head.substring(1) :: name.tail
     assert(prefix == '%' || prefix == '@')
@@ -726,7 +726,7 @@ object ModuleIO {
 
     def localSymbol(symbol: Symbol, parentName: Option[Symbol]): Symbol = {
       def addPrefix(symbol: Symbol, prefix: Char): Symbol = {
-        val fullName = symbol.name.toList
+        val fullName = symbol.name
         val newFullName = (prefix + fullName.head) :: fullName.tail
         Symbol(newFullName, symbol.id)
       }
@@ -895,7 +895,7 @@ object ModuleIO {
     }
 
     def writeHeaderSymbol(sym: Symbol) {
-      writeList(sym.name.toList, output.writeUTF _)
+      writeList(sym.name, output.writeUTF _)
       writeInt(sym.id)
     }
 
@@ -1223,7 +1223,7 @@ object ModuleIO {
     }
 
     def writeSymbol(symbol: Symbol) {
-      writeList(symbol.name.toList, { (n: String) => writeInt(strings(n)) })
+      writeList(symbol.name, { (n: String) => writeInt(strings(n)) })
       writeInt(symbol.id)
     }
 

@@ -110,7 +110,7 @@ class ValidationTest {
   def nonLiteralGlobal {
     val (foo, bar) = (Symbol("foo"), Symbol("bar"))
     val gfoo = Global(foo, UnitType, Some(UnitValue))
-    val gbar = Global(bar, UnitType, Some(DefinedValue(foo)))
+    val gbar = Global(bar, UnitType, Some(DefinedValue(foo, UnitType)))
     val module = (new Module).add(gfoo, gbar)
     containsError[GlobalValueNonLiteralException](gbar.validate(module))
   }

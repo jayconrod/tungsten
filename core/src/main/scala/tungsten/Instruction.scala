@@ -11,10 +11,13 @@ sealed abstract class Instruction
 
   def operands: List[Value]
 
+  /** Collects symbols used by operands. This does not count symbols used inside types, only
+   *  names of instructions, parameters, and globals referenced.
+   */
   def operandSymbols = {
     def collectSymbols(ops: List[Value], syms: List[Symbol]): List[Symbol] = {
       ops match {
-        case DefinedValue(value) :: rest => collectSymbols(rest, value :: syms)
+        case DefinedValue(value, _) :: rest => collectSymbols(rest, value :: syms)
         case o :: rest => collectSymbols(rest, syms)
         case Nil => syms
       }

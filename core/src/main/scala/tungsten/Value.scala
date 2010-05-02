@@ -171,19 +171,10 @@ final case class StructValue(structName: Symbol,
   }
 }
 
-final case class DefinedValue(value: Symbol)
+final case class DefinedValue(value: Symbol, ty: Type)
   extends Value
 {
-  var ty: Type = UnitType
-
-  def ty(module: Module) = {
-    module.getDefn(value) match {
-      case Some(Global(_, t, _, _)) => PointerType(t)
-      case Some(Parameter(_, t, _)) => t
-      case Some(inst: Instruction) => inst.ty(module)
-      case _ => throw new RuntimeException("symbol " + value + " cannot be used as a value")
-    }
-  }
+  def ty(module: Module) = ty
 
   override def validateComponents(module: Module, location: Location) = {
     module.getDefn(value) match {
@@ -198,11 +189,4 @@ final case class DefinedValue(value: Symbol)
   }
 
   override def toString = value.toString
-}
-object DefinedValue {
-  def apply(value: Symbol, ty: Type): DefinedValue = {
-    val dv = DefinedValue(value)
-    dv.ty = ty
-    dv
-  }
 }

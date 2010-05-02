@@ -282,7 +282,7 @@ object ModuleIO {
         case NULL_VALUE_ID => NullValue
         case ARRAY_VALUE_ID => ArrayValue(readType, readList(readValue))
         case STRUCT_VALUE_ID => StructValue(symbol, readList(readValue))
-        case DEFINED_VALUE_ID => DefinedValue(symbol)
+        case DEFINED_VALUE_ID => DefinedValue(symbol, readType)
         case _ => throw new IOException("Invalid value ID")
       }
     }
@@ -1176,9 +1176,10 @@ object ModuleIO {
           writeInt(symbols(structName))
           writeList(fields, writeValue _)
         }
-        case DefinedValue(name) => {
+        case DefinedValue(name, ty) => {
           output.writeByte(DEFINED_VALUE_ID)
           writeInt(symbols(name))
+          writeType(ty)
         }
       }
     }

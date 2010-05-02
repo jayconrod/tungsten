@@ -176,7 +176,7 @@ class ParserTest {
 
   @Test
   def definedValue {
-    testValue("unit %x", DefinedValue("%x"))
+    testValue("unit %x", DefinedValue("%x", UnitType))
   }
 
   @Test

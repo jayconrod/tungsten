@@ -66,7 +66,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val annotation: Parser[AstNode] = {
-    annotations ~ ("annotation" ~> symbol) ~ ("(" ~> repsep(field, ",") <~ ")") ^^ {
+    annotations ~ ("annotation" ~> symbol) ~ children(field, "(", ",", ")") ^^ {
       case anns ~ n ~ ps => {
         val annotation = Annotation(n, childNames(ps, n), anns)
         AstNode(annotation, ps)
@@ -75,8 +75,8 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val function: Parser[AstNode] = {
-    annotations ~ ("function" ~> ty) ~ symbol ~ ("(" ~> repsep(parameter, ",") <~ ")") ~
-      ("{" ~> rep(block) <~ "}") ^^ {
+    annotations ~ ("function" ~> ty) ~ symbol ~ children(parameter, "(", ",", ")") ~
+      children(block, "{", "", "}") ^^ {
         case anns ~ rty ~ n ~ ps ~ bs => {
           val function = Function(n, childNames(ps, n), rty, childNames(bs, n), anns)
           AstNode(function, ps ++ bs)
@@ -94,7 +94,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val struct: Parser[AstNode] = {
-    annotations ~ ("struct" ~> symbol) ~ ("{" ~> rep(field) <~ "}") ^^ {
+    annotations ~ ("struct" ~> symbol) ~ children(field, "{", "", "}") ^^ {
       case anns ~ n ~ fs => {
         val struct = Struct(n, childNames(fs, n), anns)
         AstNode(struct, fs)
@@ -103,8 +103,8 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val block: Parser[AstNode] = {
-    annotations ~ ("block" ~> symbol) ~ ("(" ~> repsep(parameter, ",") <~ ")") ~ 
-      ("{" ~> rep(instructionDefn) <~ "}") ^^ {
+    annotations ~ ("block" ~> symbol) ~ children(parameter, "(", ",", ")") ~ 
+      children(instructionDefn, "{", "", "}") ^^ {
         case anns ~ n ~ ps ~ is => {
           val block = Block(n, childNames(ps, n), childNames(is, n), anns)
           AstNode(block, ps ++ is)
@@ -347,6 +347,21 @@ object Parser extends Parsers with ImplicitConversions {
 
   lazy val argumentList: Parser[List[Value]] = {
     "(" ~> repsep(value, ",") <~ ")"
+  }
+
+  def children(parser: Parser[AstNode], 
+               prefix: String, 
+               separator: String, 
+               suffix: String): Parser[List[AstNode]] =
+  {
+    val listParser = if (separator.isEmpty)
+      rep(parser)
+    else
+      repsep(parser, separator)
+    opt(prefix ~> listParser <~ suffix) ^^ {
+      case Some(cs) => cs
+      case None => Nil
+    }
   }
 
   lazy val value: Parser[Value] = {

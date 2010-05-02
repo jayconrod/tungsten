@@ -14,8 +14,8 @@ object Utilities {
   }
 
   def compileString(program: String): Module = {
-    val ast = AstParser.test(program)
-    ast.compile.left.get
+    val Left(module) = ModuleIO.parse(program, "<TEST>")
+    module
   }
 
   def exitWithError(message: String) {

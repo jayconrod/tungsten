@@ -10,13 +10,15 @@ object Parser extends Parsers with ImplicitConversions {
 
   private val symbolFactory = new SymbolFactory
 
-  lazy val module: Parser[Module] = {
-    headers
+  def module(file: File): Parser[(Module, List[AstNode])] = {
+    module ^^ { 
+      case (m, ds) => (m.copyWith(filename=Some(file)), ds)
+    }
   }
 
-  def module(file: File): Parser[(Module, List[AstNode])] = {
-    module ~ rep(definition) ^^ { 
-      case m ~ ds => (m.copyWith(filename=Some(file)), ds) 
+  lazy val module: Parser[(Module, List[AstNode])] = {
+    headers ~ rep(definition) ^^ {
+      case m ~ ds => (m, ds)
     }
   }
 
@@ -234,7 +236,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val heapArrayInst: Parser[HeapAllocateArrayInstruction] = {
-    instName("heaparray") ~ (value <~ "*") ~ ty ^^ {
+    instName("heaparray") ~ (value <~ "x") ~ ty ^^ {
       case anns ~ n ~ v ~ t => HeapAllocateArrayInstruction(n, v, t, anns)
     }
   }
@@ -295,7 +297,7 @@ object Parser extends Parsers with ImplicitConversions {
 
   lazy val storeInst: Parser[StoreInstruction] = {
     instName("store") ~ (value <~ ",") ~ value ^^ {
-      case anns ~ n ~ v ~ p => StoreInstruction(n, p, v, anns)
+      case anns ~ n ~ p ~ v => StoreInstruction(n, p, v, anns)
     }
   }
 
@@ -312,7 +314,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val stackArrayInst: Parser[StackAllocateArrayInstruction] = {
-    instName("stackarray") ~ (value <~ "*") ~ ty ^^ {
+    instName("stackarray") ~ (value <~ "x") ~ ty ^^ {
       case anns ~ n ~ v ~ t => StackAllocateArrayInstruction(n, v, t, anns)
     }
   }
@@ -484,10 +486,6 @@ object Parser extends Parsers with ImplicitConversions {
       case Success(r, _) => r
       case error: NoSuccess => throw new RuntimeException(error.msg)
     }
-  }
-
-  def test(input: String): Module = {
-    test(input, module)
   }
 }
 

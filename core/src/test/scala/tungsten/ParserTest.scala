@@ -253,7 +253,7 @@ class ParserTest {
 
   @Test
   def heapArrayInst {
-    testInstruction("heaparray %x = () * unit",
+    testInstruction("heaparray %x = () x unit",
                     HeapAllocateArrayInstruction("%x", UnitValue, UnitType))
   }
 
@@ -333,7 +333,7 @@ class ParserTest {
 
   @Test
   def stackArrayInst {
-    testInstruction("stackarray %x = () * unit",
+    testInstruction("stackarray %x = () x unit",
                     StackAllocateArrayInstruction("%x", UnitValue, UnitType))
   }
 
@@ -418,7 +418,7 @@ class ParserTest {
   @Test
   def emptyModule {
     test("", Parser.module,
-         new Module())    
+         (new Module(), Nil))
   }
 
   @Test
@@ -431,7 +431,7 @@ class ParserTest {
          "searchpaths: \"/foo/bar\", \"/baz\"\n" +
          "is64bit: true\n" +
          "safe: true\n",
-         Parser.module,
+         Parser.headers,
          new Module(name=Symbol("m"),
                     ty=ModuleType.LIBRARY,
                     version=Version(0, 1),

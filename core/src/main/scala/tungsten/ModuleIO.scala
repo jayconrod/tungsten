@@ -430,312 +430,316 @@ object ModuleIO {
   /* writeBinary helpers */
   
   /* writeText helpers */
-  val INDENT = "  "
-
-  def isTopLevel(defn: Definition): Boolean = {
-    defn match {
-      case _: Global | _: Function | _: Struct => true
-      case _ => false
-    }
-  }    
-
   class TextModuleWriter(module: Module, output: Writer) {
-    val parentNames = new Stack[Symbol]
+    val INDENT = "  "
 
     def write {
       writeHeader
-      for (defn <- module.definitions.values
-           if isTopLevel(defn))
-        writeDefinition(defn)
+      for (defn <- module.definitions.values) {
+        defn match {
+          case a: Annotation => writeAnnotation(a)
+          case g: Global => writeGlobal(g)
+          case f: Function => writeFunction(f)
+          case s: Struct => writeStruct(s)
+          case _ => ()
+        }
+        output.write("\n\n")
+      }
     }
 
     def writeHeader {
-      output.write("#name " + module.name + "\n")
+      output.write("name: @" + module.name + "\n")
       val tyStr = module.ty match {
-        case ModuleType.INTERMEDIATE => "#intermediate"
-        case ModuleType.LIBRARY => "#library"
-        case ModuleType.PROGRAM => "#program"
+        case ModuleType.INTERMEDIATE => "intermediate"
+        case ModuleType.LIBRARY => "library"
+        case ModuleType.PROGRAM => "program"
       }
-      output.write("#type " + tyStr + "\n")
+      output.write("type: " + tyStr + "\n")
       if (module.version != Version.MIN)
-        output.write("#version " + module.version + "\n")
+        output.write("version: " + module.version + "\n")
       module.filename match {
-        case Some(filename) => output.write("#filename \"" + filename + "\"\n")
+        case Some(filename) => output.write("filename: \"" + filename + "\"\n")
         case _ => ()
       }
       if (!module.dependencies.isEmpty)
-        output.write("#dependencies " + module.dependencies.mkString(", ") + "\n")
+        output.write("dependencies: " + module.dependencies.mkString(", ") + "\n")
       if (!module.searchPaths.isEmpty)
-        output.write("#searchpaths " + module.searchPaths.mkString(", ") + "\n")
-      output.write("#is64bit #" + module.is64Bit + "\n")
+        output.write("searchpaths: " + module.searchPaths.mkString(", ") + "\n")
+      output.write("is64bit: " + module.is64Bit + "\n")
       if (module.isSafe)
-        output.write("#isSafe #true\n")
+        output.write("safe: true\n")
       output.write("\n")
     }
 
-    def writeDefinition(defn: Definition) {
-      if (defn.isInstanceOf[Instruction])
-        writeDefinition(defn.asInstanceOf[Instruction])
-      else {
-        try {
-          val writer = getClass.getMethod("writeDefinition", defn.getClass)
-          writer.invoke(this, defn)
-        } catch {
-          case exn => throw new RuntimeException(exn)
-        }
-      }
+    def writeAnnotation(annotation: Annotation) {
+      writeAnnotations(annotation.annotations)
+      output.write("annotation ")
+      writeSymbol(annotation.name, None)
+      writeFields(annotation.fields, Some(annotation.name))
     }
 
-    def writeDefinition(block: Block) {
-      output.write(INDENT + "#block " + localSymbol(block.name))
-      parentNames.push(block.name)
-      writeParameterList(block.parameters)
-      if (block.instructions.isEmpty)
-        output.write("\n")
-      else {
-        output.write(" {\n")
-        parentNames.push(block.name)
-        writeDefinitionList(block.instructions, "")
-        parentNames.pop
-        output.write(INDENT + "}\n")
-      }
-      parentNames.pop
+    def writeFunction(function: Function) {
+      writeAnnotations(function.annotations)
+      output.write("function ")
+      writeType(function.returnType, None)
+      output.write(" ")
+      writeSymbol(function.name, None)
+      writeParameters(function.parameters, Some(function.name))
+      writeBlocks(function.blocks, Some(function.name))
     }
 
-    def writeDefinition(field: Field) {
-      output.write(INDENT + "#field " + localSymbol(field.name) + ": " + field.ty + "\n")
-    }
-
-    def writeDefinition(function: Function) {
-      output.write("#function " + function.name)
-      parentNames.push(function.name)
-      writeParameterList(function.parameters)
-      output.write(": " + function.returnType)
-      if (function.blocks.isEmpty)
-        output.write("\n")
-      else {
-        output.write(" {\n")
-        writeDefinitionList(function.blocks, "")
-        output.write("}\n")
-      }
-      parentNames.pop
-    }
-
-    def writeDefinition(global: Global) { 
-      output.write("#global " + global.name + ": " + global.ty)
+    def writeGlobal(global: Global) {
+      writeAnnotations(global.annotations)
+      output.write("global ")
+      writeType(global.ty, None)
+      output.write(" ")
+      writeSymbol(global.name, None)
       global.value match {
-        case Some(v) => output.write(" = " + v)
+        case Some(v) => {
+          output.write(" = ")
+          writeValue(v, None)
+        }
         case None => ()
       }
-      output.write("\n")
     }
 
-    def writeDefinition(param: Parameter) {
-      output.write(localSymbol(param.name).toString + ": " + param.ty)
+    def writeStruct(struct: Struct) {
+      writeAnnotations(struct.annotations)
+      output.write("struct @" + struct.name)
+      writeFields(struct.fields, Some(struct.name))
     }
 
-    def writeDefinition(struct: Struct) {
-      output.write("#struct " + struct.name)
-      parentNames.push(struct.name)
-      if (struct.fields.isEmpty)
-        output.write("\n")
-      else {
-        output.write(" {\n")
-        writeDefinitionList(struct.fields, "")
-        output.write("}\n")
-      }
-      parentNames.pop
+    def writeFields(fields: List[Symbol], parentName: Option[Symbol]) {
+      writeChildren(module.getFields(fields), writeField(_: Field, parentName),
+                    " {\n", "\n", "\n}")
     }
 
-    def writeDefinition(inst: Instruction) {
-      val localName = localSymbol(inst.name)
-      def writeLocalValue(value: Value) {
-        output.write(localValue(value).toString)
-      }
+    def writeParameters(parameters: List[Symbol], parentName: Option[Symbol]) {
+      writeChildren(module.getParameters(parameters), writeParameter(_: Parameter, parentName),
+                    "(", ", ", ")")
+    }
+
+    def writeBlocks(blocks: List[Symbol], parentName: Option[Symbol]) {
+      writeChildren(module.getBlocks(blocks), writeBlock(_: Block, parentName),
+                    " {\n", "\n", "\n}")
+    }
+
+    def writeInstructions(instructions: List[Symbol], parentName: Option[Symbol]) {
+      writeChildren(module.getInstructions(instructions), 
+                    writeInstruction(_: Instruction, parentName),
+                    " {\n", "\n", "\n" + INDENT + "}")
+    }
+
+    def writeBlock(block: Block, parentName: Option[Symbol]) {
+      output.write(INDENT)
+      writeAnnotations(block.annotations)
+      output.write("block ")
+      writeSymbol(block.name, parentName)
+      writeParameters(block.parameters, parentName)
+      writeInstructions(block.instructions, parentName)
+    }
+
+    def writeField(field: Field, parentName: Option[Symbol]) {
+      output.write(INDENT)
+      writeAnnotations(field.annotations)
+      output.write("field ")
+      writeType(field.ty, parentName)
+      output.write(" ")
+      writeSymbol(field.name, parentName)
+    }
+
+    def writeParameter(parameter: Parameter, parentName: Option[Symbol]) {
+      writeAnnotations(parameter.annotations)
+      writeType(parameter.ty, parentName)
+      output.write(" ")
+      writeSymbol(parameter.name, parentName)
+    }
+
+    def writeInstruction(instruction: Instruction, parentName: Option[Symbol]) {
+      val localName = this.localSymbol(instruction.name, parentName)
+      def localSymbol(symbol: Symbol): String = this.localSymbol(symbol, parentName).toString
+      def localValue(value: Value): String = this.localValue(value, parentName)
+      def localType(ty: Type): String = this.localType(ty, parentName)
+
       output.write(INDENT + INDENT)
-      inst match {
-        case AddressInstruction(name, base, indices, _) => {
-          output.write("#address " + localName + " = " + localValue(base) + ", ")
-          writeList(indices, writeLocalValue _, ", ")
+      writeAnnotations(instruction.annotations)
+      instruction match {
+        case AddressInstruction(_, base, indices, _) => {
+          output.write("address " + localName + " = " + localValue(base) + ", " +
+                       indices.map(localValue _).mkString(", "))
         }
-        case AssignInstruction(name, value, _) => {
-          output.write("#assign " + localName + " = " + localValue(value))
+        case AssignInstruction(_, value, _) => {
+          output.write("assign " + localName + " = " + localValue(value))
         }
-        case BinaryOperatorInstruction(name, operator, left, right, _) => {
-          output.write("#binop " + localName + " = " +
+        case BinaryOperatorInstruction(_, operator, left, right, _) => {
+          output.write("binop " + localName + " = " +
             localValue(left) + " " + operator.name + " " + localValue(right))
         }
-        case BranchInstruction(name, target, arguments, _) => {
-          output.write("#branch " + localName + 
-            " = " + target.simple)
-          writeArgumentList(arguments)
+        case BranchInstruction(_, target, arguments, _) => {
+          output.write("branch " + localName + 
+            " = " + localSymbol(target))
+          writeArguments(arguments, parentName)
         }
-        case ConditionalBranchInstruction(name, condition, trueTarget, trueArgs,
+        case ConditionalBranchInstruction(_, condition, trueTarget, trueArgs,
                                           falseTarget, falseArgs, _) =>
         {
-          output.write("#cond " + localName + " = " +
-            condition + " ? " + localSymbol(trueTarget))
-          writeArgumentList(trueArgs)
+          output.write("cond " + localName + " = " +
+            localValue(condition) + " ? " + localSymbol(trueTarget))
+          writeArguments(trueArgs, parentName)
           output.write(" : " + localSymbol(falseTarget))
-          writeArgumentList(falseArgs)
+          writeArguments(falseArgs, parentName)
         }
-        case FloatExtendInstruction(name, value, ty, _) => {
-          output.write("#fextend " + localName + " = " + 
-            localValue(value) + " : " + ty)
+        case FloatExtendInstruction(_, value, ty, _) => {
+          output.write("fextend " + localName + " = " + 
+            localValue(value) + " to " + localType(ty))
         }
-        case FloatToIntegerInstruction(name, value, ty, _) => {
-          output.write("#ftoi " + localName + " = " +
-            localValue(value) + " : " + ty)
+        case FloatToIntegerInstruction(_, value, ty, _) => {
+          output.write("ftoi " + localName + " = " +
+            localValue(value) + " to " + localType(ty))
         }
-        case FloatTruncateInstruction(name, value, ty, _) => {
-          output.write("#ftruncate " + localName + " = " +
-            localValue(value) + " : " + ty)
+        case FloatTruncateInstruction(_, value, ty, _) => {
+          output.write("ftruncate " + localName + " = " +
+            localValue(value) + " to " + ty)
         }
-        case HeapAllocateInstruction(name, ty, _) => {
-          output.write("#heap " + localName + ": " + ty)
+        case HeapAllocateInstruction(_, ty, _) => {
+          output.write("heap " + localName + " = " + localType(ty))
         }
-        case HeapAllocateArrayInstruction(name, count, elementType, _) => {
-          output.write("#heaparray " + localName + " = " +
-            count + " * " + elementType)
+        case HeapAllocateArrayInstruction(_, count, elementType, _) => {
+          output.write("heaparray " + localName + " = " +
+            localValue(count) + " x " + localType(elementType))
         }
-        case IntegerSignExtendInstruction(name, value, ty, _) => {
-          output.write("#isextend " + localName + " = " +
-            localValue(value) + " : " + ty)
+        case IntegerSignExtendInstruction(_, value, ty, _) => {
+          output.write("isextend " + localName + " = " +
+            localValue(value) + " to " + localType(ty))
         }
-        case IntegerToFloatInstruction(name, value, ty, _) => {
-          output.write("#itof " + localName + " = " +
-            localValue(value) + " : " + ty)
+        case IntegerToFloatInstruction(_, value, ty, _) => {
+          output.write("itof " + localName + " = " +
+            localValue(value) + " to " + localType(ty))
         }
-        case IntegerTruncateInstruction(name, value, ty, _) => {
-          output.write("#itruncate " + localName + " = " +
-            localValue(value) + " : " + ty)
+        case IntegerTruncateInstruction(_, value, ty, _) => {
+          output.write("itruncate " + localName + " = " +
+            localValue(value) + " to " + localType(ty))
         }
-        case IntegerZeroExtendInstruction(name, value, ty, _) => {
-          output.write("#izextend " + localName + " = " +
-            localValue(value) + " : " + ty)
+        case IntegerZeroExtendInstruction(_, value, ty, _) => {
+          output.write("izextend " + localName + " = " +
+            localValue(value) + " to " + localType(ty))
         }
-        case IntrinsicCallInstruction(name, intrinsic, arguments, _) => {
-          output.write("#intrinsic " + localName + 
+        case IntrinsicCallInstruction(_, intrinsic, arguments, _) => {
+          output.write("intrinsic " + localName + 
             " = " + intrinsic.name)
-          writeArgumentList(arguments)
+          writeArguments(arguments, parentName)
         }
-        case LoadInstruction(name, pointer, _) => {
-          output.write("#load " + localName + 
-            " = *" + localValue(pointer))
+        case LoadInstruction(_, pointer, _) => {
+          output.write("load " + localName + 
+            " = " + localValue(pointer))
         }
-        case LoadElementInstruction(name, base, indices, _) => {
-          output.write("#loadelement " + localName + " = " +
-            base + ", ")
-          writeList(indices, writeLocalValue _, ", ")
+        case LoadElementInstruction(_, base, indices, _) => {
+          output.write("loadelement " + localName + " = " +
+            base + ", " + indices.map(localValue _).mkString(", "))
         }
-        case RelationalOperatorInstruction(name, operator, left, right, _) => {
-          output.write("#relop " + localName + " = " + 
-            left + " " + operator.name + " " + right)
+        case RelationalOperatorInstruction(_, operator, left, right, _) => {
+          output.write("relop " + localName + " = " + 
+            localValue(left) + " " + operator.name + " " + localValue(right))
         }
-        case ReturnInstruction(name, value, _) => {
-          output.write("#return " + localName + 
+        case ReturnInstruction(_, value, _) => {
+          output.write("return " + localName + 
             " = " + localValue(value))
         }
-        case StackAllocateInstruction(name, ty, _) => {
-          output.write("#stack " + localName + ": " + ty)
+        case StackAllocateInstruction(_, ty, _) => {
+          output.write("stack " + localName + " = " + localType(ty))
         }
-        case StackAllocateArrayInstruction(name, count, elementType, _) => {
-          output.write("#stackarray " + localName + " = " +
-            count + " * " + elementType)
+        case StackAllocateArrayInstruction(_, count, elementType, _) => {
+          output.write("stackarray " + localName + " = " +
+            localValue(count) + " x " + localType(elementType))
         }
-        case StaticCallInstruction(name, target, arguments, _) => {
-          output.write("#scall " + localName + " = " + target)
-          writeArgumentList(arguments)
+        case StaticCallInstruction(_, target, arguments, _) => {
+          output.write("scall " + localName + " = " + localSymbol(target))
+          writeArguments(arguments, parentName)
         }
-        case StoreInstruction(name, pointer, value, _) => {
-          output.write("#store " + localName + " = *" + 
-            localValue(pointer) + " <- " + localValue(value))
+        case StoreInstruction(_, pointer, value, _) => {
+          output.write("store " + localName + " = " + 
+            localValue(pointer) + ", " + localValue(value))
         }
-        case StoreElementInstruction(name, base, indices, value, _) => {
-          output.write("#storeelement " + localName + " = " + 
-            localValue(base) + ", ")
-          writeList(indices, writeLocalValue _, ", ")
-          output.write(" <- " + localValue(value))
+        case StoreElementInstruction(_, base, indices, value, _) => {
+          output.write("storeelement " + localName + " = " + 
+            localValue(base) + ", " + indices.map(localValue _).mkString(", ") + ", " + 
+            localValue(value))
         }
-        case UpcastInstruction(name, value, ty, _) => {
-          output.write("#upcast " + localName + 
-            " = " + localValue(value) + ": " + ty)
+        case UpcastInstruction(_, value, ty, _) => {
+          output.write("upcast " + localName + 
+            " = " + localValue(value) + " to " + localType(ty))
         }
       }
       output.write("\n")
-    }   
-
-    def writeParameterList(parameters: List[Symbol]) {
-      output.write("(")
-      if (parameters.isEmpty)
-        output.write(" ")
-      else
-        writeDefinitionList(parameters, ", ")
-      output.write(")")
     }
 
-    def writeArgumentList(arguments: List[Value]) {
-      output.write("(")
-      if (arguments.isEmpty)
-        output.write(" ")
-      else
-        writeList(arguments, { (v: Value) => output.write(localValue(v).toString) }, ", ")
-      output.write(")")
+    def writeAnnotations(annotations: List[AnnotationValue]) {
+      writeChildren(annotations, writeAnnotationValue _, "", " ", " ")
     }
 
-    def writeList[T](list: List[T], writer: T => Unit, sep: String) { 
-      list match {
-        case Nil => ()
-        case h :: Nil => writer(h)
-        case h :: t => {
-          writer(h)
-          output.write(sep)
-          writeList(t, writer, sep)
-        }
+    def writeAnnotationValue(annotation: AnnotationValue) {
+      writeSymbol(annotation.name, None)
+      writeArguments(annotation.fields, None)
+    }
+
+    def writeArguments(values: List[Value], parentName: Option[Symbol]) {
+      output.write(values.map(localValue(_, parentName)).mkString("(", ", ", ")"))
+    }
+
+    def writeChildren[T](children: List[T],
+                         writer: T => Unit,
+                         prefix: String,
+                         separator: String,
+                         suffix: String)
+    {
+      if (children.isEmpty)
+        return
+
+      output.write(prefix)
+      for ((child, i) <- children.zip(0 until children.size)) {
+        writer(child)
+        if (i < children.size - 1)
+          output.write(separator)
       }
+      output.write(suffix)
     }
 
-    def writeDefinitionList(list: List[Symbol], sep: String) { 
-      val definitionList = list.map(module.definitions(_))
-      writeList(definitionList, writeDefinition(_: Definition), sep)
+    def writeValue(value: Value, parentName: Option[Symbol]) {
+      output.write(localValue(value, parentName))
     }
 
-    /** Returns the simple version of the symbol if the simple name by itself does not refer 
-     *  to another definition, nor does any prefix combined with the simple name. The symbol
-     *  on top of the parent name stack combined with the simple name must also match the
-     *  whole name. Otherwise, the given name is returned.
-     */
-    def localSymbol(sym: Symbol): Symbol = {
-      def conflicts(name: Symbol): Boolean = {
-        module.getDefn(name) match {
-          case Some(defn) if defn.name != sym => true
-          case _ => false
-        }
+    def writeType(ty: Type, parentName: Option[Symbol]) {
+      output.write(localType(ty, parentName))
+    }
+
+    def writeSymbol(symbol: Symbol, parentName: Option[Symbol]) {
+      output.write(localSymbol(symbol, parentName).toString)
+    }
+
+    def localValue(value: Value, parentName: Option[Symbol]): String = {
+      value.mapSymbols(localSymbol(_, parentName)).toString
+    }
+
+    def localType(ty: Type, parentName: Option[Symbol]): String = {
+      ty.mapSymbols(localSymbol(_, parentName)).toString
+    }
+
+    def localSymbol(symbol: Symbol, parentName: Option[Symbol]): Symbol = {
+      def addPrefix(symbol: Symbol, prefix: Char): Symbol = {
+        val fullName = symbol.name.toList
+        val newFullName = (prefix + fullName.head) :: fullName.tail
+        Symbol(newFullName, symbol.id)
       }
 
-      val matchesPrefix = (false /: parentNames) { (b, prefix) =>
-        b || prefix + sym.simple == sym
-      }
-      if (conflicts(sym.simple) ||
-          parentNames.exists { (prefix: Symbol) => conflicts(prefix + sym.simple) } ||
-          !matchesPrefix)
-        sym
-      else
-        sym.simple
-    }
-
-    def localValue(value: Value): Value = {
-      value match {
-        case DefinedValue(name) => DefinedValue(localSymbol(name))
-        case ArrayValue(elementType, elements) => {
-          val localElements = elements.map(localValue _)
-          ArrayValue(elementType, localElements)
+      parentName match {
+        case None => addPrefix(symbol, '@')
+        case Some(parent) => {
+          val simpleName = symbol.name.last
+          if (parent.name :+ simpleName == symbol.name)
+            addPrefix(Symbol(simpleName, symbol.id), '%')
+          else
+            addPrefix(symbol, '@')
         }
-        case StructValue(structName, fields) => {
-          val localFields = fields.map(localValue _)
-          StructValue(structName, localFields)
-        }
-        case _ => value
       }
     }
   }

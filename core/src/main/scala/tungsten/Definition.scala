@@ -32,7 +32,7 @@ abstract class Definition
   }
 
   def validate(module: Module): List[CompileException] = {
-    def validateFieldCount(av: AnnotationValue) = {
+    def validateAnnotationFieldCount(av: AnnotationValue) = {
       val ann = module.getAnnotation(av.name)
       val given = av.fields.size
       val required = ann.fields.size
@@ -42,14 +42,17 @@ abstract class Definition
         Nil
     }
 
-    def validateFieldTypes(av: AnnotationValue) = {
+    def validateAnnotationFieldTypes(av: AnnotationValue) = {
       val ann = module.getAnnotation(av.name)
       val fieldTypes = module.getFields(ann.fields).map(_.ty)
-      av.fields.zip(fieldTypes).flatMap { vt => vt._1.validateType(vt._2, module, getLocation) }
+      av.fields.zip(fieldTypes).flatMap { vt => 
+        val (v, t) = vt
+        v.validate(module, getLocation) ++ v.validateType(t, getLocation)
+      }
     }
 
-    stage(annotations.flatMap(validateFieldCount _),
-          annotations.flatMap(validateFieldTypes _))
+    stage(annotations.flatMap(validateAnnotationFieldCount _),
+          annotations.flatMap(validateAnnotationFieldTypes _))
   }
 
   protected def validateComponentsOfClass[T <: Definition](module: Module,

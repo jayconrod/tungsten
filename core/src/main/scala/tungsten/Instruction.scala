@@ -29,7 +29,12 @@ sealed abstract class Instruction
 
   override def validateComponents(module: Module): List[CompileException] = {
     super.validateComponents(module) ++
-      validateOperands(module)
+      operands.flatMap(_.validateComponents(module, getLocation))
+  }
+
+  override def validate(module: Module): List[CompileException] = {
+    super.validate(module) ++
+      operands.flatMap(_.validate(module, getLocation))
   }
 
   protected final def validateOperands(module: Module) = {
@@ -51,7 +56,7 @@ trait CallInstruction extends Instruction {
     } else {
       (arguments zip parameterTypes) flatMap { at => 
         val (a, t) = at
-        a.validateType(t, module, getLocation)
+        a.validateType(t, getLocation)
       }
     }
   }
@@ -334,7 +339,7 @@ final case class ConditionalBranchInstruction(name: Symbol,
     stage(super.validate(module),
           validateBranch(trueTarget, trueArguments),
           validateBranch(falseTarget, falseArguments),
-          condition.validateType(BooleanType, module, getLocation))
+          condition.validateType(BooleanType, getLocation))
   }
 }
 
@@ -472,7 +477,7 @@ final case class HeapAllocateArrayInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
-    super.validate(module) ++ count.validateType(IntType.wordType(module), module, getLocation)
+    super.validate(module) ++ count.validateType(IntType.wordType(module), getLocation)
   }
 }
 
@@ -757,7 +762,7 @@ final case class StoreElementInstruction(name: Symbol,
   override def validate(module: Module) = {
     def validateValueType = {
       val elementType = getElementType(module, base.ty, indices)
-      value.validateType(elementType, module, getLocation)
+      value.validateType(elementType, getLocation)
     }
     super.validate(module) ++ 
       validateIndices(module, base.ty, indices) ++ 
@@ -807,7 +812,7 @@ final case class StackAllocateArrayInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ 
-      count.validateType(IntType(64), module, getLocation)
+      count.validateType(IntType.wordType(module), getLocation)
   }
 }
 

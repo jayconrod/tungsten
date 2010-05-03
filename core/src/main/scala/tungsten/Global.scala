@@ -26,6 +26,8 @@ final case class Global(name: Symbol,
 
     stage(super.validate(module),
           validateValueLiteral,
-          value.toList.flatMap(_.validateType(ty, module, getLocation)))
+          value.toList.flatMap { v => 
+            v.validate(module, getLocation) ++ v.validateType(ty, getLocation)
+          })
   }
 }

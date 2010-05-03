@@ -13,14 +13,15 @@ sealed abstract class Value
    */
   def validateComponents(module: Module, location: Location): List[CompileException] = Nil
 
-  /** Checks that this value is of the given type and satisfies the invariants guaranteed by
-   *  that type. For instance, struct values must have the correct number of fields, and they
-   *  must be of the correct types. The default implementation just checks the given type.
-   *  This method is recursive for values which contain other values.
+  /** Checks that this value satisfies the invariants of its type. For instance, a struct 
+   *  value must have the correct number of fields, and they must be of the correct type.
+   *  This should be called after valdiateComponents is called for all definitions and only
+   *  if there are no errors. This method is recursive for values which contain other values.
    */
-  def validateType(expectedType: Type,
-                   module: Module,
-                   location: Location): List[CompileException] =
+  def validate(module: Module, location: Location): List[CompileException] = Nil
+
+  /** Checks that this value is of a given type */
+  final def validateType(expectedType: Type, location: Location): List[CompileException] =
   {
     if (ty != expectedType)
       List(TypeMismatchException(ty, expectedType, location))
@@ -88,18 +89,13 @@ final case class IntValue(value: Long, width: Int)
 
   def ty = IntType(width)
 
-  override def validateType(expectedType: Type,
-                            module: Module,
-                            location: Location): List[CompileException] =
+  override def validate(module: Module, location: Location): List[CompileException] =
   {
-    def validateRange = {
-      if (value < ty.minValue || value > ty.maxValue)
-        List(IntegerRangeException(value, width, location))
-      else
-        Nil
-    }
-    super.validateType(expectedType, module, location) ++ validateRange
-  }    
+    if (value < ty.minValue || value > ty.maxValue)
+      List(IntegerRangeException(value, width, location))
+    else
+      Nil
+  }
 
   override def toString = {
     val suffix = width match {
@@ -145,12 +141,9 @@ final case class ArrayValue(elementType: Type,
       elements.flatMap(_.validateComponents(module, location))
   }
 
-  override def validateType(expectedType: Type,
-                            module: Module,
-                            location: Location): List[CompileException] =
-  {
-    super.validateType(expectedType, module, location) ++
-      elements.flatMap(_.validateType(elementType, module, location))
+  override def validate(module: Module, location: Location): List[CompileException] = {
+    elements.flatMap(_.validate(module, location)) ++
+      elements.flatMap(_.validateType(elementType, location))
   }
 
   override def toString = {
@@ -169,10 +162,7 @@ final case class StructValue(structName: Symbol,
     module.validateName[Struct](structName, location)
   }
 
-  override def validateType(expectedType: Type,
-                            module: Module,
-                            location: Location): List[CompileException] =
-  {
+  override def validate(module: Module, location: Location): List[CompileException] = {
     def validateFieldCount = {
       val struct = module.getStruct(structName)
       if (fields.size == struct.fields.size)
@@ -186,11 +176,11 @@ final case class StructValue(structName: Symbol,
       val fieldTypes = module.getFields(struct.fields).map(_.ty)
       (fields zip fieldTypes) flatMap { ft =>
         val (f, t) = ft
-        f.validateType(t, module, location)
+        f.validateType(t, location)
       }
     }
 
-    super.validateType(expectedType, module, location) ++
+    fields.flatMap(_.validate(module, location)) ++
       stage(validateFieldCount,
             validateFieldTypes)
   }

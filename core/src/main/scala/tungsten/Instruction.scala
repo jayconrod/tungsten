@@ -56,7 +56,7 @@ trait CallInstruction extends Instruction {
     } else {
       (arguments zip parameterTypes) flatMap { at => 
         val (a, t) = at
-        a.validateType(t, getLocation)
+        checkType(a.ty, t, getLocation)
       }
     }
   }
@@ -80,10 +80,10 @@ sealed trait ElementInstruction extends Instruction {
                 val field = module.getField(struct.fields(ix.asInstanceOf[Int]))
                 getElementType(module, field.ty, is)
               }
-              case _ => UnitType
+              case _ => throw new RuntimeException("non-integer index found; did you call validateIndices first?")
             }
           }
-          case _ => UnitType  // bogus, but we'll catch it in validation
+          case _ => throw new RuntimeException("base type is neither array nor struct; did you call validateIndices first?")
         }
       }
     }
@@ -157,22 +157,21 @@ final case class AddressInstruction(name: Symbol,
   def operands = base :: indices
 
   override def validate(module: Module) = {
-    val baseType = base.ty
-    def baseIsPointer = {
-      if (baseType.isInstanceOf[PointerType])
-        Nil
-      else
-        List(TypeMismatchException(baseType.toString, "non-null pointer type", getLocation))
-    }
-
     def indicesAreValid = {
-      val elementType = baseType.asInstanceOf[PointerType].elementType
-      validateIndices(module, elementType, indices)
+      val PointerType(ptrElementType) = base.ty
+      validateIndices(module, ptrElementType, indices)
     }
 
-    stage(super.validate(module),
-          baseIsPointer,
-          indicesAreValid)
+    def tyIsValid = {
+      val PointerType(ptrElementType) = base.ty
+      val calculatedType = PointerType(getElementType(module, ptrElementType, indices))
+      checkType(ty(module), calculatedType, getLocation)
+    }      
+
+    super.validate(module) ++
+      stage(checkNonNullPointerType(base.ty, getLocation),
+            indicesAreValid,
+            tyIsValid)
   }
 }
 
@@ -339,7 +338,7 @@ final case class ConditionalBranchInstruction(name: Symbol,
     stage(super.validate(module),
           validateBranch(trueTarget, trueArguments),
           validateBranch(falseTarget, falseArguments),
-          condition.validateType(BooleanType, getLocation))
+          checkType(condition.ty, BooleanType, getLocation))
   }
 }
 
@@ -451,13 +450,7 @@ final case class HeapAllocateInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
-    def validateType = {
-      if (!ty.isPointer || ty == NullType)
-        List(TypeMismatchException(ty.toString, "non-null pointer type", getLocation))
-      else
-        Nil
-    }
-    super.validate(module) ++ validateType
+    super.validate(module) ++ checkNonNullPointerType(ty, getLocation)
   }
 }
 
@@ -477,7 +470,7 @@ final case class HeapAllocateArrayInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
-    super.validate(module) ++ count.validateType(IntType.wordType(module), getLocation)
+    super.validate(module) ++ checkType(count.ty, IntType.wordType(module), getLocation)
   }
 }
 
@@ -626,14 +619,7 @@ final case class LoadInstruction(name: Symbol,
   }
   
   override def validate(module: Module) = {
-    def validateType = {
-      val pointerType = pointer.ty
-      if (!pointerType.isInstanceOf[PointerType])
-        List(TypeMismatchException(pointerType.toString, "non-null pointer type", getLocation))
-      else
-        Nil
-    }
-    super.validate(module) ++ validateType
+    super.validate(module) ++ checkNonNullPointerType(pointer.ty, getLocation)
   }
 }
 
@@ -740,7 +726,9 @@ final case class StoreInstruction(name: Symbol,
           List(TypeMismatchException(pointerType.toString, "non-null pointer type", getLocation))
       }
     }
-    super.validate(module) ++ validateTypes
+    super.validate(module) ++
+      stage(checkNonNullPointerType(pointer.ty, getLocation),
+            checkType(PointerType(value.ty), pointer.ty, getLocation))
   }
 }
 
@@ -762,11 +750,11 @@ final case class StoreElementInstruction(name: Symbol,
   override def validate(module: Module) = {
     def validateValueType = {
       val elementType = getElementType(module, base.ty, indices)
-      value.validateType(elementType, getLocation)
+      checkType(value.ty, elementType, getLocation)
     }
     super.validate(module) ++ 
-      validateIndices(module, base.ty, indices) ++ 
-      validateValueType
+      stage(validateIndices(module, base.ty, indices),
+            validateValueType)
   }
 }
 
@@ -785,13 +773,7 @@ final case class StackAllocateInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
-    def validateType = {
-      if (!ty.isPointer || ty == NullType)
-        List(TypeMismatchException(ty.toString, "non-null pointer type", getLocation))
-      else
-        Nil
-    }
-    super.validate(module) ++ validateType
+    super.validate(module) ++ checkNonNullPointerType(ty, getLocation)
   }
 }
 
@@ -812,7 +794,7 @@ final case class StackAllocateArrayInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ 
-      count.validateType(IntType.wordType(module), getLocation)
+      checkType(count.ty, IntType.wordType(module), getLocation)
   }
 }
 

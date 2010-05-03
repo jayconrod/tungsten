@@ -27,7 +27,7 @@ final case class Global(name: Symbol,
     stage(super.validate(module),
           validateValueLiteral,
           value.toList.flatMap { v => 
-            v.validate(module, getLocation) ++ v.validateType(ty, getLocation)
+            v.validate(module, getLocation) ++ checkType(v.ty, ty, getLocation)
           })
   }
 }

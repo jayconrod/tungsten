@@ -19,15 +19,6 @@ sealed abstract class Value
    *  if there are no errors. This method is recursive for values which contain other values.
    */
   def validate(module: Module, location: Location): List[CompileException] = Nil
-
-  /** Checks that this value is of a given type */
-  final def validateType(expectedType: Type, location: Location): List[CompileException] =
-  {
-    if (ty != expectedType)
-      List(TypeMismatchException(ty, expectedType, location))
-    else
-      Nil
-  }
 }
 
 final case object UnitValue
@@ -143,7 +134,7 @@ final case class ArrayValue(elementType: Type,
 
   override def validate(module: Module, location: Location): List[CompileException] = {
     elements.flatMap(_.validate(module, location)) ++
-      elements.flatMap(_.validateType(elementType, location))
+      elements.flatMap { e: Value => checkType(e.ty, elementType, location) }
   }
 
   override def toString = {
@@ -176,7 +167,7 @@ final case class StructValue(structName: Symbol,
       val fieldTypes = module.getFields(struct.fields).map(_.ty)
       (fields zip fieldTypes) flatMap { ft =>
         val (f, t) = ft
-        f.validateType(t, location)
+        checkType(f.ty, t, location)
       }
     }
 

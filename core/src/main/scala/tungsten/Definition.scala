@@ -47,7 +47,7 @@ abstract class Definition
       val fieldTypes = module.getFields(ann.fields).map(_.ty)
       av.fields.zip(fieldTypes).flatMap { vt => 
         val (v, t) = vt
-        v.validate(module, getLocation) ++ v.validateType(t, getLocation)
+        v.validate(module, getLocation) ++ checkType(v.ty, t, getLocation)
       }
     }
 

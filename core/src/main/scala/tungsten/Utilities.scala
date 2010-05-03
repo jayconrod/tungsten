@@ -13,6 +13,20 @@ object Utilities {
       block != Character.UnicodeBlock.SPECIALS
   }
 
+  def checkNonNullPointerType(given: Type, location: Location): List[CompileException] = {
+    if (!given.isPointer || given == NullType)
+      List(TypeMismatchException(given.toString, "non-null pointer type", location))
+    else
+      Nil
+  }
+
+  def checkType(given: Type, expected: Type, location: Location): List[CompileException] = {
+    if (given != expected)
+      List(TypeMismatchException(given.toString, expected.toString, location))
+    else
+      Nil
+  }
+
   def compileString(program: String): Module = {
     val Left(module) = ModuleIO.parse(program, "<TEST>")
     module

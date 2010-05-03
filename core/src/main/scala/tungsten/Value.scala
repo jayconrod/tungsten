@@ -5,17 +5,25 @@ import Utilities._
 sealed abstract class Value 
   extends Copying[Value]
 {
-  def ty(module: Module): Type
- 
+  def ty: Type
+
+  /** Checks that the symbols referred to by this value correspond to the correct type of 
+   *  definitions. For instance, a struct value includes a symbol which must name a struct.
+   *  This method is recursive for values which contain other values.
+   */
   def validateComponents(module: Module, location: Location): List[CompileException] = Nil
 
-  final def validateType(expectedType: Type, 
-                         module: Module,
-                         location: Location): List[CompileException] = 
+  /** Checks that this value is of the given type and satisfies the invariants guaranteed by
+   *  that type. For instance, struct values must have the correct number of fields, and they
+   *  must be of the correct types. The default implementation just checks the given type.
+   *  This method is recursive for values which contain other values.
+   */
+  def validateType(expectedType: Type,
+                   module: Module,
+                   location: Location): List[CompileException] =
   {
-    val actualType = ty(module)
-    if (actualType != expectedType)
-      List(TypeMismatchException(actualType, expectedType, location))
+    if (ty != expectedType)
+      List(TypeMismatchException(ty, expectedType, location))
     else
       Nil
   }
@@ -24,7 +32,7 @@ sealed abstract class Value
 final case object UnitValue
   extends Value
 {
-  def ty(module: Module) = UnitType
+  def ty = UnitType
 
   override def toString = "()"
 }
@@ -32,7 +40,7 @@ final case object UnitValue
 final case class BooleanValue(value: Boolean)
   extends Value
 {
-  def ty(module: Module) = BooleanType
+  def ty = BooleanType
 
   override def toString = if (value) "#true" else "#false"
 }
@@ -40,7 +48,7 @@ final case class BooleanValue(value: Boolean)
 final case class CharValue(value: Char)
   extends Value
 {
-  def ty(module: Module) = CharType
+  def ty = CharType
 
   def isPrintable: Boolean = Utilities.charIsPrintable(value)
 
@@ -56,7 +64,7 @@ final case class CharValue(value: Char)
 final case class StringValue(value: String)
   extends Value
 {
-  def ty(module: Module) = StringType
+  def ty = StringType
 
   override def toString = {
     val buffer = new StringBuffer
@@ -78,7 +86,20 @@ final case class IntValue(value: Long, width: Int)
   if (width < 8 || !isPowerOf2(width) || width > 64)
     throw new IllegalArgumentException
 
-  def ty(module: Module) = IntType(width)
+  def ty = IntType(width)
+
+  override def validateType(expectedType: Type,
+                            module: Module,
+                            location: Location): List[CompileException] =
+  {
+    def validateRange = {
+      if (value < ty.minValue || value > ty.maxValue)
+        List(IntegerRangeException(value, width, location))
+      else
+        Nil
+    }
+    super.validateType(expectedType, module, location) ++ validateRange
+  }    
 
   override def toString = {
     val suffix = width match {
@@ -97,7 +118,7 @@ final case class FloatValue(value: Double, width: Int)
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
 
-  def ty(module: Module) = FloatType(width)
+  def ty = FloatType(width)
 
   override def toString = {
     val suffix = if (width == 32) "f" else ""
@@ -108,7 +129,7 @@ final case class FloatValue(value: Double, width: Int)
 final case object NullValue
   extends Value
 {
-  def ty(module: Module): Type = NullType
+  def ty = NullType
 
   override def toString = "#null"
 }
@@ -117,16 +138,19 @@ final case class ArrayValue(elementType: Type,
                             elements: List[Value])
   extends Value
 {
-  def ty(module: Module) = ArrayType(Some(elements.size), elementType)
+  def ty = ArrayType(Some(elements.size), elementType)
 
   override def validateComponents(module: Module, location: Location) = {
-    def validateElementComponents(element: Value) = {
-      stage(element.validateComponents(module, location),
-            element.validateType(elementType, module, location))
-    }
-    
-    stage(elementType.validate(module, location),
-          elements.flatMap(validateElementComponents _))
+    elementType.validate(module, location) ++ 
+      elements.flatMap(_.validateComponents(module, location))
+  }
+
+  override def validateType(expectedType: Type,
+                            module: Module,
+                            location: Location): List[CompileException] =
+  {
+    super.validateType(expectedType, module, location) ++
+      elements.flatMap(_.validateType(elementType, module, location))
   }
 
   override def toString = {
@@ -139,9 +163,16 @@ final case class StructValue(structName: Symbol,
                              fields: List[Value])
   extends Value
 {
-  def ty(module: Module) = StructType(structName)
+  def ty = StructType(structName)
 
   override def validateComponents(module: Module, location: Location) = {
+    module.validateName[Struct](structName, location)
+  }
+
+  override def validateType(expectedType: Type,
+                            module: Module,
+                            location: Location): List[CompileException] =
+  {
     def validateFieldCount = {
       val struct = module.getStruct(structName)
       if (fields.size == struct.fields.size)
@@ -159,10 +190,9 @@ final case class StructValue(structName: Symbol,
       }
     }
 
-    stage(module.validateName[Struct](structName, location),
-          validateFieldCount,
-          fields.flatMap(_.validateComponents(module, location)),
-          validateFieldTypes)
+    super.validateType(expectedType, module, location) ++
+      stage(validateFieldCount,
+            validateFieldTypes)
   }
 
   override def toString = {
@@ -174,18 +204,20 @@ final case class StructValue(structName: Symbol,
 final case class DefinedValue(value: Symbol, ty: Type)
   extends Value
 {
-  def ty(module: Module) = ty
-
   override def validateComponents(module: Module, location: Location) = {
-    module.getDefn(value) match {
-      case Some(_: Global) | Some(_: Parameter) | Some(_: Instruction) => Nil
-      case Some(defn) => {
-        List(InappropriateSymbolException(value, 
-                                          defn.getLocation,
-                                          "global, parameter, or instruction"))
+    def validateName = {
+      module.getDefn(value) match {
+        case Some(_: Global) | Some(_: Parameter) | Some(_: Instruction) => Nil
+        case Some(defn) => {
+          List(InappropriateSymbolException(value, 
+                                            defn.getLocation,
+                                            "global, parameter, or instruction"))
+        }
+        case None => List(UndefinedSymbolException(value, location))
       }
-      case None => List(UndefinedSymbolException(value, location))
     }
+
+    validateName ++ ty.validate(module, location)
   }
 
   override def toString = value.toString

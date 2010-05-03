@@ -71,6 +71,10 @@ final case class IntType(width: Int)
   if (width < 8 || !isPowerOf2(width) || width > 64)
     throw new IllegalArgumentException
 
+  def maxValue: Long = (1L << width - 1) - 1L
+
+  def minValue: Long = -1L << width - 1
+
   def defaultValue(module: Module) = {
     width match {
       case 8 => IntValue(0, 8)

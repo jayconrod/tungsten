@@ -96,7 +96,7 @@ sealed trait ElementInstruction extends Instruction {
       indices match {
         case Nil => errors
         case i :: is => {
-          val indexType = i.ty(module)
+          val indexType = i.ty
           val newErrors = if (indexType == wordType)
             errors
           else
@@ -140,7 +140,7 @@ final case class AddressInstruction(name: Symbol,
   with ElementInstruction
 {
   def ty(module: Module) = {
-    base.ty(module) match {
+    base.ty match {
       case PointerType(elementType) => {
         val resultElementType = getElementType(module, elementType, indices)
         PointerType(resultElementType)
@@ -152,7 +152,7 @@ final case class AddressInstruction(name: Symbol,
   def operands = base :: indices
 
   override def validate(module: Module) = {
-    val baseType = base.ty(module)
+    val baseType = base.ty
     def baseIsPointer = {
       if (baseType.isInstanceOf[PointerType])
         Nil
@@ -178,7 +178,7 @@ final case class AssignInstruction(name: Symbol,
 {
   def operands = List(value)
 
-  def ty(module: Module) = value.ty(module)
+  def ty(module: Module) = value.ty
 }
 
 sealed abstract class BinaryOperator(val name: String) {
@@ -251,12 +251,12 @@ final case class BinaryOperatorInstruction(name: Symbol,
 {
   def operands = List(left, right)
 
-  def ty(module: Module) = left.ty(module)
+  def ty(module: Module) = left.ty
 
   override def validate(module: Module) = {
     def validateOperation = { 
-      val lty = left.ty(module)
-      val rty = right.ty(module)
+      val lty = left.ty
+      val rty = right.ty
       if (!lty.supportsOperator(operator))
         List(UnsupportedNumericOperationException(lty, operator, getLocation))
       else if (lty != rty)
@@ -357,7 +357,7 @@ sealed abstract class FloatCastInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateCast = { 
-      (value.ty(module), ty) match {
+      (value.ty, ty) match {
         case (fromTy: FloatType, toTy: FloatType) => validateWidths(fromTy, toTy)
         case (fromTy, _: FloatType) => {
           List(TypeMismatchException(fromTy.toString, "float type", getLocation))
@@ -401,7 +401,7 @@ final case class FloatToIntegerInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateCast = { 
-      val fromTy = value.ty(module)
+      val fromTy = value.ty
       val fromTyErrors = if (!fromTy.isInstanceOf[FloatType])
         List(TypeMismatchException(fromTy.toString, "float type", getLocation))
       else
@@ -493,7 +493,7 @@ final case class IntegerToFloatInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateCast = {
-      val fromTy = value.ty(module)
+      val fromTy = value.ty
       val fromTyErrors = if (!fromTy.isInstanceOf[IntType])
         List(TypeMismatchException(fromTy.toString, "integer type", getLocation))
       else
@@ -527,7 +527,7 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateCast = { 
-      (value.ty(module), ty) match {
+      (value.ty, ty) match {
         case (fromTy: IntType, toTy: IntType) => validateWidths(fromTy, toTy)
         case (fromTy, _: IntType) => {
           List(TypeMismatchException(fromTy.toString, "integer type", getLocation))
@@ -616,13 +616,13 @@ final case class LoadInstruction(name: Symbol,
   def operands = List(pointer)
 
   def ty(module: Module) = {
-    val pointerType = pointer.ty(module).asInstanceOf[PointerType]
+    val pointerType = pointer.ty.asInstanceOf[PointerType]
     pointerType.elementType
   }
   
   override def validate(module: Module) = {
     def validateType = {
-      val pointerType = pointer.ty(module)
+      val pointerType = pointer.ty
       if (!pointerType.isInstanceOf[PointerType])
         List(TypeMismatchException(pointerType.toString, "non-null pointer type", getLocation))
       else
@@ -643,10 +643,10 @@ final case class LoadElementInstruction(name: Symbol,
 
   def operands = base :: indices
 
-  def ty(module: Module) = getElementType(module, base.ty(module), indices)
+  def ty(module: Module) = getElementType(module, base.ty, indices)
 
   override def validate(module: Module) = {
-    super.validate(module) ++ validateIndices(module, base.ty(module), indices)
+    super.validate(module) ++ validateIndices(module, base.ty, indices)
   }
 }
 
@@ -685,8 +685,8 @@ final case class RelationalOperatorInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateOperation = {
-      val lty = left.ty(module)
-      val rty = right.ty(module)
+      val lty = left.ty
+      val rty = right.ty
       if (!lty.supportsOperator(operator))
         List(UnsupportedNumericOperationException(lty, operator, getLocation))
       else if (lty != rty)
@@ -722,10 +722,10 @@ final case class StoreInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateTypes = {
-      val pointerType = pointer.ty(module)
+      val pointerType = pointer.ty
       pointerType match {
         case PointerType(elementType) => {
-          val valueType = value.ty(module)
+          val valueType = value.ty
           if (valueType != elementType)
             List(TypeMismatchException(valueType.toString, elementType.toString, getLocation))
           else
@@ -756,11 +756,11 @@ final case class StoreElementInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateValueType = {
-      val elementType = getElementType(module, base.ty(module), indices)
+      val elementType = getElementType(module, base.ty, indices)
       value.validateType(elementType, module, getLocation)
     }
     super.validate(module) ++ 
-      validateIndices(module, base.ty(module), indices) ++ 
+      validateIndices(module, base.ty, indices) ++ 
       validateValueType
   }
 }
@@ -850,7 +850,7 @@ final case class UpcastInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateCast = {
-      val valueTy = value.ty(module)
+      val valueTy = value.ty
       if (valueTy <<: ty)
         Nil
       else

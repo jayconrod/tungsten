@@ -27,6 +27,14 @@ class TypeTest {
   }
 
   @Test
+  def intMinMax {
+    assertEquals(java.lang.Byte.MAX_VALUE, IntType(8).maxValue)
+    assertEquals(java.lang.Byte.MIN_VALUE, IntType(8).minValue)
+    assertEquals(java.lang.Long.MAX_VALUE, IntType(64).maxValue)
+    assertEquals(java.lang.Long.MIN_VALUE, IntType(64).minValue)
+  }
+
+  @Test
   def floatEquals {
     val f1 = FloatType(32)
     val f2 = FloatType(32)

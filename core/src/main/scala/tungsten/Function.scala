@@ -28,7 +28,7 @@ final case class Function(name: Symbol,
         block.instructions.lastOption match {
           case Some(retName) => module.get[ReturnInstruction](retName) match {
             case Some(ret) => {          
-              val retTy = ret.value.ty(module)
+              val retTy = ret.value.ty
               if (returnType != retTy)
                 List(TypeMismatchException(retTy.toString, returnType.toString, ret.getLocation))
               else

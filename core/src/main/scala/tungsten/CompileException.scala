@@ -105,6 +105,10 @@ final case class InstructionOrderException(symbol: Symbol,
                              " is not valid at the point where it is used",
                            location)
 
+final case class IntegerRangeException(value: Long, width: Int, location: Location)
+  extends CompileException("the integer %d cannot be stored in %d bits".format(value, width),
+                           location)
+
 final case class InvalidIndexException(value: String, ty: String, location: Location)
   extends CompileException("the value " + value + 
                              " cannot be used as an index into type " + ty,

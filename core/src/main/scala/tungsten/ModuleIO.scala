@@ -453,7 +453,12 @@ object ModuleIO {
           case s: Struct => writeStruct(s)
           case _ => ()
         }
-        output.write("\n\n")
+        val isGlobal = defn match {
+          case _: Annotation | _: Global | _: Function | _: Struct => true
+          case _ => false
+        }
+        if (isGlobal)
+          output.write("\n\n")
       }
     }
 
@@ -546,7 +551,7 @@ object ModuleIO {
       output.write("block ")
       writeSymbol(block.name, parentName)
       writeParameters(block.parameters, parentName)
-      writeInstructions(block.instructions, parentName)
+      writeInstructions(block.instructions, Some(block.name))
     }
 
     def writeField(field: Field, parentName: Option[Symbol]) {
@@ -601,8 +606,7 @@ object ModuleIO {
 
       output.write(INDENT + INDENT)
       writeAnnotations(instruction.annotations)
-      writeType(instruction.ty, parentName)
-      output.write(" " + instName)
+      output.write(instName + " " + localType(instruction.ty) + " " + localName)
       instruction match {
         case _: HeapAllocateInstruction | _: StackAllocateInstruction => ()
         case _ => output.write(" = ")
@@ -689,7 +693,6 @@ object ModuleIO {
           output.write(localValue(value))
         }
       }
-      output.write("\n")
     }
 
     def writeAnnotations(annotations: List[AnnotationValue]) {
@@ -736,11 +739,13 @@ object ModuleIO {
     }
 
     def localValue(value: Value, parentName: Option[Symbol]): String = {
-      value.mapSymbols(localSymbol(_, parentName)).toString
+      val lvalue = value.mapSymbols(localSymbol(_, parentName))
+      valueString(lvalue)
     }
 
     def localType(ty: Type, parentName: Option[Symbol]): String = {
-      ty.mapSymbols(localSymbol(_, parentName)).toString
+      val lty = ty.mapSymbols(localSymbol(_, parentName))
+      typeString(lty)
     }
 
     def localSymbol(symbol: Symbol, parentName: Option[Symbol]): Symbol = {
@@ -758,6 +763,63 @@ object ModuleIO {
             addPrefix(Symbol(simpleName, symbol.id), '%')
           else
             addPrefix(symbol, '@')
+        }
+      }
+    }
+
+    def valueString(value: Value): String = {
+      value match {
+        case UnitValue => "()"
+        case BooleanValue(true) => "true"
+        case BooleanValue(false) => "false"
+        case v @ CharValue(c) => {
+          if (charIsPrintable(c) && c != '\'' && c != '\\')
+            "'" + c + "'"
+          else
+            "'\\%04x'".format(c.toInt)
+        }
+        case StringValue(s) => {
+          val buffer = new StringBuffer
+          buffer.append('"')
+          for (c <- s) {
+            if (charIsPrintable(c) && c != '"' && c != '\\')
+              buffer.append(c)
+            else
+              buffer.append("\\%04x".format(c.toInt))
+          }
+          buffer.append('"')
+          buffer.toString
+        }
+        case IntValue(v, w) => "int%d %d".format(w, v)
+        case FloatValue(v, w) => "float%d %f".format(w, v)
+        case NullValue => "null"
+        case ArrayValue(elementType, elements) => {
+          "[%d x %s] {%s}".format(elements.size, typeString(elementType), 
+                                  elements.map(valueString _).mkString(", "))
+        }
+        case StructValue(structName, elements) => {
+          "struct %s {%s}".format(structName, elements.map(valueString _).mkString(", "))
+        }
+        case DefinedValue(name, ty) => typeString(ty) + " " + name
+      }
+    }
+
+    def typeString(ty: Type): String = {
+      ty match {
+        case UnitType => "unit"
+        case BooleanType => "boolean"
+        case CharType => "char"
+        case StringType => "string"
+        case IntType(w) => "int%d".format(w)
+        case FloatType(w) => "float%d".format(w)
+        case PointerType(ety) => typeString(ety) + "*"
+        case NullType => "nulltype"
+        case ArrayType(size, elementType) => {
+          "[%s x %s]".format(size.getOrElse("?"), typeString(elementType))
+        }
+        case StructType(structName) => "struct " + structName
+        case FunctionType(returnType, parameterTypes) => {
+          "(%s) => %s".format(parameterTypes.map(typeString _).mkString(", "), typeString(returnType))
         }
       }
     }

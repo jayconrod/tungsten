@@ -149,10 +149,60 @@ class ModuleIOWriteTextTest {
   val emptyModule = new Module(is64Bit=true)
   val dummyWriter = new ModuleIO.TextModuleWriter(emptyModule, output)
 
+
+  @Test
+  def valueString {
+    assertEquals("()", dummyWriter.valueString(UnitValue))
+    assertEquals("true", dummyWriter.valueString(BooleanValue(true)))
+    assertEquals("false", dummyWriter.valueString(BooleanValue(false)))
+    assertEquals("'c'", dummyWriter.valueString(CharValue('c')))
+    assertEquals("'\\000a'", dummyWriter.valueString(CharValue('\n')))
+    assertEquals("\"hello\"", dummyWriter.valueString(StringValue("hello")))
+    assertEquals("\"multi\\000aline\"", dummyWriter.valueString(StringValue("multi\nline")))
+    assertEquals("int32 12", dummyWriter.valueString(IntValue(12L, 32)))
+    assertEquals("[1 x unit] {()}", dummyWriter.valueString(ArrayValue(UnitType, List(UnitValue))))
+    assertEquals("struct A {()}", dummyWriter.valueString(StructValue("A", List(UnitValue))))
+  }
+
+  @Test
+  def typeString {
+    assertEquals("unit", dummyWriter.typeString(UnitType))
+    assertEquals("boolean", dummyWriter.typeString(BooleanType))
+    assertEquals("char", dummyWriter.typeString(CharType))
+    assertEquals("string", dummyWriter.typeString(StringType))
+    assertEquals("int32", dummyWriter.typeString(IntType(32)))
+    assertEquals("float32", dummyWriter.typeString(FloatType(32)))
+    assertEquals("unit*", dummyWriter.typeString(PointerType(UnitType)))
+    assertEquals("nulltype", dummyWriter.typeString(NullType))
+    assertEquals("[? x unit]", dummyWriter.typeString(ArrayType(None, UnitType)))
+    assertEquals("[2 x unit]", dummyWriter.typeString(ArrayType(Some(2L), UnitType)))
+    assertEquals("struct A", dummyWriter.typeString(StructType("A")))
+  }
+
   @Test
   def localSymbol {
     assertEquals("@a", dummyWriter.localSymbol("a", None).toString)
     assertEquals("@b.c", dummyWriter.localSymbol("b.c", Some("a")).toString)
     assertEquals("%b", dummyWriter.localSymbol("a.b", Some("a")).toString)
+  }
+
+  @Test
+  def localType {
+    val ty = StructType("B.A")
+    assertEquals("struct %A", dummyWriter.localType(ty, Some("B")))
+  }
+
+  @Test
+  def localValue {
+    val value = DefinedValue("b.a", StructType("A"))
+    assertEquals("struct @A %a", dummyWriter.localValue(value, Some("b")))
+  }
+
+  @Test
+  def writeChildren {
+    val children = List(1, 2, 3)
+    def writer(i: Int) = output.write(i.toString)
+    dummyWriter.writeChildren(children, writer, "(", ", ", ")")
+    assertEquals("(1, 2, 3)", output.toString)
   }
 }

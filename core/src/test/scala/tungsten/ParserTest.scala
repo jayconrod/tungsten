@@ -187,39 +187,43 @@ class ParserTest {
 
   @Test
   def instName {
-    test("@ann(()) assign %x =", Parser.instName("assign"), 
-         Parser.~(List(AnnotationValue("@ann", List(UnitValue))), Symbol("%x")))
+    val anns = List(AnnotationValue("@ann", List(UnitValue)))
+    val ty = UnitType
+    val n = Symbol("%x")
+    test("@ann(()) assign unit %x =", Parser.instName("assign"), 
+         Parser.~(Parser.~(anns, ty), n))
   }
 
   @Test
   def addressInst {
-    testInstruction("address %x = (), ()",
-                    AddressInstruction("%x", UnitValue, List(UnitValue)))
+    testInstruction("address unit %x = (), ()",
+                    AddressInstruction("%x", UnitType, UnitValue, List(UnitValue)))
   }
 
   @Test
   def assignInst {
-    testInstruction("assign %x = ()",
-                    AssignInstruction("%x", UnitValue))
+    testInstruction("assign unit %x = ()",
+                    AssignInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def binopInst {
-    testInstruction("binop %x = () % ()",
-                    BinaryOperatorInstruction("%x", BinaryOperator.REMAINDER,
+    testInstruction("binop unit %x = () % ()",
+                    BinaryOperatorInstruction("%x", UnitType, BinaryOperator.REMAINDER,
                                               UnitValue, UnitValue))
   }
 
   @Test
   def branchInst {
-    testInstruction("branch %x = %a(())",
-                    BranchInstruction("%x", "%a", List(UnitValue)))
+    testInstruction("branch unit %x = %a(())",
+                    BranchInstruction("%x", UnitType, "%a", List(UnitValue)))
   }
 
   @Test
   def condInst {
-    testInstruction("cond %x = true ? %a(()) : %b(())",
+    testInstruction("cond unit %x = true ? %a(()) : %b(())",
                     ConditionalBranchInstruction("%x",
+                                                 UnitType,
                                                  BooleanValue(true),
                                                  "%a",
                                                  List(UnitValue),
@@ -229,124 +233,125 @@ class ParserTest {
 
   @Test
   def fextendInst {
-    testInstruction("fextend %x = () to unit",
-                    FloatExtendInstruction("%x", UnitValue, UnitType))
+    testInstruction("fextend unit %x = ()",
+                    FloatExtendInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def ftoiInst {
-    testInstruction("ftoi %x = () to unit",
-                    FloatToIntegerInstruction("%x", UnitValue, UnitType))
+    testInstruction("ftoi unit %x = ()",
+                    FloatToIntegerInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def ftruncateInst {
-    testInstruction("ftruncate %x = () to unit",
-                    FloatTruncateInstruction("%x", UnitValue, UnitType))
+    testInstruction("ftruncate unit %x = ()",
+                    FloatTruncateInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def heapInst {
-    testInstruction("heap %x = unit",
+    testInstruction("heap unit %x",
                     HeapAllocateInstruction("%x", UnitType))
   }
 
   @Test
   def heapArrayInst {
-    testInstruction("heaparray %x = () x unit",
-                    HeapAllocateArrayInstruction("%x", UnitValue, UnitType))
+    testInstruction("heaparray unit %x = () x unit",
+                    HeapAllocateArrayInstruction("%x", UnitType, UnitValue, UnitType))
   }
 
   @Test
   def itofInst {
-    testInstruction("itof %x = () to unit",
-                    IntegerToFloatInstruction("%x", UnitValue, UnitType))
+    testInstruction("itof unit %x = ()",
+                    IntegerToFloatInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def isextendInst {
-    testInstruction("isextend %x = () to unit",
-                    IntegerSignExtendInstruction("%x", UnitValue, UnitType))
+    testInstruction("isextend unit %x = ()",
+                    IntegerSignExtendInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def itruncateInst {
-    testInstruction("itruncate %x = () to unit",
-                    IntegerTruncateInstruction("%x", UnitValue, UnitType))
+    testInstruction("itruncate unit %x = ()",
+                    IntegerTruncateInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def izextendInst {
-    testInstruction("izextend %x = () to unit",
-                    IntegerZeroExtendInstruction("%x", UnitValue, UnitType))
+    testInstruction("izextend unit %x = ()",
+                    IntegerZeroExtendInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def intrinsicInst {
-    testInstruction("intrinsic %x = exit(())",
-                    IntrinsicCallInstruction("%x", Intrinsic.EXIT, List(UnitValue)))
+    testInstruction("intrinsic unit %x = exit(())",
+                    IntrinsicCallInstruction("%x", UnitType, Intrinsic.EXIT, List(UnitValue)))
   }
 
   @Test
   def loadInst {
-    testInstruction("load %x = ()",
-                    LoadInstruction("%x", UnitValue))
+    testInstruction("load unit %x = ()",
+                    LoadInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def loadElementInst {
-    testInstruction("loadelement %x = (), ()",
-                    LoadElementInstruction("%x", UnitValue, List(UnitValue)))
+    testInstruction("loadelement unit %x = (), ()",
+                    LoadElementInstruction("%x", UnitType, UnitValue, List(UnitValue)))
   }
 
   @Test
   def relopInst {
-    testInstruction("relop %x = () < ()",
+    testInstruction("relop unit %x = () < ()",
                     RelationalOperatorInstruction("%x",
+                                                  UnitType,
                                                   RelationalOperator.LESS_THAN,
                                                   UnitValue, UnitValue))
   }
 
   @Test
   def returnInst {
-    testInstruction("return %x = ()",
-                    ReturnInstruction("%x", UnitValue))
+    testInstruction("return unit %x = ()",
+                    ReturnInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def storeInst {
-    testInstruction("store %x = (), ()",
-                    StoreInstruction("%x", UnitValue, UnitValue))
+    testInstruction("store unit %x = (), ()",
+                    StoreInstruction("%x", UnitType, UnitValue, UnitValue))
   }
 
   @Test
   def storeElementInst {
-    testInstruction("storeelement %x = (), (), ()",
-                    StoreElementInstruction("%x", UnitValue, UnitValue, List(UnitValue)))
+    testInstruction("storeelement unit %x = (), (), ()",
+                    StoreElementInstruction("%x", UnitType, UnitValue, UnitValue, List(UnitValue)))
   }
 
   @Test
   def stackInst {
-    testInstruction("stack %x = unit",
+    testInstruction("stack unit %x",
                     StackAllocateInstruction("%x", UnitType))
   }
 
   @Test
   def stackArrayInst {
-    testInstruction("stackarray %x = () x unit",
-                    StackAllocateArrayInstruction("%x", UnitValue, UnitType))
+    testInstruction("stackarray unit %x = () x unit",
+                    StackAllocateArrayInstruction("%x", UnitType, UnitValue, UnitType))
   }
 
   @Test
   def staticCallInst {
-    testInstruction("scall %x = @f(())",
-                    StaticCallInstruction("%x", "@f", List(UnitValue)))
+    testInstruction("scall unit %x = @f(())",
+                    StaticCallInstruction("%x", UnitType, "@f", List(UnitValue)))
   }
 
   @Test
   def upcastInst {
-    testInstruction("upcast %x = () to unit",
-                    UpcastInstruction("%x", UnitValue, UnitType))
+    testInstruction("upcast unit %x = ()",
+                    UpcastInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
@@ -358,7 +363,7 @@ class ParserTest {
   @Test
   def block {
     testDefinition("block %b(unit %x) {\n" +
-                   "  return %i = ()\n" +
+                   "  return unit %i = ()\n" +
                    "}", 
                    Parser.block,
                    Block("%b", List("%b.x"), List("%b.i")))

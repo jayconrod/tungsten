@@ -181,153 +181,153 @@ object Parser extends Parsers with ImplicitConversions {
 
   lazy val addressInst: Parser[AddressInstruction] = {
     instName("address") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
-      case anns ~ n ~ a ~ is => AddressInstruction(n, a, is, anns)
+      case anns ~ ty ~ n ~ a ~ is => AddressInstruction(n, ty, a, is, anns)
     }
   }
 
   lazy val assignInst: Parser[AssignInstruction] = {
     instName("assign") ~ value ^^ {
-      case anns ~ n ~ v => AssignInstruction(n, v, anns)
+      case anns ~ ty ~ n ~ v => AssignInstruction(n, ty, v, anns)
     }
   }
 
   lazy val binopInst: Parser[BinaryOperatorInstruction] = {
     instName("binop") ~ value ~ binop ~ value ^^ {
-      case anns ~ n ~ l ~ op ~ r => BinaryOperatorInstruction(n, op, l, r, anns)
+      case anns ~ ty ~ n ~ l ~ op ~ r => BinaryOperatorInstruction(n, ty, op, l, r, anns)
     }
   }
 
   lazy val branchInst: Parser[BranchInstruction] = {
     instName("branch") ~ symbol ~ argumentList ^^ {
-      case anns ~ n ~ b ~ as => BranchInstruction(n, b, as, anns)
+      case anns ~ ty ~ n ~ b ~ as => BranchInstruction(n, ty, b, as, anns)
     }
   }
 
   lazy val condInst: Parser[ConditionalBranchInstruction] = {
     instName("cond") ~ (value <~ "?") ~ symbol ~ (argumentList <~ ":") ~ symbol ~ argumentList ^^ {
-      case anns ~ n ~ c ~ tb ~ tas ~ fb ~ fas => {
-        ConditionalBranchInstruction(n, c, tb, tas, fb, fas, anns)
+      case anns ~ ty ~ n ~ c ~ tb ~ tas ~ fb ~ fas => {
+        ConditionalBranchInstruction(n, ty, c, tb, tas, fb, fas, anns)
       }
     }
   }
 
   lazy val fextendInst: Parser[FloatExtendInstruction] = {
-    instName("fextend") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => FloatExtendInstruction(n, v, t, anns)
+    instName("fextend") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => FloatExtendInstruction(n, ty, v, anns)
     }
   }
 
   lazy val ftoiInst: Parser[FloatToIntegerInstruction] = {
-    instName("ftoi") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => FloatToIntegerInstruction(n, v, t, anns)
+    instName("ftoi") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => FloatToIntegerInstruction(n, ty, v, anns)
     }
   }
 
   lazy val ftruncateInst: Parser[FloatTruncateInstruction] = {
-    instName("ftruncate") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => FloatTruncateInstruction(n, v, t, anns)
+    instName("ftruncate") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => FloatTruncateInstruction(n, ty, v, anns)
     }
   }
 
   lazy val heapInst: Parser[HeapAllocateInstruction] = {
-    instName("heap") ~ ty ^^ {
-      case anns ~ n ~ t => HeapAllocateInstruction(n, t, anns)
+    instName("heap", false) ^^ {
+      case anns ~ ty ~ n => HeapAllocateInstruction(n, ty, anns)
     }
   }
 
   lazy val heapArrayInst: Parser[HeapAllocateArrayInstruction] = {
     instName("heaparray") ~ (value <~ "x") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => HeapAllocateArrayInstruction(n, v, t, anns)
+      case anns ~ ty ~ n ~ v ~ t => HeapAllocateArrayInstruction(n, ty, v, t, anns)
     }
   }
 
   lazy val itofInst: Parser[IntegerToFloatInstruction] = {
-    instName("itof") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => IntegerToFloatInstruction(n, v, t, anns)
+    instName("itof") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => IntegerToFloatInstruction(n, ty, v, anns)
     }
   }
 
   lazy val isextendInst: Parser[IntegerSignExtendInstruction] = {
-    instName("isextend") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => IntegerSignExtendInstruction(n, v, t, anns)
+    instName("isextend") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => IntegerSignExtendInstruction(n, ty, v, anns)
     }
   }
 
   lazy val itruncateInst: Parser[IntegerTruncateInstruction] = {
-    instName("itruncate") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => IntegerTruncateInstruction(n, v, t, anns)
+    instName("itruncate") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => IntegerTruncateInstruction(n, ty, v, anns)
     }
   }
 
   lazy val izextendInst: Parser[IntegerZeroExtendInstruction] = {
-    instName("izextend") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => IntegerZeroExtendInstruction(n, v, t, anns)
+    instName("izextend") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => IntegerZeroExtendInstruction(n, ty, v, anns)
     }
   }
 
   lazy val intrinsicInst: Parser[IntrinsicCallInstruction] = {
     instName("intrinsic") ~ intrinsic ~ argumentList ^^ {
-      case anns ~ n ~ i ~ as => IntrinsicCallInstruction(n, i, as, anns)
+      case anns ~ ty ~ n ~ i ~ as => IntrinsicCallInstruction(n, ty, i, as, anns)
     }
   }
 
   lazy val loadInst: Parser[LoadInstruction] = {
     instName("load") ~ value ^^ {
-      case anns ~ n ~ v => LoadInstruction(n, v, anns)
+      case anns ~ ty ~ n ~ v => LoadInstruction(n, ty, v, anns)
     }
   }
 
   lazy val loadElementInst: Parser[LoadElementInstruction] = {
     instName("loadelement") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
-      case anns ~ n ~ v ~ is => LoadElementInstruction(n, v, is, anns)
+      case anns ~ ty ~ n ~ v ~ is => LoadElementInstruction(n, ty, v, is, anns)
     }
   }
 
   lazy val relopInst: Parser[RelationalOperatorInstruction] = {
     instName("relop") ~ value ~ relop ~ value ^^ {
-      case anns ~ n ~ l ~ op ~ r => RelationalOperatorInstruction(n, op, l, r, anns)
+      case anns ~ ty ~ n ~ l ~ op ~ r => RelationalOperatorInstruction(n, ty, op, l, r, anns)
     }
   }
 
   lazy val returnInst: Parser[ReturnInstruction] = {
     instName("return") ~ value ^^ {
-      case anns ~ n ~ v => ReturnInstruction(n, v, anns)
+      case anns ~ ty ~ n ~ v => ReturnInstruction(n, ty, v, anns)
     }
   }
 
   lazy val storeInst: Parser[StoreInstruction] = {
     instName("store") ~ (value <~ ",") ~ value ^^ {
-      case anns ~ n ~ v ~ p => StoreInstruction(n, v, p, anns)
+      case anns ~ ty ~ n ~ v ~ p => StoreInstruction(n, ty, v, p, anns)
     }
   }
 
   lazy val storeElementInst: Parser[StoreElementInstruction] = {
     instName("storeelement") ~ (value <~ ",") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
-      case anns ~ n ~ v ~ p ~ is => StoreElementInstruction(n, v, p, is, anns)
+      case anns ~ ty ~ n ~ v ~ p ~ is => StoreElementInstruction(n, ty, v, p, is, anns)
     }
   }
 
   lazy val stackInst: Parser[StackAllocateInstruction] = {
-    instName("stack") ~ ty ^^ {
-      case anns ~ n ~ t => StackAllocateInstruction(n, t, anns)
+    instName("stack", false) ^^ {
+      case anns ~ ty ~ n => StackAllocateInstruction(n, ty, anns)
     }
   }
 
   lazy val stackArrayInst: Parser[StackAllocateArrayInstruction] = {
     instName("stackarray") ~ (value <~ "x") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => StackAllocateArrayInstruction(n, v, t, anns)
+      case anns ~ ty ~ n ~ v ~ t => StackAllocateArrayInstruction(n, ty, v, t, anns)
     }
   }
 
   lazy val scallInst: Parser[StaticCallInstruction] = {
     instName("scall") ~ symbol ~ argumentList ^^ {
-      case anns ~ n ~ f ~ as => StaticCallInstruction(n, f, as, anns)
+      case anns ~ ty ~ n ~ f ~ as => StaticCallInstruction(n, ty, f, as, anns)
     }
   }
 
   lazy val upcastInst: Parser[UpcastInstruction] = {
-    instName("upcast") ~ (value <~ "to") ~ ty ^^ {
-      case anns ~ n ~ v ~ t => UpcastInstruction(n, v, t, anns)
+    instName("upcast") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => UpcastInstruction(n, ty, v, anns)
     }
   }
 
@@ -340,11 +340,19 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
-  def instName(name: String): Parser[List[AnnotationValue] ~ Symbol] = {
-    val optName: Parser[Symbol] = {
-      opt(symbol <~ "=") ^^ { _.getOrElse(symbolFactory.symbol("%anon$")) }
+  def instName(name: String, 
+               useEquals: Boolean = true): Parser[List[AnnotationValue] ~ Type ~ Symbol] = 
+  {
+    val optName: Parser[Type ~ Symbol] = {
+      val nameParser = if (useEquals)
+        ty ~ symbol <~ "="
+      else
+        ty ~ symbol
+      opt(nameParser) ^^ { _.getOrElse(new ~(UnitType, symbolFactory.symbol("%anon$"))) }
     }
-    annotations ~ (name ~> optName)
+    annotations ~ (name ~> optName) ^^ {
+      case anns ~ (ty ~ n) => new ~(new ~(anns, ty), n)
+    }
   }
 
   lazy val argumentList: Parser[List[Value]] = {

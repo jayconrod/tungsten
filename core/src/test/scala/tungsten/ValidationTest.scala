@@ -56,7 +56,7 @@ class ValidationTest {
 
   @Test
   def blockTermination {
-    val program = "function unit @main { block %entry { scall %foo = @main() } }"
+    val program = "function unit @main { block %entry { scall unit %foo = @main() } }"
     programContainsError[BlockTerminationException](program)
   }
 
@@ -64,8 +64,8 @@ class ValidationTest {
   def earlyTermination {
     val program = "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    return %a = ()\n" +
-                  "    return %b = ()\n" +
+                  "    return ()\n" +
+                  "    return ()\n" +
                   "  }\n" +
                   "}\n"
     programContainsError[EarlyTerminationException](program)
@@ -73,9 +73,8 @@ class ValidationTest {
 
   @Test
   def exitTermination {
-    val program = "function unit @main { block %entry { intrinsic %foo = exit(int32 12) } }"
-    val errors = compileString(program).validate
-    assertTrue(errors.isEmpty)
+    val program = "function unit @main { block %entry { intrinsic exit(int32 12) } }"
+    programIsCorrect(program)
   }
 
   @Test
@@ -87,7 +86,7 @@ class ValidationTest {
   @Test
   def duplicateComponent {
     val (instName, blockName) = (Symbol("ret"), Symbol("block"))
-    val inst = ReturnInstruction(instName, UnitValue)
+    val inst = ReturnInstruction(instName, UnitType, UnitValue)
     val block = Block(blockName, Nil, List(instName, instName))
     val function = Function(Symbol("main"), Nil, UnitType, List(blockName))
     var module = (new Module).add(inst, block, function)
@@ -99,7 +98,7 @@ class ValidationTest {
     val program = "global unit @foo\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign %a = unit* @foo\n" +
+                  "    assign unit* %a = unit* @foo\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -129,38 +128,38 @@ class ValidationTest {
 
   @Test
   def binopNonNumeric {
-    val code = "binop %a = () + ()"
+    val code = "binop unit %a = () + ()"
     codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
   def binopMismatch {
-    val code = "binop %a = int32 12 + int8 34"
+    val code = "binop int32 %a = int32 12 + int8 34"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def assignOutOfOrder {
-    val code = "assign %a = unit %b\n" +
-               "assign %b = ()"
+    val code = "assign unit %a = unit %b\n" +
+               "assign unit %b = ()"
     codeContainsError[InstructionOrderException](code)
   }
 
   @Test
   def relopMismatch {
-    val code = "relop %a = int32 12 == ()"
+    val code = "relop boolean %a = int32 12 == ()"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def relopNonNumeric {
-    val code = "relop %a = () < ()"
+    val code = "relop boolean %a = () < ()"
     codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
   def nonExistantBranchCondition {
-    val code = "cond %a = true ? %foo() : %bar()"
+    val code = "cond true ? %foo() : %bar()"
     codeContainsError[UndefinedSymbolException](code)
   }
 
@@ -168,7 +167,7 @@ class ValidationTest {
   def nonBooleanCondition {
     val program = "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    cond %a = int32 12 ? @main.foo( ) : @main.bar( )\n" +
+                  "    cond int32 12 ? @main.foo( ) : @main.bar( )\n" +
                   "  }\n" +
                   "  block %foo { return () }\n" +
                   "  block %bar { return () }\n" +
@@ -180,7 +179,7 @@ class ValidationTest {
   def conditionArgumentCount {
     val program = "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    cond %a = true ? @main.foo(int32 12) : @main.bar(int32 12)\n" +
+                  "    cond true ? @main.foo(int32 12) : @main.bar(int32 12)\n" +
                   "  }\n" +
                   "  block %foo(int32 %x) { return () }\n" +
                   "  block %bar { return () }\n" +
@@ -192,7 +191,7 @@ class ValidationTest {
   def conditionTypeMismatch {
     val program = "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    cond %a = true ? @main.foo(int32 12) : @main.bar(int32 12)\n" +
+                  "    cond true ? @main.foo(int32 12) : @main.bar(int32 12)\n" +
                   "  }\n" +
                   "  block %foo(int32 %x) { return () }\n" +
                   "  block %bar(boolean %x) { return () }\n" +
@@ -204,7 +203,7 @@ class ValidationTest {
   def conditionDuplicateBlock {
     val program = "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    cond %a = true ? %entry( ) : %entry( )\n" +
+                  "    cond true ? %entry( ) : %entry( )\n" +
                   "  }\n" +
                   "}\n"
     programContainsError[DuplicateComponentException](program)
@@ -212,7 +211,7 @@ class ValidationTest {
 
   @Test
   def staticCallMissingFunction {
-    val code = "scall %c = @foo( )"
+    val code = "scall unit %c = @foo( )"
     codeContainsError[UndefinedSymbolException](code)
   }
 
@@ -224,74 +223,74 @@ class ValidationTest {
 
   @Test
   def floatBitOp {
-    val code = "binop %a = float64 1. & float64 2."
+    val code = "binop float64 %a = float64 1. & float64 2."
     codeContainsError[UnsupportedNumericOperationException](code)
   }
 
   @Test
   def upcastToNonPointer {
-    val code = "upcast %a = null to int32"
+    val code = "upcast int32 %a = null"
     codeContainsError[UpcastException](code)
   }
 
   @Test
   def upcastFromNonPointer {
-    val code = "upcast %a = int32 12 to int32*"
+    val code = "upcast int32* %a = int32 12"
     codeContainsError[UpcastException](code)
   }
 
   @Test
   def upcastDown {
-    val code = "upcast %a = null to int32*" + 
-               "upcast %b = int32* %a to nulltype"
+    val code = "upcast int32* %a = null" + 
+               "upcast nulltype %b = int32* %a"
     codeContainsError[UpcastException](code)
   }
 
   @Test
   def stackAllocateInt {
-    val code = "stack %a = int32"
+    val code = "stack int32 %a"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def stackAllocateNull {
-    val code = "stack %a = nulltype"
+    val code = "stack nulltype %a"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def heapAllocateInt {
-    val code = "heap %a = int32"
+    val code = "heap int32 %a"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def heapAllocateNull {
-    val code = "heap %a = nulltype"
+    val code = "heap nulltype %a"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def loadInt {
-    val code = "load %a = int32 12"
+    val code = "load int32 %a = int32 12"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def loadNull {
-    val code = "load %a = null"
+    val code = "load unit %a = null"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def storeInt {
-    val code = "store %a = int32 12, int32 34"
+    val code = "store int32 12, int32 34"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def storeNull {
-    val code = "store %a = null, int32 34"
+    val code = "store int32 34, null"
     codeContainsError[TypeMismatchException](code)
   }
 
@@ -323,64 +322,64 @@ class ValidationTest {
 
   @Test
   def upcastSizelessArray {
-    val code = "upcast %a = [2 x int32] {int32 12, int32 34} to [? x int32]"
+    val code = "upcast [? x int32] %a = [2 x int32] {int32 12, int32 34}"
     codeIsCorrect(code)
   }
 
   @Test
   def loadElementArrayOutOfBounds {
-    val code = "loadelement %a = [2 x int32] {int32 12, int32 34}, int64 5"
+    val code = "loadelement int32 %a = [2 x int32] {int32 12, int32 34}, int64 5"
     codeIsCorrect(code)
   }
 
   @Test
   def loadElementBadIndexType {
-    val code = "loadelement %a = [2 x int32] {int32 12, int32 34}, int32 5"
+    val code = "loadelement int32 %a = [2 x int32] {int32 12, int32 34}, int32 5"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def loadElementTooManyIndices {
-    val code = "loadelement %a = [2 x int32] {int32 12, int32 34}, int64 5, int64 6"
+    val code = "loadelement int32 %a = [2 x int32] {int32 12, int32 34}, int64 5, int64 6"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
   def storeType {
-    val code = "storeelement [2 x int32] {int32 12, int32 64}, int64 0, ()"
+    val code = "storeelement (), [2 x int32] {int32 12, int32 64}, int64 0"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def stackArrayAllocCountType {
-    val code = "stackarray %a = () x unit"
+    val code = "stackarray [? x unit]* %a = () x unit"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def addressNonPointer {
-    val code = "address %a = (), int64 0"
+    val code = "address unit* %a = (), int64 0"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def addressBadIndexType {
-    val code = "stackarray %a = int64 5 x unit\n" +
-               "address %b = [? x unit]* %a, int32 1"
+    val code = "stackarray [? x unit]* %a = int64 5 x unit\n" +
+               "address unit* %b = [? x unit]* %a, int32 1"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def addressTooManyIndices {
-    val code = "stackarray %a = int64 5 x unit\n" +
-               "address %b = [? x unit]* %a, int64 1, int64 1"
+    val code = "stackarray [? x unit]* %a = int64 5 x unit\n" +
+               "address unit* %b = [? x unit]* %a, int64 1, int64 1"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
   def addressTwice {
-    val code = "stackarray %a = int64 2 x [2 x int32]\n" +
-               "address %b = [? x [? x int32]]* %a, int64 1, int64 1\n" +
+    val code = "stackarray [? x [2 x int32]]* %a = int64 2 x [2 x int32]\n" +
+               "address int32* %b = [? x [2 x int32]]* %a, int64 1, int64 1\n" +
                "store int32 12, int32* %b"
     codeIsCorrect(code)
   }
@@ -391,7 +390,7 @@ class ValidationTest {
                   "global [2 x int32] @foo\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    address %a = [2 x int32]* @foo, int64 1\n" +
+                  "    address int32* %a = [2 x int32]* @foo, int64 1\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -414,7 +413,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign %x = struct @A {(), ()}\n" +
+                  "    assign struct @A %x = struct @A {(), ()}\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -428,7 +427,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign %x = struct @A {int32 12}\n" +
+                  "    assign struct @A %x = struct @A {int32 12}\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -443,7 +442,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    loadelement %c = struct @A {()}, int64 0\n" +
+                  "    loadelement unit %c = struct @A {()}, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -457,8 +456,8 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign %i = int64 0\n" +
-                  "    loadelement %e = struct @A {()}, int64 %i\n" +
+                  "    assign int64 %i = int64 0\n" +
+                  "    loadelement unit %e = struct @A {()}, int64 %i\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -476,7 +475,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign %a = struct @B { struct @A {int32 12} }\n" +
+                  "    assign struct @B %a = struct @B { struct @A {int32 12} }\n" +
                   "    storeelement int32 34, struct @B %a, int64 0, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
@@ -486,8 +485,8 @@ class ValidationTest {
 
   @Test
   def nonExistantStructValue {
-    val i1 = AssignInstruction("i1", StructValue("A", Nil))
-    val i2 = ReturnInstruction("i2", UnitValue)
+    val i1 = AssignInstruction("i1", StructType("A"), StructValue("A", Nil))
+    val i2 = ReturnInstruction("i2", UnitType, UnitValue)
     val block = Block("main.entry", Nil, List(i1, i2).map(_.name))
     val function = Function("main", Nil, UnitType, List(block.name))
     val module = (new Module).add(i1, i2, block, function)
@@ -522,7 +521,7 @@ class ValidationTest {
     val program = "function int32 @foo\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    scall %x = @foo( )\n" +
+                  "    scall int32 %x = @foo( )\n" +
                   "    intrinsic exit(int32 %x)\n" +
                   "  }\n" +
                   "}\n"
@@ -541,35 +540,35 @@ class ValidationTest {
 
   @Test
   def integerTruncate {
-    codeContainsError[TypeMismatchException]("itruncate %a = () to int8")
-    codeContainsError[TypeMismatchException]("itruncate %a = int64 12 to unit")
-    codeContainsError[NumericTruncationException]("itruncate %a = int8 12 to int64")
+    codeContainsError[TypeMismatchException]("itruncate int8 %a = ()")
+    codeContainsError[TypeMismatchException]("itruncate unit %a = int64 12")
+    codeContainsError[NumericTruncationException]("itruncate int64 %a = int8 12")
   }
 
   @Test
   def integerExtend {
-    codeContainsError[NumericExtensionException]("isextend %a = int64 12 to int8")
-    codeContainsError[NumericExtensionException]("izextend %a = int64 12 to int8")
+    codeContainsError[NumericExtensionException]("isextend int8 %a = int64 12")
+    codeContainsError[NumericExtensionException]("izextend int8 %a = int64 12")
   }
 
   @Test
   def floatTruncate {
-    codeContainsError[TypeMismatchException]("ftruncate %a = () to float32")
-    codeContainsError[TypeMismatchException]("ftruncate %a = float64 3.2 to unit")
-    codeContainsError[NumericTruncationException]("ftruncate %a = float32 3.2 to float64")
+    codeContainsError[TypeMismatchException]("ftruncate float32 %a = ()")
+    codeContainsError[TypeMismatchException]("ftruncate unit %a = float64 3.2")
+    codeContainsError[NumericTruncationException]("ftruncate float64 %a = float32 3.2")
   }
 
   @Test
   def floatExtend {
-    codeContainsError[NumericExtensionException]("fextend float64 3.2 to float32")
+    codeContainsError[NumericExtensionException]("fextend float32 %a = float64 3.2")
   }
 
   @Test
   def floatIntCast {
-    codeContainsError[TypeMismatchException]("itof () to float32")
-    codeContainsError[TypeMismatchException]("itof int32 12 to unit")
-    codeContainsError[TypeMismatchException]("ftoi () to int32")
-    codeContainsError[TypeMismatchException]("ftoi float64 3.4 to unit")
+    codeContainsError[TypeMismatchException]("itof float32 %a = ()")
+    codeContainsError[TypeMismatchException]("itof unit %a = int32 12")
+    codeContainsError[TypeMismatchException]("ftoi int32 %a = ()")
+    codeContainsError[TypeMismatchException]("ftoi unit %a = float64 3.4")
   }
 
   @Test
@@ -577,8 +576,8 @@ class ValidationTest {
     val program = "is64bit: false\n" +
                   "function unit @main {\n" +
                   "  block %entry( ) {\n" +
-                  "    stack %a = [3 x unit]*\n" +
-                  "    address %b = [3 x unit]* %a, int64 0\n" +
+                  "    stack [3 x unit]* %a\n" +
+                  "    address unit* %b = [3 x unit]* %a, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"

@@ -5,6 +5,8 @@ import Utilities._
 sealed abstract class Instruction
   extends Definition
 {
+  def ty: Type
+
   def ty(module: Module): Type
 
   def isTerminating = false
@@ -138,6 +140,7 @@ sealed trait ElementInstruction extends Instruction {
 }
 
 final case class AddressInstruction(name: Symbol,
+                                    ty: Type,
                                     base: Value,
                                     indices: List[Value],
                                     annotations: List[AnnotationValue] = Nil)
@@ -176,6 +179,7 @@ final case class AddressInstruction(name: Symbol,
 }
 
 final case class AssignInstruction(name: Symbol,
+                                   ty: Type,
                                    value: Value,
                                    annotations: List[AnnotationValue] = Nil)
   extends Instruction
@@ -247,6 +251,7 @@ final class LogicalOperator(name: String) extends BinaryOperator(name) {
 }
 
 final case class BinaryOperatorInstruction(name: Symbol,
+                                           ty: Type,
                                            operator: BinaryOperator,
                                            left: Value,
                                            right: Value,
@@ -274,6 +279,7 @@ final case class BinaryOperatorInstruction(name: Symbol,
 }
 
 final case class BranchInstruction(name: Symbol, 
+                                   ty: Type,
                                    target: Symbol,
                                    arguments: List[Value],
                                    annotations: List[AnnotationValue] = Nil)
@@ -303,6 +309,7 @@ final case class BranchInstruction(name: Symbol,
 }
 
 final case class ConditionalBranchInstruction(name: Symbol,
+                                              ty: Type,
                                               condition: Value,
                                               trueTarget: Symbol,
                                               trueArguments: List[Value],
@@ -343,8 +350,8 @@ final case class ConditionalBranchInstruction(name: Symbol,
 }
 
 sealed abstract class FloatCastInstruction(name: Symbol,
-                                           value: Value,
                                            ty: Type,
+                                           value: Value,
                                            annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
@@ -375,10 +382,10 @@ sealed abstract class FloatCastInstruction(name: Symbol,
 }
 
 final case class FloatExtendInstruction(name: Symbol,
-                                        value: Value,
                                         ty: Type,
+                                        value: Value,
                                         annotations: List[AnnotationValue] = Nil)
-  extends FloatCastInstruction(name, value, ty, annotations)
+  extends FloatCastInstruction(name, ty, value, annotations)
 {
   protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
     if (toTy.width > fromTy.width)
@@ -389,8 +396,8 @@ final case class FloatExtendInstruction(name: Symbol,
 }
 
 final case class FloatToIntegerInstruction(name: Symbol,
-                                           value: Value,
                                            ty: Type,
+                                           value: Value,
                                            annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
@@ -422,10 +429,10 @@ final case class FloatToIntegerInstruction(name: Symbol,
 }
 
 final case class FloatTruncateInstruction(name: Symbol,
-                                          value: Value,
                                           ty: Type,
+                                          value: Value,
                                           annotations: List[AnnotationValue] = Nil)
-  extends FloatCastInstruction(name, value, ty, annotations)
+  extends FloatCastInstruction(name, ty, value, annotations)
 {
   protected def validateWidths(fromTy: FloatType, toTy: FloatType) = {
     if (toTy.width < fromTy.width)
@@ -455,6 +462,7 @@ final case class HeapAllocateInstruction(name: Symbol,
 }
 
 final case class HeapAllocateArrayInstruction(name: Symbol,
+                                              ty: Type,
                                               count: Value,
                                               elementType: Type,
                                               annotations: List[AnnotationValue] = Nil)
@@ -475,8 +483,8 @@ final case class HeapAllocateArrayInstruction(name: Symbol,
 }
 
 final case class IntegerToFloatInstruction(name: Symbol,
-                                           value: Value,
                                            ty: Type,
+                                           value: Value,
                                            annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
@@ -507,8 +515,8 @@ final case class IntegerToFloatInstruction(name: Symbol,
 }
 
 sealed abstract class IntegerCastInstruction(name: Symbol,
-                                             value: Value,
                                              ty: Type,
+                                             value: Value,
                                              annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
@@ -538,10 +546,10 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
 }
 
 final case class IntegerSignExtendInstruction(name: Symbol,
-                                              value: Value,
                                               ty: Type,
+                                              value: Value,
                                               annotations: List[AnnotationValue] = Nil)
-  extends IntegerCastInstruction(name, value, ty, annotations)
+  extends IntegerCastInstruction(name, ty, value, annotations)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
     if (toTy.width >= fromTy.width)
@@ -552,10 +560,10 @@ final case class IntegerSignExtendInstruction(name: Symbol,
 }
 
 final case class IntegerTruncateInstruction(name: Symbol,
-                                            value: Value,
                                             ty: Type,
+                                            value: Value,
                                             annotations: List[AnnotationValue] = Nil)
-  extends IntegerCastInstruction(name, value, ty, annotations)
+  extends IntegerCastInstruction(name, ty, value, annotations)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
     if (toTy.width < fromTy.width)
@@ -566,10 +574,10 @@ final case class IntegerTruncateInstruction(name: Symbol,
 }
 
 final case class IntegerZeroExtendInstruction(name: Symbol,
-                                              value: Value,
                                               ty: Type,
+                                              value: Value,
                                               annotations: List[AnnotationValue] = Nil)
-  extends IntegerCastInstruction(name, value, ty, annotations)
+  extends IntegerCastInstruction(name, ty, value, annotations)
 {
   protected def validateWidths(fromTy: IntType, toTy: IntType) = {
     if (toTy.width > fromTy.width)
@@ -589,6 +597,7 @@ object Intrinsic {
 }
 
 final case class IntrinsicCallInstruction(name: Symbol,
+                                          ty: Type,
                                           intrinsic: IntrinsicFunction,
                                           arguments: List[Value],
                                           annotations: List[AnnotationValue] = Nil)
@@ -607,6 +616,7 @@ final case class IntrinsicCallInstruction(name: Symbol,
 }
 
 final case class LoadInstruction(name: Symbol,
+                                 ty: Type,
                                  pointer: Value,
                                  annotations: List[AnnotationValue] = Nil)
   extends Instruction
@@ -624,6 +634,7 @@ final case class LoadInstruction(name: Symbol,
 }
 
 final case class LoadElementInstruction(name: Symbol,
+                                        ty: Type,
                                         base: Value,
                                         indices: List[Value],
                                         annotations: List[AnnotationValue] = Nil)
@@ -664,6 +675,7 @@ object RelationalOperator {
 }
 
 final case class RelationalOperatorInstruction(name: Symbol,
+                                               ty: Type,
                                                operator: RelationalOperator,
                                                left: Value,
                                                right: Value,
@@ -690,6 +702,7 @@ final case class RelationalOperatorInstruction(name: Symbol,
 }
 
 final case class ReturnInstruction(name: Symbol,
+                                   ty: Type,
                                    value: Value,
                                    annotations: List[AnnotationValue] = Nil)
   extends Instruction
@@ -702,6 +715,7 @@ final case class ReturnInstruction(name: Symbol,
 }
 
 final case class StoreInstruction(name: Symbol,
+                                  ty: Type,
                                   value: Value,
                                   pointer: Value,
                                   annotations: List[AnnotationValue] = Nil)
@@ -733,6 +747,7 @@ final case class StoreInstruction(name: Symbol,
 }
 
 final case class StoreElementInstruction(name: Symbol,
+                                         ty: Type,
                                          value: Value,
                                          base: Value,
                                          indices: List[Value],
@@ -778,6 +793,7 @@ final case class StackAllocateInstruction(name: Symbol,
 }
 
 final case class StackAllocateArrayInstruction(name: Symbol,
+                                               ty: Type,
                                                count: Value,
                                                elementType: Type,
                                                annotations: List[AnnotationValue] = Nil)
@@ -799,6 +815,7 @@ final case class StackAllocateArrayInstruction(name: Symbol,
 }
 
 final case class StaticCallInstruction(name: Symbol,
+                                       ty: Type,
                                        target: Symbol,
                                        arguments: List[Value],
                                        annotations: List[AnnotationValue] = Nil)
@@ -825,9 +842,9 @@ final case class StaticCallInstruction(name: Symbol,
   private def targetType(module: Module) = module.getFunction(target).ty(module)
 }
 
-final case class UpcastInstruction(name: Symbol,
-                                   value: Value,
+final case class UpcastInstruction(name: Symbol,                
                                    ty: Type,
+                                   value: Value,
                                    annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {

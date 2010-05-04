@@ -60,8 +60,8 @@ final case class Function(name: Symbol,
         block.instructions flatMap { instName =>
           val inst = module.getInstruction(instName)
           val blockNames = inst match {
-            case BranchInstruction(_, target, _, _) => List(target)
-            case ConditionalBranchInstruction(_, _, trueTarget, _, falseTarget, _, _) =>
+            case BranchInstruction(_, _, target, _, _) => List(target)
+            case ConditionalBranchInstruction(_, _, _, trueTarget, _, falseTarget, _, _) =>
               List(trueTarget, falseTarget)
             case _ => Nil
           }

@@ -24,8 +24,6 @@ final case object UnitType
   def defaultValue(module: Module) = UnitValue
 
   def isNumeric = false
-
-  override def toString = "#unit"
 }
 
 final case object BooleanType extends Type {
@@ -37,8 +35,6 @@ final case object BooleanType extends Type {
     import BinaryOperator._
     List(AND, XOR, OR).contains(op)
   }
-
-  override def toString = "#boolean"
 }
 
 final case object CharType 
@@ -49,8 +45,6 @@ final case object CharType
   def isNumeric = false
 
   override def supportsOperator(op: RelationalOperator) = true
-
-  override def toString = "#char"
 }
 
 final case object StringType
@@ -61,8 +55,6 @@ final case object StringType
   def isNumeric = false
 
   override def supportsOperator(op: RelationalOperator) = true
-
-  override def toString = "#string"
 }
 
 final case class IntType(width: Int)
@@ -89,8 +81,6 @@ final case class IntType(width: Int)
   override def supportsOperator(op: BinaryOperator) = true
 
   override def supportsOperator(op: RelationalOperator) = true
-
-  override def toString = "#int" + width
 }
 
 object IntType {
@@ -120,8 +110,6 @@ final case class FloatType(width: Int)
   }
 
   override def supportsOperator(op: RelationalOperator) = true
-
-  override def toString = "#float" + width
 }
 
 final case class PointerType(elementType: Type)
@@ -136,8 +124,6 @@ final case class PointerType(elementType: Type)
   def isNumeric = false
 
   override def isPointer = true
-
-  override def toString = elementType + "*"
 }
 
 final case object NullType
@@ -150,8 +136,6 @@ final case object NullType
   override def isPointer = true
 
   override def isSubtypeOf(ty: Type) = ty == NullType || ty.isInstanceOf[PointerType]
-
-  override def toString = "#null"
 }
 
 final case class ArrayType(size: Option[Long], elementType: Type)
@@ -197,11 +181,6 @@ final case class ArrayType(size: Option[Long], elementType: Type)
       case _ => false
     }
   }
-
-  override def toString = {
-    val sizeStr = size.map(_.toString).getOrElse("?")
-    "[" + sizeStr + " * " + elementType + "]"
-  }
 }
 
 final case class StructType(structName: Symbol)
@@ -219,8 +198,6 @@ final case class StructType(structName: Symbol)
   }
 
   def isNumeric = false
-
-  override def toString = structName.toString
 }
 
 final case class FunctionType(returnType: Type,

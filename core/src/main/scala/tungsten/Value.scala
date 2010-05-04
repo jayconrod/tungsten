@@ -25,16 +25,12 @@ final case object UnitValue
   extends Value
 {
   def ty = UnitType
-
-  override def toString = "()"
 }
 
 final case class BooleanValue(value: Boolean)
   extends Value
 {
   def ty = BooleanType
-
-  override def toString = if (value) "#true" else "#false"
 }
 
 final case class CharValue(value: Char)
@@ -43,33 +39,12 @@ final case class CharValue(value: Char)
   def ty = CharType
 
   def isPrintable: Boolean = Utilities.charIsPrintable(value)
-
-  override def toString = {
-    val valueStr = if (isPrintable) 
-      value.toString 
-    else
-      "\\%04d".format(value.toInt)
-    "'" + valueStr + "'"
-  }
 }
 
 final case class StringValue(value: String)
   extends Value
 {
   def ty = StringType
-
-  override def toString = {
-    val buffer = new StringBuffer
-    buffer.append("\"")
-    for (ch <- value) {
-      if (charIsPrintable(ch))
-        buffer.append(ch)
-      else
-        buffer.append("%04d".format(ch.toInt))
-    }
-    buffer.append("\"")
-    buffer.toString
-  }
 }      
 
 final case class IntValue(value: Long, width: Int)
@@ -87,16 +62,6 @@ final case class IntValue(value: Long, width: Int)
     else
       Nil
   }
-
-  override def toString = {
-    val suffix = width match {
-      case 8 => "b"
-      case 16 => "s"
-      case 32 => ""
-      case _ => "L"
-    }
-    value + suffix
-  }
 }
 
 final case class FloatValue(value: Double, width: Int) 
@@ -106,19 +71,12 @@ final case class FloatValue(value: Double, width: Int)
     throw new IllegalArgumentException
 
   def ty = FloatType(width)
-
-  override def toString = {
-    val suffix = if (width == 32) "f" else ""
-    value + suffix
-  }
 }
 
 final case object NullValue
   extends Value
 {
   def ty = NullType
-
-  override def toString = "#null"
 }
 
 final case class ArrayValue(elementType: Type,
@@ -135,11 +93,6 @@ final case class ArrayValue(elementType: Type,
   override def validate(module: Module, location: Location): List[CompileException] = {
     elements.flatMap(_.validate(module, location)) ++
       elements.flatMap { e: Value => checkType(e.ty, elementType, location) }
-  }
-
-  override def toString = {
-    val elementsStr = elements.mkString(", ")
-    "[%s: %s]".format(elementType, elementsStr)
   }
 }      
 
@@ -175,11 +128,6 @@ final case class StructValue(structName: Symbol,
       stage(validateFieldCount,
             validateFieldTypes)
   }
-
-  override def toString = {
-    val fieldsStr = fields.mkString(", ")
-    "{%s: %s}".format(structName, fieldsStr)
-  }
 }
 
 final case class DefinedValue(value: Symbol, ty: Type)
@@ -200,6 +148,4 @@ final case class DefinedValue(value: Symbol, ty: Type)
 
     validateName ++ ty.validate(module, location)
   }
-
-  override def toString = value.toString
 }

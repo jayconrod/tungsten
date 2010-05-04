@@ -7,8 +7,6 @@ sealed abstract class Instruction
 {
   def ty: Type
 
-  def ty(module: Module): Type
-
   def isTerminating = false
 
   def operands: List[Value]
@@ -147,16 +145,6 @@ final case class AddressInstruction(name: Symbol,
   extends Instruction 
   with ElementInstruction
 {
-  def ty(module: Module) = {
-    base.ty match {
-      case PointerType(elementType) => {
-        val resultElementType = getElementType(module, elementType, indices)
-        PointerType(resultElementType)
-      }
-      case _ => PointerType(UnitType) // bogus, but we catch it in validation
-    }
-  }
-
   def operands = base :: indices
 
   override def validate(module: Module) = {
@@ -185,8 +173,6 @@ final case class AssignInstruction(name: Symbol,
   extends Instruction
 {
   def operands = List(value)
-
-  def ty(module: Module) = value.ty
 
   override def validate(module: Module) = {
     stage(super.validate(module),
@@ -265,8 +251,6 @@ final case class BinaryOperatorInstruction(name: Symbol,
 {
   def operands = List(left, right)
 
-  def ty(module: Module) = left.ty
-
   override def validate(module: Module) = {
     def validateOperation = { 
       val lty = left.ty
@@ -293,8 +277,6 @@ final case class BranchInstruction(name: Symbol,
   with CallInstruction
 {
   override def isTerminating = true
-
-  def ty(module: Module) = UnitType
 
   def operands = arguments
 
@@ -326,8 +308,6 @@ final case class ConditionalBranchInstruction(name: Symbol,
   extends Instruction 
   with CallInstruction
 {
-  def ty(module: Module) = UnitType
-
   override def isTerminating = true
 
   def operands = condition :: trueArguments ++ falseArguments
@@ -363,8 +343,6 @@ sealed abstract class FloatCastInstruction(name: Symbol,
                                            annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module): Type = ty
-
   def operands = List(value)
 
   protected def validateWidths(fromTy: FloatType, toTy: FloatType): List[CompileException]
@@ -409,8 +387,6 @@ final case class FloatToIntegerInstruction(name: Symbol,
                                            annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module): Type = ty
-
   def operands = List(value)
 
   override def validateComponents(module: Module) = {
@@ -455,8 +431,6 @@ final case class HeapAllocateInstruction(name: Symbol,
                                          annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module): Type = ty
-
   def operands = Nil
 
   override def validateComponents(module: Module) = {
@@ -476,8 +450,6 @@ final case class HeapAllocateArrayInstruction(name: Symbol,
                                               annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module) = PointerType(ArrayType(None, elementType))
-
   def operands = List(count)
 
   override def validateComponents(module: Module) = {
@@ -498,8 +470,6 @@ final case class IntegerToFloatInstruction(name: Symbol,
                                            annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module): Type = ty
-
   def operands = List(value)
 
   override def validateComponents(module: Module) = {
@@ -530,8 +500,6 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
                                              annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module): Type = ty
-
   def operands = List(value)
 
   protected def validateWidths(fromTy: IntType, toTy: IntType): List[CompileException]
@@ -613,8 +581,6 @@ final case class IntrinsicCallInstruction(name: Symbol,
                                           annotations: List[AnnotationValue] = Nil)
   extends Instruction with CallInstruction
 {
-  def ty(module: Module) = intrinsic.ty.returnType
-
   override def isTerminating = intrinsic == Intrinsic.EXIT
 
   def operands = arguments
@@ -634,11 +600,6 @@ final case class LoadInstruction(name: Symbol,
 {
   def operands = List(pointer)
 
-  def ty(module: Module) = {
-    val pointerType = pointer.ty.asInstanceOf[PointerType]
-    pointerType.elementType
-  }
-  
   override def validate(module: Module) = {
     def typeIsValid = {
       val PointerType(elementType) = pointer.ty
@@ -662,8 +623,6 @@ final case class LoadElementInstruction(name: Symbol,
     throw new IllegalArgumentException
 
   def operands = base :: indices
-
-  def ty(module: Module) = getElementType(module, base.ty, indices)
 
   override def validate(module: Module) = {
     def typeIsValid = {
@@ -709,8 +668,6 @@ final case class RelationalOperatorInstruction(name: Symbol,
 {
   def operands = List(left, right)
 
-  def ty(module: Module) = BooleanType
-
   override def validate(module: Module) = {
     def validateOperation = {
       val lty = left.ty
@@ -736,8 +693,6 @@ final case class ReturnInstruction(name: Symbol,
 
   override def isTerminating = true
 
-  def ty(module: Module) = UnitType
-
   override def validate(module: Module) = {
     super.validate(module) ++ checkType(ty, UnitType, getLocation)
   }
@@ -751,8 +706,6 @@ final case class StoreInstruction(name: Symbol,
   extends Instruction
 {
   def operands = List(pointer, value)
-
-  def ty(module: Module) = UnitType
 
   override def validate(module: Module) = {
     def validateTypes = {
@@ -790,8 +743,6 @@ final case class StoreElementInstruction(name: Symbol,
 
   def operands = base :: value :: indices
 
-  def ty(module: Module) = UnitType
-
   override def validate(module: Module) = {
     def validateValueType = {
       val elementType = getElementType(module, base.ty, indices)
@@ -809,8 +760,6 @@ final case class StackAllocateInstruction(name: Symbol,
                                           annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module): Type = ty
-
   def operands = Nil
 
   override def validateComponents(module: Module) = {
@@ -830,8 +779,6 @@ final case class StackAllocateArrayInstruction(name: Symbol,
                                                annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
-  def ty(module: Module) = PointerType(ArrayType(None, elementType))
-
   def operands = List(count)
 
   override def validateComponents(module: Module) = {
@@ -858,8 +805,6 @@ final case class StaticCallInstruction(name: Symbol,
                                        annotations: List[AnnotationValue] = Nil)
   extends Instruction with CallInstruction
 {
-  def ty(module: Module) = targetType(module).returnType
-
   def operands = arguments
 
   override def usedSymbols = target :: operandSymbols
@@ -887,8 +832,6 @@ final case class UpcastInstruction(name: Symbol,
   extends Instruction
 {
   def operands = List(value)
-
-  def ty(module: Module): Type = ty
 
   override def validate(module: Module) = {
     def validateCast = {

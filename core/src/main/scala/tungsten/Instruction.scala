@@ -165,16 +165,16 @@ final case class AddressInstruction(name: Symbol,
       validateIndices(module, ptrElementType, indices)
     }
 
-    def tyIsValid = {
+    def typeIsValid = {
       val PointerType(ptrElementType) = base.ty
       val calculatedType = PointerType(getElementType(module, ptrElementType, indices))
-      checkType(ty(module), calculatedType, getLocation)
-    }      
+      checkType(calculatedType, ty, getLocation)
+    }
 
     super.validate(module) ++
       stage(checkNonNullPointerType(base.ty, getLocation),
             indicesAreValid,
-            tyIsValid)
+            typeIsValid)
   }
 }
 
@@ -187,6 +187,11 @@ final case class AssignInstruction(name: Symbol,
   def operands = List(value)
 
   def ty(module: Module) = value.ty
+
+  override def validate(module: Module) = {
+    stage(super.validate(module),
+          checkType(value.ty, ty, getLocation))
+  }
 }
 
 sealed abstract class BinaryOperator(val name: String) {
@@ -274,7 +279,8 @@ final case class BinaryOperatorInstruction(name: Symbol,
         Nil
     }
 
-    super.validate(module) ++ validateOperation
+    stage(super.validate(module) ++ validateOperation,
+          checkType(left.ty, ty, getLocation))
   }
 }
 
@@ -304,7 +310,8 @@ final case class BranchInstruction(name: Symbol,
     val parameters = module.getParameters(block.parameters)
     val parameterTypes = parameters.map(_.ty)
     super.validate(module) ++ 
-      validateCall(module, target, parameterTypes, arguments)
+      stage(validateCall(module, target, parameterTypes, arguments),
+            checkType(UnitType, ty, getLocation))
   }
 }
 
@@ -345,7 +352,8 @@ final case class ConditionalBranchInstruction(name: Symbol,
     stage(super.validate(module),
           validateBranch(trueTarget, trueArguments),
           validateBranch(falseTarget, falseArguments),
-          checkType(condition.ty, BooleanType, getLocation))
+          checkType(condition.ty, BooleanType, getLocation),
+          checkType(UnitType, ty, getLocation))
   }
 }
 
@@ -478,7 +486,9 @@ final case class HeapAllocateArrayInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
-    super.validate(module) ++ checkType(count.ty, IntType.wordType(module), getLocation)
+    super.validate(module) ++ 
+      checkType(count.ty, IntType.wordType(module), getLocation) ++
+      checkType(PointerType(ArrayType(None, elementType)), ty, getLocation)
   }
 }
 
@@ -611,7 +621,8 @@ final case class IntrinsicCallInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ 
-      validateCall(module, Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments)
+      validateCall(module, Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments) ++
+      checkType(intrinsic.ty.returnType, ty, getLocation)
   }
 }
 
@@ -629,7 +640,14 @@ final case class LoadInstruction(name: Symbol,
   }
   
   override def validate(module: Module) = {
-    super.validate(module) ++ checkNonNullPointerType(pointer.ty, getLocation)
+    def typeIsValid = {
+      val PointerType(elementType) = pointer.ty
+      checkType(elementType, ty, getLocation)
+    }
+
+    super.validate(module) ++ 
+      stage(checkNonNullPointerType(pointer.ty, getLocation),
+            typeIsValid)
   }
 }
 
@@ -648,7 +666,14 @@ final case class LoadElementInstruction(name: Symbol,
   def ty(module: Module) = getElementType(module, base.ty, indices)
 
   override def validate(module: Module) = {
-    super.validate(module) ++ validateIndices(module, base.ty, indices)
+    def typeIsValid = {
+      val elementType = getElementType(module, base.ty, indices)
+      checkType(elementType, ty, getLocation)
+    }
+
+    super.validate(module) ++ 
+      stage(validateIndices(module, base.ty, indices),
+            typeIsValid)
   }
 }
 
@@ -697,7 +722,7 @@ final case class RelationalOperatorInstruction(name: Symbol,
       else
         Nil
     }
-    super.validate(module) ++ validateOperation
+    super.validate(module) ++ validateOperation ++ checkType(BooleanType, ty, getLocation)
   }
 }
 
@@ -712,6 +737,10 @@ final case class ReturnInstruction(name: Symbol,
   override def isTerminating = true
 
   def ty(module: Module) = UnitType
+
+  override def validate(module: Module) = {
+    super.validate(module) ++ checkType(ty, UnitType, getLocation)
+  }
 }
 
 final case class StoreInstruction(name: Symbol,
@@ -742,7 +771,8 @@ final case class StoreInstruction(name: Symbol,
     }
     super.validate(module) ++
       stage(checkNonNullPointerType(pointer.ty, getLocation),
-            checkType(PointerType(value.ty), pointer.ty, getLocation))
+            checkType(PointerType(value.ty), pointer.ty, getLocation),
+            checkType(ty, UnitType, getLocation))
   }
 }
 
@@ -769,7 +799,8 @@ final case class StoreElementInstruction(name: Symbol,
     }
     super.validate(module) ++ 
       stage(validateIndices(module, base.ty, indices),
-            validateValueType)
+            validateValueType,
+            checkType(UnitType, ty, getLocation))
   }
 }
 
@@ -809,8 +840,14 @@ final case class StackAllocateArrayInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
+    def typeIsValid = {
+      val pointerType = PointerType(ArrayType(None, elementType))
+      checkType(pointerType, ty, getLocation)
+    }
+
     super.validate(module) ++ 
-      checkType(count.ty, IntType.wordType(module), getLocation)
+      checkType(count.ty, IntType.wordType(module), getLocation) ++
+      typeIsValid
   }
 }
 
@@ -834,7 +871,8 @@ final case class StaticCallInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ 
-      validateCall(module, target, targetType(module).parameterTypes, arguments)
+      validateCall(module, target, targetType(module).parameterTypes, arguments) ++
+      checkType(module.getFunction(target).returnType, ty, getLocation)
   }
 
   private def targetName = target

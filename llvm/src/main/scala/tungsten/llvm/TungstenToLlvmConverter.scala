@@ -9,6 +9,25 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
   }
 
   def globalSymbol(symbol: Symbol): String = {
+    "@" + convertSymbol(symbol)
+  }
+
+  def localSymbol(symbol: Symbol, parent: Symbol): String = {
+    def findChildName(name: List[String], parentName: List[String]): List[String] = {
+      (name, parentName) match {
+        case (nameHd :: nameTl, parentHd :: parentTl) if nameHd == parentHd => {
+          findChildName(nameTl, parentTl)
+        }
+        case (Nil, _) => symbol.name
+        case _ => name
+      }
+    }
+
+    val childSymbol = new Symbol(findChildName(symbol.name, parent.name), symbol.id)
+    "%" + convertSymbol(childSymbol)
+  }    
+
+  def convertSymbol(symbol: Symbol): String = {
     def convertNamePart(part: String): String = {
       val buffer = new StringBuffer
       for (c <- part) {
@@ -27,10 +46,10 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     val symbolStr = nameStr + idStr
     val identRegex = "[a-zA-Z$._][a-zA-Z$._0-9]*".r
     identRegex.findFirstIn(symbolStr) match {
-      case Some(m) if m == symbolStr => "@" + symbolStr
-      case _ => "@\"%s\"".format(symbolStr)
+      case Some(m) if m == symbolStr => symbolStr
+      case _ => "\"" + symbolStr + "\""
     }
-  }
+  }    
 }
 
 object TungstenToLlvmConverter {

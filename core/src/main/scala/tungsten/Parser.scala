@@ -80,7 +80,7 @@ object Parser extends Parsers with ImplicitConversions {
     annotations ~ ("function" ~> ty) ~ symbol ~ children(parameter, "(", ",", ")") ~
       children(block, "{", "", "}") ^^ {
         case anns ~ rty ~ n ~ ps ~ bs => {
-          val function = Function(n, childNames(ps, n), rty, childNames(bs, n), anns)
+          val function = Function(n, rty, childNames(ps, n), childNames(bs, n), anns)
           AstNode(function, ps ++ bs)
         }
     }

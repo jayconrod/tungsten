@@ -157,7 +157,7 @@ object ModuleIO {
         case BLOCK_ID => Block(name, readList(symbol), readList(symbol), readAnnotations)
         case FIELD_ID => Field(name, readType, readAnnotations)
         case FUNCTION_ID => {
-          Function(name, readList(symbol), readType, readList(symbol), readAnnotations)
+          Function(name, readType, readList(symbol), readList(symbol), readAnnotations)
         }
         case GLOBAL_ID => Global(name, readType, readOption(readValue), readAnnotations)
         case PARAMETER_ID => Parameter(name, readType, readAnnotations)
@@ -953,7 +953,7 @@ object ModuleIO {
           output.writeByte(FIELD_ID)
           writeType(ty)
         }
-        case Function(_, parameters, returnType, blocks, _) => {
+        case Function(_, returnType, parameters, blocks, _) => {
           output.writeByte(FUNCTION_ID)
           writeSymbolList(parameters)
           writeType(returnType)

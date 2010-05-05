@@ -3,8 +3,8 @@ package tungsten
 import Utilities._
 
 final case class Function(name: Symbol,
-                          parameters: List[Symbol],
                           returnType: Type,
+                          parameters: List[Symbol],
                           blocks: List[Symbol],
                           annotations: List[AnnotationValue] = Nil)
   extends Definition

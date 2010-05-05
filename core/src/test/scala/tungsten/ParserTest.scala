@@ -392,7 +392,7 @@ class ParserTest {
                    "  }\n" +
                    "}\n",
                    Parser.function,
-                   Function("@f", List("@f.a", "@f.b"), UnitType, List("@f.c", "@f.d"), Nil))
+                   Function("@f", UnitType, List("@f.a", "@f.b"), List("@f.c", "@f.d"), Nil))
   }
 
   @Test

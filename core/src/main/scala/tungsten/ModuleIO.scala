@@ -740,36 +740,17 @@ object ModuleIO {
       output.write(localSymbol(symbol, parentName).toString)
     }
 
-    def localValue(value: Value, parentName: Option[Symbol]): String = {
-      val lvalue = value.mapSymbols(localSymbol(_, parentName))
-      valueString(lvalue)
-    }
-
-    def localType(ty: Type, parentName: Option[Symbol]): String = {
-      val lty = ty.mapSymbols(localSymbol(_, parentName))
-      typeString(lty)
-    }
-
-    def localSymbol(symbol: Symbol, parentName: Option[Symbol]): Symbol = {
-      def addPrefix(symbol: Symbol, prefix: Char): Symbol = {
-        val fullName = symbol.name
-        val newFullName = (prefix + fullName.head) :: fullName.tail
-        Symbol(newFullName, symbol.id)
-      }
-
+    def localSymbol(symbol: Symbol, parentName: Option[Symbol]): String = {
+      val simpleName = symbol.name.last
       parentName match {
-        case None => addPrefix(symbol, '@')
-        case Some(parent) => {
-          val simpleName = symbol.name.last
-          if (parent.name :+ simpleName == symbol.name)
-            addPrefix(Symbol(simpleName, symbol.id), '%')
-          else
-            addPrefix(symbol, '@')
+        case Some(parent) if parent.name :+ simpleName == symbol.name => {
+          "%" + Symbol(simpleName, symbol.id).toString
         }
+        case _ => "@" + symbol.toString
       }
     }
 
-    def valueString(value: Value): String = {
+    def localValue(value: Value, parentName: Option[Symbol]): String = {
       value match {
         case UnitValue => "()"
         case BooleanValue(true) => "true"
@@ -796,17 +777,20 @@ object ModuleIO {
         case FloatValue(v, w) => "float%d %f".format(w, v)
         case NullValue => "null"
         case ArrayValue(elementType, elements) => {
-          "[%d x %s] {%s}".format(elements.size, typeString(elementType), 
-                                  elements.map(valueString _).mkString(", "))
+          "[%d x %s] {%s}".format(elements.size, localType(elementType, parentName), 
+                                  elements.map(localValue(_: Value, parentName)).mkString(", "))
         }
         case StructValue(structName, elements) => {
-          "struct %s {%s}".format(structName, elements.map(valueString _).mkString(", "))
+          "struct %s {%s}".format(localSymbol(structName, parentName), 
+                                  elements.map(localValue(_: Value, parentName)).mkString(", "))
         }
-        case DefinedValue(name, ty) => typeString(ty) + " " + name
+        case DefinedValue(name, ty) => {
+          localType(ty, parentName) + " " + localSymbol(name, parentName)
+        }
       }
     }
 
-    def typeString(ty: Type): String = {
+    def localType(ty: Type, parentName: Option[Symbol]): String = {
       ty match {
         case UnitType => "unit"
         case BooleanType => "boolean"
@@ -814,14 +798,15 @@ object ModuleIO {
         case StringType => "string"
         case IntType(w) => "int%d".format(w)
         case FloatType(w) => "float%d".format(w)
-        case PointerType(ety) => typeString(ety) + "*"
+        case PointerType(ety) => localType(ety, parentName) + "*"
         case NullType => "nulltype"
         case ArrayType(size, elementType) => {
-          "[%s x %s]".format(size.getOrElse("?"), typeString(elementType))
+          "[%s x %s]".format(size.getOrElse("?"), localType(elementType, parentName))
         }
-        case StructType(structName) => "struct " + structName
+        case StructType(structName) => "struct " + localSymbol(structName, parentName)
         case FunctionType(returnType, parameterTypes) => {
-          "(%s) => %s".format(parameterTypes.map(typeString _).mkString(", "), typeString(returnType))
+          "(%s) => %s".format(parameterTypes.map(localType(_: Type, parentName)).mkString(", "), 
+                              localType(returnType, parentName))
         }
       }
     }

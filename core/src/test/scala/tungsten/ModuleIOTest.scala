@@ -151,32 +151,32 @@ class ModuleIOWriteTextTest {
 
 
   @Test
-  def valueString {
-    assertEquals("()", dummyWriter.valueString(UnitValue))
-    assertEquals("true", dummyWriter.valueString(BooleanValue(true)))
-    assertEquals("false", dummyWriter.valueString(BooleanValue(false)))
-    assertEquals("'c'", dummyWriter.valueString(CharValue('c')))
-    assertEquals("'\\000a'", dummyWriter.valueString(CharValue('\n')))
-    assertEquals("\"hello\"", dummyWriter.valueString(StringValue("hello")))
-    assertEquals("\"multi\\000aline\"", dummyWriter.valueString(StringValue("multi\nline")))
-    assertEquals("int32 12", dummyWriter.valueString(IntValue(12L, 32)))
-    assertEquals("[1 x unit] {()}", dummyWriter.valueString(ArrayValue(UnitType, List(UnitValue))))
-    assertEquals("struct A {()}", dummyWriter.valueString(StructValue("A", List(UnitValue))))
+  def values {    
+    assertEquals("()", dummyWriter.localValue(UnitValue, None))
+    assertEquals("true", dummyWriter.localValue(BooleanValue(true), None))
+    assertEquals("false", dummyWriter.localValue(BooleanValue(false), None))
+    assertEquals("'c'", dummyWriter.localValue(CharValue('c'), None))
+    assertEquals("'\\000a'", dummyWriter.localValue(CharValue('\n'), None))
+    assertEquals("\"hello\"", dummyWriter.localValue(StringValue("hello"), None))
+    assertEquals("\"multi\\000aline\"", dummyWriter.localValue(StringValue("multi\nline"), None))
+    assertEquals("int32 12", dummyWriter.localValue(IntValue(12L, 32), None))
+    assertEquals("[1 x unit] {()}", dummyWriter.localValue(ArrayValue(UnitType, List(UnitValue)), None))
+    assertEquals("struct @A {()}", dummyWriter.localValue(StructValue("A", List(UnitValue)), None))
   }
 
   @Test
-  def typeString {
-    assertEquals("unit", dummyWriter.typeString(UnitType))
-    assertEquals("boolean", dummyWriter.typeString(BooleanType))
-    assertEquals("char", dummyWriter.typeString(CharType))
-    assertEquals("string", dummyWriter.typeString(StringType))
-    assertEquals("int32", dummyWriter.typeString(IntType(32)))
-    assertEquals("float32", dummyWriter.typeString(FloatType(32)))
-    assertEquals("unit*", dummyWriter.typeString(PointerType(UnitType)))
-    assertEquals("nulltype", dummyWriter.typeString(NullType))
-    assertEquals("[? x unit]", dummyWriter.typeString(ArrayType(None, UnitType)))
-    assertEquals("[2 x unit]", dummyWriter.typeString(ArrayType(Some(2L), UnitType)))
-    assertEquals("struct A", dummyWriter.typeString(StructType("A")))
+  def types {
+    assertEquals("unit", dummyWriter.localType(UnitType, None))
+    assertEquals("boolean", dummyWriter.localType(BooleanType, None))
+    assertEquals("char", dummyWriter.localType(CharType, None))
+    assertEquals("string", dummyWriter.localType(StringType, None))
+    assertEquals("int32", dummyWriter.localType(IntType(32), None))
+    assertEquals("float32", dummyWriter.localType(FloatType(32), None))
+    assertEquals("unit*", dummyWriter.localType(PointerType(UnitType), None))
+    assertEquals("nulltype", dummyWriter.localType(NullType, None))
+    assertEquals("[? x unit]", dummyWriter.localType(ArrayType(None, UnitType), None))
+    assertEquals("[2 x unit]", dummyWriter.localType(ArrayType(Some(2L), UnitType), None))
+    assertEquals("struct @A", dummyWriter.localType(StructType("A"), None))
   }
 
   @Test

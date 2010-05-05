@@ -76,6 +76,18 @@ class SymbolTest {
   }
 
   @Test
+  def quoted {
+    val sym = Symbol("multi word")
+    assertEquals("\"multi word\"", sym.toString)
+  }
+
+  @Test
+  def escaped {
+    val sym = Symbol("multi\nline")
+    assertEquals("\"multi\\000aline\"", sym.toString)
+  }
+
+  @Test
   def concat {
     val base = Symbol("foo")
     val expected = Symbol(List("foo", "bar"))

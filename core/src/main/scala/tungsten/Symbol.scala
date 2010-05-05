@@ -54,7 +54,25 @@ final class Symbol(val name: List[String], val id: Int)
   }
 
   override def toString = {
-    val concatenatedName = name.mkString(".")
+    val idRegex = "[A-Za-z_$][A-Za-z0-9_$]*"r
+    def quoteName(n: String): String = {
+      idRegex.findFirstIn(n) match {
+        case Some(m) if m == n => n
+        case _ => {
+          val buffer = new StringBuffer
+          buffer.append('"')
+          for (c <- n) {
+            if (charIsPrintable(c) && c != '"' && c != '\\')
+              buffer.append(c)
+            else
+              buffer.append("\\%04x".format(c.toInt))
+          }
+          buffer.append('"')
+          buffer.toString
+        }
+      }
+    }
+    val concatenatedName = name.map(quoteName _).mkString(".")
     if (id == 0) concatenatedName else concatenatedName + "#" + id
   }
 }

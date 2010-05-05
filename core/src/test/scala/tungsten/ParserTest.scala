@@ -377,7 +377,7 @@ class ParserTest {
 
   @Test
   def annotation {
-    testDefinition("annotation @ann(field unit %a, field unit %b)", Parser.annotation,
+    testDefinition("annotation @ann(unit %a, unit %b)", Parser.annotation,
                    Annotation("@ann", List("@ann.a", "@ann.b")))
   }
 

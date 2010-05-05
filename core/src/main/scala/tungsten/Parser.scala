@@ -68,7 +68,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val annotation: Parser[AstNode] = {
-    annotations ~ ("annotation" ~> symbol) ~ children(field, "(", ",", ")") ^^ {
+    annotations ~ ("annotation" ~> symbol) ~ children(parameter, "(", ",", ")") ^^ {
       case anns ~ n ~ ps => {
         val annotation = Annotation(n, childNames(ps, n), anns)
         AstNode(annotation, ps)

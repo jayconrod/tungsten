@@ -237,10 +237,10 @@ object ModuleIO {
     }
 
     def readAnnotations: List[AnnotationValue] = {
-      readList(readAnnotation)
+      readList(readAnnotationValue)
     }
 
-    def readAnnotation: AnnotationValue = {
+    def readAnnotationValue: AnnotationValue = {
       AnnotationValue(symbol, readList(readValue))
     }
 
@@ -490,7 +490,7 @@ object ModuleIO {
       writeAnnotations(annotation.annotations)
       output.write("annotation ")
       writeSymbol(annotation.name, None)
-      writeFields(annotation.fields, Some(annotation.name))
+      writeFields(annotation.parameters, Some(annotation.name))
     }
 
     def writeFunction(function: Function) {
@@ -701,7 +701,7 @@ object ModuleIO {
 
     def writeAnnotationValue(annotation: AnnotationValue) {
       writeSymbol(annotation.name, None)
-      writeArguments(annotation.fields, None)
+      writeArguments(annotation.values, None)
     }
 
     def writeArguments(values: List[Value], parentName: Option[Symbol]) {
@@ -869,7 +869,7 @@ object ModuleIO {
 
     def collectDefinition(defn: Definition) {
       collectSymbol(defn.name)
-      defn.annotations.flatMap(_.fields).foreach(collectValue _)
+      defn.annotations.flatMap(_.values).foreach(collectValue _)
       defn match {
         case Global(_, _, value, _) => value.foreach(collectValue _)
         case inst: Instruction => inst.operands.foreach(collectValue _)
@@ -1098,7 +1098,7 @@ object ModuleIO {
 
     def writeAnnotationValue(av: AnnotationValue) {
       writeInt(symbols(av.name))
-      writeList(av.fields, writeValue _)
+      writeList(av.values, writeValue _)
     }
 
     def writeType(ty: Type) {

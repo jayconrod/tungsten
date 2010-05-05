@@ -28,31 +28,31 @@ abstract class Definition
 
   def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[Annotation](module, annotations.map(_.name)) ++
-      annotations.flatMap(_.fields).flatMap(_.validateComponents(module, getLocation))
+      annotations.flatMap(_.values).flatMap(_.validateComponents(module, getLocation))
   }
 
   def validate(module: Module): List[CompileException] = {
-    def validateAnnotationFieldCount(av: AnnotationValue) = {
+    def validateAnnotationArgumentCount(av: AnnotationValue) = {
       val ann = module.getAnnotation(av.name)
-      val given = av.fields.size
-      val required = ann.fields.size
+      val given = av.values.size
+      val required = ann.parameters.size
       if (given != required)
-        List(AnnotationFieldCountException(ann.name, given, required, getLocation))
+        List(AnnotationArgumentCountException(ann.name, given, required, getLocation))
       else
         Nil
     }
 
-    def validateAnnotationFieldTypes(av: AnnotationValue) = {
+    def validateAnnotationArgumentTypes(av: AnnotationValue) = {
       val ann = module.getAnnotation(av.name)
-      val fieldTypes = module.getFields(ann.fields).map(_.ty)
-      av.fields.zip(fieldTypes).flatMap { vt => 
+      val fieldTypes = module.getParameters(ann.parameters).map(_.ty)
+      av.values.zip(fieldTypes).flatMap { vt => 
         val (v, t) = vt
         v.validate(module, getLocation) ++ checkType(v.ty, t, getLocation)
       }
     }
 
-    stage(annotations.flatMap(validateAnnotationFieldCount _),
-          annotations.flatMap(validateAnnotationFieldTypes _))
+    stage(annotations.flatMap(validateAnnotationArgumentCount _),
+          annotations.flatMap(validateAnnotationArgumentTypes _))
   }
 
   protected def validateComponentsOfClass[T <: Definition](module: Module,

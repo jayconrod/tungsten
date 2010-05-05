@@ -592,14 +592,14 @@ class ValidationTest {
 
   @Test
   def annotationFieldCount {
-    val program = "annotation @foo(field unit %a)\n" +
+    val program = "annotation @foo(unit %a)\n" +
                   "@foo global unit @bar"
-    programContainsError[AnnotationFieldCountException](program)
+    programContainsError[AnnotationArgumentCountException](program)
   }
 
   @Test
   def annotationFieldType {
-    val program = "annotation @foo(field unit %a)\n" +
+    val program = "annotation @foo(unit %a)\n" +
                   "@foo(true) global unit @bar"
     programContainsError[TypeMismatchException](program)
   }

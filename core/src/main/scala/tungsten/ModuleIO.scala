@@ -153,6 +153,7 @@ object ModuleIO {
     def readDefinition: Definition = {
       val name = symbol
       input.readByte match {
+        case ANNOTATION_ID => Annotation(name, readList(symbol), readAnnotations)
         case BLOCK_ID => Block(name, readList(symbol), readList(symbol), readAnnotations)
         case FIELD_ID => Field(name, readType, readAnnotations)
         case FUNCTION_ID => {
@@ -701,7 +702,8 @@ object ModuleIO {
 
     def writeAnnotationValue(annotation: AnnotationValue) {
       writeSymbol(annotation.name, None)
-      writeArguments(annotation.values, None)
+      if (!annotation.values.isEmpty)
+        writeArguments(annotation.values, None)
     }
 
     def writeArguments(values: List[Value], parentName: Option[Symbol]) {
@@ -938,6 +940,10 @@ object ModuleIO {
     def writeDefinition(defn: Definition) {
       writeInt(symbols(defn.name))
       defn match {
+        case Annotation(_, parameters, _) => {
+          output.writeByte(ANNOTATION_ID)
+          writeSymbolList(parameters)
+        }
         case Block(_, parameters, instructions, _) => {
           output.writeByte(BLOCK_ID)
           writeSymbolList(parameters)
@@ -1284,12 +1290,13 @@ object ModuleIO {
 
   val VERSION: (Byte, Byte) = (0, 3)
 
-  val BLOCK_ID: Byte = 1
-  val FIELD_ID: Byte = 2
-  val FUNCTION_ID: Byte = 3
-  val GLOBAL_ID: Byte = 4
-  val PARAMETER_ID: Byte = 5
-  val STRUCT_ID: Byte = 6
+  val ANNOTATION_ID: Byte = 1
+  val BLOCK_ID: Byte = 2
+  val FIELD_ID: Byte = 3
+  val FUNCTION_ID: Byte = 4
+  val GLOBAL_ID: Byte = 5
+  val PARAMETER_ID: Byte = 6
+  val STRUCT_ID: Byte = 7
 
   val ADDRESS_INST_ID: Byte = 100
   val ASSIGN_INST_ID: Byte = 101

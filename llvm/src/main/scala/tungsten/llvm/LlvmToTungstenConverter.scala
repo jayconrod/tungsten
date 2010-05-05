@@ -18,7 +18,7 @@ class LlvmToTungstenConverter(val module: Module) {
         case _ => throw new UnsupportedOperationException
       }
     }
-    new tungsten.Module(cDefinitions)
+    new tungsten.Module(definitions=cDefinitions)
   }
 
   def convertFunction(function: Function): tungsten.Function =
@@ -37,8 +37,8 @@ class LlvmToTungstenConverter(val module: Module) {
       convertBlock(block, blockParameterData(block.name))
     }
     val cFunction = tungsten.Function(cName, 
-                                      cParameters.map(_.name),
                                       cReturnType,
+                                      cParameters.map(_.name),
                                       cBlocks.map(_.name))
     cDefinitions += cFunction.name -> cFunction
     parent = ""
@@ -101,7 +101,7 @@ class LlvmToTungstenConverter(val module: Module) {
       case BitcastInstruction(_, value, ty) => {
         (value.ty, ty) match {
           case (IntType(n), IntType(m)) if n == m => {
-            tungsten.AssignInstruction(cName, convertValue(value))
+            tungsten.AssignInstruction(cName, tungsten.IntType(n), convertValue(value))
           }
           case (PointerType(fromEty), PointerType(toEty)) => {
             // TODO
@@ -113,21 +113,27 @@ class LlvmToTungstenConverter(val module: Module) {
 
       case BranchInstruction(label) => {
         val (cBlockName, cArguments) = convertLabel(label)
-        tungsten.BranchInstruction(cName, cBlockName, cArguments)
+        tungsten.BranchInstruction(cName, tungsten.UnitType, cBlockName, cArguments)
       }
             
       case LoadInstruction(_, address, _) => {
-        tungsten.LoadInstruction(cName, convertValue(address))
+        val cAddress = convertValue(address)
+        val cType = cAddress.ty match {
+          case tungsten.PointerType(elementType) => elementType
+          case _ => tungsten.UnitType
+        }
+        tungsten.LoadInstruction(cName, cType, cAddress)
       }
 
       case _: PhiInstruction => throw new UnsupportedOperationException
 
       case ReturnInstruction(value) => {
-        tungsten.ReturnInstruction(cName, convertValue(value))
+        tungsten.ReturnInstruction(cName, tungsten.UnitType, convertValue(value))
       }
 
       case StoreInstruction(value, address, _) => {
-        tungsten.StoreInstruction(cName, convertValue(address), convertValue(value))
+        tungsten.StoreInstruction(cName, tungsten.UnitType, 
+                                  convertValue(value), convertValue(address))
       }
     }
     cDefinitions += cName -> cInst
@@ -136,10 +142,10 @@ class LlvmToTungstenConverter(val module: Module) {
 
   def convertType(ty: Type): tungsten.Type = {
     ty match {
-      case VoidType => tungsten.UnitType()
+      case VoidType => tungsten.UnitType
       case IntType(n) => {
         if (n == 1)
-          tungsten.BooleanType()
+          tungsten.BooleanType
         else if (n <= 8)
           tungsten.IntType(8)
         else if (n <= 16)
@@ -158,29 +164,29 @@ class LlvmToTungstenConverter(val module: Module) {
 
   def convertValue(value: Value): tungsten.Value = {
     value match {
-      case VoidValue => tungsten.UnitValue()
+      case VoidValue => tungsten.UnitValue
       case IntValue(n, width) => {
         if (width == 1)
           tungsten.BooleanValue(if (n == 0L) false else true)
         else if (width <= 8)
-          tungsten.Int8Value(n.toByte)
+          tungsten.IntValue(n, 8)
         else if (width <= 16)
-          tungsten.Int16Value(n.toShort)
+          tungsten.IntValue(n, 16)
         else if (width <= 32)
-          tungsten.Int32Value(n.toInt)
+          tungsten.IntValue(n, 32)
         else if (width <= 64)
-          tungsten.Int64Value(n)
+          tungsten.IntValue(n, 64)
         else
           throw new UnsupportedOperationException
       }
-      case DefinedValue(name, _) => tungsten.DefinedValue(convertName(name))
+      case DefinedValue(name, ty) => tungsten.DefinedValue(convertName(name), convertType(ty))
     }
   }
 
   def convertName(name: String): Symbol = {
     val (prefix, unprefixed) = (name.head, name.tail)
     if (prefix == '@')
-      new Symbol(unprefixed)
+      Symbol(unprefixed)
     else {
       assert(!parent.isEmpty)
       if (localNameMapping.contains(unprefixed))

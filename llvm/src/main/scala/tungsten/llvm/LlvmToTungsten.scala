@@ -20,6 +20,7 @@ object LlvmToTungsten extends tungsten.Converter[Module, tungsten.Module] {
 
   def convert(source: Module): Option[tungsten.Module] = {
     val target = LlvmToTungstenConverter(source)
+    ModuleIO.writeText(target, new OutputStreamWriter(System.err))
     target.validate match {
       case Nil => Some(target)
       case errors => {

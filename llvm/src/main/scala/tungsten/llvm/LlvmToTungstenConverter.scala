@@ -157,8 +157,12 @@ class LlvmToTungstenConverter(val module: Module) {
         else
           throw new UnsupportedOperationException
       }
+      case FloatType => tungsten.FloatType(32)
+      case DoubleType => tungsten.FloatType(64)
       case PointerType(ety) => tungsten.PointerType(convertType(ety))
       case LabelType => throw new UnsupportedOperationException
+      case ArrayType(0, ety) => tungsten.ArrayType(None, convertType(ety))
+      case ArrayType(size, ety) => tungsten.ArrayType(Some(size), convertType(ety))
     }
   }
 

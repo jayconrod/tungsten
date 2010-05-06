@@ -132,6 +132,12 @@ class LlvmToTungstenConverterTest {
     assertEquals(tungsten.IntType(32), convertType(IntType(17)))
   }
 
+  @Test
+  def convertFloatTypes {
+    assertEquals(tungsten.FloatType(32), convertType(FloatType))
+    assertEquals(tungsten.FloatType(64), convertType(DoubleType))
+  }
+
   @Test(expected=classOf[UnsupportedOperationException])
   def convertLabelType {
     convertType(LabelType)
@@ -141,6 +147,14 @@ class LlvmToTungstenConverterTest {
   def convertPointerType {
     assertEquals(tungsten.PointerType(tungsten.IntType(32)),
                  convertType(PointerType(IntType(32))))
+  }
+
+  @Test
+  def convertArrayType {
+    assertEquals(tungsten.ArrayType(None, tungsten.IntType(32)),
+                 convertType(ArrayType(0L, IntType(32))))
+    assertEquals(tungsten.ArrayType(Some(3), tungsten.IntType(32)),
+                 convertType(ArrayType(3L, IntType(32))))
   }
 
   @Test

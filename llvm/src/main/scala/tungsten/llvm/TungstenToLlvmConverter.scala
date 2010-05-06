@@ -8,6 +8,23 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     throw new UnsupportedOperationException
   }
 
+  def convertType(ty: tungsten.Type): Type = {
+    ty match {
+      case tungsten.UnitType => VoidType
+      case tungsten.BooleanType => IntType(1)
+      case tungsten.IntType(width) => IntType(width)
+      case tungsten.FloatType(32) => FloatType
+      case tungsten.FloatType(64) => DoubleType
+      case tungsten.PointerType(tungsten.UnitType) => PointerType(IntType(8))
+      case tungsten.PointerType(ety) => PointerType(convertType(ety))
+      case tungsten.NullType => PointerType(IntType(8))
+      case tungsten.ArrayType(None, ety) => ArrayType(0L, convertType(ety))
+      case tungsten.ArrayType(Some(size), ety) => ArrayType(size, convertType(ety))
+      case tungsten.StructType(structName) => throw new UnsupportedOperationException // TODO
+      case _ => throw new UnsupportedOperationException
+    }
+  }
+
   def globalSymbol(symbol: Symbol): String = {
     "@" + convertSymbol(symbol)
   }

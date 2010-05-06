@@ -20,7 +20,11 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.NullType => PointerType(IntType(8))
       case tungsten.ArrayType(None, ety) => ArrayType(0L, convertType(ety))
       case tungsten.ArrayType(Some(size), ety) => ArrayType(size, convertType(ety))
-      case tungsten.StructType(structName) => throw new UnsupportedOperationException // TODO
+      case tungsten.StructType(structName) => {
+        val globalName = globalSymbol(structName)
+        val localName = "%" + globalName.tail
+        StructType(localName)
+      }
       case _ => throw new UnsupportedOperationException
     }
   }

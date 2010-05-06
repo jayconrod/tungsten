@@ -46,3 +46,9 @@ final case class ArrayType(size: Long, elementType: Type)
 {
   override def toString = "[%d x %s]".format(size, elementType)
 }
+
+final case class StructType(name: String)
+  extends Type
+{
+  override def toString = "struct " + name
+}

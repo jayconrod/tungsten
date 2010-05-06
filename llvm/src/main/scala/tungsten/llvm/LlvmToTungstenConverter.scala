@@ -163,6 +163,10 @@ class LlvmToTungstenConverter(val module: Module) {
       case LabelType => throw new UnsupportedOperationException
       case ArrayType(0, ety) => tungsten.ArrayType(None, convertType(ety))
       case ArrayType(size, ety) => tungsten.ArrayType(Some(size), convertType(ety))
+      case StructType(name) => {
+        val globalName = "@" + name.tail
+        tungsten.StructType(convertName(globalName))
+      }
     }
   }
 

@@ -17,16 +17,13 @@ final case class IntType(width: Int)
   override def toString = "i" + width
 }
 
-final case object FloatType
+final case class FloatType(width: Int)
   extends Type
 {
-  override def toString = "float"
-}
+  if (width != 32 && width != 64)
+    throw new IllegalArgumentException
 
-final case object DoubleType
-  extends Type
-{
-  override def toString = "double"
+  override def toString = if (width == 32) "float" else "double"
 }
 
 final case object LabelType

@@ -134,8 +134,8 @@ class LlvmToTungstenConverterTest {
 
   @Test
   def convertFloatTypes {
-    assertEquals(tungsten.FloatType(32), convertType(FloatType))
-    assertEquals(tungsten.FloatType(64), convertType(DoubleType))
+    assertEquals(tungsten.FloatType(32), convertType(FloatType(32)))
+    assertEquals(tungsten.FloatType(64), convertType(FloatType(64)))
   }
 
   @Test(expected=classOf[UnsupportedOperationException])

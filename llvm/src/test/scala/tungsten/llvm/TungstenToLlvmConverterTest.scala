@@ -35,8 +35,8 @@ class TungstenToLlvmConverterTest {
     assertEquals(VoidType, dummyConverter.convertType(tungsten.UnitType))
     assertEquals(IntType(1), dummyConverter.convertType(tungsten.BooleanType))
     assertEquals(IntType(32), dummyConverter.convertType(tungsten.IntType(32)))
-    assertEquals(FloatType, dummyConverter.convertType(tungsten.FloatType(32)))
-    assertEquals(DoubleType, dummyConverter.convertType(tungsten.FloatType(64)))
+    assertEquals(FloatType(32), dummyConverter.convertType(tungsten.FloatType(32)))
+    assertEquals(FloatType(64), dummyConverter.convertType(tungsten.FloatType(64)))
     assertEquals(PointerType(IntType(32)), 
                  dummyConverter.convertType(tungsten.PointerType(tungsten.IntType(32))))
     assertEquals(PointerType(IntType(8)), dummyConverter.convertType(tungsten.NullType))
@@ -48,5 +48,27 @@ class TungstenToLlvmConverterTest {
                  dummyConverter.convertType(tungsten.ArrayType(Some(2L), tungsten.IntType(32))))
     assertEquals(StructType("%A"),
                  dummyConverter.convertType(tungsten.StructType("A")))
+  }
+
+  @Test
+  def convertValues {
+    def convert(value: tungsten.Value) = dummyConverter.convertValue(value, Symbol("dummy"))
+    assertEquals(VoidValue, convert(tungsten.UnitValue))
+    assertEquals(IntValue(1L, 1), convert(tungsten.BooleanValue(true)))
+    assertEquals(IntValue(0L, 1), convert(tungsten.BooleanValue(false)))
+    assertEquals(FloatValue(0.0, 32), convert(tungsten.FloatValue(0.0, 32)))
+    assertEquals(FloatValue(0.0, 64), convert(tungsten.FloatValue(0.0, 64)))
+    assertEquals(NullValue(IntType(8)), convert(tungsten.NullValue))
+    assertEquals(ArrayValue(IntType(32), List(IntValue(12L, 32))),
+                 convert(tungsten.ArrayValue(tungsten.IntType(32), List(tungsten.IntValue(12L, 32)))))
+    assertEquals(StructValue(List(IntValue(12L, 32))),
+                 convert(tungsten.StructValue("A", List(tungsten.IntValue(12L, 32)))))
+  }
+
+  @Test
+  def convertDefinedValue {
+    assertEquals(DefinedValue("%x", IntType(32)),
+                 dummyConverter.convertValue(tungsten.DefinedValue("foo.x", tungsten.IntType(32)),
+                                             Symbol("foo")))
   }
 }

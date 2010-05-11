@@ -23,6 +23,39 @@ final case class IntValue(value: Long, width: Int)
   override def toString = value.toString
 }
 
+final case class FloatValue(value: Double, width: Int)
+  extends Value
+{
+  if (width != 32 && width != 64)
+    throw new IllegalArgumentException
+
+  def ty = FloatType(width)
+
+  override def toString = width.toString
+}
+
+final case class NullValue(ty: Type) 
+  extends Value
+{
+  override def toString = ty.toString + " " + null
+}
+
+final case class ArrayValue(elementType: Type, elements: List[Value])
+  extends Value
+{
+  def ty = ArrayType(elements.size, elementType)
+
+  override def toString = elements.mkString("[", ", ", "]")
+}
+
+final case class StructValue(elements: List[Value])
+  extends Value
+{
+  def ty = throw new UnsupportedOperationException // TODO
+
+  override def toString = elements.mkString("{", ", ", "}")
+}
+
 final case class DefinedValue(name: String, ty: Type)
   extends Value
 {

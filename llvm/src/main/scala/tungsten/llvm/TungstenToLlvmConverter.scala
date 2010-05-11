@@ -8,13 +8,33 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     throw new UnsupportedOperationException
   }
 
+  def convertValue(value: tungsten.Value, parent: Symbol): Value = {
+    value match {
+      case tungsten.UnitValue => VoidValue
+      case tungsten.BooleanValue(true) => IntValue(1L, 1)
+      case tungsten.BooleanValue(false) => IntValue(0L, 1)
+      case tungsten.IntValue(value, width) => IntValue(value, width)
+      case tungsten.FloatValue(value, width) => FloatValue(value, width)
+      case tungsten.NullValue => NullValue(IntType(8))
+      case tungsten.ArrayValue(ety, elements) => {
+        ArrayValue(convertType(ety), elements.map(convertValue(_, parent)))
+      }
+      case tungsten.StructValue(_, elements) => {
+        StructValue(elements.map(convertValue(_, parent)))
+      }
+      case tungsten.DefinedValue(name, ty) => {
+        DefinedValue(localSymbol(name, parent), convertType(ty))
+      }
+      case _ => throw new UnsupportedOperationException
+    }
+  }
+
   def convertType(ty: tungsten.Type): Type = {
     ty match {
       case tungsten.UnitType => VoidType
       case tungsten.BooleanType => IntType(1)
       case tungsten.IntType(width) => IntType(width)
-      case tungsten.FloatType(32) => FloatType
-      case tungsten.FloatType(64) => DoubleType
+      case tungsten.FloatType(width) => FloatType(width)
       case tungsten.PointerType(tungsten.UnitType) => PointerType(IntType(8))
       case tungsten.PointerType(ety) => PointerType(convertType(ety))
       case tungsten.NullType => PointerType(IntType(8))

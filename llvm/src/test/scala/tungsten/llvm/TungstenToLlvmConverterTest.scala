@@ -14,6 +14,11 @@ class TungstenToLlvmConverterTest {
     assertEquals(expected, converted)
   }
 
+  def testInstructionConversion(expected: Instruction, given: tungsten.Instruction) {
+    val converted = dummyConverter.convertInstruction(given, parent)
+    assertEquals(expected, converted)
+  }
+
   @Test
   def convertSymbol {
     assertEquals("x", dummyConverter.convertSymbol("x"))
@@ -76,5 +81,25 @@ class TungstenToLlvmConverterTest {
     assertEquals(DefinedValue("%x", IntType(32)),
                  dummyConverter.convertValue(tungsten.DefinedValue("foo.x", tungsten.IntType(32)),
                                              Symbol("foo")))
+  }
+
+  @Test
+  def convertWordValue {
+    assertEquals(IntValue(0L, 32), 
+                 dummyConverter.convert32BitValue(tungsten.IntValue(0L, 64), parent))
+    assertEquals(DefinedValue("%a", IntType(32)),
+                 dummyConverter.convert32BitValue(tungsten.DefinedValue("foo.a", tungsten.IntType(64)), parent))
+  }
+
+  @Test
+  def addressInst {
+    val expected = GetElementPointerInstruction("%x",
+                                                DefinedValue("%y", PointerType(IntType(8))),
+                                                List(IntValue(0L, 32)))
+    val address = tungsten.AddressInstruction("foo.x",
+                                              tungsten.PointerType(tungsten.IntType(8)),
+                                              tungsten.DefinedValue("foo.y", tungsten.PointerType(tungsten.IntType(8))),
+                                              List(tungsten.IntValue(0L, 64)))
+    testInstructionConversion(expected, address)
   }
 }

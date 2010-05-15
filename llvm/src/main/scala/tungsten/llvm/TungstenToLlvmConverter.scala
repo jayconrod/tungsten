@@ -16,6 +16,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
                                      convertValue(base, parent), 
                                      indices.map(convert32BitValue(_, parent)))
       }
+      case tungsten.AssignInstruction(_, ty, value, _) =>
+        BitcastInstruction(localName, convertValue(value, parent), convertType(ty))
       case _ => throw new UnsupportedOperationException // TODO
     }
   }

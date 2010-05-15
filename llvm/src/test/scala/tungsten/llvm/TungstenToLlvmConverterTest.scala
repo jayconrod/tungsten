@@ -102,4 +102,11 @@ class TungstenToLlvmConverterTest {
                                               List(tungsten.IntValue(0L, 64)))
     testInstructionConversion(expected, address)
   }
+
+  @Test
+  def assignInst {
+    val expected = BitcastInstruction("%x", IntValue(0L, 32), IntType(32))
+    val assign = tungsten.AssignInstruction("foo.x", tungsten.IntType(32), tungsten.IntValue(0L, 32))
+    testInstructionConversion(expected, assign)
+  }
 }

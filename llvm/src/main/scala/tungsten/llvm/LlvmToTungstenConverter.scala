@@ -116,6 +116,10 @@ class LlvmToTungstenConverter(val module: Module) {
         tungsten.BranchInstruction(cName, tungsten.UnitType, cBlockName, cArguments)
       }
             
+      case _: GetElementPointerInstruction => {
+        throw new UnsupportedOperationException // TODO
+      }
+
       case LoadInstruction(_, address, _) => {
         val cAddress = convertValue(address)
         val cType = cAddress.ty match {

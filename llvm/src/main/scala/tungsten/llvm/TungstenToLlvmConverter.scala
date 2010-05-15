@@ -18,6 +18,37 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       }
       case tungsten.AssignInstruction(_, ty, value, _) =>
         BitcastInstruction(localName, convertValue(value, parent), convertType(ty))
+      case tungsten.BinaryOperatorInstruction(_, ty, op, left, right, _) => {
+        import tungsten.BinaryOperator._
+        val cTy = convertType(ty)
+        val cLeft = convertValue(left, parent)
+        val cRight = convertValue(right, parent)
+        val instCtor = if (ty.isInstanceOf[FloatType]) {
+          op match {
+            case MULTIPLY => FloatMultiplyInstruction.apply _
+            case DIVIDE => FloatDivideInstruction.apply _
+            case REMAINDER => SignedRemainderInstruction.apply _
+            case ADD => AddInstruction.apply _
+            case SUBTRACT => SubtractInstruction.apply _
+            case _ => throw new RuntimeException("operator " + op + " does not support floating point types")
+          }
+        } else {
+          op match {
+            case MULTIPLY => MultiplyInstruction.apply _
+            case DIVIDE => SignedDivideInstruction.apply _
+            case REMAINDER => UnsignedRemainderInstruction.apply _
+            case ADD => AddInstruction.apply _
+            case SUBTRACT => SubtractInstruction.apply _
+            case LEFT_SHIFT => ShiftLeftInstruction.apply _
+            case RIGHT_SHIFT_ARITHMETIC => ArithmeticShiftRightInstruction.apply _
+            case RIGHT_SHIFT_LOGICAL => LogicalShiftRightInstruction.apply _
+            case AND => AndInstruction.apply _
+            case XOR => XorInstruction.apply _
+            case OR => OrInstruction.apply _
+          }
+        }
+        instCtor(localName, cTy, cLeft, cRight)
+      }
       case _ => throw new UnsupportedOperationException // TODO
     }
   }

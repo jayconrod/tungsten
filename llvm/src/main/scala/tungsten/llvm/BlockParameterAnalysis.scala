@@ -28,7 +28,7 @@ class BlockParameterNode(val block: Block) {
 
 }
 
-object BlockParameterAnalysis extends DataFlow {
+final class BlockParameterAnalysis(module: Module) extends DataFlow {
   type Node = BlockParameterNode
 
   /** Key is original free variable, value is parameter name */
@@ -76,7 +76,7 @@ object BlockParameterAnalysis extends DataFlow {
         if (inst.name.isEmpty)
           types
         else
-          types + (inst.name -> inst.ty)
+          types + (inst.name -> inst.ty(module))
       }
     }
 
@@ -140,4 +140,11 @@ object BlockParameterAnalysis extends DataFlow {
   }
 }
 
-
+object BlockParameterAnalysis {
+  def apply(function: Function, module: Module): Map[String, BlockParameterData] = {
+    val analysis = new BlockParameterAnalysis(module)
+    val cfg = analysis.cfg(function)
+    val data = analysis(cfg)
+    analysis.extract(data, cfg)
+  }
+}

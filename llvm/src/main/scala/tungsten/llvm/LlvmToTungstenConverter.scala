@@ -29,7 +29,7 @@ class LlvmToTungstenConverter(val module: Module) {
     val cName = convertName(function.name)
     parent = function.name.tail
 
-    val blockParameterData = BlockParameterAnalysis(function)
+    val blockParameterData = BlockParameterAnalysis(function, module)
 
     val cReturnType = convertType(function.returnType)
     val cParameters = function.parameters.map(convertParameter _)

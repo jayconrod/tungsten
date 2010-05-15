@@ -2,7 +2,8 @@ package tungsten.llvm
 
 import Utilities._
 
-sealed abstract class Instruction(val name: String) {
+sealed abstract class Instruction {
+  def name: String = ""
   def ty(module: Module): Type
   def operands: List[Value]
   def usedVars: List[String] = operands collect { 
@@ -10,19 +11,36 @@ sealed abstract class Instruction(val name: String) {
   }
 }
 
+sealed abstract class BinaryOperatorInstruction extends Instruction {
+  def ty: Type
+  def ty(module: Module) = ty
+  def left: Value
+  def right: Value
+  def operands = List(left, right)
+}
+
+final case class AddInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+  
 final case class AllocaInstruction(override name: String,
                                    elementType: Type)
-  extends Instruction(name)
+  extends Instruction
 {
   def ty(module: Module) = PointerType(elementType)
   def operands = Nil
   override def toString = escapeIdentifier(name) + " = alloca " + elementType
 }
 
+final case class AndInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class ArithmeticShiftRightInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
 final case class BitcastInstruction(override name: String,
                                     value: Value,
                                     ty: Type)
-  extends Instruction(name)
+  extends Instruction
 {
   def ty(module: Module) = ty
   def operands = List(value)
@@ -30,17 +48,32 @@ final case class BitcastInstruction(override name: String,
 }
 
 final case class BranchInstruction(label: Value)
-  extends Instruction("")
+  extends Instruction
 {
   def ty(module: Module) = VoidType
   def operands = List(label)
   override def toString = "br " + label
 }
 
+final case class FloatAddInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class FloatDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class FloatMultiplyInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class FloatRemainderInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class FloatSubtractInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
 final case class GetElementPointerInstruction(override name: String,
                                               base: Value,
                                               indices: List[Value])
-  extends Instruction(name)
+  extends Instruction
 {
   def ty(module: Module) = {
     def getStructFieldType(structType: Type, index: Value): Type = {
@@ -92,7 +125,7 @@ final case class GetElementPointerInstruction(override name: String,
 final case class LoadInstruction(override name: String,
                                  address: Value,
                                  alignment: Option[Int])
-  extends Instruction(name)
+  extends Instruction
 {
   def ty(module: Module) = address.ty.asInstanceOf[PointerType].elementType
   def operands = List(address)
@@ -102,10 +135,19 @@ final case class LoadInstruction(override name: String,
   }
 }
 
+final case class LogicalShiftRightInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class MultiplyInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class OrInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
 final case class PhiInstruction(override name: String,
                                 ty: Type,
                                 bindings: List[(Value, String)])
-  extends Instruction(name)
+  extends Instruction
 {
   def ty(module: Module) = ty
   def operands = Nil
@@ -118,17 +160,26 @@ final case class PhiInstruction(override name: String,
 }
 
 final case class ReturnInstruction(value: Value)
-  extends Instruction("")
+  extends Instruction
 {
   def ty(module: Module) = VoidType
   def operands = List(value)
   override def toString = "ret " + value.typedToString
 }
 
+final case class ShiftLeftInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class SignedDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class SignedRemainderInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
 final case class StoreInstruction(value: Value,
                                   address: Value,
                                   alignment: Option[Int])
-  extends Instruction("")
+  extends Instruction
 {
   def ty(module: Module) = VoidType
   def operands = List(value, address)
@@ -137,3 +188,16 @@ final case class StoreInstruction(value: Value,
     "store " + value.typedToString + ", " + address.typedToString + alignmentStr
   }
 }
+
+final case class SubtractInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class UnsignedDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class UnsignedRemainderInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+
+final case class XorInstruction(override name: String, ty: Type, left: Value, right: Value)
+  extends BinaryOperatorInstruction
+

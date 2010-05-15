@@ -139,6 +139,8 @@ class LlvmToTungstenConverter(val module: Module) {
         tungsten.StoreInstruction(cName, tungsten.UnitType, 
                                   convertValue(value), convertValue(address))
       }
+
+      case _ => throw new UnsupportedOperationException // TODO
     }
     cDefinitions += cName -> cInst
     cInst

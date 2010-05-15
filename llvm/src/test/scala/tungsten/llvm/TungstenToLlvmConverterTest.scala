@@ -7,6 +7,12 @@ import tungsten.Utilities._
 
 class TungstenToLlvmConverterTest {
   val dummyConverter = new TungstenToLlvmConverter(new tungsten.Module)
+  val parent = Symbol("foo")
+
+  def testTypeConversion(expected: Type, given: tungsten.Type) {
+    val converted = dummyConverter.convertType(given)
+    assertEquals(expected, converted)
+  }
 
   @Test
   def convertSymbol {
@@ -46,7 +52,7 @@ class TungstenToLlvmConverterTest {
                  dummyConverter.convertType(tungsten.ArrayType(None, tungsten.IntType(32))))
     assertEquals(ArrayType(2L, IntType(32)),
                  dummyConverter.convertType(tungsten.ArrayType(Some(2L), tungsten.IntType(32))))
-    assertEquals(StructType("%A"),
+    assertEquals(NamedStructType("%A"),
                  dummyConverter.convertType(tungsten.StructType("A")))
   }
 

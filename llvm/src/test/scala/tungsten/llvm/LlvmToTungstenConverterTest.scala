@@ -158,11 +158,6 @@ class LlvmToTungstenConverterTest {
   }
 
   @Test
-  def convertStructType {
-    assertEquals(tungsten.StructType("A"), convertType(StructType("%A")))
-  }
-
-  @Test
   def convertIntValue {
     assertEquals(tungsten.IntValue(12L, 32), convertValue(IntValue(12L, 32)))
   }

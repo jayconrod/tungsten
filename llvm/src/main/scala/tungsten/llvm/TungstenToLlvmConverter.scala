@@ -43,7 +43,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.StructType(structName) => {
         val globalName = globalSymbol(structName)
         val localName = "%" + globalName.tail
-        StructType(localName)
+        NamedStructType(localName)
       }
       case _ => throw new UnsupportedOperationException
     }

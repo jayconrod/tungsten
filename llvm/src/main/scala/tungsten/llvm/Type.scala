@@ -44,7 +44,13 @@ final case class ArrayType(size: Long, elementType: Type)
   override def toString = "[%d x %s]".format(size, elementType)
 }
 
-final case class StructType(name: String)
+final case class StructType(fieldTypes: List[Type])
+  extends Type
+{
+  override def toString = fieldTypes.mkString("{", ", ", "}")
+}
+
+final case class NamedStructType(name: String)
   extends Type
 {
   override def toString = "struct " + name

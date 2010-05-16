@@ -54,6 +54,18 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         val cTargetName = localSymbol(target, parent)
         val cTarget = DefinedValue(cTargetName, LabelType)
         BranchInstruction(cTarget)
+      }
+      case tungsten.ConditionalBranchInstruction(_, _, condition, 
+                                                 trueTarget, trueArguments, 
+                                                 falseTarget, falseArguments, _) => 
+      {
+        assert(trueArguments.isEmpty && falseArguments.isEmpty)
+        val cCondition = convertValue(condition, parent)
+        val cTrueTargetName = localSymbol(trueTarget, parent)
+        val cTrueTarget = DefinedValue(cTrueTargetName, LabelType)
+        val cFalseTargetName = localSymbol(falseTarget, parent)
+        val cFalseTarget = DefinedValue(cFalseTargetName, LabelType)
+        ConditionalBranchInstruction(cCondition, cTrueTarget, cFalseTarget)
       }        
       case _ => throw new UnsupportedOperationException // TODO
     }

@@ -55,6 +55,19 @@ final case class BranchInstruction(label: Value)
   override def toString = "br " + label
 }
 
+final case class ConditionalBranchInstruction(condition: Value, 
+                                              trueTarget: Value, 
+                                              falseTarget: Value)
+  extends Instruction
+{
+  def ty(module: Module) = VoidType
+  def operands = List(condition, trueTarget, falseTarget)
+  override def toString = {
+    "br %s, %s, %s".
+      format(condition.typedToString, trueTarget.typedToString, falseTarget.typedToString)
+  }
+}
+
 final case class FloatAddInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 

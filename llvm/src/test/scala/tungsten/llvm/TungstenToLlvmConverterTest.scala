@@ -127,4 +127,19 @@ class TungstenToLlvmConverterTest {
     val branch = tungsten.BranchInstruction("foo.x", tungsten.UnitType, "foo.target", Nil)
     testInstructionConversion(expected, branch)
   }
+
+  @Test
+  def condInst {
+    val expected = ConditionalBranchInstruction(IntValue(1L, 1),
+                                                DefinedValue("%t", LabelType),
+                                                DefinedValue("%f", LabelType))
+    val cond = tungsten.ConditionalBranchInstruction("foo.x",
+                                                     tungsten.UnitType,
+                                                     tungsten.BooleanValue(true),
+                                                     "foo.t",
+                                                     Nil,
+                                                     "foo.f",
+                                                     Nil)
+    testInstructionConversion(expected, cond)
+  }
 }

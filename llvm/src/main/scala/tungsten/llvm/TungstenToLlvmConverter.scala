@@ -49,6 +49,12 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         }
         instCtor(localName, cTy, cLeft, cRight)
       }
+      case tungsten.BranchInstruction(_, _, target, arguments, _) => {
+        assert(arguments.isEmpty)
+        val cTargetName = localSymbol(target, parent)
+        val cTarget = DefinedValue(cTargetName, LabelType)
+        BranchInstruction(cTarget)
+      }        
       case _ => throw new UnsupportedOperationException // TODO
     }
   }

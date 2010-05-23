@@ -258,5 +258,47 @@ class TungstenToLlvmConverterTest {
                                                        tungsten.FloatValue(1.0, 64),
                                                        tungsten.FloatValue(2.0, 64))
     testInstructionConversion(expected, relop)
-  }                                             
+  }
+
+  @Test
+  def returnInst {
+    val expected = ReturnInstruction(IntValue(12, 64))
+    val ret = tungsten.ReturnInstruction("foo.x", tungsten.UnitType, tungsten.IntValue(12, 64))
+    testInstructionConversion(expected, ret)
+  }
+
+  @Test
+  def storeInst {
+    val expected = StoreInstruction(IntValue(12, 64), 
+                                    DefinedValue("%y", PointerType(IntType(64))),
+                                    None)
+    val store = tungsten.StoreInstruction("foo.x",
+                                          tungsten.UnitType,
+                                          tungsten.IntValue(12, 64),
+                                          tungsten.DefinedValue("foo.y", tungsten.PointerType(tungsten.IntType(64))))
+    testInstructionConversion(expected, store)
+  }
+
+  @Test
+  def scallInst {
+    val expected = CallInstruction("%x", false, None, Nil, 
+                                   IntType(64), None,
+                                   DefinedValue("@f", FunctionType(IntType(64), List(IntType(64)))),
+                                   List(IntValue(12, 64)),
+                                   Nil)
+    val scall = tungsten.StaticCallInstruction("foo.x",
+                                               tungsten.IntType(64),
+                                               "f",
+                                               List(tungsten.IntValue(12, 64)))
+    testInstructionConversion(expected, scall)
+  }
+
+  @Test
+  def upcastInst {
+    val expected = BitcastInstruction("%x", NullValue(IntType(8)), PointerType(IntType(64)))
+    val upcast = tungsten.UpcastInstruction("foo.x",
+                                            tungsten.PointerType(tungsten.IntType(64)),
+                                            tungsten.NullValue)
+    testInstructionConversion(expected, upcast)
+  }
 }

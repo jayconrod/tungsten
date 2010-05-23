@@ -170,6 +170,7 @@ class LlvmToTungstenConverter(val module: Module) {
       case ArrayType(size, ety) => tungsten.ArrayType(Some(size), convertType(ety))
       case StructType(fieldTypes) => throw new UnsupportedOperationException // TODO
       case NamedStructType(name) => throw new UnsupportedOperationException // TODO
+      case FunctionType(returnType, parameterTypes) => throw new UnsupportedOperationException // TODO
     }
   }
 

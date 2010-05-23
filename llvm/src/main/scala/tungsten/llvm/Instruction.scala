@@ -102,6 +102,21 @@ final case class BranchInstruction(label: Value)
   override def toString = "br " + label
 }
 
+final case class CallInstruction(override name: String,
+                                 isTailCall: Boolean,
+                                 convention: Option[String],
+                                 returnAttributes: List[Attribute],
+                                 ty: Type,
+                                 targetType: Option[Type],
+                                 target: Value,
+                                 arguments: List[Value],
+                                 functionAttributes: List[Attribute])
+  extends Instruction
+{
+  def ty(module: Module) = ty
+  def operands = target :: arguments
+}             
+
 final case class ConditionalBranchInstruction(condition: Value, 
                                               trueTarget: Value, 
                                               falseTarget: Value)

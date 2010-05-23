@@ -113,7 +113,22 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
           }
           IntegerCompareInstruction(localName, cmp, cTy, cLeft, cRight)
         }
-      }        
+      }
+      case tungsten.ReturnInstruction(_, _, value, _) =>
+        ReturnInstruction(convertValue(value, parent))
+      case tungsten.StoreInstruction(_, _, value, address, _) =>
+        StoreInstruction(convertValue(value, parent), convertValue(address, parent), None)
+      case tungsten.StaticCallInstruction(_, ty, target, arguments, _) => {
+        val cReturnType = convertType(ty)
+        val cArgumentTypes = arguments.map { a: tungsten.Value => convertType(a.ty) }
+        val cTargetType = FunctionType(cReturnType, cArgumentTypes)
+        CallInstruction(localName, false, None, Nil, 
+                        cReturnType, None,
+                        DefinedValue(globalSymbol(target), cTargetType), 
+                        arguments.map(convertValue(_, parent)), Nil)
+      }
+      case tungsten.UpcastInstruction(_, ty, value, _) =>
+        BitcastInstruction(localName, convertValue(value, parent), convertType(ty))
       case _ => throw new UnsupportedOperationException // TODO
     }
   }

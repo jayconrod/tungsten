@@ -55,3 +55,9 @@ final case class NamedStructType(name: String)
 {
   override def toString = "struct " + name
 }
+
+final case class FunctionType(returnType: Type, parameterTypes: List[Type])
+  extends Type
+{
+  override def toString = returnType + parameterTypes.mkString(" (", ", ", ")")
+}

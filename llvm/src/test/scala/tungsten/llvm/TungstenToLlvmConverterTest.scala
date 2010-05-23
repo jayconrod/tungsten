@@ -142,4 +142,67 @@ class TungstenToLlvmConverterTest {
                                                      Nil)
     testInstructionConversion(expected, cond)
   }
+
+  @Test
+  def fextendInst {
+    val expected = FloatExtendInstruction("%x", FloatValue(0.0, 32), FloatType(64))
+    val fextend = tungsten.FloatExtendInstruction("foo.x",
+                                                  tungsten.FloatType(64),
+                                                  tungsten.FloatValue(0.0, 32))
+    testInstructionConversion(expected, fextend)
+  }
+
+  @Test
+  def ftoiInst {
+    val expected = FloatToIntegerInstruction("%x", FloatValue(0.0, 32), IntType(32))
+    val ftoi = tungsten.FloatToIntegerInstruction("foo.x",
+                                                  tungsten.IntType(32),
+                                                  tungsten.FloatValue(0.0, 32))
+    testInstructionConversion(expected, ftoi)
+  }
+
+  @Test
+  def ftruncateInst {
+    val expected = FloatTruncateInstruction("%x", FloatValue(0.0, 64), FloatType(32))
+    val ftruncate = tungsten.FloatTruncateInstruction("foo.x",
+                                                      tungsten.FloatType(32),
+                                                      tungsten.FloatValue(0.0, 64))
+    testInstructionConversion(expected, ftruncate)
+  }
+
+  @Test
+  def isextend {
+    val expected = IntegerSignExtendInstruction("%x", IntValue(12, 32), IntType(64))
+    val isextend = tungsten.IntegerSignExtendInstruction("foo.x",
+                                                         tungsten.IntType(64),
+                                                         tungsten.IntValue(12, 32))
+    testInstructionConversion(expected, isextend)
+  }
+
+  @Test
+  def itofInst {
+    val expected = IntegerToFloatInstruction("%x", IntValue(12, 32), FloatType(32))
+    val itof = tungsten.IntegerToFloatInstruction("foo.x",
+                                                  tungsten.FloatType(32),
+                                                  tungsten.IntValue(12, 32))
+    testInstructionConversion(expected, itof)
+  }
+
+  @Test
+  def itruncateInst {
+    val expected = IntegerTruncateInstruction("%x", IntValue(12, 64), IntType(32))
+    val itruncate = tungsten.IntegerTruncateInstruction("foo.x",
+                                                        tungsten.IntType(32),
+                                                        tungsten.IntValue(12, 64))
+    testInstructionConversion(expected, itruncate)
+  }
+
+  @Test
+  def izextendInst {
+    val expected = IntegerZeroExtendInstruction("%x", IntValue(12, 32), IntType(64))
+    val izextend = tungsten.IntegerZeroExtendInstruction("foo.x",
+                                                         tungsten.IntType(64),
+                                                         tungsten.IntValue(12, 32))
+    testInstructionConversion(expected, izextend)
+  }
 }

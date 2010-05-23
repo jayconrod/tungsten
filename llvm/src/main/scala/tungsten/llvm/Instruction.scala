@@ -13,10 +13,18 @@ sealed abstract class Instruction {
 
 sealed abstract class BinaryOperatorInstruction extends Instruction {
   def ty: Type
-  def ty(module: Module) = ty
+  def ty(module: Module): Type = ty
   def left: Value
   def right: Value
   def operands = List(left, right)
+}
+
+sealed abstract class ConversionInstruction extends Instruction {
+  def ty: Type
+  def ty(module: Module) = ty
+  def value: Value
+  def operands = List(value)
+  override def toString = escapeIdentifier(name) + " = fpext " + value.typedToString + " to " + ty
 }
 
 final case class AddInstruction(override name: String, ty: Type, left: Value, right: Value)
@@ -74,6 +82,9 @@ final case class FloatAddInstruction(override name: String, ty: Type, left: Valu
 final case class FloatDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 
+final case class FloatExtendInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+
 final case class FloatMultiplyInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 
@@ -82,6 +93,12 @@ final case class FloatRemainderInstruction(override name: String, ty: Type, left
 
 final case class FloatSubtractInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
+
+final case class FloatToIntegerInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+
+final case class FloatTruncateInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
 
 final case class GetElementPointerInstruction(override name: String,
                                               base: Value,
@@ -135,6 +152,18 @@ final case class GetElementPointerInstruction(override name: String,
   def operands = base :: indices
 }
     
+final case class IntegerSignExtendInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+
+final case class IntegerToFloatInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+
+final case class IntegerTruncateInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+
+final case class IntegerZeroExtendInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+
 final case class LoadInstruction(override name: String,
                                  address: Value,
                                  alignment: Option[Int])
@@ -213,4 +242,3 @@ final case class UnsignedRemainderInstruction(override name: String, ty: Type, l
 
 final case class XorInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
-

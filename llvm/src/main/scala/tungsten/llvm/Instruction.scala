@@ -27,6 +27,45 @@ sealed abstract class ConversionInstruction extends Instruction {
   override def toString = escapeIdentifier(name) + " = fpext " + value.typedToString + " to " + ty
 }
 
+final case class Comparison(name: String) {
+  override def toString = name
+}
+object Comparison {
+  /* Float comparisons
+   * Ordered means neither operand is NaN. Operators that begin with O are ordered. 
+   * For instance, OGT means ordered AND greater than. Operators that begin with U
+   * are unordered. For instance, UGT means unordered OR greater than. 
+   */
+  val FALSE = Comparison("false")   // always false
+  val OEQ = Comparison("oeq")
+  val OGT = Comparison("ogt")
+  val OGE = Comparison("oge")
+  val OLT = Comparison("olt")
+  val OLE = Comparison("ole")
+  val ONE = Comparison("one")
+  val ORD = Comparison("ord")       // ordered
+  val UEQ = Comparison("ueq")
+  val UGT = Comparison("ugt")
+  val UGE = Comparison("uge")
+  val ULT = Comparison("ult")
+  val ULE = Comparison("ule")
+  val UNE = Comparison("une")
+  val UNO = Comparison("uno")       // unordered
+  val TRUE = Comparison("true")     // always true
+
+  /* Integer comparisons
+   * These work for both integer values and pointers. S means signed. Note that 
+   * UGT, UGE, ULT, and ULE are considered unsigned comparisons when used in an 
+   * integer context.
+   */
+  val EQ = Comparison("eq")
+  val NE = Comparison("ne")
+  val SGT = Comparison("sgt")
+  val SGE = Comparison("sge")
+  val SLT = Comparison("slt")
+  val SLE = Comparison("sle")
+}  
+
 final case class AddInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
   
@@ -78,6 +117,17 @@ final case class ConditionalBranchInstruction(condition: Value,
 
 final case class FloatAddInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
+
+final case class FloatCompareInstruction(override name: String,
+                                         comparison: Comparison,
+                                         ty: Type,
+                                         left: Value,
+                                         right: Value)
+  extends Instruction
+{
+  def ty(module: Module) = IntType(1)
+  def operands = List(left, right)
+}
 
 final case class FloatDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
@@ -152,6 +202,17 @@ final case class GetElementPointerInstruction(override name: String,
   def operands = base :: indices
 }
     
+final case class IntegerCompareInstruction(override name: String,
+                                           comparison: Comparison,
+                                           ty: Type,
+                                           left: Value,
+                                           right: Value)
+  extends Instruction
+{
+  def ty(module: Module) = IntType(1)
+  def operands = List(left, right)
+}
+
 final case class IntegerSignExtendInstruction(override name: String, value: Value, ty: Type)
   extends ConversionInstruction
 

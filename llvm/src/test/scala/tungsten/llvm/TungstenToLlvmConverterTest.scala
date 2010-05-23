@@ -114,7 +114,7 @@ class TungstenToLlvmConverterTest {
   def binopInst {
     val expected = SubtractInstruction("%x", IntType(32), IntValue(2, 32), IntValue(1, 32))
     val sub = tungsten.BinaryOperatorInstruction("foo.x", 
-                                                 tungsten.IntType(32), 
+                                                 tungsten.BooleanType,
                                                  tungsten.BinaryOperator.SUBTRACT, 
                                                  tungsten.IntValue(2, 32), 
                                                  tungsten.IntValue(1, 32))
@@ -205,4 +205,58 @@ class TungstenToLlvmConverterTest {
                                                          tungsten.IntValue(12, 32))
     testInstructionConversion(expected, izextend)
   }
+
+  @Test
+  def loadInst {
+    val expected = LoadInstruction("%x", DefinedValue("%y", PointerType(IntType(32))), None)
+    val load = tungsten.LoadInstruction("foo.x",
+                                        tungsten.IntType(32),
+                                        tungsten.DefinedValue("foo.y", tungsten.PointerType(tungsten.IntType(32))))
+    testInstructionConversion(expected, load)
+  }
+
+  @Test
+  def irelopInst {
+    val expected = IntegerCompareInstruction("%x", 
+                                             Comparison.SGT,
+                                             IntType(32), 
+                                             IntValue(12, 32),
+                                             IntValue(34, 32))
+    val relop = tungsten.RelationalOperatorInstruction("foo.x",
+                                                       tungsten.BooleanType,
+                                                       tungsten.RelationalOperator.GREATER_THAN,
+                                                       tungsten.IntValue(12, 32),
+                                                       tungsten.IntValue(34, 32))
+    testInstructionConversion(expected, relop)
+  }
+
+  @Test
+  def prelopInst {
+    val expected = IntegerCompareInstruction("%x",
+                                             Comparison.EQ,
+                                             PointerType(IntType(32)),
+                                             DefinedValue("%y", PointerType(IntType(32))),
+                                             DefinedValue("%z", PointerType(IntType(32))))
+    val relop = tungsten.RelationalOperatorInstruction("foo.x",
+                                                       tungsten.BooleanType,
+                                                       tungsten.RelationalOperator.EQUAL,
+                                                       tungsten.DefinedValue("foo.y", tungsten.PointerType(tungsten.IntType(32))),
+                                                       tungsten.DefinedValue("foo.z", tungsten.PointerType(tungsten.IntType(32))))
+    testInstructionConversion(expected, relop)
+  }
+
+  @Test
+  def frelopInst {
+    val expected = FloatCompareInstruction("%x",
+                                           Comparison.OEQ,
+                                           FloatType(64),
+                                           FloatValue(1.0, 64),
+                                           FloatValue(2.0, 64))
+    val relop = tungsten.RelationalOperatorInstruction("foo.x",
+                                                       tungsten.BooleanType,
+                                                       tungsten.RelationalOperator.EQUAL,
+                                                       tungsten.FloatValue(1.0, 64),
+                                                       tungsten.FloatValue(2.0, 64))
+    testInstructionConversion(expected, relop)
+  }                                             
 }

@@ -20,7 +20,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         BitcastInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.BinaryOperatorInstruction(_, ty, op, left, right, _) => {
         import tungsten.BinaryOperator._
-        val cTy = convertType(ty)
+        assert(left.ty == right.ty)
+        val cTy = convertType(left.ty)
         val cLeft = convertValue(left, parent)
         val cRight = convertValue(right, parent)
         val instCtor = if (ty.isInstanceOf[FloatType]) {
@@ -81,6 +82,38 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         IntegerTruncateInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.IntegerZeroExtendInstruction(_, ty, value, _) =>
         IntegerZeroExtendInstruction(localName, convertValue(value, parent), convertType(ty))
+      case tungsten.LoadInstruction(_, _, address, _) =>
+        LoadInstruction(localName, convertValue(address, parent), None)
+      case tungsten.RelationalOperatorInstruction(_, _, op, left, right, _) => {
+        import tungsten.RelationalOperator._
+        import Comparison._
+        assert(left.ty == right.ty)
+        val cTy = convertType(left.ty)
+        val cLeft = convertValue(left, parent)
+        val cRight = convertValue(right, parent)
+        val isFloat = left.ty.isInstanceOf[tungsten.FloatType]
+        if (isFloat) {
+          val cmp = op match {
+            case EQUAL => OEQ
+            case NOT_EQUAL => ONE
+            case LESS_THAN => OLT
+            case LESS_EQUAL => OLE
+            case GREATER_THAN => OGT
+            case GREATER_EQUAL => OGE
+          }
+          FloatCompareInstruction(localName, cmp, cTy, cLeft, cRight)
+        } else {
+          val cmp = op match {
+            case EQUAL => EQ
+            case NOT_EQUAL => NE
+            case LESS_THAN => SLT
+            case LESS_EQUAL => SLE
+            case GREATER_THAN => SGT
+            case GREATER_EQUAL => SGE
+          }
+          IntegerCompareInstruction(localName, cmp, cTy, cLeft, cRight)
+        }
+      }        
       case _ => throw new UnsupportedOperationException // TODO
     }
   }

@@ -62,4 +62,108 @@ class InstructionTest {
                                            List(IntValue(0L, 32), IntValue(1L, 32)))
     gep.ty(module)
   }
+
+  @Test
+  def addToString {
+    assertEquals("%x = add i64 2, 2",
+                 AddInstruction("%x", IntType(64), IntValue(2, 64), IntValue(2, 64)).toString)
+  }
+
+  @Test
+  def andToString {
+    assertEquals("%x = and i64 2, 2",
+                 AndInstruction("%x", IntType(64), IntValue(2, 64), IntValue(2, 64)).toString)
+  }
+
+  @Test
+  def asrToString {
+    assertEquals("%x = asr i64 2, 2",
+                 ArithmeticShiftRightInstruction("%x", IntType(64), IntValue(2, 64), IntValue(2, 64)).toString)
+  }
+
+  @Test
+  def brToString {
+    assertEquals("br label %bb",
+                 BranchInstruction(DefinedValue("%bb", LabelType)).toString)
+  }
+
+  @Test
+  def callToString {
+    assertEquals("%x = tail call fastcc zeroext i64 @f(i64 2) nounwind",
+                 CallInstruction("%x",
+                                 true,
+                                 Some("fastcc"),
+                                 List(Attribute.ZEROEXT),
+                                 IntType(64),
+                                 None,
+                                 DefinedValue("@f", FunctionType(IntType(64), List(IntType(64)))),
+                                 List(IntValue(2, 64)),
+                                 List(Attribute.NOUNWIND)).toString)
+  }
+
+  @Test
+  def conditionalToString {
+    assertEquals("br i1 1, label %bb1, label %bb2",
+                 ConditionalBranchInstruction(IntValue(1, 1),
+                                              DefinedValue("%bb1", LabelType),
+                                              DefinedValue("%bb2", LabelType)).toString)
+  }
+
+  @Test
+  def fcmpToString {
+    assertEquals("%x = fcmp olt double 1.000000e+00, 2.000000e+00",
+                 FloatCompareInstruction("%x", Comparison.OLT, FloatType(64), 
+                                         FloatValue(1.0, 64), FloatValue(2.0, 64)).toString)
+  }
+
+  @Test
+  def fpextToString {
+    assertEquals("%x = fpext float 1.000000e+00 to double",
+                 FloatExtendInstruction("%x", FloatValue(1.0, 32), FloatType(64)).toString)
+  }
+
+  @Test
+  def getelementptrToString {
+    assertEquals("%x = getelementptr i64* %y, i64 1",
+                 GetElementPointerInstruction("%x",
+                                              DefinedValue("%y", PointerType(IntType(64))),
+                                              List(IntValue(1, 64))).toString)
+  }
+
+  @Test
+  def icmpToString {
+    assertEquals("%x = icmp slt i64 1, 2",
+                 IntegerCompareInstruction("%x",
+                                           Comparison.SLT,
+                                           IntType(64),
+                                           IntValue(1, 64), IntValue(2, 64)).toString)
+  }
+
+  @Test
+  def loadToString {
+    assertEquals("%x = load i64* %p, align 4",
+                 LoadInstruction("%x", DefinedValue("%p", PointerType(IntType(64))), Some(4)).toString)
+  }
+
+  @Test
+  def phiToString {
+    assertEquals("%x = phi i64 [1, %bb1], [2, %bb2]",
+                 PhiInstruction("%x", 
+                                IntType(64), 
+                                List((IntValue(1, 64), "%bb1"), (IntValue(2, 64), "%bb2"))).toString)
+  }
+
+  @Test
+  def retToString {
+    assertEquals("ret i64 1",
+                 ReturnInstruction(IntValue(1, 64)).toString)
+  }
+
+  @Test
+  def storeInst {
+    assertEquals("store i64 12, i64* %p, align 4",
+                 StoreInstruction(IntValue(12, 64), 
+                                  DefinedValue("%p", PointerType(IntType(64))), 
+                                  Some(4)).toString)
+  }
 }

@@ -31,7 +31,7 @@ final case class FloatValue(value: Double, width: Int)
 
   def ty = FloatType(width)
 
-  override def toString = width.toString
+  override def toString = "%e".format(value)
 }
 
 final case class NullValue(ty: Type) 

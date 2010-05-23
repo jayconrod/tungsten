@@ -154,7 +154,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def ftoiInst {
-    val expected = FloatToIntegerInstruction("%x", FloatValue(0.0, 32), IntType(32))
+    val expected = FloatToSignedIntegerInstruction("%x", FloatValue(0.0, 32), IntType(32))
     val ftoi = tungsten.FloatToIntegerInstruction("foo.x",
                                                   tungsten.IntType(32),
                                                   tungsten.FloatValue(0.0, 32))
@@ -181,7 +181,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def itofInst {
-    val expected = IntegerToFloatInstruction("%x", IntValue(12, 32), FloatType(32))
+    val expected = SignedIntegerToFloatInstruction("%x", IntValue(12, 32), FloatType(32))
     val itof = tungsten.IntegerToFloatInstruction("foo.x",
                                                   tungsten.FloatType(32),
                                                   tungsten.IntValue(12, 32))

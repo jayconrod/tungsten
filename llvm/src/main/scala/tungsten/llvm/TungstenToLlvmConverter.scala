@@ -71,13 +71,13 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.FloatExtendInstruction(_, ty, value, _) =>
         FloatExtendInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.FloatToIntegerInstruction(_, ty, value, _) =>
-        FloatToIntegerInstruction(localName, convertValue(value, parent), convertType(ty))
+        FloatToSignedIntegerInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.FloatTruncateInstruction(_, ty, value, _) =>
         FloatTruncateInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.IntegerSignExtendInstruction(_, ty, value, _) =>
         IntegerSignExtendInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.IntegerToFloatInstruction(_, ty, value, _) =>
-        IntegerToFloatInstruction(localName, convertValue(value, parent), convertType(ty))
+        SignedIntegerToFloatInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.IntegerTruncateInstruction(_, ty, value, _) =>
         IntegerTruncateInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.IntegerZeroExtendInstruction(_, ty, value, _) =>

@@ -30,6 +30,7 @@ final class Attribute(description: String) {
 }
 object Attribute {
   val NOUNWIND = new Attribute("nounwind")
+  val ZEROEXT = new Attribute("zeroext")
 }
 
 final case class Block(name: String, instructions: List[Instruction]) {

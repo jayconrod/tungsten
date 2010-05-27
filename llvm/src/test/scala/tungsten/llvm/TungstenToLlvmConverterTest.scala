@@ -312,4 +312,36 @@ class TungstenToLlvmConverterTest {
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertBlock(block, parent))
   }
+
+  @Test
+  def parameter {
+    val expected = Parameter("%x", IntType(64), Nil)
+    val parameter = tungsten.Parameter("foo.x", tungsten.IntType(64))
+    assertEquals(expected, dummyConverter.convertParameter(parameter, parent))
+  }
+
+  @Test
+  def emptyFunction {
+    val expected = Function("@f", VoidType, Nil, Nil, Nil)
+    val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil)
+    assertEquals(expected, dummyConverter.convertFunction(function))
+  }
+
+  @Test
+  def function {
+    val expected = Function("@f", IntType(64), Nil,
+                            List(Parameter("%x", IntType(64), Nil)),
+                            List(Block("%entry", List(ReturnInstruction(DefinedValue("%x", IntType(64)))))))
+    val parameter = tungsten.Parameter("f.x", tungsten.IntType(64))
+    val instruction = tungsten.ReturnInstruction("f.ret", tungsten.UnitType, tungsten.DefinedValue("f.x", tungsten.IntType(64)))
+    val block = tungsten.Block("f.entry", Nil, List(instruction.name))
+    val function = tungsten.Function("f", tungsten.IntType(64), List(parameter.name), List(block.name))
+    val definitions = Map(parameter.name -> parameter,
+                          instruction.name -> instruction,
+                          block.name -> block,
+                          function.name -> function)
+    val module = new tungsten.Module(definitions=definitions)
+    val converter = new TungstenToLlvmConverter(module)
+    assertEquals(expected, converter.convertFunction(function))
+  }
 }

@@ -8,6 +8,22 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     throw new UnsupportedOperationException
   }
 
+  def convertFunction(function: tungsten.Function): Function = {
+    val cName = globalSymbol(function.name)
+    val cReturnType = convertType(function.returnType)
+    val parameters = module.getParameters(function.parameters)
+    val cParameters = parameters.map(convertParameter(_, function.name))
+    val blocks = module.getBlocks(function.blocks)
+    val cBlocks = blocks.map(convertBlock(_, function.name))
+    Function(cName, cReturnType, Nil, cParameters, cBlocks)
+  }
+
+  def convertParameter(parameter: tungsten.Parameter, parent: Symbol): Parameter = {
+    val cName = localSymbol(parameter.name, parent)
+    val cType = convertType(parameter.ty)
+    Parameter(cName, cType, Nil)
+  }
+
   def convertBlock(block: tungsten.Block, parent: Symbol): Block = {
     assert(block.parameters.isEmpty)
     val cName = localSymbol(block.name, parent)

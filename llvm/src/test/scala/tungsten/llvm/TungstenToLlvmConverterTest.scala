@@ -301,4 +301,15 @@ class TungstenToLlvmConverterTest {
                                             tungsten.NullValue)
     testInstructionConversion(expected, upcast)
   }
+
+  @Test
+  def block {
+    val expected = Block("%bb", List(ReturnInstruction(IntValue(12, 64))))
+    val retInst = tungsten.ReturnInstruction("foo.x", tungsten.UnitType, tungsten.IntValue(12, 64))
+    val block = tungsten.Block("foo.bb", Nil, List("foo.x"))
+    val definitions = Map(block.name -> block, retInst.name -> retInst)
+    val module = new tungsten.Module(definitions=definitions)
+    val converter = new TungstenToLlvmConverter(module)
+    assertEquals(expected, converter.convertBlock(block, parent))
+  }
 }

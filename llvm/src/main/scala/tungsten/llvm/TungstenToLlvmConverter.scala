@@ -8,6 +8,14 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     throw new UnsupportedOperationException
   }
 
+  def convertBlock(block: tungsten.Block, parent: Symbol): Block = {
+    assert(block.parameters.isEmpty)
+    val cName = localSymbol(block.name, parent)
+    val instructions = module.getInstructions(block.instructions)
+    val cInstructions = instructions.map(convertInstruction(_, parent))
+    Block(cName, cInstructions)
+  }
+
   def convertInstruction(instruction: tungsten.Instruction, parent: Symbol): Instruction = {
     val localName = localSymbol(instruction.name, parent)
     instruction match {

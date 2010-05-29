@@ -5,7 +5,22 @@ import tungsten.Utilities._
 
 class TungstenToLlvmConverter(module: tungsten.Module) {
   def convert: Module = {
-    throw new UnsupportedOperationException
+    val dataLayoutFmt = "e-p:%s-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64"
+    val wordSize = if (module.is64Bit) 64 else 32
+    val dataLayout = Some(dataLayoutFmt.format(wordSize + ":" + wordSize + ":" + wordSize))
+    val cDefinitions = (Map[String, Definition]() /: module.definitions.values) { (defns, defn) =>
+      val cDefn = defn match {
+        case s: tungsten.Struct => Some(convertStruct(s))
+        case g: tungsten.Global => Some(convertGlobal(g))
+        case f: tungsten.Function => Some(convertFunction(f))
+        case _ => None
+      }
+      cDefn match {
+        case Some(d) => defns + (d.name -> d)
+        case None => defns
+      }
+    }
+    new Module(dataLayout, None, cDefinitions)
   }
 
   def convertGlobal(global: tungsten.Global): Global = {

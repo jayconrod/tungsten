@@ -20,7 +20,8 @@ object TungstenToLlvm extends Converter[tungsten.Module, Module] {
 
   def writeTarget(module: Module, filename: String, output: OutputStream) {
     val writer = new OutputStreamWriter(output)
-    TextModuleWriter(module, writer)
+    for (defn <- module.definitions.values)
+      writer.write(defn + "\n\n")
     writer.flush
   }
 

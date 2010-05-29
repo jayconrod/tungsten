@@ -87,7 +87,7 @@ final case class AllocaInstruction(override name: String,
   def opname = "alloca"
   def ty(module: Module) = PointerType(elementType)
   def operands = Nil
-  override def toString = opname + " " + elementType
+  override def toString = nameString + " " + elementType
 }
 
 final case class AndInstruction(override name: String, ty: Type, left: Value, right: Value)

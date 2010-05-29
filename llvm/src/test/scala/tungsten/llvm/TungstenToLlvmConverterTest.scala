@@ -84,6 +84,16 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
+  def convertGlobalDefinedValue {
+    val global = tungsten.Global("g", tungsten.IntType(64), None)
+    val module = new tungsten.Module(definitions=Map(global.name -> global))
+    val expected = DefinedValue("@g", PointerType(IntType(64)))
+    val value = tungsten.DefinedValue("g", tungsten.PointerType(tungsten.IntType(64)))
+    val converter = new TungstenToLlvmConverter(module)
+    assertEquals(expected, converter.convertValue(value, parent))
+  }    
+
+  @Test
   def convertWordValue {
     assertEquals(IntValue(0L, 32), 
                  dummyConverter.convert32BitValue(tungsten.IntValue(0L, 64), parent))

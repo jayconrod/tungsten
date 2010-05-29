@@ -193,7 +193,11 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         StructValue(elements.map(convertValue(_, parent)))
       }
       case tungsten.DefinedValue(name, ty) => {
-        DefinedValue(localSymbol(name, parent), convertType(ty))
+        val cTy = convertType(ty)
+        module.getDefn(name) match {
+          case Some(_: tungsten.Global) => DefinedValue(globalSymbol(name), cTy)
+          case _ => DefinedValue(localSymbol(name, parent), cTy)
+        }
       }
       case _ => throw new UnsupportedOperationException
     }

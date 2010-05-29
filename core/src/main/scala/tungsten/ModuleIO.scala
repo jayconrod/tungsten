@@ -940,8 +940,8 @@ object ModuleIO {
         }
         case Function(_, returnType, parameters, blocks, _) => {
           output.writeByte(FUNCTION_ID)
-          writeSymbolList(parameters)
           writeType(returnType)
+          writeSymbolList(parameters)
           writeSymbolList(blocks)
         }          
         case Global(_, ty, value, _) => {

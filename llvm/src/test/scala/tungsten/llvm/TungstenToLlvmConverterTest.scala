@@ -355,4 +355,18 @@ class TungstenToLlvmConverterTest {
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertStruct(struct))
   }
+
+  @Test
+  def global {
+    val expected = Global("@g", Nil, IntValue(12, 64))
+    val global = tungsten.Global("g", tungsten.IntType(64), Some(tungsten.IntValue(12, 64)))
+    assertEquals(expected, dummyConverter.convertGlobal(global))
+  }
+
+  @Test
+  def emptyGlobal {
+    val expected = Global("@g", Nil, IntValue(0, 64))
+    val global = tungsten.Global("g", tungsten.IntType(64), None)
+    assertEquals(expected, dummyConverter.convertGlobal(global))
+  }
 }

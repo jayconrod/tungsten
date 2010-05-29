@@ -8,6 +8,18 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     throw new UnsupportedOperationException
   }
 
+  def convertGlobal(global: tungsten.Global): Global = {
+    val cName = globalSymbol(global.name)
+    val cValue = global.value match {
+      case Some(v) => convertValue(v, "asdf")
+      case None => {
+        val v = global.ty.defaultValue(module)
+        convertValue(v, "asdf")
+      }
+    }
+    Global(cName, Nil, cValue)
+  }
+
   def convertStruct(struct: tungsten.Struct): Struct = {
     val cName = '%' + globalSymbol(struct.name).substring(1)
     val fields = module.getFields(struct.fields)

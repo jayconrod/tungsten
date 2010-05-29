@@ -344,4 +344,15 @@ class TungstenToLlvmConverterTest {
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertFunction(function))
   }
+
+  @Test
+  def struct {
+    val expected = Struct("%T", List(IntType(64)))
+    val field = tungsten.Field("x", tungsten.IntType(64))
+    val struct = tungsten.Struct("T", List(field.name))
+    val definitions = Map(field.name -> field, struct.name -> struct)
+    val module = new tungsten.Module(definitions=definitions)
+    val converter = new TungstenToLlvmConverter(module)
+    assertEquals(expected, converter.convertStruct(struct))
+  }
 }

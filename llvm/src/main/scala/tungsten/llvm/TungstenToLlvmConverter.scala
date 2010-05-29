@@ -11,10 +11,10 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
   def convertGlobal(global: tungsten.Global): Global = {
     val cName = globalSymbol(global.name)
     val cValue = global.value match {
-      case Some(v) => convertValue(v, "asdf")
+      case Some(v) => convertValue(v, None)
       case None => {
         val v = global.ty.defaultValue(module)
-        convertValue(v, "asdf")
+        convertValue(v, None)
       }
     }
     Global(cName, Nil, cValue)
@@ -31,19 +31,19 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     val cName = globalSymbol(function.name)
     val cReturnType = convertType(function.returnType)
     val parameters = module.getParameters(function.parameters)
-    val cParameters = parameters.map(convertParameter(_, function.name))
+    val cParameters = parameters.map(convertParameter(_, Some(function.name)))
     val blocks = module.getBlocks(function.blocks)
-    val cBlocks = blocks.map(convertBlock(_, function.name))
+    val cBlocks = blocks.map(convertBlock(_, Some(function.name)))
     Function(cName, cReturnType, Nil, cParameters, cBlocks)
   }
 
-  def convertParameter(parameter: tungsten.Parameter, parent: Symbol): Parameter = {
+  def convertParameter(parameter: tungsten.Parameter, parent: Option[Symbol]): Parameter = {
     val cName = localSymbol(parameter.name, parent)
     val cType = convertType(parameter.ty)
     Parameter(cName, cType, Nil)
   }
 
-  def convertBlock(block: tungsten.Block, parent: Symbol): Block = {
+  def convertBlock(block: tungsten.Block, parent: Option[Symbol]): Block = {
     assert(block.parameters.isEmpty)
     val cName = localSymbol(block.name, parent)
     val instructions = module.getInstructions(block.instructions)
@@ -51,7 +51,9 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     Block(cName, cInstructions)
   }
 
-  def convertInstruction(instruction: tungsten.Instruction, parent: Symbol): Instruction = {
+  def convertInstruction(instruction: tungsten.Instruction, 
+                         parent: Option[Symbol]): Instruction = 
+  {
     val localName = localSymbol(instruction.name, parent)
     instruction match {
       case tungsten.AddressInstruction(_, _, base, indices, _) => {
@@ -176,7 +178,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     }
   }
 
-  def convertValue(value: tungsten.Value, parent: Symbol): Value = {
+  def convertValue(value: tungsten.Value, parent: Option[Symbol]): Value = {
     value match {
       case tungsten.UnitValue => VoidValue
       case tungsten.BooleanValue(true) => IntValue(1L, 1)
@@ -197,7 +199,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     }
   }
 
-  def convert32BitValue(value: tungsten.Value, parent: Symbol): Value = {
+  def convert32BitValue(value: tungsten.Value, parent: Option[Symbol]): Value = {
     value match {
       case tungsten.IntValue(v, _) => IntValue(v, 32)
       case tungsten.DefinedValue(name, _: tungsten.IntType) => {
@@ -231,7 +233,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     "@" + convertSymbol(symbol)
   }
 
-  def localSymbol(symbol: Symbol, parent: Symbol): String = {
+  def localSymbol(symbol: Symbol, parent: Option[Symbol]): String = {
     def findChildName(name: List[String], parentName: List[String]): List[String] = {
       (name, parentName) match {
         case (nameHd :: nameTl, parentHd :: parentTl) if nameHd == parentHd => {
@@ -242,7 +244,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       }
     }
 
-    val childSymbol = new Symbol(findChildName(symbol.name, parent.name), symbol.id)
+    val parentName = parent.map(_.name).getOrElse(Nil)
+    val childSymbol = new Symbol(findChildName(symbol.name, parentName), symbol.id)
     "%" + convertSymbol(childSymbol)
   }    
 

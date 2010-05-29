@@ -7,7 +7,7 @@ import tungsten.Utilities._
 
 class TungstenToLlvmConverterTest {
   val dummyConverter = new TungstenToLlvmConverter(new tungsten.Module)
-  val parent = Symbol("foo")
+  val parent = Some(Symbol("foo"))
 
   def testTypeConversion(expected: Type, given: tungsten.Type) {
     val converted = dummyConverter.convertType(given)
@@ -36,9 +36,9 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def localSymbol {
-    assertEquals("%x", dummyConverter.localSymbol("y.x", "y"))
-    assertEquals("%x.y", dummyConverter.localSymbol("x.y", "x.y"))
-    assertEquals("%x.y", dummyConverter.localSymbol("x.y", "x.y.z"))
+    assertEquals("%x", dummyConverter.localSymbol("y.x", Some("y")))
+    assertEquals("%x.y", dummyConverter.localSymbol("x.y", Some("x.y")))
+    assertEquals("%x.y", dummyConverter.localSymbol("x.y", Some("x.y.z")))
   }
 
   @Test
@@ -63,7 +63,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def convertValues {
-    def convert(value: tungsten.Value) = dummyConverter.convertValue(value, Symbol("dummy"))
+    def convert(value: tungsten.Value) = dummyConverter.convertValue(value, parent)
     assertEquals(VoidValue, convert(tungsten.UnitValue))
     assertEquals(IntValue(1L, 1), convert(tungsten.BooleanValue(true)))
     assertEquals(IntValue(0L, 1), convert(tungsten.BooleanValue(false)))
@@ -80,7 +80,7 @@ class TungstenToLlvmConverterTest {
   def convertDefinedValue {
     assertEquals(DefinedValue("%x", IntType(32)),
                  dummyConverter.convertValue(tungsten.DefinedValue("foo.x", tungsten.IntType(32)),
-                                             Symbol("foo")))
+                                             parent))
   }
 
   @Test

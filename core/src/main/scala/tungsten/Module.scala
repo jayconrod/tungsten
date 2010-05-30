@@ -40,6 +40,13 @@ final class Module(val name:         Symbol                  = Symbol("default")
 
   def replace(defn: Definition) = copyWith(definitions = definitions + (defn.name -> defn))
 
+  def replace(replacements: Seq[Definition]): Module = {
+    val newDefinitions = (definitions /: replacements) { (definitions, replacement) =>
+      definitions + (replacement.name -> replacement)
+    }
+    copyWith(definitions=newDefinitions)
+  }
+
   def apply(name: Symbol): Definition = definitions(name)
 
   def get[T <: Definition](name: Symbol)(implicit m: Manifest[T]) = {

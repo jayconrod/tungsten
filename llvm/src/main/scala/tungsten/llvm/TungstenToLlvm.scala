@@ -26,7 +26,8 @@ object TungstenToLlvm extends Converter[tungsten.Module, Module] {
   }
 
   def convert(module: tungsten.Module): Option[Module] = {
-    val converted = TungstenToLlvmConverter(module)
+    val compatible = LlvmCompatibilityPass(module)
+    val converted = TungstenToLlvmConverter(compatible)
     Some(converted)
   }
 

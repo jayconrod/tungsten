@@ -1,6 +1,7 @@
 package tungsten.llvm
 
 import tungsten.Utilities._
+import tungsten.Symbol
 
 object LlvmCompatibilityPass {
   def apply(module: tungsten.Module): tungsten.Module = processMain(module)
@@ -18,4 +19,16 @@ object LlvmCompatibilityPass {
       case None => module
     }
   }
+}
+
+final case class TungstenPhiInstruction(name: Symbol,
+                                        ty: tungsten.Type,
+                                        bindings: List[(tungsten.Value, Symbol)])
+  extends tungsten.ExtendedInstruction
+{
+  def annotations = Nil
+
+  def operands = bindings.map(_._1)
+
+  override def usedSymbols = operandSymbols ++ bindings.map(_._2)
 }

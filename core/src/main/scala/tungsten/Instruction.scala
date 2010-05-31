@@ -14,7 +14,7 @@ sealed abstract class Instruction
   /** Collects symbols used by operands. This does not count symbols used inside types, only
    *  names of instructions, parameters, and globals referenced.
    */
-  def operandSymbols = {
+  def operandSymbols: List[Symbol] = {
     def collectSymbols(ops: List[Value], syms: List[Symbol]): List[Symbol] = {
       ops match {
         case DefinedValue(value, _) :: rest => collectSymbols(rest, value :: syms)
@@ -61,6 +61,8 @@ trait CallInstruction extends Instruction {
     }
   }
 }   
+
+abstract class ExtendedInstruction extends Instruction
 
 sealed trait ElementInstruction extends Instruction {
   protected final def getElementType(module: Module,

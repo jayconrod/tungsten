@@ -28,7 +28,7 @@ abstract class DataFlow {
   /** The initial data value for each edge. This is the most optimistic (precise) solution.
    *  For all elements a in S, bottom R a holds.
    */
-  def bottom: Data
+  def bottom(u: Node, v: Node): Data
 
   /** Returns whether the analysis is forward (default) or backward. In a forward analysis,
    *  the input to the flow function is the data on the incident (incoming) edges, and the 
@@ -81,7 +81,7 @@ abstract class DataFlow {
 
     for (u <- graph.nodes;
          v <- graph.adjacent(u))
-      edgeMap += (u, v) -> bottom
+      edgeMap += (u, v) -> bottom(u, v)
 
     while (!workList.isEmpty) {
       val v = workList.dequeue

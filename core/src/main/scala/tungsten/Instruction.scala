@@ -27,6 +27,8 @@ sealed abstract class Instruction
 
   def usedSymbols = operandSymbols
 
+  def liveOutBindings: Map[Symbol, List[Value]] = Map()
+
   override def validateComponents(module: Module): List[CompileException] = {
     super.validateComponents(module) ++
       operands.flatMap(_.validateComponents(module, getLocation))
@@ -284,6 +286,8 @@ final case class BranchInstruction(name: Symbol,
 
   override def usedSymbols = target :: operandSymbols
 
+  override def liveOutBindings: Map[Symbol, List[Value]] = Map(target -> arguments)
+
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
       validateComponentOfClass[Block](module, target)
@@ -315,6 +319,11 @@ final case class ConditionalBranchInstruction(name: Symbol,
   def operands = condition :: trueArguments ++ falseArguments
 
   override def usedSymbols = trueTarget :: falseTarget :: operandSymbols
+
+  override def liveOutBindings: Map[Symbol, List[Value]] = {
+    Map(trueTarget  -> trueArguments,
+        falseTarget -> falseArguments)
+  }
 
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 

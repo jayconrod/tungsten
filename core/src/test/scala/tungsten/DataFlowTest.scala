@@ -8,7 +8,7 @@ class DataFlowTest {
     type Node = Int
     type Data = Boolean
 
-    def bottom = false
+    def bottom(u: Node, v: Node) = false
 
     def flow(graph: Graph[Int], node: Int, inData: Map[Int, Boolean]): Map[Int, Boolean] = {
       val outEdges = if (isForward) graph.adjacent else graph.incident

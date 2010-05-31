@@ -34,7 +34,7 @@ final class BlockParameterAnalysis(module: Module) extends DataFlow {
   /** Key is original free variable, value is parameter name */
   type Data = Map[String, String]
 
-  val bottom = Map[String, String]()
+  def bottom(u: Node, v: Node): Data = Map[String, String]()
 
   override def isForward = false
 

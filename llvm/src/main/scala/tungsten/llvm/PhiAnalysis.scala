@@ -25,4 +25,9 @@ object PhiConversion {
   def apply(module: tungsten.Module): tungsten.Module = {
     module
   }
+
+  def cfg(function: tungsten.Function, module: tungsten.Module): Graph[tungsten.Block] = {
+    throw new UnsupportedOperationException
+    // TODO: implement
+  }
 }

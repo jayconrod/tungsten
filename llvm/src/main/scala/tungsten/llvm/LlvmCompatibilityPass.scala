@@ -3,8 +3,12 @@ package tungsten.llvm
 import tungsten.Utilities._
 import tungsten.Symbol
 
-object LlvmCompatibilityPass {
-  def apply(module: tungsten.Module): tungsten.Module = processMain(module)
+object LlvmCompatibilityPass 
+  extends Function1[tungsten.Module, tungsten.Module] 
+{
+  def apply(module: tungsten.Module): tungsten.Module = process(module) 
+
+  val process = (processMain _) andThen PhiConversion
 
   def processMain(module: tungsten.Module): tungsten.Module = {
     module.get[tungsten.Function]("main") match {
@@ -19,6 +23,8 @@ object LlvmCompatibilityPass {
       case None => module
     }
   }
+
+  
 }
 
 final case class TungstenPhiInstruction(name: Symbol,

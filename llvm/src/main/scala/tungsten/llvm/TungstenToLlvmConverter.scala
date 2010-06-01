@@ -189,6 +189,16 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       }
       case tungsten.UpcastInstruction(_, ty, value, _) =>
         BitcastInstruction(localName, convertValue(value, parent), convertType(ty))
+      case TungstenPhiInstruction(_, ty, bindings) => {
+        val cTy = convertType(ty)
+        val cBindings = bindings.map { vb =>
+          val (value, blockName) = vb
+          val cValue = convertValue(value, parent)
+          val cBlockName = localSymbol(blockName, parent)
+          (cValue, cBlockName)
+        }
+        PhiInstruction(localName, cTy, cBindings)
+      }
       case _ => throw new UnsupportedOperationException // TODO
     }
   }

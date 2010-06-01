@@ -42,7 +42,9 @@ class PhiAnalysis(module: tungsten.Module)
   }
 }
 
-object PhiConversion {
+object PhiConversion
+  extends Function1[tungsten.Module, tungsten.Module] 
+{
   def apply(module: tungsten.Module): tungsten.Module = {
     val functions = module.definitions.valuesIterator.collect { case f: tungsten.Function => f }
     (module /: functions) { (module, function) =>

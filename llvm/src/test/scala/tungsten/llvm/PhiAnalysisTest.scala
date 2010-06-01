@@ -48,8 +48,8 @@ class PhiAnalysisTest {
 
   @Test
   def flow {
-    val expected = Map((blockNames(3), Map((symbolFromString("f.bb3.e"), tungsten.IntValue(12, 64)),
-                                           (symbolFromString("f.bb3.f"), tungsten.IntValue(34, 64)))))
+    val expected = Map((blocks(3), Map((symbolFromString("f.bb3.e"), tungsten.IntValue(12, 64)),
+                                       (symbolFromString("f.bb3.f"), tungsten.IntValue(34, 64)))))
     val inData = Map(blocks(0) -> analysis.bottom(blocks(0), blocks(1)))
     val outData = analysis.flow(graph, blocks(1), inData)
     assertEquals(expected, outData)

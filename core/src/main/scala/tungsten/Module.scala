@@ -38,6 +38,8 @@ final class Module(val name:         Symbol                  = Symbol("default")
     copyWith(definitions = newDefinitions)
   }
 
+  def add(defns: List[Definition]): Module = add(defns: _*)
+
   def replace(defn: Definition) = copyWith(definitions = definitions + (defn.name -> defn))
 
   def replace(replacements: Seq[Definition]): Module = {
@@ -46,6 +48,10 @@ final class Module(val name:         Symbol                  = Symbol("default")
     }
     copyWith(definitions=newDefinitions)
   }
+
+  def remove(symbol: Symbol) = copyWith(definitions = definitions - symbol)
+
+  def remove(symbols: Seq[Symbol]) = copyWith(definitions = definitions -- symbols)
 
   def apply(name: Symbol): Definition = definitions(name)
 

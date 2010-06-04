@@ -28,30 +28,102 @@ class PhiAnalysisTest {
   val graph = PhiConversion.cfg(function, module)
   val analysis = new PhiAnalysis(module)
 
+  val phiData = Map[(Symbol, Symbol), List[tungsten.Value]]((blockNames(1), blockNames(3)) -> List(tungsten.IntValue(12, 64), tungsten.IntValue(34, 64)),
+                                                            (blockNames(2), blockNames(3)) -> List(tungsten.IntValue(12, 64), tungsten.IntValue(56, 64)))
+  val argumentMap = Map[Symbol, List[tungsten.Value]](blockNames(1) -> List(tungsten.IntValue(12, 64), tungsten.IntValue(34, 64)),
+                                                      blockNames(2) -> List(tungsten.IntValue(12, 64), tungsten.IntValue(56, 64)))
+  val phiBindings = List(List[(tungsten.Value, Symbol)]((tungsten.IntValue(12, 64), "f.bb1"), (tungsten.IntValue(12, 64), "f.bb2")),
+                         List[(tungsten.Value, Symbol)]((tungsten.IntValue(34, 64), "f.bb1"), (tungsten.IntValue(56, 64), "f.bb2")))
+  val constantMap = Map[Symbol, tungsten.Value](symbolFromString("f.bb3.e") -> tungsten.IntValue(12, 64))
+
   @Test
   def cfg {
-    val expected = new Graph[tungsten.Block](blocks,
-                                             Map((blocks(0), Set(blocks(1), blocks(2))),
-                                                 (blocks(1), Set(blocks(3))),
-                                                 (blocks(2), Set(blocks(3))),
-                                                 (blocks(3), Set())))
-    assertEquals(graph, expected)
+    val expected = new Graph[Symbol](blockNames,
+                                     Map((blockNames(0), Set(blockNames(1), blockNames(2))),
+                                         (blockNames(1), Set(blockNames(3))),
+                                         (blockNames(2), Set(blockNames(3))),
+                                         (blockNames(3), Set())))
+    assertEquals(expected, graph)
   }
 
   @Test
   def bottom {
-    val expected = Map((symbolFromString("f.bb1.a"), tungsten.IntValue(12, 64)),
-                       (symbolFromString("f.bb1.b"), tungsten.IntValue(34, 64)))                                                    
-    val data = analysis.bottom(blocks(0), blocks(1))
+    val expected = List(tungsten.IntValue(12, 64), tungsten.IntValue(34, 64))
+    val data = analysis.bottom(blockNames(0), blockNames(1))
     assertEquals(expected, data)
   }
 
   @Test
   def flow {
-    val expected = Map((blocks(3), Map((symbolFromString("f.bb3.e"), tungsten.IntValue(12, 64)),
-                                       (symbolFromString("f.bb3.f"), tungsten.IntValue(34, 64)))))
-    val inData = Map(blocks(0) -> analysis.bottom(blocks(0), blocks(1)))
-    val outData = analysis.flow(graph, blocks(1), inData)
+    val expected = Map(blockNames(3) -> List(tungsten.IntValue(12, 64), tungsten.IntValue(34, 64)))
+    val inData = Map(blockNames(0) -> analysis.bottom(blockNames(0), blockNames(1)))
+    val outData = analysis.flow(graph, blockNames(1), inData)
     assertEquals(expected, outData)
   }
+
+  @Test
+  def isConstant {
+    val bindings = List((tungsten.IntValue(12, 64), blockNames(0)),
+                        (tungsten.IntValue(12, 64), blockNames(1)))
+    assertTrue(PhiConversion.isConstant(bindings))
+  }
+
+  @Test
+  def isNotConstant {
+    val bindings = List((tungsten.IntValue(12, 64), blockNames(0)),
+                        (tungsten.IntValue(34, 64), blockNames(1)))
+    assertFalse(PhiConversion.isConstant(bindings))
+  }
+
+  @Test
+  def isConstantEmpty {
+    assertFalse(PhiConversion.isConstant(Nil))
+  }
+
+  @Test
+  def replaceConstants {
+    val value = tungsten.DefinedValue("f.bb3.e", tungsten.IntType(64))
+    val expected = tungsten.IntValue(12, 64)
+    assertEquals(expected, PhiConversion.replaceConstants(value, constantMap))
+  }
+
+  @Test
+  def replaceConstantsArray {
+    val value = tungsten.ArrayValue(tungsten.IntType(64), List(tungsten.DefinedValue("f.bb3.e", tungsten.IntType(64))))
+    val expected = tungsten.ArrayValue(tungsten.IntType(64), List(tungsten.IntValue(12, 64)))
+    assertEquals(expected, PhiConversion.replaceConstants(value, constantMap))
+  }
+
+  @Test
+  def replaceConstantsStruct {
+    val value = tungsten.StructValue("A", List(tungsten.DefinedValue("f.bb3.e", tungsten.IntType(64))))
+    val expected = tungsten.StructValue("A", List(tungsten.IntValue(12, 64)))
+    assertEquals(expected, PhiConversion.replaceConstants(value, constantMap))
+  }
+
+  @Test
+  def argumentMapFromData {
+    assertEquals(argumentMap, PhiConversion.argumentMapFromData("f.bb3", graph, phiData))
+  }
+
+  @Test
+  def phiBindingsFromArgumentMap {
+    assertEquals(phiBindings, PhiConversion.phiBindingsFromArgumentMap(argumentMap))
+  }
+
+  @Test
+  def constantMapFromPhiBindings {
+    assertEquals(constantMap, PhiConversion.constantMapFromPhiBindings(blocks(3).parameters, phiBindings))
+  }
+
+  @Test
+  def rewrite {
+    val oldInstructions = module.getInstructions(blocks(3).instructions)
+    val expectedInstructions = List(TungstenPhiInstruction("f.bb3.f", tungsten.IntType(64), phiBindings(1)),
+                                    tungsten.BinaryOperatorInstruction("f.bb3.x", tungsten.IntType(64), tungsten.BinaryOperator.ADD, tungsten.IntValue(12, 64), tungsten.DefinedValue("f.bb3.f", tungsten.IntType(64))),
+                                    oldInstructions(1))
+    val expectedBlock = tungsten.Block("f.bb3", Nil, expectedInstructions.map(_.name))
+    val expectedModule = module.remove("f.bb3.e").replace(expectedBlock :: expectedInstructions)
+    assertEquals(expectedModule, PhiConversion.rewrite(blocks(3), phiBindings, constantMap, module))
+  }                                 
 }

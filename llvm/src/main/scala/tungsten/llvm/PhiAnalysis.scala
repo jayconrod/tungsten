@@ -6,38 +6,46 @@ import tungsten.Utilities._
 class PhiAnalysis(module: tungsten.Module)
   extends DataFlow
 {
-  type Node = tungsten.Block
+  /** Each node is a block name in the CFG for a function */
+  type Node = Symbol
 
-  type Data = Map[Symbol, tungsten.Value]
+  /** The data on each edge is the argument list passed along that branch */
+  type Data = List[tungsten.Value]
 
+  /** The initial data set for each branch is the argument list from the original program */
   def bottom(u: Node, v: Node): Data = {
-    val terminator = module.getInstruction(u.instructions.last)
-    val arguments = terminator.liveOutBindings(v.name)
-    val parameterNames = v.parameters
-    assert(arguments.size == parameterNames.size)
-    Map((parameterNames zip arguments): _*)
+    val predecessor = module.getBlock(u)
+    val terminator = module.getInstruction(predecessor.instructions.last)
+    val arguments = terminator.liveOutBindings(v)
+    arguments
   }
 
-  def argumentsToData(arguments: List[tungsten.Value], block: tungsten.Block): Data = {
-    assert(arguments.size == block.parameters.size)
-    Map((block.parameters zip arguments): _*)
-  }
-
+  /** This function looks at the argument lists incoming from all predecessors to a block. If
+   *  a parameter is constant (has the same argument from every predecessor), references to 
+   *  it in outgoing argument lists are replaced by the constant value.
+   */
   def flow(graph: Graph[Node], node: Node, inData: Map[Node, Data]): Map[Node, Data] = {
-    val liveInFromFirst = inData.values.headOption.getOrElse(Map())
-    val liveInConstants = liveInFromFirst.filter { kv =>
-      val (name, value) = kv
-      inData.values.forall { liveIn => liveIn(name) == value }
-    }
-    val liveOutBindings = module.getInstruction(node.instructions.last).liveOutBindings
+    val block = module.getBlock(node)
+
+    /* First, we get a list of PHI bindings. These are in the same format as for a PHI 
+     * instruction. We have a set of bindings for each parameter.
+     */
+    val phiBindings = PhiConversion.phiBindingsFromArgumentMap(inData)
+
+    /* Next, we determine which parameters are constant. A parameter is constant if the 
+     * all the corresponding arguments from the predecessors are equal. The map contains
+     * an entry for each constant parameter, mapping the parameter name to the constant value.
+     */
+    val liveInConstants = PhiConversion.constantMapFromPhiBindings(block.parameters, phiBindings)
+
+    /* Finally, we generate the output by updating the arguments to the successors. Any 
+     * reference to a constant parameter is replaced by the constant value.
+     */
+    val liveOutBindings = module.getInstruction(block.instructions.last).liveOutBindings
     (Map[Node, Data]() /: liveOutBindings) { (outData, kv) =>
       val (blockName, arguments) = kv
-      val block = module.getBlock(blockName)
-      val updatedArgs = arguments.map { v: tungsten.Value => 
-        PhiConversion.replaceConstants(v, liveInConstants) 
-      }
-      val data = argumentsToData(updatedArgs, block)
-      outData + (block -> data)
+      val updatedArgs = arguments.map(PhiConversion.replaceConstants(_, liveInConstants))
+      outData + (blockName -> updatedArgs)
     }
   }
 }
@@ -51,19 +59,32 @@ object PhiConversion
       val blocks = module.getBlocks(function.blocks)
       val graph = cfg(function, module)
       val analysis = new PhiAnalysis(module)
-      val phiData = analysis(graph, blocks.headOption)
-      (module /: blocks) { (module, block) => rewrite(block, graph, phiData, module) }
+      val phiData = analysis(graph, function.blocks.headOption)
+      (module /: blocks) { (module, block) => 
+        val argumentMap = argumentMapFromData(block.name, graph, phiData)
+        val phiBindings = phiBindingsFromArgumentMap(argumentMap)
+        val constantMap = constantMapFromPhiBindings(block.parameters, phiBindings)
+        rewrite(block, phiBindings, constantMap, module) 
+      }
     }
   }
 
-  def cfg(function: tungsten.Function, module: tungsten.Module): Graph[tungsten.Block] = {
-    val blocks = module.getBlocks(function.blocks)
-    val adjacent = (Map[tungsten.Block, Set[tungsten.Block]]() /: blocks) { (adj, node) =>
-      val terminator = module.getInstruction(node.instructions.last)
-      val out = terminator.liveOutBindings.keys.toSet.map(module.getBlock _)
+  def cfg(function: tungsten.Function, module: tungsten.Module): Graph[Symbol] = {
+    val blocks = function.blocks
+    val adjacent = (Map[Symbol, Set[Symbol]]() /: blocks) { (adj, node) =>
+      val block = module.getBlock(node)
+      val terminator = module.getInstruction(block.instructions.last)
+      val out = terminator.liveOutBindings.keys.toSet
       adj + (node -> out)
     }
     new Graph(blocks, adjacent)
+  }
+
+  def isConstant(bindings: List[(tungsten.Value, Symbol)]): Boolean = {
+    bindings.map(_._1) match {
+      case Nil => false
+      case h :: t => t.forall(_ == h)
+    }
   }
 
   def replaceConstants(value: tungsten.Value, 
@@ -77,43 +98,67 @@ object PhiConversion
       case tungsten.DefinedValue(name, ty) => constants.getOrElse(name, value)
       case _ => value
     }
-  }      
+  }
 
-  def rewrite(block: tungsten.Block, 
-              graph: Graph[tungsten.Block],
-              phiData: Map[(tungsten.Block, tungsten.Block), Map[Symbol, tungsten.Value]],
+  def argumentMapFromData(blockName: Symbol,
+                          graph: Graph[Symbol],
+                          phiData: Map[(Symbol, Symbol), List[tungsten.Value]]): Map[Symbol, List[tungsten.Value]] =
+  {
+    val predecessorNames = graph.incident(blockName)
+    val emptyMap = Map[Symbol, List[tungsten.Value]]()
+    (emptyMap /: predecessorNames) { (argumentMap, predecessorName) =>
+      val arguments = phiData((predecessorName, blockName))
+      argumentMap + (predecessorName -> arguments)
+    }
+  }
+
+  def phiBindingsFromArgumentMap(argumentMap: Map[Symbol, List[tungsten.Value]]): List[List[(tungsten.Value, Symbol)]] =
+  {
+    if (argumentMap.isEmpty)
+      Nil
+    else {
+      val numParameters = argumentMap.values.head.size
+      val emptyPhiBindings = List.fill(numParameters)(List[(tungsten.Value, Symbol)]())
+      (emptyPhiBindings /: argumentMap) { (phiBindings, kv) =>
+        val (blockName, arguments) = kv
+        assert(arguments.size == numParameters)
+        (phiBindings zip arguments).map { pair =>
+          val (bindings, argument) = pair
+          (argument, blockName) :: bindings
+        }
+      }.map(_.reverse)
+    }
+  }
+
+  def constantMapFromPhiBindings(parameterNames: List[Symbol],
+                                 phiBindings: List[List[(tungsten.Value, Symbol)]]): Map[Symbol, tungsten.Value] = {
+    assert(parameterNames.size == phiBindings.size)
+    (Map[Symbol, tungsten.Value]() /: (parameterNames zip phiBindings)) { (constantMap, pair) =>
+      val (parameterName, bindings) = pair
+      if (isConstant(bindings)) {
+        val constantValue = bindings.head._1
+        constantMap + (parameterName -> constantValue)
+      } else
+        constantMap
+    }
+  }
+
+  def rewrite(block: tungsten.Block,
+              phiBindings: List[List[(tungsten.Value, Symbol)]],
+              constantMap: Map[Symbol, tungsten.Value],
               module: tungsten.Module): tungsten.Module =
   {
-    def isConstant(bindings: List[(tungsten.Value, Symbol)]): Boolean = {
-      bindings match {
-        case Nil => false
-        case h :: t => t.forall(_ == h)
+    assert(block.parameters.size == phiBindings.size)
+    val phiNodes = (block.parameters zip phiBindings).collect { 
+      case (name, bindings) if !isConstant(bindings) => {
+        val ty = module.getParameter(name).ty
+        TungstenPhiInstruction(name, ty, bindings)
       }
     }
 
-    val predecessors = graph.adjacent(block).toList
-    val phiBindings = block.parameters.map { parameterName =>
-      val bindings = predecessors.map { predecessor =>
-        val argumentMap = phiData((predecessor, block))
-        (argumentMap(parameterName), predecessor.name)
-      }
-      (parameterName, bindings)
-    }
-    val phiNodes = phiBindings.collect { case (name, bindings) if !isConstant(bindings) =>
-      val ty = module.getParameter(name).ty
-      TungstenPhiInstruction(name, ty, bindings)
-    }
-    val constants = (Map[Symbol, tungsten.Value]() /: phiBindings) { (constants, phi) =>
-      val (parameterName, bindings) = phi
-      if (isConstant(bindings))
-        constants + (parameterName -> bindings.head._1)
-      else
-        constants
-    }      
-    
     val instructions = module.getInstructions(block.instructions)
     val rewrittenInstructions = phiNodes ++ instructions.map { instruction =>
-      val rewritten = instruction.mapValues(replaceConstants(_, constants))
+      val rewritten = instruction.mapValues(replaceConstants(_, constantMap))
       rewritten match {
         case branch: tungsten.BranchInstruction => branch.copyWith("arguments" -> Nil)
         case cond: tungsten.ConditionalBranchInstruction =>
@@ -121,7 +166,7 @@ object PhiConversion
         case _ => rewritten
       }
     }
-    val rewrittenBlock = block.copyWith("parameters" -> Nil, 
+    val rewrittenBlock = block.copyWith("parameters" -> Nil,
                                         "instructions" -> rewrittenInstructions.map(_.name))
     module.remove(block.parameters).replace(rewrittenBlock :: rewrittenInstructions)
   }

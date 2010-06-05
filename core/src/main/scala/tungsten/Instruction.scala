@@ -31,16 +31,13 @@ sealed abstract class Instruction
 
   override def validateComponents(module: Module): List[CompileException] = {
     super.validateComponents(module) ++
+      ty.validate(module, getLocation) ++
       operands.flatMap(_.validateComponents(module, getLocation))
   }
 
   override def validate(module: Module): List[CompileException] = {
     super.validate(module) ++
       operands.flatMap(_.validate(module, getLocation))
-  }
-
-  protected final def validateOperands(module: Module) = {
-    operands.flatMap(_.validateComponents(module, getLocation))
   }
 }
 
@@ -358,11 +355,6 @@ sealed abstract class FloatCastInstruction(name: Symbol,
 
   protected def validateWidths(fromTy: FloatType, toTy: FloatType): List[CompileException]
 
-  override def validateComponents(module: Module) = {
-    stage(super.validateComponents(module),
-          ty.validate(module, getLocation))
-  }
-
   override def validate(module: Module) = {
     def validateCast = { 
       (value.ty, ty) match {
@@ -399,11 +391,6 @@ final case class FloatToIntegerInstruction(name: Symbol,
   extends Instruction
 {
   def operands = List(value)
-
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      ty.validate(module, getLocation)
-  }
 
   override def validate(module: Module) = {
     def validateCast = { 
@@ -444,11 +431,6 @@ final case class HeapAllocateInstruction(name: Symbol,
 {
   def operands = Nil
 
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      ty.validate(module, getLocation)
-  }
-
   override def validate(module: Module) = {
     super.validate(module) ++ checkNonNullPointerType(ty, getLocation)
   }
@@ -483,11 +465,6 @@ final case class IntegerToFloatInstruction(name: Symbol,
 {
   def operands = List(value)
 
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      ty.validate(module, getLocation)
-  }
-
   override def validate(module: Module) = {
     def validateCast = {
       val fromTy = value.ty
@@ -514,11 +491,6 @@ sealed abstract class IntegerCastInstruction(name: Symbol,
   def operands = List(value)
 
   protected def validateWidths(fromTy: IntType, toTy: IntType): List[CompileException]
-
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      ty.validate(module, getLocation)
-  }
 
   override def validate(module: Module) = {
     def validateCast = { 
@@ -772,11 +744,6 @@ final case class StackAllocateInstruction(name: Symbol,
   extends Instruction
 {
   def operands = Nil
-
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      ty.validate(module, getLocation)
-  }
 
   override def validate(module: Module) = {
     super.validate(module) ++ checkNonNullPointerType(ty, getLocation)

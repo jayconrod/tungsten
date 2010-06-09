@@ -138,17 +138,17 @@ final case object NullType
   override def isSubtypeOf(ty: Type) = ty == NullType || ty.isInstanceOf[PointerType]
 }
 
-final case class ArrayType(size: Option[Long], elementType: Type)
+final case class ArrayType(length: Option[Long], elementType: Type)
   extends Type
 {
-  size match {
+  length match {
     case Some(s) if s < 0 => throw new IllegalArgumentException
     case _ => ()
   }
 
   override def validate(module: Module, location: Location) = {
     def validateLength = {
-      size match {
+      length match {
         case Some(s) if s > Integer.MAX_VALUE => {
           List(ArrayTypeWidthException(s, location))
         }
@@ -162,16 +162,16 @@ final case class ArrayType(size: Option[Long], elementType: Type)
 
   def defaultValue(module: Module) = {
     val defaultElementValue = elementType.defaultValue(module)
-    val defaultSize = size.getOrElse(0L)
-    ArrayValue(elementType, List.fill(defaultSize.toInt)(defaultElementValue))
+    val defaultLength = length.getOrElse(0L)
+    ArrayValue(elementType, List.fill(defaultLength.toInt)(defaultElementValue))
   }
 
   def isNumeric = false
 
   override def isSubtypeOf(ty: Type) = {
     ty match {
-      case ArrayType(otherSize, otherElementType) if elementType == otherElementType => {
-        (size, otherSize) match {
+      case ArrayType(otherLength, otherElementType) if elementType == otherElementType => {
+        (length, otherLength) match {
           case (Some(n), Some(m)) => n == m
           case (Some(_), None) => true
           case (None, Some(_)) => false

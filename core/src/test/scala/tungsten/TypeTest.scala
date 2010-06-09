@@ -51,8 +51,8 @@ class TypeTest {
   @Test
   def arrayEquals {
     val et = IntType(32)
-    val a1 = ArrayType(None, et)
-    val a2 = ArrayType(None, et)
+    val a1 = ArrayType(1L, et)
+    val a2 = ArrayType(1L, et)
     assertTrue(a1 == a2)
     assertEquals(a1.hashCode, a2.hashCode)
   }

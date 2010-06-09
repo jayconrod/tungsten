@@ -151,10 +151,8 @@ class LlvmToTungstenConverterTest {
 
   @Test
   def convertArrayType {
-    assertEquals(tungsten.ArrayType(None, tungsten.IntType(32)),
-                 convertType(ArrayType(0L, IntType(32))))
-    assertEquals(tungsten.ArrayType(Some(3), tungsten.IntType(32)),
-                 convertType(ArrayType(3L, IntType(32))))
+    assertEquals(tungsten.ArrayType(3, tungsten.IntType(32)),
+                 convertType(ArrayType(3, IntType(32))))
   }
 
   @Test

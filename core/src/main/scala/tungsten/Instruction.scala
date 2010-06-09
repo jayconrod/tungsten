@@ -63,11 +63,20 @@ trait CallInstruction extends Instruction {
 
 abstract class ExtendedInstruction extends Instruction
 
-sealed trait ElementInstruction extends Instruction {
-  protected final def getElementType(module: Module,
-                                     baseType: Type, 
-                                     indices: List[Value]): Type =                                     
-  {
+/** A trait for instructions which deal with values within aggregate values. An example is 
+ *  AddressInstruction, which calculates the address of an element inside an aggregate. All
+ *  Element instructions have a base address and a number of indices. Utility methods are 
+ *  provided to validate the indices and type check.
+ */
+trait ElementInstruction extends Instruction {
+  /** Determines the type of the element being referenced by this instruction.
+   *  @param baseType the type of the base value for this instruction. If the instruction
+   *    deals with pointers, this is the base type of the pointer. If the instruction
+   *    deals directly with aggregates, this is the type of the aggregate.
+   *  @param indices a list of index values. These have 32- or 64-bit integer type depending
+   *    on whether the module is 64-bit.
+   */
+  def getElementType(module: Module, baseType: Type, indices: List[Value]): Type = {
     indices match {
       case Nil => baseType
       case i :: is => {
@@ -90,9 +99,19 @@ sealed trait ElementInstruction extends Instruction {
     }
   }       
 
-  protected final def validateIndices(module: Module,
-                                      baseType: Type, 
-                                      indices: List[Value]): List[CompileException] =
+  /** Checks that the list of indices for this instruction is valid. If this returns Nil, then
+   *  getElementType may be called with the list of indices. In order to be valid, all indices
+   *  must have 32- or 64-bit integer types depending on the module. Each index must correspond
+   *  to an aggregate type (struct or array). Indices for struct types must be constant and must
+   *  be at least 0 and less than the number of fields in that struct type.
+   *  @param baseType the type of the base value for this instruction. If the instruction
+   *    deals with pointers, this is the base type of the pointer. If the instruction
+   *    deals directly with aggregates, this is the type of the aggregate.
+   *  @param indices the list of index values to check
+   */
+  def validateIndices(module: Module,
+                      baseType: Type, 
+                      indices: List[Value]): List[CompileException] =
   {
     val wordType = IntType.wordType(module)
     def check(baseType: Type, 
@@ -136,6 +155,46 @@ sealed trait ElementInstruction extends Instruction {
     }
     check(baseType, indices, Nil)
   }
+
+  /** Like getElementType, but intended for instructions that deal with pointers to aggregates.
+   *  The first index is treated like an array index, and the rest are treated normally.
+   *  @param pointerType the type of the base pointer value. This must be a non-null pointer.
+   *    Call validatePointerIndices first if you aren't sure.
+   *  @param indices the indices to the element. These should be validated first by 
+   *    validatePointerIndices.
+   *  @return a pointer type to the element being referenced by the indices
+   */
+  def getPointerType(module: Module, pointerType: Type, indices: List[Value]): Type = 
+  {
+    (pointerType, indices) match {
+      case (PointerType(baseType), i :: is) => {
+        val elementType = getElementType(module, baseType, is)
+        PointerType(elementType)
+      }
+      case (PointerType(_), Nil) => throw new RuntimeException("invalid indices; did you call validatePointerIndices first")
+      case _ => throw new RuntimeException("invalidate pointer type; did you call validatePointerIndices first?")
+    }
+  }
+
+  /** Like validateIndicies, but intended for instructions that deal with pointers to 
+   *  aggregates. The first index in these instructions is treated like an array index. 
+   *  The remaining indices are treated normally.
+   *  @param baseType the type of the base pointer value. This will usually be a pointer type.
+   *    an error will be returned if it is not.
+   */
+  def validatePointerIndices(module: Module, 
+                             pointerType: Type,
+                             indices: List[Value]): List[CompileException] =
+  {
+    (pointerType, indices) match {
+      case (PointerType(baseType), i :: is) => {
+        checkType(i.ty, IntType.wordType(module), getLocation) ++ 
+          validateIndices(module, baseType, is)
+      }
+      case (PointerType(_), Nil) => List(MissingElementIndexException(getLocation))
+      case _ => List(TypeMismatchException(pointerType.toString, "pointer type", getLocation))
+    }
+  }
 }
 
 final case class AddressInstruction(name: Symbol,
@@ -149,11 +208,6 @@ final case class AddressInstruction(name: Symbol,
   def operands = base :: indices
 
   override def validate(module: Module) = {
-    def indicesAreValid = {
-      val PointerType(ptrElementType) = base.ty
-      validateIndices(module, ptrElementType, indices)
-    }
-
     def typeIsValid = {
       val PointerType(ptrElementType) = base.ty
       val calculatedType = PointerType(getElementType(module, ptrElementType, indices))
@@ -161,9 +215,8 @@ final case class AddressInstruction(name: Symbol,
     }
 
     super.validate(module) ++
-      stage(checkNonNullPointerType(base.ty, getLocation),
-            indicesAreValid,
-            typeIsValid)
+      stage(validatePointerIndices(module, base.ty, indices),
+            checkType(getPointerType(module, base.ty, indices), ty, getLocation))
   }
 }
 
@@ -453,7 +506,7 @@ final case class HeapAllocateArrayInstruction(name: Symbol,
   override def validate(module: Module) = {
     super.validate(module) ++ 
       checkType(count.ty, IntType.wordType(module), getLocation) ++
-      checkType(PointerType(ArrayType(None, elementType)), ty, getLocation)
+      checkType(PointerType(elementType), ty, getLocation)
   }
 }
 
@@ -765,14 +818,9 @@ final case class StackAllocateArrayInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
-    def typeIsValid = {
-      val pointerType = PointerType(ArrayType(None, elementType))
-      checkType(pointerType, ty, getLocation)
-    }
-
-    super.validate(module) ++ 
+    super.validate(module) ++
       checkType(count.ty, IntType.wordType(module), getLocation) ++
-      typeIsValid
+      checkType(PointerType(elementType), ty, getLocation)
   }
 }
 

@@ -174,8 +174,7 @@ class ModuleIOWriteTextTest {
     assertEquals("float32", dummyWriter.localType(FloatType(32), None))
     assertEquals("unit*", dummyWriter.localType(PointerType(UnitType), None))
     assertEquals("nulltype", dummyWriter.localType(NullType, None))
-    assertEquals("[? x unit]", dummyWriter.localType(ArrayType(None, UnitType), None))
-    assertEquals("[2 x unit]", dummyWriter.localType(ArrayType(Some(2L), UnitType), None))
+    assertEquals("[2 x unit]", dummyWriter.localType(ArrayType(2L, UnitType), None))
     assertEquals("struct @A", dummyWriter.localType(StructType("A"), None))
   }
 

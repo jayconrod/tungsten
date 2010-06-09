@@ -138,22 +138,18 @@ final case object NullType
   override def isSubtypeOf(ty: Type) = ty == NullType || ty.isInstanceOf[PointerType]
 }
 
-final case class ArrayType(length: Option[Long], elementType: Type)
+final case class ArrayType(length: Long, elementType: Type)
   extends Type
 {
-  length match {
-    case Some(s) if s < 0 => throw new IllegalArgumentException
-    case _ => ()
-  }
+  if (length < 0)
+    throw new IllegalArgumentException
 
   override def validate(module: Module, location: Location) = {
     def validateLength = {
-      length match {
-        case Some(s) if s > Integer.MAX_VALUE => {
-          List(ArrayTypeWidthException(s, location))
-        }
-        case _ => Nil
-      }
+      if (!module.is64Bit && length > Integer.MAX_VALUE)
+        List(ArrayTypeWidthException(length, location))
+      else
+        Nil
     }
 
     stage(validateLength,    
@@ -162,25 +158,10 @@ final case class ArrayType(length: Option[Long], elementType: Type)
 
   def defaultValue(module: Module) = {
     val defaultElementValue = elementType.defaultValue(module)
-    val defaultLength = length.getOrElse(0L)
-    ArrayValue(elementType, List.fill(defaultLength.toInt)(defaultElementValue))
+    ArrayValue(elementType, List.fill(length.toInt)(defaultElementValue))
   }
 
   def isNumeric = false
-
-  override def isSubtypeOf(ty: Type) = {
-    ty match {
-      case ArrayType(otherLength, otherElementType) if elementType == otherElementType => {
-        (length, otherLength) match {
-          case (Some(n), Some(m)) => n == m
-          case (Some(_), None) => true
-          case (None, Some(_)) => false
-          case (None, None) => true
-        }
-      }
-      case _ => false
-    }
-  }
 }
 
 final case class StructType(structName: Symbol)

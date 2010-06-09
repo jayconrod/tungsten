@@ -53,10 +53,8 @@ class TungstenToLlvmConverterTest {
     assertEquals(PointerType(IntType(8)), dummyConverter.convertType(tungsten.NullType))
     assertEquals(PointerType(IntType(8)), 
                  dummyConverter.convertType(tungsten.PointerType(tungsten.UnitType)))
-    assertEquals(ArrayType(0L, IntType(32)),
-                 dummyConverter.convertType(tungsten.ArrayType(None, tungsten.IntType(32))))
     assertEquals(ArrayType(2L, IntType(32)),
-                 dummyConverter.convertType(tungsten.ArrayType(Some(2L), tungsten.IntType(32))))
+                 dummyConverter.convertType(tungsten.ArrayType(2L, tungsten.IntType(32))))
     assertEquals(NamedStructType("%A"),
                  dummyConverter.convertType(tungsten.StructType("A")))
   }

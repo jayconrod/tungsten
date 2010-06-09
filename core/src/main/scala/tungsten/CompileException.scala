@@ -120,6 +120,9 @@ final case class MainNonEmptyParametersException(location: Location)
 final case class MainReturnTypeException(location: Location)
   extends CompileException("main function must have unit return type", location)
 
+final case class MissingElementIndexException(location: Location)
+  extends CompileException("no indices given for a pointer element instruction; at least one is required", location)
+
 final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)
 

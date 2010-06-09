@@ -266,9 +266,10 @@ object ModuleIO {
         case POINTER_TYPE_ID => PointerType(readType)
         case NULL_TYPE_ID => NullType
         case ARRAY_TYPE_ID => {
-          val size = readOption(readLong)
-          size.filter(_ < 0).foreach { sz => throw new IOException("Invalid array size: " + sz) }
-          ArrayType(size, readType)
+          val length = readLong
+          if (length < 0)
+            throw new IOException("Invalid array size: " + length)
+          ArrayType(length, readType)
         }
         case STRUCT_TYPE_ID => StructType(symbol)
         case FUNCTION_TYPE_ID => FunctionType(readType, readList(readType))
@@ -800,8 +801,8 @@ object ModuleIO {
         case FloatType(w) => "float%d".format(w)
         case PointerType(ety) => localType(ety, parentName) + "*"
         case NullType => "nulltype"
-        case ArrayType(size, elementType) => {
-          "[%s x %s]".format(size.getOrElse("?"), localType(elementType, parentName))
+        case ArrayType(length, elementType) => {
+          "[%d x %s]".format(length, localType(elementType, parentName))
         }
         case StructType(structName) => "struct " + localSymbol(structName, parentName)
         case FunctionType(returnType, parameterTypes) => {
@@ -1111,9 +1112,9 @@ object ModuleIO {
           writeType(elementType)
         }
         case NullType => output.writeByte(NULL_TYPE_ID)
-        case ArrayType(size, elementType) => {
+        case ArrayType(length, elementType) => {
           output.writeByte(ARRAY_TYPE_ID)
-          writeOption(size, writeLong _)
+          writeLong(length)
           writeType(elementType)
         }
         case StructType(structName) => {

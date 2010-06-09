@@ -247,8 +247,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.PointerType(tungsten.UnitType) => PointerType(IntType(8))
       case tungsten.PointerType(ety) => PointerType(convertType(ety))
       case tungsten.NullType => PointerType(IntType(8))
-      case tungsten.ArrayType(None, ety) => ArrayType(0L, convertType(ety))
-      case tungsten.ArrayType(Some(size), ety) => ArrayType(size, convertType(ety))
+      case tungsten.ArrayType(size, ety) => ArrayType(size, convertType(ety))
       case tungsten.StructType(structName) => {
         val globalName = globalSymbol(structName)
         val localName = "%" + globalName.tail

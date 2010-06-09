@@ -112,9 +112,8 @@ class ParserTest {
   }
 
   @Test
-  def arrayTypes {
-    testType("[? x unit]", ArrayType(None, UnitType))
-    testType("[12 x unit]", ArrayType(Some(12L), UnitType))
+  def arrayType {
+    testType("[12 x unit]", ArrayType(12L, UnitType))
   }
 
   @Test

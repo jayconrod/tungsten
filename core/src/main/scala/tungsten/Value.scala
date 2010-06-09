@@ -83,7 +83,7 @@ final case class ArrayValue(elementType: Type,
                             elements: List[Value])
   extends Value
 {
-  def ty = ArrayType(Some(elements.size), elementType)
+  def ty = ArrayType(elements.size, elementType)
 
   override def validateComponents(module: Module, location: Location) = {
     elementType.validate(module, location) ++ 

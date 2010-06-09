@@ -321,12 +321,6 @@ class ValidationTest {
   }
 
   @Test
-  def upcastSizelessArray {
-    val code = "upcast [? x int32] %a = [2 x int32] {int32 12, int32 34}"
-    codeIsCorrect(code)
-  }
-
-  @Test
   def loadElementArrayOutOfBounds {
     val code = "loadelement int32 %a = [2 x int32] {int32 12, int32 34}, int64 5"
     codeIsCorrect(code)
@@ -352,7 +346,7 @@ class ValidationTest {
 
   @Test
   def stackArrayAllocCountType {
-    val code = "stackarray [? x unit]* %a = () x unit"
+    val code = "stackarray unit* %a = () x unit"
     codeContainsError[TypeMismatchException](code)
   }
 
@@ -364,22 +358,22 @@ class ValidationTest {
 
   @Test
   def addressBadIndexType {
-    val code = "stackarray [? x unit]* %a = int64 5 x unit\n" +
-               "address unit* %b = [? x unit]* %a, int32 1"
+    val code = "stackarray unit* %a = int64 5 x unit\n" +
+               "address unit* %b = unit* %a, int32 1"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def addressTooManyIndices {
-    val code = "stackarray [? x unit]* %a = int64 5 x unit\n" +
-               "address unit* %b = [? x unit]* %a, int64 1, int64 1"
+    val code = "stackarray unit* %a = int64 5 x unit\n" +
+               "address unit* %b = unit* %a, int64 1, int64 1"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
   def addressTwice {
-    val code = "stackarray [? x [2 x int32]]* %a = int64 2 x [2 x int32]\n" +
-               "address int32* %b = [? x [2 x int32]]* %a, int64 1, int64 1\n" +
+    val code = "stackarray [2 x int32]* %a = int64 2 x [2 x int32]\n" +
+               "address int32* %b = [2 x int32]* %a, int64 1, int64 1\n" +
                "store int32 12, int32* %b"
     codeIsCorrect(code)
   }
@@ -390,7 +384,7 @@ class ValidationTest {
                   "global [2 x int32] @foo\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    address int32* %a = [2 x int32]* @foo, int64 1\n" +
+                  "    address int32* %a = [2 x int32]* @foo, int64 0, int64 1\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"

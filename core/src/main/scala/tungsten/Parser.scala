@@ -377,7 +377,7 @@ object Parser extends Parsers with ImplicitConversions {
   lazy val value: Parser[Value] = {
     def arrayValue: Parser[Value] = {
       arrayTy ~ ("{" ~> repsep(value, ",") <~ "}") ^? { 
-        case ArrayType(Some(size), elementType) ~ es if size == es.size => {
+        case ArrayType(length, elementType) ~ es if length == es.size => {
           ArrayValue(elementType, es)
         }
       }
@@ -432,11 +432,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val arrayTy: Parser[ArrayType] = {
-    def arraySize = {
-      ("?" ^^^ None) |
-      (integer ^^ { case i => Some(i) })
-    }
-    "[" ~> (arraySize <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
+    "[" ~> (integer <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
   }
 
   lazy val structTy: Parser[StructType] = {

@@ -15,6 +15,11 @@ final class Symbol(val name: List[String], val id: Int)
 
   def isSimple = name.size == 1
 
+  def parent = {
+    assert(name.size >= 2)
+    Symbol(name.take(name.size - 1))
+  }    
+
   def compare(that: Symbol): Int = {
     def compareName(lname: Seq[String], rname: Seq[String]): Int = {
       if (lname.isEmpty) {

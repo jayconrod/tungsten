@@ -21,7 +21,7 @@ class PhiAnalysisTest {
              "    return int64 %f\n" +
              "  }\n" +
              "}\n"
-  val Left(module) = ModuleIO.readText(code)
+  val module = ModuleIO.readText(code)
   val function = module.getFunction("f")
   val blockNames = List(0, 1, 2, 3).map { i: Int => symbolFromString("f.bb" + i) }
   val blocks = module.getBlocks(blockNames)

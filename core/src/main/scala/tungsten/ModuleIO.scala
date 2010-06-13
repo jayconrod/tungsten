@@ -23,35 +23,29 @@ object ModuleIO {
     reader.read
   }
 
-  def readText(file: File): Either[Module, List[CompileException]] = {
+  def readText(file: File): Module = {
     val input = new BufferedReader(new FileReader(file))
     val module = readText(input, file.getName)
     input.close
     module
   }
 
-  def readText(input: Reader): Either[Module, List[CompileException]] = {
+  def readText(input: Reader): Module = {
     readText(input, "<STDIN>")
   }    
 
-  def readText(input: Reader, filename: String): Either[Module, List[CompileException]] =
+  def readText(input: Reader, filename: String): Module =
   {
     val text = readContentsOfFile(input)
     readText(text, filename)
   }
 
   def readText(text: String,
-               filename: String = "<STDIN>"): Either[Module, List[CompileException]] =
+               filename: String = "<STDIN>"): Module =
   {
     parse(text, filename) match {
-      case Left(module) => {
-        val errors = module.validate
-        if (errors.isEmpty)
-          Left(module)
-        else
-          Right(errors)
-      }
-      case errors => errors
+      case Left(module) => module
+      case Right(errors) => throw new IOException(errors.head)
     }
   }
 

@@ -103,6 +103,11 @@ class SymbolTest {
   }
 
   @Test
+  def parent {
+    assertEquals(Symbol("a"), Symbol(List("a", "b"), 1).parent)
+  }
+
+  @Test
   def compare {
     assertEquals(0, Symbol("a").compare(Symbol("a")))
     assertTrue(Symbol("a").compare(Symbol("b")) < 0)

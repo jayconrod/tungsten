@@ -201,7 +201,10 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         }
         PhiInstruction(localName, cTy, cBindings)
       }
-      case _ => throw new UnsupportedOperationException // TODO
+      case _ => {
+        System.err.println(instruction.getClass.toString)
+        throw new UnsupportedOperationException // TODO
+      }
     }
   }
 

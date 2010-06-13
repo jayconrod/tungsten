@@ -15,8 +15,8 @@ class ElementInstructionTest {
     def annotations = Nil
   }
 
-  val Left(module) = ModuleIO.readText("is64bit: true\n" +
-                                       "struct @A { field [2 x int64] %a }\n")
+  val module = ModuleIO.readText("is64bit: true\n" +
+                                 "struct @A { field [2 x int64] %a }\n")
   val baseType = StructType("A")
   val pointerType = PointerType(baseType)
 

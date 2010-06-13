@@ -37,7 +37,7 @@ class ModuleIOReadTextTest {
 
 class ModuleIOWriteBinaryCollectTest {
   def makeWriter(program: String): BinaryModuleWriter = {
-    val Left(module) = readText(program)
+    val module = readText(program)
     val output = new DataOutputStream(new ByteArrayOutputStream)
     new BinaryModuleWriter(module, output)
   }
@@ -85,7 +85,7 @@ class ModuleIOWriteBinaryCollectTest {
 }
 
 class ModuleIOWriteBinaryTest {
-  val Left(module) = readText("")
+  val module = new Module
   val output = new ByteArrayOutputStream
   val writer = new BinaryModuleWriter(module, new DataOutputStream(output))
 

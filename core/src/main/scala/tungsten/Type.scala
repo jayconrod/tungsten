@@ -7,6 +7,7 @@ abstract sealed class Type
 {
   def validate(module: Module, location: Location): List[CompileException] = Nil
   def defaultValue(module: Module): Value
+  def size(module: Module): Long
   def isNumeric: Boolean
   def isPointer: Boolean = false
   def isSubtypeOf(ty: Type): Boolean = ty == this
@@ -23,11 +24,15 @@ final case object UnitType
 {
   def defaultValue(module: Module) = UnitValue
 
+  def size(module: Module) = 0L
+
   def isNumeric = false
 }
 
 final case object BooleanType extends Type {
   def defaultValue(module: Module) = BooleanValue(false)
+
+  def size(module: Module) = 1L
 
   def isNumeric = false
 
@@ -42,6 +47,8 @@ final case object CharType
 {
   def defaultValue(module: Module) = CharValue(0.toChar)
 
+  def size(module: Module) = 2L
+
   def isNumeric = false
 
   override def supportsOperator(op: RelationalOperator) = true
@@ -51,6 +58,8 @@ final case object StringType
   extends Type
 {
   def defaultValue(module: Module) = StringValue("")
+
+  def size(module: Module) = wordSize(module)
 
   def isNumeric = false
 
@@ -75,6 +84,8 @@ final case class IntType(width: Int)
       case 64 => IntValue(0, 64)
     }
   }
+
+  def size(module: Module) = width / 8
 
   def isNumeric = true
 
@@ -102,6 +113,8 @@ final case class FloatType(width: Int)
     }
   }
 
+  def size(module: Module) = width / 8
+
   def isNumeric = true
 
   override def supportsOperator(op: BinaryOperator) = {
@@ -121,6 +134,8 @@ final case class PointerType(elementType: Type)
 
   def defaultValue(module: Module) = NullValue
 
+  def size(module: Module) = wordSize(module)
+
   def isNumeric = false
 
   override def isPointer = true
@@ -130,6 +145,8 @@ final case object NullType
   extends Type
 {
   def defaultValue(module: Module) = NullValue
+
+  def size(module: Module) = wordSize(module)
 
   def isNumeric = false
 
@@ -161,6 +178,8 @@ final case class ArrayType(length: Long, elementType: Type)
     ArrayValue(elementType, List.fill(length.toInt)(defaultElementValue))
   }
 
+  def size(module: Module) = length * elementType.size(module)
+
   def isNumeric = false
 }
 
@@ -178,6 +197,11 @@ final case class StructType(structName: Symbol)
     StructValue(structName, elements)
   }
 
+  def size(module: Module): Long = {
+    val struct = module.getStruct(structName)
+    struct.size(module)
+  }
+
   def isNumeric = false
 }
 
@@ -186,6 +210,8 @@ final case class FunctionType(returnType: Type,
   extends Type
 {
   def defaultValue(module: Module) = throw new UnsupportedOperationException
+
+  def size(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
 }

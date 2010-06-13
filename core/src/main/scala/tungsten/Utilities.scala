@@ -172,4 +172,6 @@ object Utilities {
     } else
       None
   }
+
+  def wordSize(module: Module) = if (module.is64Bit) 8 else 4
 }

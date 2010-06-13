@@ -109,6 +109,15 @@ final case class IntegerRangeException(value: Long, width: Int, location: Locati
   extends CompileException("the integer %d cannot be stored in %d bits".format(value, width),
                            location)
 
+final case class InvalidBitCastException(value: Value, 
+                                         valueSize: Long, 
+                                         ty: Type, 
+                                         tySize: Long,
+                                         location: Location)
+  extends CompileException("value %s (%d bits) cannot be bit-cast to type %s (%d bits) because they have different sizes".
+                             format(value, valueSize, ty, tySize),
+                           location)
+
 final case class InvalidIndexException(value: String, ty: String, location: Location)
   extends CompileException("the value " + value + 
                              " cannot be used as an index into type " + ty,

@@ -110,6 +110,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         }
         instCtor(localName, cTy, cLeft, cRight)
       }
+      case tungsten.BitCastInstruction(_, ty, value, _) =>
+        BitcastInstruction(localName, convertValue(value, parent), convertType(ty))        
       case tungsten.BranchInstruction(_, _, target, arguments, _) => {
         assert(arguments.isEmpty)
         val cTargetName = localSymbol(target, parent)

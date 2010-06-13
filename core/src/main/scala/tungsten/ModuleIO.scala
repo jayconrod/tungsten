@@ -582,6 +582,7 @@ object ModuleIO {
         case _: AddressInstruction => "address"
         case _: AssignInstruction => "assign"
         case _: BinaryOperatorInstruction => "binop"
+        case _: BitCastInstruction => "bitcast"
         case _: BranchInstruction => "branch"
         case _: ConditionalBranchInstruction => "cond"
         case _: FloatExtendInstruction => "fextend"
@@ -622,6 +623,9 @@ object ModuleIO {
         }
         case BinaryOperatorInstruction(_, _, operator, left, right, _) => {
           output.write(localValue(left) + " " + operator.name + " " + localValue(right))
+        }
+        case BitCastInstruction(_, _, value, _) => {
+          output.write(localValue(value))
         }
         case BranchInstruction(_, _, target, arguments, _) => {
           output.write(localSymbol(target))
@@ -964,6 +968,7 @@ object ModuleIO {
             case _: AddressInstruction => ADDRESS_INST_ID
             case _: AssignInstruction => ASSIGN_INST_ID
             case _: BinaryOperatorInstruction => BINARY_OPERATOR_INST_ID
+            case _: BitCastInstruction => BIT_CAST_INST_ID
             case _: BranchInstruction => BRANCH_INST_ID
             case _: ConditionalBranchInstruction => CONDITIONAL_BRANCH_INST_ID
             case _: FloatExtendInstruction => FLOAT_EXTEND_INST_ID
@@ -1002,6 +1007,9 @@ object ModuleIO {
               writeBinaryOperator(operator)
               writeValue(left)
               writeValue(right)
+            }
+            case BitCastInstruction(_, _, value, _) => {
+              writeValue(value)
             }
             case BranchInstruction(_, _, target, arguments, _) => {
               writeInt(symbols(target))
@@ -1287,9 +1295,9 @@ object ModuleIO {
   val ADDRESS_INST_ID: Byte = 100
   val ASSIGN_INST_ID: Byte = 101
   val BINARY_OPERATOR_INST_ID: Byte = 102
-  val BRANCH_INST_ID: Byte = 103
-  val CONDITIONAL_BRANCH_INST_ID: Byte = 104
-  // 105 available
+  val BIT_CAST_INST_ID: Byte = 103
+  val BRANCH_INST_ID: Byte = 104
+  val CONDITIONAL_BRANCH_INST_ID: Byte = 105
   val INTRINSIC_CALL_INST_ID: Byte = 106
   val LOAD_INST_ID: Byte = 107
   val LOAD_ELEMENT_INST_ID: Byte = 108

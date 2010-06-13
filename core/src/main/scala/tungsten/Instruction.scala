@@ -353,6 +353,28 @@ final case class BranchInstruction(name: Symbol,
   }
 }
 
+final case class BitCastInstruction(name: Symbol,
+                                    ty: Type,
+                                    value: Value,
+                                    annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = List(value)
+
+  override def validate(module: Module) = {
+    def validateCast = {
+      val valueSize = value.ty.size(module)
+      val tySize = ty.size(module)
+      if (valueSize != tySize)
+        List(InvalidBitCastException(value, valueSize, ty, tySize, getLocation))
+      else
+        Nil
+    }
+    stage(super.validate(module),
+          validateCast)
+  }
+}
+
 final case class ConditionalBranchInstruction(name: Symbol,
                                               ty: Type,
                                               condition: Value,

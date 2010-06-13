@@ -99,23 +99,14 @@ class LlvmToTungstenConverter(val module: Module) {
       }
 
       case BitcastInstruction(_, value, ty) => {
-        (value.ty, ty) match {
-          case (IntType(n), IntType(m)) if n == m => {
-            tungsten.AssignInstruction(cName, tungsten.IntType(n), convertValue(value))
-          }
-          case (PointerType(fromEty), PointerType(toEty)) => {
-            // TODO
-            throw new UnsupportedOperationException
-          }
-          case _ => throw new LlvmConversionException("could not bitcast from type " + value.ty + " to type " + ty)
-        }
+        tungsten.BitCastInstruction(cName, convertType(ty), convertValue(value))
       }
 
       case BranchInstruction(label) => {
         val (cBlockName, cArguments) = convertLabel(label)
         tungsten.BranchInstruction(cName, tungsten.UnitType, cBlockName, cArguments)
       }
-            
+
       case _: GetElementPointerInstruction => {
         throw new UnsupportedOperationException // TODO
       }

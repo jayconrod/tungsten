@@ -155,6 +155,7 @@ object Parser extends Parsers with ImplicitConversions {
     addressInst        |
     assignInst         |
     binopInst          |
+    bitcastInst        |
     branchInst         |
     condInst           |
     fextendInst        |
@@ -194,6 +195,12 @@ object Parser extends Parsers with ImplicitConversions {
   lazy val binopInst: Parser[BinaryOperatorInstruction] = {
     instName("binop") ~ value ~ binop ~ value ^^ {
       case anns ~ ty ~ n ~ l ~ op ~ r => BinaryOperatorInstruction(n, ty, op, l, r, anns)
+    }
+  }
+
+  lazy val bitcastInst: Parser[BitCastInstruction] = {
+    instName("bitcast") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => BitCastInstruction(n, ty, v, anns)
     }
   }
 

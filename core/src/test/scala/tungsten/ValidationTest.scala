@@ -597,4 +597,16 @@ class ValidationTest {
                   "@foo(true) global unit @bar"
     programContainsError[TypeMismatchException](program)
   }
+
+  @Test
+  def bitcastCorrect {
+    val code = "bitcast int64 %a = int64 0"
+    codeIsCorrect(code)
+  }
+
+  @Test
+  def bitcastSizes {
+    val code = "bitcast int64 %a = int32 0"
+    codeContainsError[InvalidBitCastException](code)
+  }
 }

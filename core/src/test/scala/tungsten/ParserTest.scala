@@ -213,6 +213,12 @@ class ParserTest {
   }
 
   @Test
+  def bitcastInst {
+    testInstruction("bitcast unit %x = ()",
+                    BitCastInstruction("%x", UnitType, UnitValue))
+  }
+
+  @Test
   def branchInst {
     testInstruction("branch unit %x = %a(())",
                     BranchInstruction("%x", UnitType, "%a", List(UnitValue)))

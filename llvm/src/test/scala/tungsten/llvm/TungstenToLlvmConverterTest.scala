@@ -130,6 +130,15 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
+  def bitcastInst {
+    val expected = BitcastInstruction("%x", IntValue(0, 32), IntType(32))
+    val bitcast = tungsten.BitCastInstruction("foo.x",
+                                              tungsten.IntType(32),
+                                              tungsten.IntValue(0, 32))
+    testInstructionConversion(expected, bitcast)
+  }
+
+  @Test
   def branchInst {
     val expected = BranchInstruction(DefinedValue("%target", LabelType))
     val branch = tungsten.BranchInstruction("foo.x", tungsten.UnitType, "foo.target", Nil)

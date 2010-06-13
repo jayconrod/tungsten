@@ -5,10 +5,21 @@ To do when adding new instructions
 - Create a parser (Parser.scala) and parse test (ParserTest.scala)
 - Add cases in ModuleIO (ModuleIO.scala)
   - Add ID (end of file)
-  - TextModuleWriter.writeDefinition(Instruction)
-  - BinaryModuleWriter.collectDefinition
+  - TextModuleWriter.writeInstruction
   - BinaryModuleWriter.writeDefinition
   - BinaryModuleReader.readDefinition
-  - test in ModuleIOWriteTextTest.writeInstructions
-  - increment ModuleIO.VERSION
+  - increment ModuleIO.VERSION if first change in this version
+
+- Add LLVM support
+  If the new instruction corresponds to an LLVM instruction direction
+    - New LLVM instruction (if not already present)
+    - Conversion in TungstenToLlvmConverter
+    - Test in TungstenToLlvmConverterTest
+    - Backward conversion in LlvmToTungstenConverter
+    - Test in LlvmToTungstenConverterTest
+  Else
+    - Conversion in LlvmCompatibilityPass
+    - Test in LlvmCompatibilityPassTest
+
+
 

@@ -44,9 +44,9 @@ class LlvmToTungstenConverterTest {
   @Test
   def bitcastInst {
     parent = "foo"
-    testConversion(tungsten.AssignInstruction("foo.a#1",
-                                              tungsten.IntType(32),
-                                              tungsten.IntValue(0L, 32)),
+    testConversion(tungsten.BitCastInstruction("foo.a#1",
+                                               tungsten.IntType(32),
+                                               tungsten.IntValue(0L, 32)),
                    convertInstruction(BitcastInstruction("%a", IntValue(0L, 32), IntType(32)),
                                       defaultData))
   }

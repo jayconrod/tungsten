@@ -5,7 +5,7 @@ import org.junit.Test
 import org.junit.Assert._
 
 class BlockParameterAnalysisTest {
-  val blocks = List(Block("bb0", List(BitcastInstruction("x", IntValue(0L, 32), IntType(32)),
+  val blocks = List(Block("bb0", List(BitCastInstruction("x", IntValue(0L, 32), IntType(32)),
                                       BranchInstruction(DefinedValue("bb1", LabelType)))),
                     Block("bb1", List(BranchInstruction(DefinedValue("bb2", LabelType)))),
                     Block("bb2", List(ReturnInstruction(DefinedValue("x", IntType(32))))))

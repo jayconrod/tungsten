@@ -77,7 +77,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
                                      indices.map(convert32BitValue(_, parent)))
       }
       case tungsten.AssignInstruction(_, ty, value, _) =>
-        BitcastInstruction(localName, convertValue(value, parent), convertType(ty))
+        BitCastInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.BinaryOperatorInstruction(_, ty, op, left, right, _) => {
         import tungsten.BinaryOperator._
         assert(left.ty == right.ty)
@@ -111,7 +111,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         instCtor(localName, cTy, cLeft, cRight)
       }
       case tungsten.BitCastInstruction(_, ty, value, _) =>
-        BitcastInstruction(localName, convertValue(value, parent), convertType(ty))        
+        BitCastInstruction(localName, convertValue(value, parent), convertType(ty))        
       case tungsten.BranchInstruction(_, _, target, arguments, _) => {
         assert(arguments.isEmpty)
         val cTargetName = localSymbol(target, parent)
@@ -190,7 +190,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
                         arguments.map(convertValue(_, parent)), Nil)
       }
       case tungsten.UpcastInstruction(_, ty, value, _) =>
-        BitcastInstruction(localName, convertValue(value, parent), convertType(ty))
+        BitCastInstruction(localName, convertValue(value, parent), convertType(ty))
       case TungstenPhiInstruction(_, ty, bindings) => {
         val cTy = convertType(ty)
         val cBindings = bindings.map { vb =>

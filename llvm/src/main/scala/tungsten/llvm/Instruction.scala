@@ -102,7 +102,7 @@ final case class ArithmeticShiftRightInstruction(override name: String, ty: Type
   def opname = "asr"
 }
 
-final case class BitcastInstruction(override name: String,
+final case class BitCastInstruction(override name: String,
                                     value: Value,
                                     ty: Type)
   extends ConversionInstruction

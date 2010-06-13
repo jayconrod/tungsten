@@ -113,7 +113,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def assignInst {
-    val expected = BitcastInstruction("%x", IntValue(0L, 32), IntType(32))
+    val expected = BitCastInstruction("%x", IntValue(0L, 32), IntType(32))
     val assign = tungsten.AssignInstruction("foo.x", tungsten.IntType(32), tungsten.IntValue(0L, 32))
     testInstructionConversion(expected, assign)
   }
@@ -131,7 +131,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def bitcastInst {
-    val expected = BitcastInstruction("%x", IntValue(0, 32), IntType(32))
+    val expected = BitCastInstruction("%x", IntValue(0, 32), IntType(32))
     val bitcast = tungsten.BitCastInstruction("foo.x",
                                               tungsten.IntType(32),
                                               tungsten.IntValue(0, 32))
@@ -312,7 +312,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def upcastInst {
-    val expected = BitcastInstruction("%x", NullValue(IntType(8)), PointerType(IntType(64)))
+    val expected = BitCastInstruction("%x", NullValue(IntType(8)), PointerType(IntType(64)))
     val upcast = tungsten.UpcastInstruction("foo.x",
                                             tungsten.PointerType(tungsten.IntType(64)),
                                             tungsten.NullValue)

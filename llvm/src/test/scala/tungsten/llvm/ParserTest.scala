@@ -90,7 +90,7 @@ class ParserTest {
   @Test
   def bitcastInst {
     test("%0 = bitcast i32 0 to i32", Parser.instruction,
-         BitcastInstruction("%0", IntValue(0L, 32), IntType(32)))
+         BitCastInstruction("%0", IntValue(0L, 32), IntType(32)))
   }
 
   @Test
@@ -169,7 +169,7 @@ class ParserTest {
                   "}\n"
     val function = Function("@main", IntType(32), List(Attribute.NOUNWIND), Nil,
                             List(Block("%entry",
-                                       List(BitcastInstruction("%alloca point",
+                                       List(BitCastInstruction("%alloca point",
                                                                IntValue(0L, 32),
                                                                IntType(32)),
                                             BranchInstruction(DefinedValue("%return",

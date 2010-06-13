@@ -71,9 +71,9 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
-  def bitcastInst: Parser[BitcastInstruction] = {
+  def bitcastInst: Parser[BitCastInstruction] = {
     (localSymbol <~ "=" <~ "bitcast") ~ (value <~ "to") ~ ty ^^ {
-      case n ~ v ~ t => BitcastInstruction(n, v, t)
+      case n ~ v ~ t => BitCastInstruction(n, v, t)
     }
   }
 

@@ -98,7 +98,7 @@ class LlvmToTungstenConverter(val module: Module) {
         tungsten.StackAllocateInstruction(cName, ty)
       }
 
-      case BitcastInstruction(_, value, ty) => {
+      case BitCastInstruction(_, value, ty) => {
         tungsten.BitCastInstruction(cName, convertType(ty), convertValue(value))
       }
 

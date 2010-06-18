@@ -63,6 +63,23 @@ class LlvmCompatibilityPass
                                                tungsten.DefinedValue(malloc.name, malloc.ty))
         List(malloc, cast)
       }
+      case tungsten.HeapAllocateArrayInstruction(name, ty, count, _) => {
+        val elementSize = ty.size(module)
+        val elementSizeVal = tungsten.IntValue(elementSize, tungsten.IntType.wordSize(module))
+        val totalSize = tungsten.BinaryOperatorInstruction(newName(name),
+                                                           tungsten.IntType.wordType(module),
+                                                           tungsten.BinaryOperator.MULTIPLY,
+                                                           count,
+                                                           elementSizeVal)
+        val malloc = tungsten.StaticCallInstruction(newName(name),
+                                                    tungsten.PointerType(tungsten.IntType(8)),
+                                                    "tungsten.malloc",
+                                                    List(tungsten.DefinedValue(totalSize.name, totalSize.ty)))
+        val cast = tungsten.BitCastInstruction(name,
+                                               ty,
+                                               tungsten.DefinedValue(malloc.name, malloc.ty))
+        List(totalSize, malloc, cast)
+      }                                                           
       case _ => List(instruction)
     }
   }

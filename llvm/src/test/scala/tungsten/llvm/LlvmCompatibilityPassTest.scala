@@ -64,4 +64,13 @@ class LlvmCompatibilityPassTest {
                    "bitcast int64* %a = int8* %llvmCompat#1"
     testCode(expected, code)
   }
+
+  @Test
+  def heapArrayInst {
+    val code = "heaparray int64* %a = int64 2"
+    val expected = "binop int64 %llvmCompat#1 = int64 2 * int64 8\n" +
+                   "scall int8* %llvmCompat#2 = @tungsten.malloc(int64 %llvmCompat#1)\n" +
+                   "bitcast int64* %a = int8* %llvmCompat#2"
+    testCode(expected, code)
+  }
 }

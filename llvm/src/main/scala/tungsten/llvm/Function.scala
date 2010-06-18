@@ -10,11 +10,16 @@ final case class Function(override name: String,
   extends Definition(name)
 {
   override def toString = {
-    val paramStr = "(" + parameters.mkString(", ") + ") "
-    val attribStr = if (attributes.isEmpty) "" else attributes.mkString(" ") + " "
-    val blockStr = blocks.mkString("\n\n")
-    "define " + returnType + " " + escapeIdentifier(name) + paramStr + attribStr + 
-      "{\n" + blockStr + "\n}"
+    val attribStr = if (attributes.isEmpty) "" else " " + attributes.mkString(" ")
+    if (blocks.isEmpty) {
+      val paramStr = "(" + parameters.map(_.ty).mkString(", ") + ")"
+      "declare " + returnType + " " + escapeIdentifier(name) + paramStr + attribStr
+    } else {
+      val paramStr = "(" + parameters.mkString(", ") + ")"
+      val blockStr = blocks.mkString("\n\n")
+      "define " + returnType + " " + escapeIdentifier(name) + paramStr + attribStr + 
+        " {\n" + blockStr + "\n}"
+    }
   }
 }     
 

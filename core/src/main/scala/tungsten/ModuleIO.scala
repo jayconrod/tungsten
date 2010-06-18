@@ -185,7 +185,7 @@ object ModuleIO {
           HeapAllocateInstruction(name, readType, readAnnotations)
         }
         case HEAP_ALLOCATE_ARRAY_INST_ID => {
-          HeapAllocateArrayInstruction(name, readType, readValue, readType, readAnnotations)
+          HeapAllocateArrayInstruction(name, readType, readValue, readAnnotations)
         }
         case INTEGER_SIGN_EXTEND_INST_ID => {
           IntegerSignExtendInstruction(name, readType, readValue, readAnnotations)
@@ -221,7 +221,7 @@ object ModuleIO {
         }
         case STACK_ALLOCATE_INST_ID => StackAllocateInstruction(name, readType, readAnnotations)
         case STACK_ALLOCATE_ARRAY_INST_ID => {
-          StackAllocateArrayInstruction(name, readType, readValue, readType, readAnnotations)
+          StackAllocateArrayInstruction(name, readType, readValue, readAnnotations)
         }
         case STATIC_CALL_INST_ID => {
           StaticCallInstruction(name, readType, symbol, readList(readValue), readAnnotations)
@@ -643,8 +643,8 @@ object ModuleIO {
           output.write(localValue(value))
         }
         case HeapAllocateInstruction(_, ty, _) => ()
-        case HeapAllocateArrayInstruction(_, _, count, elementType, _) => {
-          output.write(localValue(count) + " x " + localType(elementType))
+        case HeapAllocateArrayInstruction(_, _, count, _) => {
+          output.write(localValue(count))
         }
         case IntegerSignExtendInstruction(_, _, value, _) => {
           output.write(localValue(value))
@@ -675,8 +675,8 @@ object ModuleIO {
           output.write(localValue(value))
         }
         case StackAllocateInstruction(_, ty, _) => ()
-        case StackAllocateArrayInstruction(_, _, count, elementType, _) => {
-          output.write(localValue(count) + " x " + localType(elementType))
+        case StackAllocateArrayInstruction(_, _, count, _) => {
+          output.write(localValue(count))
         }
         case StaticCallInstruction(_, _, target, arguments, _) => {
           output.write(localSymbol(target))
@@ -982,7 +982,7 @@ object ModuleIO {
             case _: StoreInstruction => STORE_INST_ID
             case _: StoreElementInstruction => STORE_ELEMENT_INST_ID
             case _: StackAllocateInstruction => STACK_ALLOCATE_INST_ID
-            case _: StackAllocateArrayInstruction => STACK_ALLOCATE_INST_ID
+            case _: StackAllocateArrayInstruction => STACK_ALLOCATE_ARRAY_INST_ID
             case _: StaticCallInstruction => STATIC_CALL_INST_ID
             case _: UpcastInstruction => UPCAST_INST_ID
           }
@@ -1028,9 +1028,8 @@ object ModuleIO {
               writeValue(value)
             }
             case HeapAllocateInstruction(_, ty, _) => ()
-            case HeapAllocateArrayInstruction(_, _, count, elementType, _) => {
+            case HeapAllocateArrayInstruction(_, _, count, _) => {
               writeValue(count)
-              writeType(elementType)
             }
             case IntegerSignExtendInstruction(_, _, value, _) => {
               writeValue(value)
@@ -1073,9 +1072,8 @@ object ModuleIO {
               writeList(indices, writeValue _)
             }
             case _: StackAllocateInstruction => ()
-            case StackAllocateArrayInstruction(_, _, count, elementType, _) => {
+            case StackAllocateArrayInstruction(_, _, count, _) => {
               writeValue(count)
-              writeType(elementType)
             }
             case StaticCallInstruction(_, _, target, arguments, _) => {
               writeInt(symbols(target))

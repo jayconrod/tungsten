@@ -346,7 +346,7 @@ class ValidationTest {
 
   @Test
   def stackArrayAllocCountType {
-    val code = "stackarray unit* %a = () x unit"
+    val code = "stackarray unit* %a = ()"
     codeContainsError[TypeMismatchException](code)
   }
 
@@ -358,21 +358,21 @@ class ValidationTest {
 
   @Test
   def addressBadIndexType {
-    val code = "stackarray unit* %a = int64 5 x unit\n" +
+    val code = "stackarray unit* %a = int64 5\n" +
                "address unit* %b = unit* %a, int32 1"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
   def addressTooManyIndices {
-    val code = "stackarray unit* %a = int64 5 x unit\n" +
+    val code = "stackarray unit* %a = int64 5\n" +
                "address unit* %b = unit* %a, int64 1, int64 1"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
   def addressTwice {
-    val code = "stackarray [2 x int32]* %a = int64 2 x [2 x int32]\n" +
+    val code = "stackarray [2 x int32]* %a = int64 2\n" +
                "address int32* %b = [2 x int32]* %a, int64 1, int64 1\n" +
                "store int32 12, int32* %b"
     codeIsCorrect(code)

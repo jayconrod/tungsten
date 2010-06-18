@@ -262,8 +262,8 @@ class ParserTest {
 
   @Test
   def heapArrayInst {
-    testInstruction("heaparray unit %x = () x unit",
-                    HeapAllocateArrayInstruction("%x", UnitType, UnitValue, UnitType))
+    testInstruction("heaparray unit %x = ()",
+                    HeapAllocateArrayInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
@@ -343,8 +343,8 @@ class ParserTest {
 
   @Test
   def stackArrayInst {
-    testInstruction("stackarray unit %x = () x unit",
-                    StackAllocateArrayInstruction("%x", UnitType, UnitValue, UnitType))
+    testInstruction("stackarray unit %x = ()",
+                    StackAllocateArrayInstruction("%x", UnitType, UnitValue))
   }
 
   @Test

@@ -243,8 +243,8 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val heapArrayInst: Parser[HeapAllocateArrayInstruction] = {
-    instName("heaparray") ~ (value <~ "x") ~ ty ^^ {
-      case anns ~ ty ~ n ~ v ~ t => HeapAllocateArrayInstruction(n, ty, v, t, anns)
+    instName("heaparray") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => HeapAllocateArrayInstruction(n, ty, v, anns)
     }
   }
 
@@ -321,8 +321,8 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val stackArrayInst: Parser[StackAllocateArrayInstruction] = {
-    instName("stackarray") ~ (value <~ "x") ~ ty ^^ {
-      case anns ~ ty ~ n ~ v ~ t => StackAllocateArrayInstruction(n, ty, v, t, anns)
+    instName("stackarray") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => StackAllocateArrayInstruction(n, ty, v, anns)
     }
   }
 

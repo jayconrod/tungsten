@@ -514,21 +514,15 @@ final case class HeapAllocateInstruction(name: Symbol,
 final case class HeapAllocateArrayInstruction(name: Symbol,
                                               ty: Type,
                                               count: Value,
-                                              elementType: Type,
                                               annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
   def operands = List(count)
 
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      elementType.validate(module, getLocation)
-  }
-
   override def validate(module: Module) = {
     super.validate(module) ++ 
       checkType(count.ty, IntType.wordType(module), getLocation) ++
-      checkType(PointerType(elementType), ty, getLocation)
+      checkNonNullPointerType(ty, getLocation)
   }
 }
 
@@ -828,21 +822,15 @@ final case class StackAllocateInstruction(name: Symbol,
 final case class StackAllocateArrayInstruction(name: Symbol,
                                                ty: Type,
                                                count: Value,
-                                               elementType: Type,
                                                annotations: List[AnnotationValue] = Nil)
   extends Instruction
 {
   def operands = List(count)
 
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      elementType.validate(module, getLocation)
-  }
-
   override def validate(module: Module) = {
     super.validate(module) ++
       checkType(count.ty, IntType.wordType(module), getLocation) ++
-      checkType(PointerType(elementType), ty, getLocation)
+      checkNonNullPointerType(ty, getLocation)
   }
 }
 

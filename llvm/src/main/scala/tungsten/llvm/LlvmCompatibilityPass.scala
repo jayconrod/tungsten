@@ -60,7 +60,7 @@ class LlvmCompatibilityPass
                                                     List(tungsten.IntValue(size, 32)))
         val cast = tungsten.BitCastInstruction(name,
                                                ty,
-                                               tungsten.DefinedValue(malloc.name, malloc.ty))
+                                               malloc.makeValue)
         List(malloc, cast)
       }
       case tungsten.HeapAllocateArrayInstruction(name, ty, count, _) => {
@@ -74,10 +74,10 @@ class LlvmCompatibilityPass
         val malloc = tungsten.StaticCallInstruction(newName(name),
                                                     tungsten.PointerType(tungsten.IntType(8)),
                                                     "tungsten.malloc",
-                                                    List(tungsten.DefinedValue(totalSize.name, totalSize.ty)))
+                                                    List(totalSize.makeValue))
         val cast = tungsten.BitCastInstruction(name,
                                                ty,
-                                               tungsten.DefinedValue(malloc.name, malloc.ty))
+                                               malloc.makeValue)
         List(totalSize, malloc, cast)
       }                                                           
       case _ => List(instruction)

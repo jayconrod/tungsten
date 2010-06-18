@@ -29,6 +29,8 @@ sealed abstract class Instruction
 
   def liveOutBindings: Map[Symbol, List[Value]] = Map()
 
+  final def makeValue: DefinedValue = DefinedValue(name, ty)
+
   override def validateComponents(module: Module): List[CompileException] = {
     super.validateComponents(module) ++
       ty.validate(module, getLocation) ++

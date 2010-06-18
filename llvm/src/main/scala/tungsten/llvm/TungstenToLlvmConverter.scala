@@ -178,6 +178,10 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       }
       case tungsten.ReturnInstruction(_, _, value, _) =>
         ReturnInstruction(convertValue(value, parent))
+      case tungsten.StackAllocateInstruction(_, ty, _) => {
+        val elementType = ty.asInstanceOf[tungsten.PointerType].elementType
+        AllocaInstruction(localName, convertType(elementType))
+      }
       case tungsten.StoreInstruction(_, _, value, address, _) =>
         StoreInstruction(convertValue(value, parent), convertValue(address, parent), None)
       case tungsten.StaticCallInstruction(_, ty, target, arguments, _) => {

@@ -132,6 +132,11 @@ class ParserTest {
   }
 
   @Test
+  def unreachableInst {
+    test("unreachable", Parser.instruction, UnreachableInstruction)
+  }
+
+  @Test
   def blockTest {
     test("bb0:\n" +
          "  ret i32 0\n",

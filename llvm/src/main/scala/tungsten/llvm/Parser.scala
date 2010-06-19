@@ -56,13 +56,14 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   def instruction: Parser[Instruction] = {
-    allocaInst  |
-    bitcastInst |
-    branchInst  |
-    loadInst    |
-    phiInst     |
-    retInst     |
-    storeInst
+    allocaInst      |
+    bitcastInst     |
+    branchInst      |
+    loadInst        |
+    phiInst         |
+    retInst         |
+    storeInst       |
+    unreachableInst
   }
 
   def allocaInst: Parser[Instruction] = {
@@ -107,6 +108,10 @@ object Parser extends Parsers with ImplicitConversions {
     "store" ~> (value <~ ",") ~ value ~ opt("," ~> alignment) ^^ {
       case v ~ p ~ a => StoreInstruction(v, p, a)
     }
+  }
+
+  def unreachableInst: Parser[Instruction] = {
+    "unreachable" ^^^ UnreachableInstruction
   }
 
   def alignment: Parser[Int] = {

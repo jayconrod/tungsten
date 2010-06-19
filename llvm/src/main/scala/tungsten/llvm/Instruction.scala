@@ -434,6 +434,15 @@ final case class SubtractInstruction(override name: String, ty: Type, left: Valu
   def opname = "sub"
 }
 
+final case object UnreachableInstruction
+  extends Instruction
+{
+  def opname = "unreachable"
+  def ty(module: Module) = VoidType
+  def operands = Nil
+  override def toString = opname
+}
+
 final case class UnsignedDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {

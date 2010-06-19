@@ -65,9 +65,10 @@ object Parser extends Parsers with ImplicitConversions {
     storeInst
   }
 
-  def allocaInst: Parser[AllocaInstruction] = {
-    (localSymbol <~ "=" <~ "alloca") ~ ty ^^ {
-      case n ~ t => AllocaInstruction(n, t)
+  def allocaInst: Parser[Instruction] = {
+    (localSymbol <~ "=" <~ "alloca") ~ ty ~ opt("," ~> value) ^^ {
+      case n ~ t ~ Some(c) => AllocaArrayInstruction(n, t, c)
+      case n ~ t ~ None => AllocaInstruction(n, t)
     }
   }
 

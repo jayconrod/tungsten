@@ -88,6 +88,12 @@ class ParserTest {
   }
 
   @Test
+  def allocaArrayInst {
+    test("%0 = alloca i32, i32 1", Parser.instruction, 
+         AllocaArrayInstruction("%0", IntType(32), IntValue(1, 32)))
+  }
+
+  @Test
   def bitcastInst {
     test("%0 = bitcast i32 0 to i32", Parser.instruction,
          BitCastInstruction("%0", IntValue(0L, 32), IntType(32)))

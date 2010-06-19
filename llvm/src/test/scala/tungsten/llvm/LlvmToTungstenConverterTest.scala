@@ -42,6 +42,16 @@ class LlvmToTungstenConverterTest {
   }
 
   @Test
+  def allocaArrayInst {
+    parent = "foo"
+    testConversion(tungsten.StackAllocateArrayInstruction("foo.a#1",
+                                                          tungsten.PointerType(tungsten.IntType(64)),
+                                                          tungsten.IntValue(2, 64)),
+                   convertInstruction(AllocaArrayInstruction("%a", IntType(64), IntValue(2, 64)), 
+                                      defaultData))
+  }
+
+  @Test
   def bitcastInst {
     parent = "foo"
     testConversion(tungsten.BitCastInstruction("foo.a#1",

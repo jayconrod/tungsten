@@ -98,6 +98,11 @@ class LlvmToTungstenConverter(val module: Module) {
         tungsten.StackAllocateInstruction(cName, ty)
       }
 
+      case AllocaArrayInstruction(_, elementType, count) => {
+        val ty = tungsten.PointerType(convertType(elementType))
+        tungsten.StackAllocateArrayInstruction(cName, ty, convertValue(count))
+      }
+
       case BitCastInstruction(_, value, ty) => {
         tungsten.BitCastInstruction(cName, convertType(ty), convertValue(value))
       }

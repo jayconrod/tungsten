@@ -90,6 +90,17 @@ final case class AllocaInstruction(override name: String,
   override def toString = nameString + " " + elementType
 }
 
+final case class AllocaArrayInstruction(override name: String,
+                                        elementType: Type,
+                                        count: Value)
+  extends Instruction
+{
+  def opname = "alloca"
+  def ty(module: Module) = PointerType(elementType)
+  def operands = List(count)
+  override def toString = nameString + " " + elementType + ", " + count
+}
+
 final case class AndInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {

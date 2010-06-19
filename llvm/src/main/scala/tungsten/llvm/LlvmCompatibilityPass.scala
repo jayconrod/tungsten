@@ -18,9 +18,23 @@ class LlvmCompatibilityPass
   }
 
   def addRuntime(module: tungsten.Module): tungsten.Module = {
+    var cModule = module
+
     val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
-    val malloc = tungsten.Function("tungsten.malloc", tungsten.PointerType(tungsten.IntType(8)), List(mallocParam.name), Nil)
-    module.add(mallocParam, malloc)
+    val malloc = tungsten.Function("tungsten.malloc", 
+                                   tungsten.PointerType(tungsten.IntType(8)), 
+                                   List(mallocParam.name), 
+                                   Nil)
+    cModule = cModule.add(mallocParam, malloc)
+
+    val exitParam = tungsten.Parameter("tungsten.exit.code", tungsten.IntType(32))
+    val exit = tungsten.Function("tungsten.exit", 
+                                 tungsten.UnitType, 
+                                 List(exitParam.name),
+                                 Nil)
+    cModule = cModule.add(exitParam, exit)
+
+    cModule    
   }
 
   def processMain(module: tungsten.Module): tungsten.Module = {
@@ -86,7 +100,16 @@ class LlvmCompatibilityPass
                                                ty,
                                                malloc.makeValue)
         List(totalSize, malloc, cast)
-      }                                                           
+      }
+
+      case tungsten.IntrinsicCallInstruction(name, ty, intrinsic, arguments, anns) => {
+        import tungsten.Intrinsic._
+        val cTarget: Symbol = intrinsic match {
+          case EXIT => "tungsten.exit"
+          case _ => throw new RuntimeException("Invalid intrinsic: " + intrinsic)
+        }
+        List(tungsten.StaticCallInstruction(name, ty, cTarget, arguments, anns))
+      }
 
       case tungsten.StackAllocateArrayInstruction(name, ty, count, _) => {
         val (cCount, cast) = convertWordTo32Bit(count, name)

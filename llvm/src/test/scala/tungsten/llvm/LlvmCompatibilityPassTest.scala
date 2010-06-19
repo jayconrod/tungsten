@@ -39,7 +39,8 @@ class LlvmCompatibilityPassTest {
   def runtimeFunctionsPresent {
     val module = new tungsten.Module
     val processed = pass.addRuntime(module)
-    val expectedProgram = "function int8* @tungsten.malloc(int32 %size)\n"
+    val expectedProgram = "function int8* @tungsten.malloc(int32 %size)\n" +
+                          "function unit @tungsten.exit(int32 %code)\n"
     val expected = ModuleIO.readText(expectedProgram)
     assertEquals(expected.definitions, processed.definitions)
   }
@@ -96,6 +97,13 @@ class LlvmCompatibilityPassTest {
     val expected = "binop int64 %llvmCompat#1 = int64 2 * int64 8\n" +
                    "scall int8* %llvmCompat#2 = @tungsten.malloc(int64 %llvmCompat#1)\n" +
                    "bitcast int64* %a = int8* %llvmCompat#2"
+    testCode(expected, code)
+  }
+
+  @Test
+  def intrinsicExitInst {
+    val code = "intrinsic unit %x = exit(int32 1)"
+    val expected = "scall unit %x = @tungsten.exit(int32 1)"
     testCode(expected, code)
   }
 

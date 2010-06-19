@@ -123,7 +123,7 @@ class PhiAnalysisTest {
                                     tungsten.BinaryOperatorInstruction("f.bb3.x", tungsten.IntType(64), tungsten.BinaryOperator.ADD, tungsten.IntValue(12, 64), tungsten.DefinedValue("f.bb3.f", tungsten.IntType(64))),
                                     oldInstructions(1))
     val expectedBlock = tungsten.Block("f.bb3", Nil, expectedInstructions.map(_.name))
-    val expectedModule = module.remove("f.bb3.e").replace(expectedBlock :: expectedInstructions)
+    val expectedModule = module.remove("f.bb3.e").replace((expectedBlock :: expectedInstructions): _*)
     assertEquals(expectedModule, PhiConversion.rewrite(blocks(3), phiBindings, constantMap, module))
   }                                 
 }

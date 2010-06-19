@@ -20,19 +20,23 @@ class LlvmCompatibilityPass
   def addRuntime(module: tungsten.Module): tungsten.Module = {
     var cModule = module
 
+    val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
+    cModule = cModule.replace(noreturn)
+
     val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
     val malloc = tungsten.Function("tungsten.malloc", 
                                    tungsten.PointerType(tungsten.IntType(8)), 
                                    List(mallocParam.name), 
                                    Nil)
-    cModule = cModule.add(mallocParam, malloc)
+    cModule = cModule.replace(mallocParam, malloc)
 
     val exitParam = tungsten.Parameter("tungsten.exit.code", tungsten.IntType(32))
     val exit = tungsten.Function("tungsten.exit", 
                                  tungsten.UnitType, 
                                  List(exitParam.name),
-                                 Nil)
-    cModule = cModule.add(exitParam, exit)
+                                 Nil,
+                                 List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
+    cModule = cModule.replace(exitParam, exit)
 
     cModule    
   }
@@ -45,7 +49,7 @@ class LlvmCompatibilityPass
         val returns = terminators.collect { case r: tungsten.ReturnInstruction => r }
         val processedReturns = returns.map(_.copyWith("value" -> tungsten.IntValue(0, 32)))
         val processedMain = main.copyWith("returnType" -> tungsten.IntType(32))
-        module.replace(processedMain :: processedReturns)
+        module.replace((processedMain :: processedReturns): _*)
       }
       case None => module
     }

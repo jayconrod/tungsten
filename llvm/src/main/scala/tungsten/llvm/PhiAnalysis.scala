@@ -168,6 +168,6 @@ object PhiConversion
     }
     val rewrittenBlock = block.copyWith("parameters" -> Nil,
                                         "instructions" -> rewrittenInstructions.map(_.name))
-    module.remove(block.parameters).replace(rewrittenBlock :: rewrittenInstructions)
+    module.remove(block.parameters).replace((rewrittenBlock :: rewrittenInstructions): _*)
   }
 }

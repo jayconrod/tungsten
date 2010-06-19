@@ -179,11 +179,13 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.ReturnInstruction(_, _, value, _) =>
         ReturnInstruction(convertValue(value, parent))
       case tungsten.StackAllocateInstruction(_, ty, _) => {
-        val elementType = ty.asInstanceOf[tungsten.PointerType].elementType
+        val tungsten.PointerType(elementType) = ty
         AllocaInstruction(localName, convertType(elementType))
       }
-      case tungsten.StoreInstruction(_, _, value, address, _) =>
-        StoreInstruction(convertValue(value, parent), convertValue(address, parent), None)
+      case tungsten.StackAllocateArrayInstruction(_, ty, count, _) => {
+        val tungsten.PointerType(elementType) = ty
+        AllocaArrayInstruction(localName, convertType(elementType), convertValue(count, parent))
+      }        
       case tungsten.StaticCallInstruction(_, ty, target, arguments, _) => {
         val cReturnType = convertType(ty)
         val cArgumentTypes = arguments.map { a: tungsten.Value => convertType(a.ty) }
@@ -193,6 +195,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
                         DefinedValue(globalSymbol(target), cTargetType), 
                         arguments.map(convertValue(_, parent)), Nil)
       }
+      case tungsten.StoreInstruction(_, _, value, address, _) =>
+        StoreInstruction(convertValue(value, parent), convertValue(address, parent), None)
       case tungsten.UpcastInstruction(_, ty, value, _) =>
         BitCastInstruction(localName, convertValue(value, parent), convertType(ty))
       case TungstenPhiInstruction(_, ty, bindings) => {

@@ -57,6 +57,7 @@ class LlvmCompatibilityPass
         val cAddress = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.AddressInstruction]
         casts :+ cAddress
       }
+
       case tungsten.HeapAllocateInstruction(name, ty, _) => {
         val size = ty.size(module).toInt
         val malloc = tungsten.StaticCallInstruction(newName(name),
@@ -68,6 +69,7 @@ class LlvmCompatibilityPass
                                                malloc.makeValue)
         List(malloc, cast)
       }
+
       case tungsten.HeapAllocateArrayInstruction(name, ty, count, _) => {
         val elementSize = ty.size(module)
         val elementSizeVal = tungsten.IntValue(elementSize, tungsten.IntType.wordSize(module))
@@ -85,6 +87,13 @@ class LlvmCompatibilityPass
                                                malloc.makeValue)
         List(totalSize, malloc, cast)
       }                                                           
+
+      case tungsten.StackAllocateArrayInstruction(name, ty, count, _) => {
+        val (cCount, cast) = convertWordTo32Bit(count, name)
+        val cStack = instruction.copyWith("count" -> cCount).asInstanceOf[tungsten.Instruction]
+        cast.toList :+ cStack
+      }
+
       case _ => List(instruction)
     }
   }

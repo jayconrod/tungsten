@@ -311,6 +311,15 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
+  def stackArrayInst {
+    val expected = AllocaArrayInstruction("%x", IntType(64), IntValue(2, 32))
+    val stack = tungsten.StackAllocateArrayInstruction("foo.x",
+                                                       tungsten.PointerType(tungsten.IntType(64)),
+                                                       tungsten.IntValue(2, 32))
+    testInstructionConversion(expected, stack)
+  }
+
+  @Test
   def upcastInst {
     val expected = BitCastInstruction("%x", NullValue(IntType(8)), PointerType(IntType(64)))
     val upcast = tungsten.UpcastInstruction("foo.x",

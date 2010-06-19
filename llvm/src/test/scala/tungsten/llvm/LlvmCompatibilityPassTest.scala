@@ -98,4 +98,11 @@ class LlvmCompatibilityPassTest {
                    "bitcast int64* %a = int8* %llvmCompat#2"
     testCode(expected, code)
   }
+
+  @Test
+  def stackArrayInst {
+    val code = "stackarray int64* %a = int64 2"
+    val expected = "stackarray int64* %a = int32 2"
+    testCode(expected, code)
+  }
 }

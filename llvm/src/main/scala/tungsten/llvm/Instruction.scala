@@ -146,7 +146,7 @@ final case class CallInstruction(override name: String,
   def operands = target :: arguments
   override def toString = {
     "%s %s%s%s %s%s(%s)%s".
-      format(nameString,
+      format(if (ty == VoidType) opname else nameString,
              convention.map(_ + " ").getOrElse(""),
              if (!returnAttributes.isEmpty) returnAttributes.mkString(" ") + " " else "",
              ty,

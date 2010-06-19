@@ -2,12 +2,13 @@ package tungsten.llvm
 
 import org.junit.Test
 import org.junit.Assert._
-import tungsten.ModuleIO
+import tungsten.{ModuleIO, Symbol}
 import tungsten.Utilities._
 
 class LlvmCompatibilityPassTest {
   val pass = new LlvmCompatibilityPass
-  val codeTemplate = "function unit @main {\n" +
+  val codeTemplate = "is64bit: true\n" +
+                     "function unit @main {\n" +
                      "  block %%entry {\n" +
                      "    %s\n" +
                      "    return unit %%r = ()\n" +
@@ -55,6 +56,30 @@ class LlvmCompatibilityPassTest {
     val retType = converted.get[tungsten.ReturnInstruction]("main.entry.r").get.value.ty
     assertEquals(tungsten.IntType(32), mainType)
     assertEquals(tungsten.IntType(32), retType)
+  }
+
+  @Test
+  def convertIndexTo32BitConstant {
+    val sibling = Symbol("foo")
+    assertEquals((tungsten.IntValue(0, 32), None),
+                 pass.convertWordTo32Bit(tungsten.IntValue(0, 64), sibling))
+  }
+
+  @Test
+  def convertIndexTo32BitVar {
+    val sibling = Symbol("foo")
+    val word = tungsten.DefinedValue("i", tungsten.IntType(64))
+    val expected = tungsten.DefinedValue("llvmCompat#1", tungsten.IntType(32))
+    val cast = tungsten.IntegerTruncateInstruction(expected.value, expected.ty, word)
+    assertEquals((expected, Some(cast)), pass.convertWordTo32Bit(word, sibling))
+  }
+
+  @Test
+  def addressInst {
+    val code = "address int64* %a = int64* %base, int64 %b"
+    val expected = "itruncate int32 %llvmCompat#1 = int64 %b\n" +
+                   "address int64* %a = int64* %base, int32 %llvmCompat#1"
+    testCode(expected, code)
   }
 
   @Test

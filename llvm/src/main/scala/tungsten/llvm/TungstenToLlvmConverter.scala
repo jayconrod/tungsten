@@ -74,7 +74,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.AddressInstruction(_, _, base, indices, _) => {
         GetElementPointerInstruction(localName, 
                                      convertValue(base, parent), 
-                                     indices.map(convert32BitValue(_, parent)))
+                                     indices.map(convertValue(_, parent)))
       }
       case tungsten.AssignInstruction(_, ty, value, _) =>
         BitCastInstruction(localName, convertValue(value, parent), convertType(ty))
@@ -234,16 +234,6 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         }
       }
       case _ => throw new UnsupportedOperationException
-    }
-  }
-
-  def convert32BitValue(value: tungsten.Value, parent: Option[Symbol]): Value = {
-    value match {
-      case tungsten.IntValue(v, _) => IntValue(v, 32)
-      case tungsten.DefinedValue(name, _: tungsten.IntType) => {
-        DefinedValue(localSymbol(name, parent), IntType(32))
-      }
-      case _ => convertValue(value, parent)
     }
   }
 

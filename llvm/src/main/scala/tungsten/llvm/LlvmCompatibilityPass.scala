@@ -52,6 +52,11 @@ class LlvmCompatibilityPass
                          module: tungsten.Module): List[tungsten.Instruction] = 
   {
     instruction match {
+      case tungsten.AddressInstruction(name, ty, base, indices, _) => {
+        val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
+        val cAddress = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.AddressInstruction]
+        casts :+ cAddress
+      }
       case tungsten.HeapAllocateInstruction(name, ty, _) => {
         val size = ty.size(module).toInt
         val malloc = tungsten.StaticCallInstruction(newName(name),
@@ -81,6 +86,29 @@ class LlvmCompatibilityPass
         List(totalSize, malloc, cast)
       }                                                           
       case _ => List(instruction)
+    }
+  }
+
+  def convertIndicesTo32Bit(indices: List[tungsten.Value],
+                            sibling: Symbol): (List[tungsten.Value], List[tungsten.Instruction]) =
+  {
+    val conversions = indices.map(convertWordTo32Bit(_, sibling))
+    val (convertedIndices, casts) = conversions.unzip
+    (convertedIndices, casts.flatten)
+  }
+
+  def convertWordTo32Bit(word: tungsten.Value,
+                         sibling: Symbol): (tungsten.Value, Option[tungsten.Instruction]) = 
+  {
+    word match {
+      case tungsten.IntValue(v, _) => (tungsten.IntValue(v.toInt, 32), None)
+      case tungsten.DefinedValue(name, tungsten.IntType(_)) => {
+        val cast = tungsten.IntegerTruncateInstruction(newName(sibling),
+                                                       tungsten.IntType(32),
+                                                       word)
+        (cast.makeValue, Some(cast))
+      }
+      case _ => throw new RuntimeException("invalid index: " + word)
     }
   }
 

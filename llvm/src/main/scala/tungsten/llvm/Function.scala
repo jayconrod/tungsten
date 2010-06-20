@@ -34,6 +34,7 @@ final class Attribute(description: String) {
   override def toString = description
 }
 object Attribute {
+  val NORETURN = new Attribute("noreturn")
   val NOUNWIND = new Attribute("nounwind")
   val ZEROEXT = new Attribute("zeroext")
 }

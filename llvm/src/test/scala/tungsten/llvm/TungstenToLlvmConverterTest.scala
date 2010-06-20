@@ -290,16 +290,42 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def scallInst {
+    val param = tungsten.Parameter("f.p", tungsten.IntType(64))
+    val function = tungsten.Function("f", tungsten.IntType(64), List(param.name), Nil)
+    val scall = tungsten.StaticCallInstruction("foo.x",
+                                               tungsten.IntType(64),
+                                               function.name,
+                                               List(tungsten.IntValue(12, 64)))
+    val definitions = Map(param.name -> param,
+                          function.name -> function,
+                          scall.name -> scall)
+    val module = new tungsten.Module(definitions=definitions)
+    val converter = new TungstenToLlvmConverter(module)
     val expected = CallInstruction("%x", false, None, Nil, 
                                    IntType(64), None,
                                    DefinedValue("@f", FunctionType(IntType(64), List(IntType(64)))),
                                    List(IntValue(12, 64)),
                                    Nil)
-    val scall = tungsten.StaticCallInstruction("foo.x",
-                                               tungsten.IntType(64),
-                                               "f",
-                                               List(tungsten.IntValue(12, 64)))
-    testInstructionConversion(expected, scall)
+    assertEquals(expected, converter.convertInstruction(scall, parent))    
+  }
+
+  @Test
+  def scallInstNoReturn {
+    val noReturn = tungsten.Annotation("tungsten.NoReturn", Nil)
+    val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil,
+                                     List(tungsten.AnnotationValue(noReturn.name, Nil)))
+    val call = tungsten.StaticCallInstruction("foo.x", tungsten.UnitType, function.name, Nil)
+    val definitions = Map(noReturn.name -> noReturn,
+                          function.name -> function,
+                          call.name -> call)
+    val module = new tungsten.Module(definitions=definitions)
+    val converter = new TungstenToLlvmConverter(module)
+    val expected = CallInstruction("%x", false, None, Nil,
+                                   VoidType, None,
+                                   DefinedValue("@f", FunctionType(VoidType, Nil)),
+                                   Nil,
+                                   List(Attribute.NORETURN))
+    assertEquals(expected, converter.convertInstruction(call, parent))
   }
 
   @Test
@@ -340,6 +366,27 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
+  def blockNoReturn {
+    val expected = Block("%bb", List(CallInstruction("%x", false, None, Nil, VoidType, None,
+                                                     DefinedValue("@f", FunctionType(VoidType, Nil)),
+                                                     Nil, List(Attribute.NORETURN)),
+                                     UnreachableInstruction))
+    val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
+    val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil,
+                                     List(tungsten.AnnotationValue(noreturn.name, Nil)))
+    val call = tungsten.StaticCallInstruction("foo.x", tungsten.UnitType,
+                                              function.name, Nil)
+    val block = tungsten.Block("foo.bb", Nil, List(call.name))
+    val definitions = Map(noreturn.name -> noreturn,
+                          function.name -> function,
+                          call.name -> call,
+                          block.name -> block)
+    val module = new tungsten.Module(definitions=definitions)
+    val converter = new TungstenToLlvmConverter(module)
+    assertEquals(expected, converter.convertBlock(block, parent))
+  }
+
+  @Test
   def parameter {
     val expected = Parameter("%x", IntType(64), Nil)
     val parameter = tungsten.Parameter("foo.x", tungsten.IntType(64))
@@ -366,6 +413,17 @@ class TungstenToLlvmConverterTest {
                           instruction.name -> instruction,
                           block.name -> block,
                           function.name -> function)
+    val module = new tungsten.Module(definitions=definitions)
+    val converter = new TungstenToLlvmConverter(module)
+    assertEquals(expected, converter.convertFunction(function))
+  }
+
+  @Test
+  def functionNoReturn {
+    val expected = Function("@f", VoidType, List(Attribute.NORETURN), Nil, Nil)
+    val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil, 
+                                     List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
+    val definitions = Map(function.name -> function)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertFunction(function))

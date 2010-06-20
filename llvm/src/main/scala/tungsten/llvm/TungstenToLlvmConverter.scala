@@ -49,7 +49,9 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     val cParameters = parameters.map(convertParameter(_, Some(function.name)))
     val blocks = module.getBlocks(function.blocks)
     val cBlocks = blocks.map(convertBlock(_, Some(function.name)))
-    Function(cName, cReturnType, Nil, cParameters, cBlocks)
+    val noReturnName = symbolFromString("tungsten.NoReturn")
+    val cAttributes = convertFunctionAttributes(function.annotations)
+    Function(cName, cReturnType, cAttributes, cParameters, cBlocks)
   }
 
   def convertParameter(parameter: tungsten.Parameter, parent: Option[Symbol]): Parameter = {
@@ -62,7 +64,12 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     assert(block.parameters.isEmpty)
     val cName = localSymbol(block.name, parent)
     val instructions = module.getInstructions(block.instructions)
-    val cInstructions = instructions.map(convertInstruction(_, parent))
+    var cInstructions = instructions.map(convertInstruction(_, parent))
+    cInstructions = cInstructions.lastOption match {
+      case Some(c: CallInstruction) if c.functionAttributes.exists(_ == Attribute.NORETURN) =>
+        cInstructions :+ UnreachableInstruction
+      case _ => cInstructions
+    }
     Block(cName, cInstructions)
   }
 
@@ -187,13 +194,15 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         AllocaArrayInstruction(localName, convertType(elementType), convertValue(count, parent))
       }        
       case tungsten.StaticCallInstruction(_, ty, target, arguments, _) => {
+        val function = module.getFunction(target)
         val cReturnType = convertType(ty)
         val cArgumentTypes = arguments.map { a: tungsten.Value => convertType(a.ty) }
         val cTargetType = FunctionType(cReturnType, cArgumentTypes)
+        val cAttributes = convertFunctionAttributes(function.annotations)
         CallInstruction(localName, false, None, Nil, 
                         cReturnType, None,
                         DefinedValue(globalSymbol(target), cTargetType), 
-                        arguments.map(convertValue(_, parent)), Nil)
+                        arguments.map(convertValue(_, parent)), cAttributes)
       }
       case tungsten.StoreInstruction(_, _, value, address, _) =>
         StoreInstruction(convertValue(value, parent), convertValue(address, parent), None)
@@ -213,6 +222,15 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         System.err.println(instruction.getClass.toString)
         throw new UnsupportedOperationException // TODO
       }
+    }
+  }
+
+  def convertFunctionAttributes(annotations: List[tungsten.AnnotationValue]): List[Attribute] = {
+    import tungsten.{AnnotationValue => AV}
+    import Attribute._
+    val noreturn = symbolFromString("tungsten.NoReturn")
+    annotations collect {
+      case AV(noreturn, _) => NORETURN
     }
   }
 

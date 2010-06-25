@@ -172,6 +172,9 @@ object ModuleIO {
           ConditionalBranchInstruction(name, readType, readValue, symbol, readList(readValue),
                                        symbol, readList(readValue), readAnnotations)
         }
+        case EXTRACT_INST_ID => {
+          ExtractInstruction(name, readType, readValue, readList(readValue), readAnnotations)
+        }
         case FLOAT_EXTEND_INST_ID => {
           FloatExtendInstruction(name, readType, readValue, readAnnotations)
         }
@@ -186,6 +189,10 @@ object ModuleIO {
         }
         case HEAP_ALLOCATE_ARRAY_INST_ID => {
           HeapAllocateArrayInstruction(name, readType, readValue, readAnnotations)
+        }
+        case INSERT_INST_ID => {
+          InsertInstruction(name, readType, readValue, readValue, 
+                            readList(readValue), readAnnotations)
         }
         case INTEGER_SIGN_EXTEND_INST_ID => {
           IntegerSignExtendInstruction(name, readType, readValue, readAnnotations)
@@ -579,11 +586,13 @@ object ModuleIO {
         case _: BitCastInstruction => "bitcast"
         case _: BranchInstruction => "branch"
         case _: ConditionalBranchInstruction => "cond"
+        case _: ExtractInstruction => "extract"
         case _: FloatExtendInstruction => "fextend"
         case _: FloatToIntegerInstruction => "ftoi"
         case _: FloatTruncateInstruction => "ftruncate"
         case _: HeapAllocateInstruction => "heap"
         case _: HeapAllocateArrayInstruction => "heaparray"
+        case _: InsertInstruction => "insert"
         case _: IntegerToFloatInstruction => "itof"
         case _: IntegerSignExtendInstruction => "isextend"
         case _: IntegerTruncateInstruction => "itruncate"
@@ -633,6 +642,9 @@ object ModuleIO {
           output.write(" : " + localSymbol(falseTarget))
           writeArguments(falseArgs, parentName)
         }
+        case ExtractInstruction(_, _, base, indices, anns) => {
+          output.write(localValue(base) + ", " + indices.map(localValue).mkString(", "))
+        }
         case FloatExtendInstruction(_, _, value, _) => {
           output.write(localValue(value))
         }
@@ -645,6 +657,10 @@ object ModuleIO {
         case HeapAllocateInstruction(_, ty, _) => ()
         case HeapAllocateArrayInstruction(_, _, count, _) => {
           output.write(localValue(count))
+        }
+        case InsertInstruction(_, _, value, base, indices, _) => {
+          output.write(localValue(value) + ", " + localValue(base) + ", " +
+                       indices.map(localValue).mkString(", "))
         }
         case IntegerSignExtendInstruction(_, _, value, _) => {
           output.write(localValue(value))
@@ -965,11 +981,13 @@ object ModuleIO {
             case _: BitCastInstruction => BIT_CAST_INST_ID
             case _: BranchInstruction => BRANCH_INST_ID
             case _: ConditionalBranchInstruction => CONDITIONAL_BRANCH_INST_ID
+            case _: ExtractInstruction => EXTRACT_INST_ID
             case _: FloatExtendInstruction => FLOAT_EXTEND_INST_ID
             case _: FloatToIntegerInstruction => FLOAT_TO_INTEGER_INST_ID
             case _: FloatTruncateInstruction => FLOAT_TRUNCATE_INST_ID
             case _: HeapAllocateInstruction => HEAP_ALLOCATE_INST_ID
             case _: HeapAllocateArrayInstruction => HEAP_ALLOCATE_ARRAY_INST_ID
+            case _: InsertInstruction => INSERT_INST_ID
             case _: IntegerToFloatInstruction => INTEGER_TO_FLOAT_INST_ID
             case _: IntegerSignExtendInstruction => INTEGER_SIGN_EXTEND_INST_ID
             case _: IntegerTruncateInstruction => INTEGER_TRUNCATE_INST_ID
@@ -1018,6 +1036,10 @@ object ModuleIO {
               writeInt(symbols(falseTarget))
               writeList(falseArgs, writeValue _)
             }
+            case ExtractInstruction(_, _, value, indices, _) => {
+              writeValue(value)
+              writeList(indices, writeValue _)
+            }
             case FloatExtendInstruction(_, _, value, _) => {
               writeValue(value)
             }
@@ -1030,6 +1052,11 @@ object ModuleIO {
             case HeapAllocateInstruction(_, ty, _) => ()
             case HeapAllocateArrayInstruction(_, _, count, _) => {
               writeValue(count)
+            }
+            case InsertInstruction(_, _, value, base, indices, _) => {
+              writeValue(value)
+              writeValue(base)
+              writeList(indices, writeValue _)
             }
             case IntegerSignExtendInstruction(_, _, value, _) => {
               writeValue(value)
@@ -1290,26 +1317,28 @@ object ModuleIO {
   val BIT_CAST_INST_ID: Byte = 103
   val BRANCH_INST_ID: Byte = 104
   val CONDITIONAL_BRANCH_INST_ID: Byte = 105
-  val INTRINSIC_CALL_INST_ID: Byte = 106
-  val LOAD_INST_ID: Byte = 107
-  val LOAD_ELEMENT_INST_ID: Byte = 108
-  val RELATIONAL_OPERATOR_INST_ID: Byte = 109
-  val RETURN_INST_ID: Byte = 110
-  val STORE_INST_ID: Byte = 111
-  val STORE_ELEMENT_INST_ID: Byte = 112
-  val STACK_ALLOCATE_INST_ID: Byte = 113
-  val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 114
-  val STATIC_CALL_INST_ID: Byte = 115
-  val UPCAST_INST_ID: Byte = 116
-  val HEAP_ALLOCATE_INST_ID = 117
-  val HEAP_ALLOCATE_ARRAY_INST_ID = 118
-  val FLOAT_EXTEND_INST_ID = 119
-  val FLOAT_TO_INTEGER_INST_ID = 120
-  val FLOAT_TRUNCATE_INST_ID = 121
-  val INTEGER_SIGN_EXTEND_INST_ID = 122
-  val INTEGER_TO_FLOAT_INST_ID = 123
-  val INTEGER_TRUNCATE_INST_ID = 124
-  val INTEGER_ZERO_EXTEND_INST_ID = 125
+  val EXTRACT_INST_ID: Byte = 106
+  val INSERT_INST_ID: Byte = 107
+  val INTRINSIC_CALL_INST_ID: Byte = 108
+  val LOAD_INST_ID: Byte = 109
+  val LOAD_ELEMENT_INST_ID: Byte = 110
+  val RELATIONAL_OPERATOR_INST_ID: Byte = 111
+  val RETURN_INST_ID: Byte = 112
+  val STORE_INST_ID: Byte = 113
+  val STORE_ELEMENT_INST_ID: Byte = 114
+  val STACK_ALLOCATE_INST_ID: Byte = 115
+  val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 116
+  val STATIC_CALL_INST_ID: Byte = 117
+  val UPCAST_INST_ID: Byte = 118
+  val HEAP_ALLOCATE_INST_ID = 119
+  val HEAP_ALLOCATE_ARRAY_INST_ID = 120
+  val FLOAT_EXTEND_INST_ID = 121
+  val FLOAT_TO_INTEGER_INST_ID = 122
+  val FLOAT_TRUNCATE_INST_ID = 123
+  val INTEGER_SIGN_EXTEND_INST_ID = 124
+  val INTEGER_TO_FLOAT_INST_ID = 125
+  val INTEGER_TRUNCATE_INST_ID = 126
+  val INTEGER_ZERO_EXTEND_INST_ID = 127
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

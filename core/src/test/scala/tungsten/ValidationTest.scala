@@ -321,26 +321,26 @@ class ValidationTest {
   }
 
   @Test
-  def loadElementArrayOutOfBounds {
-    val code = "loadelement int32 %a = [2 x int32] {int32 12, int32 34}, int64 5"
+  def extractArrayOutOfBounds {
+    val code = "extract int32 %a = [2 x int32] {int32 12, int32 34}, int64 5"
     codeIsCorrect(code)
   }
 
   @Test
-  def loadElementBadIndexType {
-    val code = "loadelement int32 %a = [2 x int32] {int32 12, int32 34}, int32 5"
+  def extractBadIndexType {
+    val code = "extract int32 %a = [2 x int32] {int32 12, int32 34}, int32 5"
     codeContainsError[TypeMismatchException](code)
   }
 
   @Test
-  def loadElementTooManyIndices {
-    val code = "loadelement int32 %a = [2 x int32] {int32 12, int32 34}, int64 5, int64 6"
+  def extractTooManyIndices {
+    val code = "extract int32 %a = [2 x int32] {int32 12, int32 34}, int64 5, int64 6"
     codeContainsError[InvalidIndexException](code)
   }
 
   @Test
-  def storeType {
-    val code = "storeelement (), [2 x int32] {int32 12, int32 64}, int64 0"
+  def insertType {
+    val code = "insert (), [2 x int32] {int32 12, int32 64}, int64 0"
     codeContainsError[TypeMismatchException](code)
   }
 
@@ -429,14 +429,14 @@ class ValidationTest {
   }
 
   @Test
-  def loadElementFromStruct {
+  def extractFromStruct {
     val program = "is64bit: true\n" +
                   "struct @A {\n" +
                   "  field unit %b\n" +
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    loadelement unit %c = struct @A {()}, int64 0\n" +
+                  "    extract unit %c = struct @A {()}, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -444,14 +444,14 @@ class ValidationTest {
   }
 
   @Test
-  def loadElementNonLiteralIndex {
+  def extractNonLiteralIndex {
     val program = "struct @A {\n" +
                   "  field unit %b\n" +
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
                   "    assign int64 %i = int64 0\n" +
-                  "    loadelement unit %e = struct @A {()}, int64 %i\n" +
+                  "    extract unit %e = struct @A {()}, int64 %i\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -459,7 +459,7 @@ class ValidationTest {
   }
 
   @Test
-  def storeElementDoubleIndex {
+  def insertDoubleIndex {
     val program = "is64bit: true\n" +
                   "struct @A {\n" +
                   "  field int32 %x\n" +
@@ -470,7 +470,7 @@ class ValidationTest {
                   "function unit @main {\n" +
                   "  block %entry {\n" +
                   "    assign struct @B %a = struct @B { struct @A {int32 12} }\n" +
-                  "    storeelement int32 34, struct @B %a, int64 0, int64 0\n" +
+                  "    insert struct @B %b = int32 34, struct @B %a, int64 0, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"

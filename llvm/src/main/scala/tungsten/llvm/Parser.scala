@@ -56,13 +56,15 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   def instruction: Parser[Instruction] = {
-    allocaInst      |
-    bitcastInst     |
-    branchInst      |
-    loadInst        |
-    phiInst         |
-    retInst         |
-    storeInst       |
+    allocaInst       |
+    bitcastInst      |
+    branchInst       |
+    extractvalueInst |
+    insertvalueInst  |
+    loadInst         |
+    phiInst          |
+    retInst          |
+    storeInst        |
     unreachableInst
   }
 
@@ -82,6 +84,19 @@ object Parser extends Parsers with ImplicitConversions {
   def branchInst: Parser[BranchInstruction] = {
     ("br" ~> value) ^^ { case l => BranchInstruction(l) }
   }  
+
+  def extractvalueInst: Parser[ExtractValueInstruction] = {
+    (localSymbol <~ "=" <~ "extractvalue") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
+      case n ~ b ~ is => ExtractValueInstruction(n, b, is)
+    }
+  }
+
+  def insertvalueInst: Parser[InsertValueInstruction] = {
+    (localSymbol <~ "=" <~ "insertvalue") ~ (value <~ ",") ~ (value <~ ",") ~
+      rep1sep(value, ",") ^^ {
+        case n ~ b ~ v ~ is => InsertValueInstruction(n, b, v, is)
+      }
+  }      
 
   def loadInst: Parser[LoadInstruction] = {
     (localSymbol <~ "=" <~ "load") ~ value ~ opt("," ~> alignment) ^^ {

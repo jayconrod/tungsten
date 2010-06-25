@@ -55,7 +55,9 @@ class LlvmToTungstenConverter(val module: Module) {
     cParam
   }
 
-  def convertBlock(block: Block, data: BlockParameterData): tungsten.Block = {
+  def convertBlock(block: Block, 
+                   data: BlockParameterData): tungsten.Block = 
+  {
     val cName = convertName(block.name)
     val cParameters = for ((name, ty) <- data.parameters) yield {
       val cName = convertName(name)
@@ -112,8 +114,21 @@ class LlvmToTungstenConverter(val module: Module) {
         tungsten.BranchInstruction(cName, tungsten.UnitType, cBlockName, cArguments)
       }
 
+      case ExtractValueInstruction(_, value, indices) => {
+        val ty = convertType(instruction.ty(module))
+        tungsten.ExtractInstruction(cName, ty, convertValue(value), indices.map(convertValue _))
+      }
+
       case _: GetElementPointerInstruction => {
         throw new UnsupportedOperationException // TODO
+      }
+
+      case InsertValueInstruction(_, base, value, indices) => {
+        val ty = convertType(base.ty)
+        tungsten.InsertInstruction(cName, ty,
+                                   convertValue(value),
+                                   convertValue(base),
+                                   indices.map(convertValue _))
       }
 
       case LoadInstruction(_, address, _) => {

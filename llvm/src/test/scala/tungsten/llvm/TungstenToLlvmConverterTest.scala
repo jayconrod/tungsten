@@ -153,6 +153,17 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
+  def extractInst {
+    val expected = ExtractValueInstruction("%x", ArrayValue(IntType(32), List(IntValue(1, 32))),
+                                           List(IntValue(0, 32)))
+    val extract = tungsten.ExtractInstruction("foo.x", tungsten.IntType(32),
+                                              tungsten.ArrayValue(tungsten.IntType(32),
+                                                                  List(tungsten.IntValue(1, 32))),
+                                              List(tungsten.IntValue(0, 32)))
+    testInstructionConversion(expected, extract)
+  }
+
+  @Test
   def fextendInst {
     val expected = FloatExtendInstruction("%x", FloatValue(0.0, 32), FloatType(64))
     val fextend = tungsten.FloatExtendInstruction("foo.x",
@@ -177,6 +188,19 @@ class TungstenToLlvmConverterTest {
                                                       tungsten.FloatType(32),
                                                       tungsten.FloatValue(0.0, 64))
     testInstructionConversion(expected, ftruncate)
+  }
+
+  @Test
+  def insertInst {
+    val expected = InsertValueInstruction("%x", ArrayValue(IntType(32), List(IntValue(2, 32))),
+                                          IntValue(1, 32),
+                                          List(IntValue(0, 32)))
+    val insert = tungsten.InsertInstruction("foo.x", tungsten.ArrayType(1, tungsten.IntType(32)),
+                                            tungsten.IntValue(1, 32),
+                                            tungsten.ArrayValue(tungsten.IntType(32),
+                                                                List(tungsten.IntValue(2, 32))),
+                                            List(tungsten.IntValue(0, 32)))
+    testInstructionConversion(expected, insert)
   }
 
   @Test

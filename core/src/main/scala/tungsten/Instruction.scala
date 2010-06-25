@@ -422,6 +422,27 @@ final case class ConditionalBranchInstruction(name: Symbol,
   }
 }
 
+final case class ExtractInstruction(name: Symbol,
+                                    ty: Type,
+                                    base: Value,
+                                    indices: List[Value],
+                                    annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+  with ElementInstruction
+{
+  def operands = base :: indices
+
+  override def validate(module: Module) = {
+    def typeIsValid = {
+      val elementType = getElementType(module, base.ty, indices)
+      checkType(ty, elementType, getLocation)
+    }
+    super.validate(module) ++
+      stage(validateIndices(module, base.ty, indices),
+            typeIsValid)
+  }
+}
+
 sealed abstract class FloatCastInstruction(name: Symbol,
                                            ty: Type,
                                            value: Value,
@@ -526,6 +547,29 @@ final case class HeapAllocateArrayInstruction(name: Symbol,
       checkType(count.ty, IntType.wordType(module), getLocation) ++
       checkNonNullPointerType(ty, getLocation)
   }
+}
+
+final case class InsertInstruction(name: Symbol,
+                                   ty: Type,
+                                   value: Value,
+                                   base: Value,
+                                   indices: List[Value],
+                                   annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+  with ElementInstruction
+{
+  def operands = base :: value :: indices
+
+  override def validate(module: Module) = {
+    def validateValueType = {
+      val elementType = getElementType(module, base.ty, indices)
+      checkType(elementType, value.ty, getLocation)
+    }
+    stage(super.validate(module),
+          checkType(ty, base.ty, getLocation),
+          validateIndices(module, base.ty, indices),
+          validateValueType)
+  }      
 }
 
 final case class IntegerToFloatInstruction(name: Symbol,

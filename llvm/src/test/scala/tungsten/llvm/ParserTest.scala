@@ -106,6 +106,18 @@ class ParserTest {
   }
 
   @Test
+  def extractvalueInst {
+    test("%0 = extractvalue i32 0, i32 0", Parser.instruction,
+         ExtractValueInstruction("%0", IntValue(0, 32), List(IntValue(0, 32))))
+  }
+
+  @Test
+  def insertvalueInst {
+    test("%0 = insertvalue i32 0, i32 0, i32 0", Parser.instruction,
+         InsertValueInstruction("%0", IntValue(0, 32), IntValue(0, 32), List(IntValue(0, 32))))
+  }
+
+  @Test
   def loadInst {
     test("%0 = load i32* %p, align 4", Parser.instruction,
          LoadInstruction("%0", DefinedValue("%p", PointerType(IntType(32))), Some(4)))

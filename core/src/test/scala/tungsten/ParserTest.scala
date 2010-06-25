@@ -237,6 +237,12 @@ class ParserTest {
   }
 
   @Test
+  def extractInst {
+    testInstruction("extract unit %x = (), ()",
+                    ExtractInstruction("%x", UnitType, UnitValue, List(UnitValue)))
+  }
+
+  @Test
   def fextendInst {
     testInstruction("fextend unit %x = ()",
                     FloatExtendInstruction("%x", UnitType, UnitValue))
@@ -288,6 +294,12 @@ class ParserTest {
   def izextendInst {
     testInstruction("izextend unit %x = ()",
                     IntegerZeroExtendInstruction("%x", UnitType, UnitValue))
+  }
+
+  @Test
+  def insertTest {
+    testInstruction("insert unit %x = (), (), ()",
+                    InsertInstruction("%x", UnitType, UnitValue, UnitValue, List(UnitValue)))
   }
 
   @Test

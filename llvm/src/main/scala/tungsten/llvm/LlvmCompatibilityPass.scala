@@ -72,8 +72,14 @@ class LlvmCompatibilityPass
     instruction match {
       case tungsten.AddressInstruction(name, ty, base, indices, _) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
-        val cAddress = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.AddressInstruction]
+        val cAddress = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]
         casts :+ cAddress
+      }
+
+      case tungsten.ExtractInstruction(name, ty, value, indices, _) => {
+        val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
+        val cExtract = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]
+        casts :+ cExtract
       }
 
       case tungsten.HeapAllocateInstruction(name, ty, _) => {
@@ -104,6 +110,12 @@ class LlvmCompatibilityPass
                                                ty,
                                                malloc.makeValue)
         List(totalSize, malloc, cast)
+      }
+
+      case tungsten.InsertInstruction(name, ty, value, base, indices, _) => {
+        val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
+        val cInsert = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]
+        casts :+ cInsert
       }
 
       case tungsten.IntrinsicCallInstruction(name, ty, intrinsic, arguments, anns) => {

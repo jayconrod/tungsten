@@ -137,12 +137,22 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         val cFalseTarget = DefinedValue(cFalseTargetName, LabelType)
         ConditionalBranchInstruction(cCondition, cTrueTarget, cFalseTarget)
       }
+      case tungsten.ExtractInstruction(_, _, base, indices, _) => {
+        ExtractValueInstruction(localName, convertValue(base, parent), 
+                                indices.map(convertValue(_, parent)))
+      }
       case tungsten.FloatExtendInstruction(_, ty, value, _) =>
         FloatExtendInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.FloatToIntegerInstruction(_, ty, value, _) =>
         FloatToSignedIntegerInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.FloatTruncateInstruction(_, ty, value, _) =>
         FloatTruncateInstruction(localName, convertValue(value, parent), convertType(ty))
+      case tungsten.InsertInstruction(_, _, value, base, indices, _) => {
+        InsertValueInstruction(localName, 
+                               convertValue(base, parent),
+                               convertValue(value, parent),
+                               indices.map(convertValue(_, parent)))
+      }
       case tungsten.IntegerSignExtendInstruction(_, ty, value, _) =>
         IntegerSignExtendInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.IntegerToFloatInstruction(_, ty, value, _) =>

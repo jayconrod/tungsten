@@ -35,6 +35,40 @@ sealed abstract class ConversionInstruction extends Instruction {
   override def toString = "%s %s to %s".format(nameString, value.typedToString, ty)
 }
 
+sealed abstract class ElementInstruction extends Instruction {
+  def getElementType(ty: Type, indices: List[Value], module: Module): Type = {
+    def getConstantIndexValue(index: Value, bound: Int): Int = {
+      index match {
+        case IntValue(ix, 32) if 0 <= ix && ix < bound => ix.toInt
+        case IntValue(_, 32) => throw new LlvmConversionException("index is out of bounds: " + index)
+        case _ => throw new LlvmConversionException("value cannot be used to index a struct type: " + index)
+      }
+    }
+
+    indices match {
+      case Nil => ty
+      case i :: is => {
+        ty match {
+          case ArrayType(_, elementType) => getElementType(elementType, is, module)
+          case StructType(fieldTypes) => {
+            val index = getConstantIndexValue(i, fieldTypes.size)
+            getElementType(fieldTypes(index.toInt), is, module)
+          }
+          case NamedStructType(structName) => {
+            val struct = module.definitions.get(structName) match {
+              case Some(s: Struct) => s
+              case None => throw new LlvmConversionException("undefined struct: " + structName)
+            }
+            val index = getConstantIndexValue(i, struct.fieldTypes.size)
+            getElementType(struct.fieldTypes(index.toInt), is, module)
+          }
+          case _ => throw new LlvmConversionException("invalid aggregate type: " + ty)
+        }
+      }
+    }
+  }
+}
+
 final case class Comparison(name: String) {
   override def toString = name
 }
@@ -171,6 +205,21 @@ final case class ConditionalBranchInstruction(condition: Value,
   }
 }
 
+final case class ExtractValueInstruction(override name: String,
+                                         value: Value,
+                                         indices: List[Value])
+  extends ElementInstruction
+{
+  def opname = "extractvalue"
+  def ty(module: Module) = getElementType(value.ty, indices, module)
+  def operands = value :: indices
+  override def toString = {
+    "%s %s, %s".format(nameString, 
+                       value.typedToString, 
+                       indices.mkString(", "))
+  }
+}
+
 final case class FloatAddInstruction(override name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
@@ -243,52 +292,19 @@ final case class FloatTruncateInstruction(override name: String, value: Value, t
 final case class GetElementPointerInstruction(override name: String,
                                               base: Value,
                                               indices: List[Value])
-  extends Instruction
+  extends ElementInstruction
 {
   def opname = "getelementptr"
 
   def ty(module: Module) = {
-    def getStructFieldType(structType: Type, index: Value): Type = {
-      val ix = index match {
-        case IntValue(i, 32) => i
-        case _ => throw new LlvmConversionException("invalid index value for struct: " + index)
+    (base.ty, indices) match {
+      case (PointerType(baseType), i :: is) => {
+        val elementType = getElementType(baseType, is, module)
+        PointerType(elementType)
       }
-      val fieldTypes = structType match {
-        case StructType(fts) => fts
-        case NamedStructType(name) => {
-          module.definitions.get(name) match {
-            case Some(Struct(_, fts)) => fts
-            case _ => throw new LlvmConversionException("struct name %s does not correspond to a defined struct type".format(name))
-          }
-        }
-        case _ => throw new RuntimeException("struct type expected")
-      }
-      if (0 <= ix && ix < fieldTypes.size)
-        fieldTypes(ix.toInt)
-      else
-        throw new LlvmConversionException("struct type %s does not have a field at index %d".format(structType, ix))
+      case (PointerType(_), Nil) => throw new LlvmConversionException("at least one index must be given for getelementptr")
+      case _ => throw new LlvmConversionException("first argument to getelementptr must be pointer")
     }
-
-    def getElementType(baseType: Type, indices: List[Value]): Type = {
-      indices match {
-        case Nil => baseType
-        case i :: is => {
-          val elementType = baseType match {
-            case _: StructType | _: NamedStructType => getStructFieldType(baseType, i)
-            case ArrayType(_, elementType) => elementType
-            case _ => throw new LlvmConversionException("type %s is not indexable".format(baseType))
-          }
-          getElementType(elementType, is)
-        }
-      }
-    }
-
-    val baseType = base.ty match {
-      case PointerType(t) => t
-      case _ => throw new LlvmConversionException("base %s is not a pointer".format(base))
-    }
-    val elementType = getElementType(baseType, indices.tail)
-    PointerType(elementType)
   }
 
   def operands = base :: indices
@@ -300,6 +316,23 @@ final case class GetElementPointerInstruction(override name: String,
   }
 }
     
+final case class InsertValueInstruction(override name: String,
+                                        base: Value,
+                                        value: Value,
+                                        indices: List[Value])
+  extends ElementInstruction
+{
+  def opname = "insertvalue"
+  def ty(module: Module) = base.ty
+  def operands = base :: value :: indices
+  override def toString = {
+    "%s %s, %s, %s".format(nameString, 
+                           base.typedToString, 
+                           value.typedToString, 
+                           indices.mkString(", "))
+  }
+}
+
 final case class IntegerCompareInstruction(override name: String,
                                            comparison: Comparison,
                                            ty: Type,

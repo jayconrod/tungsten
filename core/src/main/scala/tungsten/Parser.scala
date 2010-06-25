@@ -158,11 +158,13 @@ object Parser extends Parsers with ImplicitConversions {
     bitcastInst        |
     branchInst         |
     condInst           |
+    extractInst        |
     fextendInst        |
     ftoiInst           |
     ftruncateInst      |
     heapInst           |
     heapArrayInst      |
+    insertInst         |
     itofInst           |
     isextendInst       |
     itruncateInst      |
@@ -218,6 +220,12 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
+  lazy val extractInst: Parser[ExtractInstruction] = {
+    instName("extract") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
+      case anns ~ ty ~ n ~ v ~ is => ExtractInstruction(n, ty, v, is, anns)
+    }
+  }
+
   lazy val fextendInst: Parser[FloatExtendInstruction] = {
     instName("fextend") ~ value ^^ {
       case anns ~ ty ~ n ~ v => FloatExtendInstruction(n, ty, v, anns)
@@ -245,6 +253,12 @@ object Parser extends Parsers with ImplicitConversions {
   lazy val heapArrayInst: Parser[HeapAllocateArrayInstruction] = {
     instName("heaparray") ~ value ^^ {
       case anns ~ ty ~ n ~ v => HeapAllocateArrayInstruction(n, ty, v, anns)
+    }
+  }
+
+  lazy val insertInst: Parser[InsertInstruction] = {
+    instName("insert") ~ (value <~ ",") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
+      case anns ~ ty ~ n ~ v ~ b ~ is => InsertInstruction(n, ty, v, b, is, anns)
     }
   }
 

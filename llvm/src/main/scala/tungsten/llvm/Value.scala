@@ -51,9 +51,10 @@ final case class ArrayValue(elementType: Type, elements: List[Value])
 final case class StructValue(elements: List[Value])
   extends Value
 {
-  def ty = throw new UnsupportedOperationException // TODO
+  def ty = StructType(elements.map(_.ty))
 
-  override def toString = elements.mkString("{", ", ", "}")
+  override def toString = elements.map(_.typedToString).mkString("{", ", ", "}")
+  override def typedToString = toString
 }
 
 final case class DefinedValue(name: String, ty: Type)

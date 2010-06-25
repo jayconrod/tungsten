@@ -53,7 +53,7 @@ final case class StructType(fieldTypes: List[Type])
 final case class NamedStructType(name: String)
   extends Type
 {
-  override def toString = "struct " + name
+  override def toString = name
 }
 
 final case class FunctionType(returnType: Type, parameterTypes: List[Type])

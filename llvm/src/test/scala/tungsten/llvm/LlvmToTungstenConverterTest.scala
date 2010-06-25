@@ -72,6 +72,36 @@ class LlvmToTungstenConverterTest {
                    convertInstruction(BranchInstruction(DefinedValue("%baz", LabelType)), data))
   }
 
+  @Test
+  def extractvalueInst {
+    parent = "foo"
+    testConversion(tungsten.ExtractInstruction("foo.a#1",
+                                               tungsten.IntType(32),
+                                               tungsten.ArrayValue(tungsten.IntType(32),
+                                                                   List(tungsten.IntValue(1, 32))),
+                                               List(tungsten.IntValue(0, 32))),
+                   convertInstruction(ExtractValueInstruction("%a",
+                                                              ArrayValue(IntType(32),
+                                                                         List(IntValue(1, 32))),
+                                                              List(IntValue(0, 32))), defaultData))
+  }
+
+  @Test
+  def insertvalueInst {
+    parent = "foo"
+    testConversion(tungsten.InsertInstruction("foo.a#1",
+                                              tungsten.ArrayType(1, tungsten.IntType(32)),
+                                              tungsten.IntValue(1, 32),
+                                              tungsten.ArrayValue(tungsten.IntType(32),
+                                                                  List(tungsten.IntValue(2, 32))),
+                                              List(tungsten.IntValue(0, 32))),
+                   convertInstruction(InsertValueInstruction("%a",
+                                                             ArrayValue(IntType(32),
+                                                                        List(IntValue(2, 32))),
+                                                             IntValue(1, 32),
+                                                             List(IntValue(0, 32))), defaultData))
+  }
+
   @Test 
   def loadInst {
     parent = "foo"

@@ -85,6 +85,13 @@ class LlvmCompatibilityPassTest {
   }
 
   @Test
+  def extractInst {
+    val code = "extract unit %a = [2 x unit] {(), ()}, int64 1"
+    val expected = "extract unit %a = [2 x unit] {(), ()}, int32 1"
+    testCode(expected, code)
+  }
+
+  @Test
   def heapInst {
     val code = "heap int64* %a"
     val expected = "scall int8* %llvmCompat#1 = @tungsten.malloc(int32 8)\n" +
@@ -98,6 +105,13 @@ class LlvmCompatibilityPassTest {
     val expected = "binop int64 %llvmCompat#1 = int64 2 * int64 8\n" +
                    "scall int8* %llvmCompat#2 = @tungsten.malloc(int64 %llvmCompat#1)\n" +
                    "bitcast int64* %a = int8* %llvmCompat#2"
+    testCode(expected, code)
+  }
+
+  @Test
+  def insertInst {
+    val code = "insert [2 x unit] %a = (), [2 x unit] {(), ()}, int64 1"
+    val expected = "insert [2 x unit] %a = (), [2 x unit] {(), ()}, int32 1"
     testCode(expected, code)
   }
 

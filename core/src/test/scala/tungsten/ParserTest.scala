@@ -189,7 +189,7 @@ class ParserTest {
     val anns = List(AnnotationValue("@ann", List(UnitValue)))
     val ty = UnitType
     val n = Symbol("%x")
-    test("@ann(()) assign unit %x =", Parser.instName("assign"), 
+    test("@ann(()) address unit %x =", Parser.instName("address"), 
          Parser.~(Parser.~(anns, ty), n))
   }
 
@@ -197,12 +197,6 @@ class ParserTest {
   def addressInst {
     testInstruction("address unit %x = (), ()",
                     AddressInstruction("%x", UnitType, UnitValue, List(UnitValue)))
-  }
-
-  @Test
-  def assignInst {
-    testInstruction("assign unit %x = ()",
-                    AssignInstruction("%x", UnitType, UnitValue))
   }
 
   @Test

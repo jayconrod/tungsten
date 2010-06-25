@@ -104,13 +104,6 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
-  def assignInst {
-    val expected = BitCastInstruction("%x", IntValue(0L, 32), IntType(32))
-    val assign = tungsten.AssignInstruction("foo.x", tungsten.IntType(32), tungsten.IntValue(0L, 32))
-    testInstructionConversion(expected, assign)
-  }
-
-  @Test
   def binopInst {
     val expected = SubtractInstruction("%x", IntType(32), IntValue(2, 32), IntValue(1, 32))
     val sub = tungsten.BinaryOperatorInstruction("foo.x", 

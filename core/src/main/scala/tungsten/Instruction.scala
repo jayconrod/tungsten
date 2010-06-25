@@ -222,20 +222,6 @@ final case class AddressInstruction(name: Symbol,
   }
 }
 
-final case class AssignInstruction(name: Symbol,
-                                   ty: Type,
-                                   value: Value,
-                                   annotations: List[AnnotationValue] = Nil)
-  extends Instruction
-{
-  def operands = List(value)
-
-  override def validate(module: Module) = {
-    stage(super.validate(module),
-          checkType(value.ty, ty, getLocation))
-  }
-}
-
 sealed abstract class BinaryOperator(val name: String) {
   def isArithmetic: Boolean = false
   def isShift: Boolean = false

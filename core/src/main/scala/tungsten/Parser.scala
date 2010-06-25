@@ -153,7 +153,6 @@ object Parser extends Parsers with ImplicitConversions {
 
   lazy val instruction: Parser[Instruction] = {
     addressInst        |
-    assignInst         |
     binopInst          |
     bitcastInst        |
     branchInst         |
@@ -185,12 +184,6 @@ object Parser extends Parsers with ImplicitConversions {
   lazy val addressInst: Parser[AddressInstruction] = {
     instName("address") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
       case anns ~ ty ~ n ~ a ~ is => AddressInstruction(n, ty, a, is, anns)
-    }
-  }
-
-  lazy val assignInst: Parser[AssignInstruction] = {
-    instName("assign") ~ value ^^ {
-      case anns ~ ty ~ n ~ v => AssignInstruction(n, ty, v, anns)
     }
   }
 

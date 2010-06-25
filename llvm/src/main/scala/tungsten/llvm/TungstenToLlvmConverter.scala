@@ -83,8 +83,6 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
                                      convertValue(base, parent), 
                                      indices.map(convertValue(_, parent)))
       }
-      case tungsten.AssignInstruction(_, ty, value, _) =>
-        BitCastInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.BinaryOperatorInstruction(_, ty, op, left, right, _) => {
         import tungsten.BinaryOperator._
         assert(left.ty == right.ty)

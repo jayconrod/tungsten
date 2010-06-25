@@ -160,7 +160,6 @@ object ModuleIO {
         case ADDRESS_INST_ID => {
           AddressInstruction(name, readType, readValue, readList(readValue), readAnnotations)
         }
-        case ASSIGN_INST_ID => AssignInstruction(name, readType, readValue, readAnnotations)
         case BINARY_OPERATOR_INST_ID => {
           BinaryOperatorInstruction(name, readType, readBinaryOperator, 
                                     readValue, readValue, readAnnotations)
@@ -581,7 +580,6 @@ object ModuleIO {
 
       val instName = instruction match {
         case _: AddressInstruction => "address"
-        case _: AssignInstruction => "assign"
         case _: BinaryOperatorInstruction => "binop"
         case _: BitCastInstruction => "bitcast"
         case _: BranchInstruction => "branch"
@@ -620,9 +618,6 @@ object ModuleIO {
       instruction match {
         case AddressInstruction(_, _, base, indices, _) => {
           output.write(localValue(base) + ", " + indices.map(localValue _).mkString(", "))
-        }
-        case AssignInstruction(_, _, value, _) => {
-          output.write(localValue(value))
         }
         case BinaryOperatorInstruction(_, _, operator, left, right, _) => {
           output.write(localValue(left) + " " + operator.name + " " + localValue(right))
@@ -976,7 +971,6 @@ object ModuleIO {
         case inst: Instruction => {
           val instId = inst match {
             case _: AddressInstruction => ADDRESS_INST_ID
-            case _: AssignInstruction => ASSIGN_INST_ID
             case _: BinaryOperatorInstruction => BINARY_OPERATOR_INST_ID
             case _: BitCastInstruction => BIT_CAST_INST_ID
             case _: BranchInstruction => BRANCH_INST_ID
@@ -1011,9 +1005,6 @@ object ModuleIO {
             case AddressInstruction(_, _, base, indices, _) => {
               writeValue(base)
               writeList(indices, writeValue _)
-            }
-            case AssignInstruction(_, _, value, _) => {
-              writeValue(value)
             }
             case BinaryOperatorInstruction(_, _, operator, left, right, _) => {
               writeBinaryOperator(operator)
@@ -1312,7 +1303,7 @@ object ModuleIO {
   val STRUCT_ID: Byte = 7
 
   val ADDRESS_INST_ID: Byte = 100
-  val ASSIGN_INST_ID: Byte = 101
+  // 101 free
   val BINARY_OPERATOR_INST_ID: Byte = 102
   val BIT_CAST_INST_ID: Byte = 103
   val BRANCH_INST_ID: Byte = 104

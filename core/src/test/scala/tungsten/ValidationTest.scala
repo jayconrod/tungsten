@@ -94,11 +94,12 @@ class ValidationTest {
   }
 
   @Test
-  def nonLocalAssign {
-    val program = "global unit @foo\n" +
+  def globalUse {
+    val program = "is64bit: true\n" +
+                  "global unit @foo\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign unit* %a = unit* @foo\n" +
+                  "    address unit* %a = unit* @foo, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -139,9 +140,9 @@ class ValidationTest {
   }
 
   @Test
-  def assignOutOfOrder {
-    val code = "assign unit %a = unit %b\n" +
-               "assign unit %b = ()"
+  def useOutOfOrder {
+    val code = "binop int64 %a = int64 1 + int64 %b\n" +
+               "binop int64 %b = int64 2 + int64 3\n"
     codeContainsError[InstructionOrderException](code)
   }
 
@@ -402,12 +403,13 @@ class ValidationTest {
 
   @Test
   def invalidStructValueCount {
-    val program = "struct @A {\n" +
+    val program = "is64bit: true\n" +
+                  "struct @A {\n" +
                   "  field unit %b\n" +
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign struct @A %x = struct @A {(), ()}\n" +
+                  "    extract unit %x = struct @A {(), ()}, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -421,7 +423,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign struct @A %x = struct @A {int32 12}\n" +
+                  "    extract unit %x = struct @A {int32 12}, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -450,7 +452,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign int64 %i = int64 0\n" +
+                  "    binop int64 %i = int64 0 + int64 0\n" +
                   "    extract unit %e = struct @A {()}, int64 %i\n" +
                   "    return ()\n" +
                   "  }\n" +
@@ -469,8 +471,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    assign struct @B %a = struct @B { struct @A {int32 12} }\n" +
-                  "    insert struct @B %b = int32 34, struct @B %a, int64 0, int64 0\n" +
+                  "    insert struct @B %a = int32 34, struct @B { struct @A { int32 12 } }, int64 0, int64 0\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -479,7 +480,7 @@ class ValidationTest {
 
   @Test
   def nonExistantStructValue {
-    val i1 = AssignInstruction("i1", StructType("A"), StructValue("A", Nil))
+    val i1 = ExtractInstruction("i1", UnitType, StructValue("A", List(UnitValue)), List(IntValue(0, 64)))
     val i2 = ReturnInstruction("i2", UnitType, UnitValue)
     val block = Block("main.entry", Nil, List(i1, i2).map(_.name))
     val function = Function("main", UnitType, Nil, List(block.name))

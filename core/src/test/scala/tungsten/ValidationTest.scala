@@ -479,6 +479,20 @@ class ValidationTest {
   }
 
   @Test
+  def loadElementDoubleIndex {
+    val code = "stack [1 x [1 x unit]]* %a\n" +
+               "loadelement unit %b = [1 x [1 x unit]]* %a, int64 0, int64 0, int64 0"
+    codeIsCorrect(code)
+  }
+
+  @Test
+  def storeElementDoubleIndex {
+    val code = "stack [1 x [1 x unit]]* %a\n" +
+               "storeelement (), [1 x [1 x unit]]* %a, int64 0, int64 0, int64 0"
+    codeIsCorrect(code)
+  }
+
+  @Test
   def nonExistantStructValue {
     val i1 = ExtractInstruction("i1", UnitType, StructValue("A", List(UnitValue)), List(IntValue(0, 64)))
     val i2 = ReturnInstruction("i2", UnitType, UnitValue)

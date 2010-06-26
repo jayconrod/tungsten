@@ -166,7 +166,7 @@ trait ElementInstruction extends Instruction {
    *    validatePointerIndices.
    *  @return a pointer type to the element being referenced by the indices
    */
-  def getPointerType(module: Module, pointerType: Type, indices: List[Value]): Type = 
+  def getPointerType(module: Module, pointerType: Type, indices: List[Value]): PointerType = 
   {
     (pointerType, indices) match {
       case (PointerType(baseType), i :: is) => {
@@ -210,12 +210,6 @@ final case class AddressInstruction(name: Symbol,
   def operands = base :: indices
 
   override def validate(module: Module) = {
-    def typeIsValid = {
-      val PointerType(ptrElementType) = base.ty
-      val calculatedType = PointerType(getElementType(module, ptrElementType, indices))
-      checkType(calculatedType, ty, getLocation)
-    }
-
     super.validate(module) ++
       stage(validatePointerIndices(module, base.ty, indices),
             checkType(getPointerType(module, base.ty, indices), ty, getLocation))
@@ -709,16 +703,16 @@ final case class LoadElementInstruction(name: Symbol,
   def operands = base :: indices
 
   override def validate(module: Module) = {
-    def typeIsValid = {
-      val elementType = getElementType(module, base.ty, indices)
+    def validateType = {
+      val PointerType(elementType) = getPointerType(module, base.ty, indices)
       checkType(elementType, ty, getLocation)
     }
 
-    super.validate(module) ++ 
-      stage(validateIndices(module, base.ty, indices),
-            typeIsValid)
+    super.validate(module) ++
+      stage(validatePointerIndices(module, base.ty, indices),
+            validateType)
   }
-}
+}    
 
 final case class RelationalOperator(name: String)
 
@@ -828,13 +822,14 @@ final case class StoreElementInstruction(name: Symbol,
   def operands = base :: value :: indices
 
   override def validate(module: Module) = {
-    def validateValueType = {
-      val elementType = getElementType(module, base.ty, indices)
+    def validateType = {
+      val PointerType(elementType) = getPointerType(module, base.ty, indices)
       checkType(value.ty, elementType, getLocation)
     }
-    super.validate(module) ++ 
-      stage(validateIndices(module, base.ty, indices),
-            validateValueType,
+
+    super.validate(module) ++
+      stage(validatePointerIndices(module, base.ty, indices),
+            validateType,
             checkType(UnitType, ty, getLocation))
   }
 }

@@ -127,10 +127,30 @@ class LlvmCompatibilityPass
         List(tungsten.StaticCallInstruction(name, ty, cTarget, arguments, anns))
       }
 
+      case tungsten.LoadElementInstruction(name, ty, base, indices, anns) => {
+        val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
+        val address = tungsten.AddressInstruction(newName(name),
+                                                  tungsten.PointerType(ty),
+                                                  base,
+                                                  cIndices)
+        val load = tungsten.LoadInstruction(name, ty, address.makeValue, anns)
+        casts ++ List(address, load)
+      }
+
       case tungsten.StackAllocateArrayInstruction(name, ty, count, _) => {
         val (cCount, cast) = convertWordTo32Bit(count, name)
         val cStack = instruction.copyWith("count" -> cCount).asInstanceOf[tungsten.Instruction]
         cast.toList :+ cStack
+      }
+
+      case tungsten.StoreElementInstruction(name, ty, value, base, indices, anns) => {
+        val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
+        val address = tungsten.AddressInstruction(newName(name),
+                                                  tungsten.PointerType(ty),
+                                                  base,
+                                                  cIndices)
+        val store = tungsten.StoreInstruction(name, ty, value, address.makeValue, anns)
+        casts ++ List(address, store)
       }
 
       case _ => List(instruction)

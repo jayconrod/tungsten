@@ -123,9 +123,25 @@ class LlvmCompatibilityPassTest {
   }
 
   @Test
+  def loadElementInst {
+    val code = "loadelement unit %b = [1 x unit]* %a, int64 0, int64 0"
+    val expected = "address unit* %llvmCompat#1 = [1 x unit]* %a, int32 0, int32 0\n" +
+                   "load unit %b = unit* %llvmCompat#1"
+    testCode(expected, code)
+  }
+
+  @Test
   def stackArrayInst {
     val code = "stackarray int64* %a = int64 2"
     val expected = "stackarray int64* %a = int32 2"
+    testCode(expected, code)
+  }
+
+  @Test
+  def storeElementInst {
+    val code = "storeelement unit %x = (), [1 x unit]* %a, int64 0, int64 0"
+    val expected = "address unit* %llvmCompat#1 = [1 x unit]* %a, int32 0, int32 0\n" +
+                   "store unit %x = (), unit* %llvmCompat#1"
     testCode(expected, code)
   }
 }

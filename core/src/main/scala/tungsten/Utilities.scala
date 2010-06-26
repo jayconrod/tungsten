@@ -68,8 +68,6 @@ object Utilities {
 
   def isPowerOf2(x: Int) = (x & (x - 1)) == 0
 
-  def isJvm64Bit: Boolean = System.getProperty("sun.arch.data.model") == "64"
-
   def padMap[K, V](map: Map[K, V], keys: Set[K], defaultValue: V): Map[K, V] = {
     (map /: keys) { (map, k) =>
       if (map.contains(k))

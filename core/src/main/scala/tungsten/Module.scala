@@ -12,7 +12,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
                    val filename:     Option[File]            = None,
                    val dependencies: List[ModuleDependency]  = Nil,
                    val searchPaths:  List[File]              = Nil,
-                   val is64Bit:      Boolean                 = Utilities.isJvm64Bit,
+                   val is64Bit:      Boolean                 = true,
                    val isSafe:       Boolean                 = false,
                    val definitions:  Map[Symbol, Definition] = new TreeMap[Symbol, Definition])
 {

@@ -240,7 +240,7 @@ object Linker {
   }
 
   def checkWordSize(modules: List[Module]): Boolean = {
-    val is64Bit = modules.headOption.map(_.is64Bit).getOrElse(Utilities.isJvm64Bit)
+    val is64Bit = modules.headOption.map(_.is64Bit).getOrElse(true)
     val incorrectStr = if (is64Bit) "32-bit" else "64-bit"
     val correctStr = if (is64Bit) "64-bit" else "32-bit"
     def filenameStr(n: Option[File]) = {

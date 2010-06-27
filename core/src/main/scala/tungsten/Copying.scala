@@ -1,6 +1,6 @@
 package tungsten
 
-trait Copying[T] 
+trait Copying[T <: AnyRef] 
   extends Mapping[T]
 {
   def copyWith(changes: (String, AnyRef)*): T = {

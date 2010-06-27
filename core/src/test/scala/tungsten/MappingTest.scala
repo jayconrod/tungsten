@@ -48,4 +48,37 @@ class MappingTest {
     val expected = MappingBar(List(MappingFoo("a", IntValue(5, 32), IntType(32))))
     assertEquals(expected, a.mapValues(addTwo))
   }
+
+  @Test
+  def mapValuesInternal {
+    val array = ArrayValue(ArrayType(1, IntType(64)), 
+                           List(ArrayValue(IntType(64), List(IntValue(0, 64)))))
+    val foo = MappingFoo("a", array, UnitType)
+    val arrayExpected = ArrayValue(ArrayType(1, IntType(64)),
+                                   List(ArrayValue(IntType(64), List(IntValue(2, 64)))))
+    val expected = MappingFoo("a", arrayExpected, UnitType)
+    assertEquals(expected, foo.mapValues(addTwo _))
+  }
+
+  @Test
+  def mapTypesInternal {
+    def widen(ty: Type): Type = {
+      ty match {
+        case IntType(w) => IntType(w * 2)
+        case _ => ty
+      }
+    }
+    val ty = PointerType(IntType(8))
+    val foo = MappingFoo("a", UnitValue, ty)
+    val expectedTy = PointerType(IntType(16))
+    val expectedFoo = MappingFoo("a", UnitValue, expectedTy)
+    assertEquals(expectedFoo, foo.mapTypes(widen _))
+  }
+
+  @Test
+  def mapValuesSelf {
+    val value = IntValue(1, 64)
+    val expected = IntValue(3, 64)
+    assertEquals(expected, value.mapValues(addTwo _))
+  }
 }

@@ -84,21 +84,21 @@ class PhiAnalysisTest {
   def replaceConstants {
     val value = tungsten.DefinedValue("f.bb3.e", tungsten.IntType(64))
     val expected = tungsten.IntValue(12, 64)
-    assertEquals(expected, PhiConversion.replaceConstants(value, constantMap))
+    assertEquals(expected, value.mapValues(PhiConversion.replaceConstants(_, constantMap)))
   }
 
   @Test
   def replaceConstantsArray {
     val value = tungsten.ArrayValue(tungsten.IntType(64), List(tungsten.DefinedValue("f.bb3.e", tungsten.IntType(64))))
     val expected = tungsten.ArrayValue(tungsten.IntType(64), List(tungsten.IntValue(12, 64)))
-    assertEquals(expected, PhiConversion.replaceConstants(value, constantMap))
+    assertEquals(expected, value.mapValues(PhiConversion.replaceConstants(_, constantMap)))
   }
 
   @Test
   def replaceConstantsStruct {
     val value = tungsten.StructValue("A", List(tungsten.DefinedValue("f.bb3.e", tungsten.IntType(64))))
     val expected = tungsten.StructValue("A", List(tungsten.IntValue(12, 64)))
-    assertEquals(expected, PhiConversion.replaceConstants(value, constantMap))
+    assertEquals(expected, value.mapValues(PhiConversion.replaceConstants(_, constantMap)))
   }
 
   @Test

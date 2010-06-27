@@ -2,8 +2,24 @@ package tungsten
 
 import java.lang.reflect.{Field => ReflectedField}
 
-trait Mapping[T]
+/** Mapping uses reflection to manipulate the fields of an object recursively. This is very
+ *  useful for updates parts of a large, complicated since you don't have to know anything
+ *  about its structure. Classes which mix in this trait are assumed to be global case classes.
+ *  They must be case classes since there is expected to be a 1-to-1 mapping between fields
+ *  and constructor parameters (so new, updated objects can be built). They must be global
+ *  so that there are no implicit constructor parameters (which would violate the 
+ *  afforementioned 1-to-1 mapping.
+ */
+trait Mapping[T <: AnyRef]
 {
+  /** Create a new object by applying the given function to each field of this object. This
+   *  essentially gets a list of fields, maps it with the function, and uses it as a parameter
+   *  list for the constructor of a new object. The function is not applied recursively to
+   *  any values beyond the fields of this object.
+   *  @param function a function which takes the name of the field and its original value 
+   *    and returns a new value. The new value must have a valid class for this field.
+   *  @return a new object of the same class as this one with updated fields
+   */
   def mapFields(function: (ReflectedField, AnyRef) => AnyRef): T = {
     val clas = getClass
     val constructor = clas.getDeclaredConstructors.head    
@@ -23,28 +39,29 @@ trait Mapping[T]
     }
   }
 
-  def mapFieldsRecursively[S <: AnyRef](function: S => S)(implicit m: Manifest[S]): T = {
+  /** Similar to mapFields but recurses through the tree of objects, applying the given function
+   *  to every field of the correct type. This method will recurse not only through values
+   *  with this trait, but also through lists. The given function is applied to a value after
+   *  its components have been updated (so post-traversal). This object must not have any
+   *  cyclic references, as they will through this method into an infinite loop.
+   */
+  def mapRecursively[S <: AnyRef](function: S => S)(implicit m: Manifest[S]): T = {
     val SClass = m.erasure.asInstanceOf[Class[S]]
     def mapper(field: ReflectedField, oldValue: AnyRef): AnyRef = {
-      oldValue match {
-        case s if SClass.isInstance(s) => function(s.asInstanceOf[S])
-        case v: Mapping[_] => v.asInstanceOf[Mapping[AnyRef]].mapFieldsRecursively(function)
-        case list: List[_] if !list.isEmpty => {
-          if (SClass.isInstance(list.head))
-            list.map { s => function(s.asInstanceOf[S]) }
-          else if (list.head.isInstanceOf[Mapping[_]])
-            list.map { e => e.asInstanceOf[Mapping[AnyRef]].mapFieldsRecursively(function) }
-          else
-            list
-        }
-        case _ =>
-          oldValue
+      val mapped = oldValue match {
+        case v: Mapping[_] => v.mapFields(mapper _)
+        case list: List[_] => list.map { e => mapper(null, e.asInstanceOf[AnyRef]) }
+        case _ => oldValue
       }
+      if (SClass.isInstance(mapped))
+        function(mapped.asInstanceOf[S])
+      else
+        mapped
     }
-    mapFields(mapper)
+    mapper(null, this).asInstanceOf[T]
   }
 
-  def mapSymbols(function: Symbol => Symbol): T = mapFieldsRecursively(function)
-  def mapValues(function: Value => Value): T = mapFieldsRecursively(function)
-  def mapTypes(function: Type => Type): T = mapFieldsRecursively(function)
+  def mapSymbols(function: Symbol => Symbol): T = mapRecursively(function)
+  def mapValues(function: Value => Value): T = mapRecursively(function)
+  def mapTypes(function: Type => Type): T = mapRecursively(function)
 }

@@ -44,7 +44,9 @@ class PhiAnalysis(module: tungsten.Module)
     val liveOutBindings = module.getInstruction(block.instructions.last).liveOutBindings
     (Map[Node, Data]() /: liveOutBindings) { (outData, kv) =>
       val (blockName, arguments) = kv
-      val updatedArgs = arguments.map(PhiConversion.replaceConstants(_, liveInConstants))
+      val updatedArgs = arguments.map { v =>
+        v.mapValues(PhiConversion.replaceConstants(_, liveInConstants))
+      }
       outData + (blockName -> updatedArgs)
     }
   }
@@ -87,14 +89,14 @@ object PhiConversion
     }
   }
 
+  /** Replaces defined values with the corresponding value in the constant map (if it 
+   *  exists). Use mapValues with this function if you want it to work recursively in
+   *  aggregate values.
+   */
   def replaceConstants(value: tungsten.Value, 
                        constants: Map[Symbol, tungsten.Value]): tungsten.Value = 
   {
     value match {
-      case tungsten.ArrayValue(elementType, elements) => 
-        tungsten.ArrayValue(elementType, elements.map(replaceConstants(_, constants)))
-      case tungsten.StructValue(structName, fields) =>
-        tungsten.StructValue(structName, fields.map(replaceConstants(_, constants)))
       case tungsten.DefinedValue(name, ty) => constants.getOrElse(name, value)
       case _ => value
     }

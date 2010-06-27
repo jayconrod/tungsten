@@ -64,4 +64,33 @@ trait Mapping[T <: AnyRef]
   def mapSymbols(function: Symbol => Symbol): T = mapRecursively(function)
   def mapValues(function: Value => Value): T = mapRecursively(function)
   def mapTypes(function: Type => Type): T = mapRecursively(function)
+
+  /** Accumulates a value by recursively traversing the given object tree, applying the given
+   *  function on each field within its domain. Like mapRecursively, this will recurse through
+   *  values with this trait as well as lists. The object tree must not be cyclic. The function
+   *  is applied in post-traversal order.
+   */
+  def foldRecursively[S, V](accum: V, function: (V, S) => V)(implicit m: Manifest[S]): V = {
+    val SClass = m.erasure.asInstanceOf[Class[S]]
+    def fold(accum: V, field: AnyRef): V = {
+      val newAccum = field match {
+        case v: Mapping[_] => {
+          val clas = v.getClass
+          val fields = clas.getDeclaredFields.map { f => clas.getMethod(f.getName).invoke(v) }
+          (accum /: fields)(fold _)
+        }
+        case list: List[_] => (accum /: list) { (a, e) => fold(a, e.asInstanceOf[AnyRef]) }
+        case _ => accum
+      }
+      if (SClass.isInstance(field))
+        function(newAccum, field.asInstanceOf[S])
+      else
+        newAccum
+    }
+    fold(accum, this)
+  }
+
+  def foldSymbols[V](accum: V, function: (V, Symbol) => V) = foldRecursively(accum, function)
+  def foldValues[V](accum: V, function: (V, Value) => V) = foldRecursively(accum, function)
+  def foldTypes[V](accum: V, function: (V, Type) => V) = foldRecursively(accum, function)
 }

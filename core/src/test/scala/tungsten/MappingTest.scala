@@ -18,6 +18,13 @@ class MappingTest {
     }
   }
 
+  def sum(total: Long, value: Value): Long = {
+    value match {
+      case IntValue(v, _) => total + v
+      case _ => total
+    }
+  }
+
   @Test
   def mapFieldsTest {
     val a = MappingFoo("a", IntValue(3, 32), IntType(32))
@@ -80,5 +87,17 @@ class MappingTest {
     val value = IntValue(1, 64)
     val expected = IntValue(3, 64)
     assertEquals(expected, value.mapValues(addTwo _))
+  }
+
+  @Test
+  def foldValues {
+    val value = ArrayValue(IntType(64), List(IntValue(2, 64), IntValue(2, 64)))
+    assertEquals(4L, value.foldValues(0L, sum _))
+  }
+
+  @Test
+  def foldValuesSelf {
+    val value = IntValue(3, 64)
+    assertEquals(3L, value.foldValues(0L, sum _))
   }
 }

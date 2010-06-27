@@ -23,6 +23,13 @@ class LlvmCompatibilityPass
     val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
     cModule = cModule.replace(noreturn)
 
+    val stringCharacters = tungsten.Field("tungsten.string.characters",
+                                          tungsten.PointerType(tungsten.IntType(16)))
+    val stringLength = tungsten.Field("tungsten.string.length", tungsten.IntType(64))
+    val string = tungsten.Struct("tungsten.string", 
+                                 List(stringCharacters.name, stringLength.name))
+    cModule = cModule.replace(stringCharacters, stringLength, string)
+
     val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
     val malloc = tungsten.Function("tungsten.malloc", 
                                    tungsten.PointerType(tungsten.IntType(8)), 

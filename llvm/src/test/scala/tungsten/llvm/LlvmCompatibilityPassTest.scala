@@ -36,10 +36,14 @@ class LlvmCompatibilityPassTest {
   }    
 
   @Test
-  def runtimeFunctionsPresent {
+  def runtimePresent {
     val module = new tungsten.Module
     val processed = pass.addRuntime(module)
     val expectedProgram = "annotation @tungsten.NoReturn\n" +
+                          "struct @tungsten.string {\n" +
+                          "  field int16* %characters\n" +
+                          "  field int64 %length\n" +
+                          "}\n" +
                           "function int8* @tungsten.malloc(int32 %size)\n" +
                           "@tungsten.NoReturn function unit @tungsten.exit(int32 %code)\n"
     val expected = ModuleIO.readText(expectedProgram)

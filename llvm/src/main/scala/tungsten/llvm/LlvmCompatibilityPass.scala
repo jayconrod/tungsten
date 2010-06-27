@@ -219,3 +219,6 @@ final case class TungstenPhiInstruction(name: Symbol,
 
   override def usedSymbols = operandSymbols ++ bindings.map(_._2)
 }
+
+final case class BitCastValue(value: tungsten.Value, ty: tungsten.Type)
+  extends tungsten.ExtendedValue

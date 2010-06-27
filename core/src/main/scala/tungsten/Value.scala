@@ -21,6 +21,8 @@ sealed abstract class Value
   def validate(module: Module, location: Location): List[CompileException] = Nil
 }
 
+abstract class ExtendedValue extends Value
+
 final case object UnitValue
   extends Value
 {

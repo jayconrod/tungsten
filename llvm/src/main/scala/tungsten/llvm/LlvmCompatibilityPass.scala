@@ -12,6 +12,7 @@ class LlvmCompatibilityPass
 
   val process: tungsten.Module => tungsten.Module = {
     addRuntime _            andThen
+      processStrings _      andThen
       processInstructions _ andThen
       processMain _         andThen 
       PhiConversion
@@ -69,8 +70,59 @@ class LlvmCompatibilityPass
       val processedInstructions = instructions.flatMap(convertInstruction(_, module))
       val processedBlock = block.copyWith("instructions" -> processedInstructions.map(_.name))
       module.remove(block.name :: block.instructions).
-        add(processedBlock :: processedInstructions)
+        add((processedBlock :: processedInstructions): _*)
     }
+  }
+
+  def processStrings(module: tungsten.Module): tungsten.Module = {
+    val strings = module.foldValues[Set[String]](Set(), collectStrings _)
+    val stringGlobalMap = (Map[String, tungsten.Global]() /: strings) { (globals, string) =>
+      globals + (string -> convertString(string))
+    }
+    val stringGlobals = stringGlobalMap.values.toSeq
+    val stringMap = stringGlobalMap.mapValues(_.name)
+
+    module.add(stringGlobals: _*).
+           mapValues(convertStringValue(_, stringMap)).
+           mapTypes(convertStringType _)
+  }
+
+  def collectStrings(strings: Set[String], value: tungsten.Value): Set[String] = {
+    value match {
+      case tungsten.StringValue(s) => strings + s
+      case _ => strings
+    }
+  }    
+
+  def convertString(string: String): tungsten.Global = {
+    val storageType = tungsten.ArrayType(string.length, tungsten.IntType(16))
+    val characters = string.toList.map { c => tungsten.IntValue(c.toLong, 16) }
+    val storageValue = tungsten.ArrayValue(tungsten.IntType(16), characters)
+    tungsten.Global(newName, storageType, Some(storageValue))
+  } 
+
+  def convertStringValue(value: tungsten.Value, 
+                         stringMap: Map[String, Symbol]): tungsten.Value = 
+  {
+    value match {
+      case tungsten.StringValue(s) => {
+        assert(stringMap.contains(s))
+        val storageType = tungsten.ArrayType(s.length, tungsten.IntType(16))
+        val storageValue = tungsten.DefinedValue(stringMap(s), 
+                                                 tungsten.PointerType(storageType))
+        val storagePtr = WBitCastValue(storageValue, tungsten.PointerType(tungsten.IntType(16)))
+        tungsten.StructValue("tungsten.string",
+                             List(storagePtr, tungsten.IntValue(s.length, 64)))
+      }
+      case _ => value
+    }
+  }
+  val stringType = tungsten.StructType("tungsten.string")
+  def convertStringType(ty: tungsten.Type): tungsten.Type = {
+    if (ty eq tungsten.StringType)
+      stringType
+    else
+      ty
   }
 
   def convertInstruction(instruction: tungsten.Instruction,
@@ -220,5 +272,5 @@ final case class TungstenPhiInstruction(name: Symbol,
   override def usedSymbols = operandSymbols ++ bindings.map(_._2)
 }
 
-final case class BitCastValue(value: tungsten.Value, ty: tungsten.Type)
+final case class WBitCastValue(value: tungsten.Value, ty: tungsten.Type)
   extends tungsten.ExtendedValue

@@ -5,6 +5,6 @@ final case class Global(override name: String, attributes: List[Attribute], valu
 {
   override def toString = {
     val attribStr = if (attributes.isEmpty) "" else " " + attributes.mkString(" ")
-    "%s = %s %s".format(name, attribStr, value.typedToString)
+    "%s = %sglobal %s".format(name, attribStr, value.typedToString)
   }
 }

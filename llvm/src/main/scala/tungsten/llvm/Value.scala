@@ -63,3 +63,8 @@ final case class DefinedValue(name: String, ty: Type)
   override def toString = escapeIdentifier(name)
 }
 
+final case class BitCastValue(value: Value, ty: Type)
+  extends Value
+{
+  override def toString = "bitcast (%s to %s)".format(value.typedToString, ty)
+}

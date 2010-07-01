@@ -208,6 +208,7 @@ class LlvmToTungstenConverter(val module: Module) {
       }
       case StructValue(elements) => throw new UnsupportedOperationException // TODO
       case DefinedValue(name, ty) => tungsten.DefinedValue(convertName(name), convertType(ty))
+      case _: BitCastValue => throw new UnsupportedOperationException // TODO ?
     }
   }
 

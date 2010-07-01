@@ -35,6 +35,12 @@ class LlvmCompatibilityPassTest {
     assertEquals(expectedInstructions.take(expectedInstructions.size - 1), converted)
   }    
 
+  def testProgram(expected: String, program: String) {
+    val expectedModule = ModuleIO.readText(expected)
+    val module = ModuleIO.readText(program)
+    assertEquals(expectedModule, module)
+  }
+
   @Test
   def runtimePresent {
     val module = new tungsten.Module
@@ -57,7 +63,8 @@ class LlvmCompatibilityPassTest {
                   "    return unit %r = ()\n" +
                   "  }\n" +
                   "}\n"
-    val converted = convert(program)
+    val module = ModuleIO.readText(program)
+    val converted = pass.processMain(module)
     val mainType = converted.getFunction("main").returnType
     val retType = converted.get[tungsten.ReturnInstruction]("main.entry.r").get.value.ty
     assertEquals(tungsten.IntType(32), mainType)
@@ -147,5 +154,59 @@ class LlvmCompatibilityPassTest {
     val expected = "address unit* %llvmCompat#1 = [1 x unit]* %a, int32 0, int32 0\n" +
                    "store unit %x = (), unit* %llvmCompat#1"
     testCode(expected, code)
+  }
+
+  @Test
+  def collectStrings {
+    val program = "global string @s = \"s\""
+    val module = ModuleIO.readText(program)
+    val strings = module.foldValues(Set[String](), pass.collectStrings _)
+    assertEquals(Set("s"), strings)
+  }
+
+  @Test
+  def convertString {
+    val string = "s"
+    val expected = tungsten.Global("llvmCompat#1",
+                                   tungsten.ArrayType(1, tungsten.IntType(16)),
+                                   Some(tungsten.ArrayValue(tungsten.IntType(16),
+                                                            List(tungsten.IntValue(115, 16)))))
+    assertEquals(expected, pass.convertString(string))
+  }                                   
+
+  @Test
+  def convertStringValue {
+    val value = tungsten.StringValue("s")
+    val stringName = symbolFromString("llvmCompat#1")
+    val stringMap = Map("s" -> stringName)
+    val charPtr = WBitCastValue(tungsten.DefinedValue(stringName,
+                                                      tungsten.PointerType(tungsten.ArrayType(1, tungsten.IntType(16)))),
+                                tungsten.PointerType(tungsten.IntType(16)))
+    val expected = tungsten.StructValue("tungsten.string",
+                                        List(charPtr, tungsten.IntValue(1, 64)))
+    assertEquals(expected, pass.convertStringValue(value, stringMap))
+  }
+
+  @Test
+  def processStrings {
+    val global = tungsten.Global("g", tungsten.StringType, Some(tungsten.StringValue("s")))
+    val definitions = Map(global.name -> global)
+    val module = new tungsten.Module(definitions=definitions)
+
+    val charType = tungsten.IntType(16)
+    val arrayType = tungsten.ArrayType(1, charType)
+    val arrayValue = tungsten.ArrayValue(tungsten.IntType(16), List(tungsten.IntValue(115, 16)))
+    val stringType = tungsten.StructType("tungsten.string")
+    val charsValue = WBitCastValue(tungsten.DefinedValue("llvmCompat#1",
+                                                         tungsten.PointerType(arrayType)),
+                                   tungsten.PointerType(charType))
+    val stringValue = tungsten.StructValue("tungsten.string",
+                                           List(charsValue, tungsten.IntValue(1, 64)))
+    val storageGlobal = tungsten.Global("llvmCompat#1", arrayType, Some(arrayValue))
+    val stringGlobal = tungsten.Global(global.name, stringType, Some(stringValue))
+    val expectedDefinitions = Map(storageGlobal.name -> storageGlobal,
+                                  stringGlobal.name -> stringGlobal)
+    val expectedModule = new tungsten.Module(definitions=expectedDefinitions)
+    assertEquals(expectedModule, pass.processStrings(module))
   }
 }

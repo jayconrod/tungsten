@@ -90,6 +90,13 @@ class MappingTest {
   }
 
   @Test
+  def mapValuesOption {
+    val global = Global("a", IntType(64), Some(IntValue(2, 64)))
+    val expected = Global("a", IntType(64), Some(IntValue(4, 64)))
+    assertEquals(expected, global.mapValues(addTwo _))
+  }
+
+  @Test
   def foldValues {
     val value = ArrayValue(IntType(64), List(IntValue(2, 64), IntValue(2, 64)))
     assertEquals(4L, value.foldValues(0L, sum _))
@@ -99,5 +106,11 @@ class MappingTest {
   def foldValuesSelf {
     val value = IntValue(3, 64)
     assertEquals(3L, value.foldValues(0L, sum _))
+  }
+
+  @Test
+  def foldValuesOption {
+    val global = Global("a", IntType(64), Some(IntValue(2, 64)))
+    assertEquals(2L, global.foldValues(0L, sum _))
   }
 }

@@ -82,6 +82,15 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
+  def convertSpecialValue {
+    val value = WBitCastValue(tungsten.DefinedValue("foo.x", tungsten.PointerType(tungsten.IntType(64))),
+                              tungsten.PointerType(tungsten.IntType(8)))
+    val expected = BitCastValue(DefinedValue("%x", PointerType(IntType(64))), 
+                                PointerType(IntType(8)))
+    assertEquals(expected, dummyConverter.convertValue(value, parent))
+  }                 
+
+  @Test
   def convertGlobalDefinedValue {
     val global = tungsten.Global("g", tungsten.IntType(64), None)
     val module = new tungsten.Module(definitions=Map(global.name -> global))

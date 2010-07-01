@@ -38,8 +38,6 @@ final class Module(val name:         Symbol                  = Symbol("default")
     copyWith(definitions = newDefinitions)
   }
 
-  def add(defns: List[Definition]): Module = add(defns: _*)
-
   def replace(defn: Definition) = copyWith(definitions = definitions + (defn.name -> defn))
 
   def replace(replacements: Definition*): Module = {
@@ -60,6 +58,39 @@ final class Module(val name:         Symbol                  = Symbol("default")
       case Some(d) if m.erasure.isInstance(d) => Some(d.asInstanceOf[T])
       case _ => None
     }
+  }
+
+  def mapSymbols(function: Symbol => Symbol): Module = {
+    val newDefinitions = (Map[Symbol, Definition]() /: definitions.values) { (defns, defn) =>
+      val newDefn = defn.mapSymbols(function)
+      if (defns.contains(newDefn.name))
+        throw new RuntimeException("mapSymbols gave multiple definitions the same name")
+      else
+        defns + (newDefn.name -> newDefn)
+    }
+    copyWith(definitions=newDefinitions)
+  }
+
+  def mapValues(function: Value => Value): Module = {
+    val newDefinitions = definitions.mapValues(_.mapValues(function))
+    copyWith(definitions=newDefinitions)
+  }
+
+  def mapTypes(function: Type => Type): Module = {
+    val newDefinitions = definitions.mapValues(_.mapTypes(function))
+    copyWith(definitions=newDefinitions)
+  }
+
+  def foldSymbols[A](accum: A, function: (A, Symbol) => A) = {
+    (accum /: definitions.values) { (a, d) => d.foldSymbols(a, function) }
+  }
+
+  def foldValues[A](accum: A, function: (A, Value) => A) = {
+    (accum /: definitions.values) { (a, d) => d.foldValues(a, function) }
+  }
+
+  def foldTypes[A](accum: A, function: (A, Type) => A) = {
+    (accum /: definitions.values) { (a, d) => d.foldTypes(a, function) }
   }
 
   def getDefn(name: Symbol) = definitions.get(name)

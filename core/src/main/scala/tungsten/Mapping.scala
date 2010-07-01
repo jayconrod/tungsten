@@ -51,6 +51,7 @@ trait Mapping[T <: AnyRef]
       val mapped = oldValue match {
         case v: Mapping[_] => v.mapFields(mapper _)
         case list: List[_] => list.map { e => mapper(null, e.asInstanceOf[AnyRef]) }
+        case opt: Option[_] => opt.map { e => mapper(null, e.asInstanceOf[AnyRef]) }
         case _ => oldValue
       }
       if (SClass.isInstance(mapped))
@@ -76,10 +77,15 @@ trait Mapping[T <: AnyRef]
       val newAccum = field match {
         case v: Mapping[_] => {
           val clas = v.getClass
-          val fields = clas.getDeclaredFields.map { f => clas.getMethod(f.getName).invoke(v) }
-          (accum /: fields)(fold _)
+          val fields = clas.getDeclaredFields
+          val fieldNames = fields.map(_.getName)
+          val fieldValues = fieldNames.collect { case name if !name.contains('$') =>
+            clas.getMethod(name).invoke(v)
+          }
+          (accum /: fieldValues)(fold _)
         }
         case list: List[_] => (accum /: list) { (a, e) => fold(a, e.asInstanceOf[AnyRef]) }
+        case Some(v: AnyRef) => fold(accum, v)
         case _ => accum
       }
       if (SClass.isInstance(field))

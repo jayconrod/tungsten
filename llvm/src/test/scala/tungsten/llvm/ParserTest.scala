@@ -106,6 +106,12 @@ class ParserTest {
   }
 
   @Test
+  def bitcastValue {
+    test("i8* bitcast (i64* %x to i8*)", Parser.value,
+         BitCastValue(DefinedValue("%x", PointerType(IntType(64))), PointerType(IntType(8))))
+  }
+
+  @Test
   def allocaInst {
     test("%0 = alloca i32", Parser.instruction, AllocaInstruction("%0", IntType(32)))
   }

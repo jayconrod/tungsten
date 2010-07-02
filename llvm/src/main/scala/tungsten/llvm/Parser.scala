@@ -143,7 +143,8 @@ object Parser extends Parsers with ImplicitConversions {
       IntValue(t.value, ty.asInstanceOf[IntType].width)
     }) |
     structValue(ty) |
-    ((localSymbol | globalSymbol) ^^ { case n => DefinedValue(n, ty) })
+    ((localSymbol | globalSymbol) ^^ { case n => DefinedValue(n, ty) }) |
+    bitcastValue(ty)
   }
 
   def structValue(ty: Type): Parser[Value] = {
@@ -156,7 +157,13 @@ object Parser extends Parsers with ImplicitConversions {
       case _ => failure("struct type must precede struct value")
     }
   }
-  
+
+  def bitcastValue(tyPrefix: Type): Parser[Value] = {
+    "bitcast" ~> "(" ~> (value <~ "to") ~ ty <~ ")" ^? {
+      case v ~ t if t == tyPrefix => BitCastValue(v, t)
+    }
+  }
+
   def ty: Parser[Type] = {
     def basicTy = {
       intType | 

@@ -36,8 +36,8 @@ class LlvmCompatibilityPassTest {
   }    
 
   def testProgram(expected: String, program: String) {
-    val expectedModule = ModuleIO.readText(expected)
-    val module = ModuleIO.readText(program)
+    val expectedModule = pass.addRuntime(ModuleIO.readText(expected))
+    val module = pass(ModuleIO.readText(program))
     assertEquals(expectedModule, module)
   }
 
@@ -208,5 +208,24 @@ class LlvmCompatibilityPassTest {
                                   stringGlobal.name -> stringGlobal)
     val expectedModule = new tungsten.Module(definitions=expectedDefinitions)
     assertEquals(expectedModule, pass.processStrings(module))
+  }
+
+  @Test
+  def convertCharValue {
+    val value = tungsten.CharValue('A')
+    val expected = tungsten.IntValue(65, 16)
+    assertEquals(expected, pass.convertCharValue(value))
+  }
+
+  @Test
+  def convertCharType {
+    assertEquals(tungsten.IntType(16), pass.convertCharType(tungsten.CharType))
+  }
+
+  @Test
+  def processChars {
+    val program = "global char @g = 'A'"
+    val expected = "global int16 @g = int16 65"
+    testProgram(expected, program)
   }
 }

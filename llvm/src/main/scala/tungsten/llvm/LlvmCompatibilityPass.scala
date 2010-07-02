@@ -13,6 +13,7 @@ class LlvmCompatibilityPass
   val process: tungsten.Module => tungsten.Module = {
     addRuntime _            andThen
       processStrings _      andThen
+      processChars _        andThen
       processInstructions _ andThen
       processMain _         andThen 
       PhiConversion
@@ -117,12 +118,30 @@ class LlvmCompatibilityPass
       case _ => value
     }
   }
-  val stringType = tungsten.StructType("tungsten.string")
   def convertStringType(ty: tungsten.Type): tungsten.Type = {
+    val stringType = tungsten.StructType("tungsten.string")
     if (ty eq tungsten.StringType)
       stringType
     else
       ty
+  }
+
+  def processChars(module: tungsten.Module): tungsten.Module = {
+    module.mapValues(convertCharValue _).mapTypes(convertCharType _)
+  }
+
+  def convertCharValue(value: tungsten.Value): tungsten.Value = {
+    value match {
+      case tungsten.CharValue(c) => tungsten.IntValue(c.toLong, 16)
+      case _ => value
+    }
+  }
+
+  def convertCharType(ty: tungsten.Type): tungsten.Type = {
+    ty match {
+      case tungsten.CharType => tungsten.IntType(16)
+      case _ => ty
+    }
   }
 
   def convertInstruction(instruction: tungsten.Instruction,

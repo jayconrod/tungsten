@@ -201,10 +201,15 @@ class LlvmToTungstenConverterTest {
   }
 
   @Test
+  def convertNamedStructValue {
+    assertEquals(tungsten.StructValue("A", List(tungsten.IntValue(1, 64))),
+                 convertValue(NamedStructValue("%A", List(IntValue(1, 64)))))
+  }
+
+  @Test
   def convertDefinedValue {
     parent = "foo"
     assertEquals(tungsten.DefinedValue("foo.a#1", tungsten.IntType(32)), 
                  convertValue(DefinedValue("%a", IntType(32))))
   }
 }
-

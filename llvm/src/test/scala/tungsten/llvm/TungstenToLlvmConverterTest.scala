@@ -35,6 +35,11 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
+  def structSymbol {
+    assertEquals("%T", dummyConverter.structSymbol("T"))
+  }
+
+  @Test
   def localSymbol {
     assertEquals("%x", dummyConverter.localSymbol("y.x", Some("y")))
     assertEquals("%x.y", dummyConverter.localSymbol("x.y", Some("x.y")))
@@ -70,7 +75,7 @@ class TungstenToLlvmConverterTest {
     assertEquals(NullValue(IntType(8)), convert(tungsten.NullValue))
     assertEquals(ArrayValue(IntType(32), List(IntValue(12L, 32))),
                  convert(tungsten.ArrayValue(tungsten.IntType(32), List(tungsten.IntValue(12L, 32)))))
-    assertEquals(StructValue(List(IntValue(12L, 32))),
+    assertEquals(NamedStructValue("%A", List(IntValue(12L, 32))),
                  convert(tungsten.StructValue("A", List(tungsten.IntValue(12L, 32)))))
   }
 

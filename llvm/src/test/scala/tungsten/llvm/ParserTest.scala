@@ -72,8 +72,31 @@ class ParserTest {
   }
 
   @Test
+  def namedStructType {
+    test("%foo", Parser.ty, NamedStructType("%foo"))
+  }
+
+  @Test
+  def structType {
+    test("{i64, i64}", Parser.ty, StructType(List(IntType(64), IntType(64))))
+  }
+
+  @Test
   def intValue {
     test("i32 -123", Parser.value, IntValue(-123L, 32))
+  }
+
+  @Test
+  def structValue {
+    test("{i64, i64} { i64 12, i64 34 }", Parser.value,
+         StructValue(List(IntType(64), IntType(64)),
+                     List(IntValue(12, 64), IntValue(34, 64))))
+  }
+
+  @Test
+  def namedStructValue {
+    test("%foo { i64 12, i64 34 }", Parser.value,
+         NamedStructValue("%foo", List(IntValue(12, 64), IntValue(34, 64))))
   }
 
   @Test

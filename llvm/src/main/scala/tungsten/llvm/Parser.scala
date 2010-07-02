@@ -142,14 +142,28 @@ object Parser extends Parsers with ImplicitConversions {
     acceptMatch("integer", { case t: IntToken if ty.isInstanceOf[IntType] => 
       IntValue(t.value, ty.asInstanceOf[IntType].width)
     }) |
+    structValue(ty) |
     ((localSymbol | globalSymbol) ^^ { case n => DefinedValue(n, ty) })
-  }        
+  }
 
+  def structValue(ty: Type): Parser[Value] = {
+    def untypedStructValue: Parser[List[Value]] = "{" ~> repsep(value, ",") <~ "}"
+    ty match {
+      case NamedStructType(name) => 
+        untypedStructValue ^^ { case vs => NamedStructValue(name, vs) }
+      case StructType(elementTypes) => 
+        untypedStructValue ^^ { case vs => StructValue(elementTypes, vs) }
+      case _ => failure("struct type must precede struct value")
+    }
+  }
+  
   def ty: Parser[Type] = {
     def basicTy = {
       intType | 
       ("void" ^^^ VoidType) |
-      ("label" ^^^ LabelType)
+      ("label" ^^^ LabelType) |
+      (localSymbol ^^ { case name => NamedStructType(name) }) |
+      ("{" ~> repsep(ty, ",") <~ "}" ^^ { case elementTypes => StructType(elementTypes) })
     }
     def makePointer(elementType: Type, count: Int): Type = {
       if (count == 0)

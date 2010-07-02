@@ -48,13 +48,24 @@ final case class ArrayValue(elementType: Type, elements: List[Value])
   override def toString = elements.mkString("[", ", ", "]")
 }
 
-final case class StructValue(elements: List[Value])
+final case class StructValue(elementTypes: List[Type], elements: List[Value])
   extends Value
 {
   def ty = StructType(elements.map(_.ty))
 
   override def toString = elements.map(_.typedToString).mkString("{", ", ", "}")
-  override def typedToString = toString
+
+  override def typedToString = elementTypes.mkString("{", ", ", "} ") + toString
+}
+
+final case class NamedStructValue(name: String, elements: List[Value])
+  extends Value
+{
+  def ty = NamedStructType(name)
+
+  override def toString = elements.map(_.typedToString).mkString("{", ", ", "}")
+
+  override def typedToString = name + " " + toString
 }
 
 final case class DefinedValue(name: String, ty: Type)

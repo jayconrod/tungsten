@@ -206,7 +206,12 @@ class LlvmToTungstenConverter(val module: Module) {
       case ArrayValue(ety, elements) => {
         tungsten.ArrayValue(convertType(ety), elements.map(convertValue _))
       }
-      case StructValue(elements) => throw new UnsupportedOperationException // TODO
+      case _: StructValue => throw new UnsupportedOperationException // TODO
+      case NamedStructValue(name, elements) => {
+        val globalName = '@' + name.substring(1)
+        val cName = convertName(globalName)
+        tungsten.StructValue(cName, elements.map(convertValue _))
+      }
       case DefinedValue(name, ty) => tungsten.DefinedValue(convertName(name), convertType(ty))
       case _: BitCastValue => throw new UnsupportedOperationException // TODO ?
     }

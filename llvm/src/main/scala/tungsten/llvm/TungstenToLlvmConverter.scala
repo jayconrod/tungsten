@@ -36,7 +36,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
   }
 
   def convertStruct(struct: tungsten.Struct): Struct = {
-    val cName = '%' + globalSymbol(struct.name).substring(1)
+    val cName = structSymbol(struct.name)
     val fields = module.getFields(struct.fields)
     val cFieldTypes = fields.map { f: tungsten.Field => convertType(f.ty) }
     Struct(cName, cFieldTypes)
@@ -253,8 +253,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.ArrayValue(ety, elements) => {
         ArrayValue(convertType(ety), elements.map(convertValue(_, parent)))
       }
-      case tungsten.StructValue(_, elements) => {
-        StructValue(elements.map(convertValue(_, parent)))
+      case tungsten.StructValue(name, elements) => {
+        NamedStructValue(structSymbol(name), elements.map(convertValue(_, parent)))
       }
       case tungsten.DefinedValue(name, ty) => {
         val cTy = convertType(ty)
@@ -293,6 +293,10 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
 
   def globalSymbol(symbol: Symbol): String = {
     "@" + convertSymbol(symbol)
+  }
+
+  def structSymbol(symbol: Symbol): String = {
+    '%' + convertSymbol(symbol)
   }
 
   def localSymbol(symbol: Symbol, parent: Option[Symbol]): String = {

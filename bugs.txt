@@ -1,0 +1,2 @@
+Defined unit values cannot be converted to LLVM
+Tungsten treats the unit type and its value as first class; you can have unit variables which can be passed to functions, stored in arrays, etc. Unit translates into void for LLVM, and void is not first class there. Void values cannot be named, so you can't have a defined value of void type.

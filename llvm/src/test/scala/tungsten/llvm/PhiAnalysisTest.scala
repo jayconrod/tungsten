@@ -17,7 +17,7 @@ class PhiAnalysisTest {
              "    branch @f.bb3(int64 %c, int64 %d)\n" +
              "  }\n" +
              "  block %bb3(int64 %e, int64 %f) {\n" +
-             "    binop int64 %x = int64 %e + int64 %f\n" +
+             "    int64 %x = binop int64 %e + int64 %f\n" +
              "    return int64 %f\n" +
              "  }\n" +
              "}\n"

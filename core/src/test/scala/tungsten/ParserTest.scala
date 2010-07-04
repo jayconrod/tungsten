@@ -6,65 +6,67 @@ import java.io.File
 import Utilities._
 
 class ParserTest {
-  def test[T](input: String, parser: Parser.Parser[T], expected: T) {
+  val parser = new Parser
+
+  def test[T](input: String, parse: parser.Parser[T], expected: T) {
     val scanner = new Lexer.Scanner(input)
-    Parser.phrase(parser)(scanner) match {
-      case Parser.Success(r, _) => assertEquals(expected, r)
-      case error: Parser.NoSuccess => fail(error.msg)
+    parser.phrase(parse)(scanner) match {
+      case parser.Success(r, _) => assertEquals(expected, r)
+      case error: parser.NoSuccess => fail(error.msg)
     }
   }
 
   def testType(input: String, expected: Type) {
-    test(input, Parser.ty, expected)
+    test(input, parser.ty, expected)
   }
 
   def testValue(input: String, expected: Value) {
-    test(input, Parser.value, expected)
+    test(input, parser.value, expected)
   }
 
   def testInstruction(input: String, expected: Instruction) {
-    test(input, Parser.instruction, expected)
+    test(input, parser.instruction, expected)
   }
 
   def testDefinition(input: String, 
-                     parser: Parser.Parser[AstNode], 
+                     parse: parser.Parser[AstNode], 
                      expected: Definition) 
   {
     val scanner = new Lexer.Scanner(input)
-    Parser.phrase(parser)(scanner) match {
-      case Parser.Success(node, _) => assertEquals(expected, node.definition)
-      case error: Parser.NoSuccess => fail(error.msg)
+    parser.phrase(parse)(scanner) match {
+      case parser.Success(node, _) => assertEquals(expected, node.definition)
+      case error: parser.NoSuccess => fail(error.msg)
     }
   }
 
   @Test
   def reserved {
-    test("{", Parser.reserved("{"), "{")
+    test("{", parser.reserved("{"), "{")
   }
 
   @Test
   def symbol {
-    test("@x", Parser.symbol, Symbol("@x"))
+    test("@x", parser.symbol, Symbol("@x"))
   }
 
   @Test
   def integer {
-    test("123", Parser.integer, 123L)
+    test("123", parser.integer, 123L)
   }
 
   @Test
   def float {
-    test("1.5", Parser.float, 1.5)
+    test("1.5", parser.float, 1.5)
   }
 
   @Test
   def char {
-    test("'a'", Parser.char, 'a')
+    test("'a'", parser.char, 'a')
   }
 
   @Test
   def string {
-    test("\"hello\"", Parser.string, "hello")
+    test("\"hello\"", parser.string, "hello")
   }
 
   @Test
@@ -180,8 +182,8 @@ class ParserTest {
 
   @Test
   def annotationValue {
-    test("@x", Parser.annotationValue, AnnotationValue("@x", Nil))
-    test("@x(true)", Parser.annotationValue, AnnotationValue("@x", List(BooleanValue(true))))
+    test("@x", parser.annotationValue, AnnotationValue("@x", Nil))
+    test("@x(true)", parser.annotationValue, AnnotationValue("@x", List(BooleanValue(true))))
   }
 
   @Test
@@ -189,38 +191,44 @@ class ParserTest {
     val anns = List(AnnotationValue("@ann", List(UnitValue)))
     val ty = UnitType
     val n = Symbol("%x")
-    test("@ann(()) address unit %x =", Parser.instName("address"), 
-         Parser.~(Parser.~(anns, ty), n))
+    test("@ann(()) unit %x = address", parser.instName("address"), 
+         parser.~(parser.~(anns, ty), n))
+  }
+
+  @Test
+  def instNameOpt {
+    val expected = parser.~(parser.~(Nil, UnitType), Symbol("%anon$", 1))
+    test("address", parser.instName("address"), expected)
   }
 
   @Test
   def addressInst {
-    testInstruction("address unit %x = (), ()",
+    testInstruction("unit %x = address (), ()",
                     AddressInstruction("%x", UnitType, UnitValue, List(UnitValue)))
   }
 
   @Test
   def binopInst {
-    testInstruction("binop unit %x = () % ()",
+    testInstruction("unit %x = binop () % ()",
                     BinaryOperatorInstruction("%x", UnitType, BinaryOperator.REMAINDER,
                                               UnitValue, UnitValue))
   }
 
   @Test
   def bitcastInst {
-    testInstruction("bitcast unit %x = ()",
+    testInstruction("unit %x = bitcast ()",
                     BitCastInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def branchInst {
-    testInstruction("branch unit %x = %a(())",
+    testInstruction("unit %x = branch %a(())",
                     BranchInstruction("%x", UnitType, "%a", List(UnitValue)))
   }
 
   @Test
   def condInst {
-    testInstruction("cond unit %x = true ? %a(()) : %b(())",
+    testInstruction("unit %x = cond true ? %a(()) : %b(())",
                     ConditionalBranchInstruction("%x",
                                                  UnitType,
                                                  BooleanValue(true),
@@ -232,91 +240,91 @@ class ParserTest {
 
   @Test
   def extractInst {
-    testInstruction("extract unit %x = (), ()",
+    testInstruction("unit %x = extract (), ()",
                     ExtractInstruction("%x", UnitType, UnitValue, List(UnitValue)))
   }
 
   @Test
   def fextendInst {
-    testInstruction("fextend unit %x = ()",
+    testInstruction("unit %x = fextend ()",
                     FloatExtendInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def ftoiInst {
-    testInstruction("ftoi unit %x = ()",
+    testInstruction("unit %x = ftoi ()",
                     FloatToIntegerInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def ftruncateInst {
-    testInstruction("ftruncate unit %x = ()",
+    testInstruction("unit %x = ftruncate ()",
                     FloatTruncateInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def heapInst {
-    testInstruction("heap unit %x",
+    testInstruction("unit %x = heap",
                     HeapAllocateInstruction("%x", UnitType))
   }
 
   @Test
   def heapArrayInst {
-    testInstruction("heaparray unit %x = ()",
+    testInstruction("unit %x = heaparray ()",
                     HeapAllocateArrayInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def itofInst {
-    testInstruction("itof unit %x = ()",
+    testInstruction("unit %x = itof ()",
                     IntegerToFloatInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def isextendInst {
-    testInstruction("isextend unit %x = ()",
+    testInstruction("unit %x = isextend ()",
                     IntegerSignExtendInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def itruncateInst {
-    testInstruction("itruncate unit %x = ()",
+    testInstruction("unit %x = itruncate ()",
                     IntegerTruncateInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def izextendInst {
-    testInstruction("izextend unit %x = ()",
+    testInstruction("unit %x = izextend ()",
                     IntegerZeroExtendInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def insertTest {
-    testInstruction("insert unit %x = (), (), ()",
+    testInstruction("unit %x = insert (), (), ()",
                     InsertInstruction("%x", UnitType, UnitValue, UnitValue, List(UnitValue)))
   }
 
   @Test
   def intrinsicInst {
-    testInstruction("intrinsic unit %x = exit(())",
+    testInstruction("unit %x = intrinsic exit(())",
                     IntrinsicCallInstruction("%x", UnitType, Intrinsic.EXIT, List(UnitValue)))
   }
 
   @Test
   def loadInst {
-    testInstruction("load unit %x = ()",
+    testInstruction("unit %x = load ()",
                     LoadInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def loadElementInst {
-    testInstruction("loadelement unit %x = (), ()",
+    testInstruction("unit %x = loadelement (), ()",
                     LoadElementInstruction("%x", UnitType, UnitValue, List(UnitValue)))
   }
 
   @Test
   def relopInst {
-    testInstruction("relop unit %x = () < ()",
+    testInstruction("unit %x = relop () < ()",
                     RelationalOperatorInstruction("%x",
                                                   UnitType,
                                                   RelationalOperator.LESS_THAN,
@@ -325,70 +333,70 @@ class ParserTest {
 
   @Test
   def returnInst {
-    testInstruction("return unit %x = ()",
+    testInstruction("unit %x = return ()",
                     ReturnInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def storeInst {
-    testInstruction("store unit %x = (), ()",
+    testInstruction("unit %x = store (), ()",
                     StoreInstruction("%x", UnitType, UnitValue, UnitValue))
   }
 
   @Test
   def storeElementInst {
-    testInstruction("storeelement unit %x = (), (), ()",
+    testInstruction("unit %x = storeelement (), (), ()",
                     StoreElementInstruction("%x", UnitType, UnitValue, UnitValue, List(UnitValue)))
   }
 
   @Test
   def stackInst {
-    testInstruction("stack unit %x",
+    testInstruction("unit %x = stack",
                     StackAllocateInstruction("%x", UnitType))
   }
 
   @Test
   def stackArrayInst {
-    testInstruction("stackarray unit %x = ()",
+    testInstruction("unit %x = stackarray ()",
                     StackAllocateArrayInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def staticCallInst {
-    testInstruction("scall unit %x = @f(())",
+    testInstruction("unit %x = scall @f(())",
                     StaticCallInstruction("%x", UnitType, "@f", List(UnitValue)))
   }
 
   @Test
   def upcastInst {
-    testInstruction("upcast unit %x = ()",
+    testInstruction("unit %x = upcast ()",
                     UpcastInstruction("%x", UnitType, UnitValue))
   }
 
   @Test
   def parameter {
-    testDefinition("@ann unit %p", Parser.parameter,
+    testDefinition("@ann unit %p", parser.parameter,
                    Parameter("%p", UnitType, List(AnnotationValue("@ann", Nil))))
   }
 
   @Test
   def block {
     testDefinition("block %b(unit %x) {\n" +
-                   "  return unit %i = ()\n" +
+                   "  unit %i = return ()\n" +
                    "}", 
-                   Parser.block,
+                   parser.block,
                    Block("%b", List("%b.x"), List("%b.i")))
   }
 
   @Test
   def field {
-    testDefinition("field unit %a", Parser.field,
+    testDefinition("field unit %a", parser.field,
                    Field("%a", UnitType))
   }
 
   @Test
   def annotation {
-    testDefinition("annotation @ann(unit %a, unit %b)", Parser.annotation,
+    testDefinition("annotation @ann(unit %a, unit %b)", parser.annotation,
                    Annotation("@ann", List("@ann.a", "@ann.b")))
   }
 
@@ -402,15 +410,15 @@ class ParserTest {
                    "    return ()\n" +
                    "  }\n" +
                    "}\n",
-                   Parser.function,
+                   parser.function,
                    Function("@f", UnitType, List("@f.a", "@f.b"), List("@f.c", "@f.d"), Nil))
   }
 
   @Test
   def global {
-    testDefinition("global unit @g", Parser.global,
+    testDefinition("global unit @g", parser.global,
                    Global("@g", UnitType, None))
-    testDefinition("global unit @g = ()", Parser.global,
+    testDefinition("global unit @g = ()", parser.global,
                    Global("@g", UnitType, Some(UnitValue)))
   }
 
@@ -420,7 +428,7 @@ class ParserTest {
                    "  field unit %a\n" +
                    "  field unit %b\n" +
                    "}\n",
-                   Parser.struct,
+                   parser.struct,
                    Struct("@s", List("@s.a", "@s.b")))
   }
 
@@ -428,12 +436,12 @@ class ParserTest {
   def childNames {
     val child = Parameter("%p", UnitType)
     val childNodes = List(AstNode(child, Nil))
-    assertEquals(List(Symbol(List("@a", "p"))), Parser.childNames(childNodes, "@a"))
+    assertEquals(List(Symbol(List("@a", "p"))), parser.childNames(childNodes, "@a"))
   }
 
   @Test
   def emptyModule {
-    test("", Parser.module,
+    test("", parser.module,
          (new Module(), Nil))
   }
 
@@ -447,7 +455,7 @@ class ParserTest {
          "searchpaths: \"/foo/bar\", \"/baz\"\n" +
          "is64bit: true\n" +
          "safe: true\n",
-         Parser.headers,
+         parser.headers,
          new Module(name=Symbol("m"),
                     ty=ModuleType.LIBRARY,
                     version=Version(0, 1),

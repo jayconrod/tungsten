@@ -5,7 +5,7 @@ import scala.util.parsing.combinator.ImplicitConversions
 import scala.util.parsing.input.Reader
 import java.io.File
 
-object Parser extends Parsers with ImplicitConversions {
+class Parser extends Parsers with ImplicitConversions {
   type Elem = Lexer.Token
 
   private val symbolFactory = new SymbolFactory
@@ -238,7 +238,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val heapInst: Parser[HeapAllocateInstruction] = {
-    instName("heap", false) ^^ {
+    instName("heap") ^^ {
       case anns ~ ty ~ n => HeapAllocateInstruction(n, ty, anns)
     }
   }
@@ -322,7 +322,7 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val stackInst: Parser[StackAllocateInstruction] = {
-    instName("stack", false) ^^ {
+    instName("stack") ^^ {
       case anns ~ ty ~ n => StackAllocateInstruction(n, ty, anns)
     }
   }
@@ -354,18 +354,10 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
-  def instName(name: String, 
-               useEquals: Boolean = true): Parser[List[AnnotationValue] ~ Type ~ Symbol] = 
-  {
-    val optName: Parser[Type ~ Symbol] = {
-      val nameParser = if (useEquals)
-        ty ~ symbol <~ "="
-      else
-        ty ~ symbol
-      opt(nameParser) ^^ { _.getOrElse(new ~(UnitType, symbolFactory.symbol("%anon$"))) }
-    }
-    annotations ~ (name ~> optName) ^^ {
-      case anns ~ (ty ~ n) => new ~(new ~(anns, ty), n)
+  def instName(opName: String): Parser[List[AnnotationValue] ~ Type ~ Symbol] = {
+    annotations ~ opt(ty ~ symbol <~ "=") <~ opName ^^ {
+      case anns ~ Some(t ~ n) => new ~(new ~(anns, t), n)
+      case anns ~ None => new ~(new ~(anns, UnitType), symbolFactory.symbol("%anon$"))
     }
   }
 

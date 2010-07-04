@@ -11,7 +11,7 @@ class LlvmCompatibilityPassTest {
                      "function unit @main {\n" +
                      "  block %%entry {\n" +
                      "    %s\n" +
-                     "    return unit %%r = ()\n" +
+                     "    unit %%r = return ()\n" +
                      "  }\n" +
                      "}\n"
 
@@ -60,7 +60,7 @@ class LlvmCompatibilityPassTest {
   def mainType {
     val program = "function unit @main {\n" +
                   "  block %entry {\n" +
-                  "    return unit %r = ()\n" +
+                  "    unit %r = return ()\n" +
                   "  }\n" +
                   "}\n"
     val module = ModuleIO.readText(program)
@@ -89,70 +89,70 @@ class LlvmCompatibilityPassTest {
 
   @Test
   def addressInst {
-    val code = "address int64* %a = int64* %base, int64 %b"
-    val expected = "itruncate int32 %llvmCompat#1 = int64 %b\n" +
-                   "address int64* %a = int64* %base, int32 %llvmCompat#1"
+    val code = "int64* %a = address int64* %base, int64 %b"
+    val expected = "int32 %llvmCompat#1 = itruncate int64 %b\n" +
+                   "int64* %a = address int64* %base, int32 %llvmCompat#1"
     testCode(expected, code)
   }
 
   @Test
   def extractInst {
-    val code = "extract unit %a = [2 x unit] {(), ()}, int64 1"
-    val expected = "extract unit %a = [2 x unit] {(), ()}, int32 1"
+    val code = "unit %a = extract [2 x unit] {(), ()}, int64 1"
+    val expected = "unit %a = extract [2 x unit] {(), ()}, int32 1"
     testCode(expected, code)
   }
 
   @Test
   def heapInst {
-    val code = "heap int64* %a"
-    val expected = "scall int8* %llvmCompat#1 = @tungsten.malloc(int32 8)\n" +
-                   "bitcast int64* %a = int8* %llvmCompat#1"
+    val code = "int64* %a = heap"
+    val expected = "int8* %llvmCompat#1 = scall @tungsten.malloc(int32 8)\n" +
+                   "int64* %a = bitcast int8* %llvmCompat#1"
     testCode(expected, code)
   }
 
   @Test
   def heapArrayInst {
-    val code = "heaparray int64* %a = int64 2"
-    val expected = "binop int64 %llvmCompat#1 = int64 2 * int64 8\n" +
-                   "scall int8* %llvmCompat#2 = @tungsten.malloc(int64 %llvmCompat#1)\n" +
-                   "bitcast int64* %a = int8* %llvmCompat#2"
+    val code = "int64* %a = heaparray int64 2"
+    val expected = "int64 %llvmCompat#1 = binop int64 2 * int64 8\n" +
+                   "int8* %llvmCompat#2 = scall @tungsten.malloc(int64 %llvmCompat#1)\n" +
+                   "int64* %a = bitcast int8* %llvmCompat#2"
     testCode(expected, code)
   }
 
   @Test
   def insertInst {
-    val code = "insert [2 x unit] %a = (), [2 x unit] {(), ()}, int64 1"
-    val expected = "insert [2 x unit] %a = (), [2 x unit] {(), ()}, int32 1"
+    val code = "[2 x unit] %a = insert (), [2 x unit] {(), ()}, int64 1"
+    val expected = "[2 x unit] %a = insert (), [2 x unit] {(), ()}, int32 1"
     testCode(expected, code)
   }
 
   @Test
   def intrinsicExitInst {
-    val code = "intrinsic unit %x = exit(int32 1)"
-    val expected = "scall unit %x = @tungsten.exit(int32 1)"
+    val code = "unit %x = intrinsic exit(int32 1)"
+    val expected = "unit %x = scall @tungsten.exit(int32 1)"
     testCode(expected, code)
   }
 
   @Test
   def loadElementInst {
-    val code = "loadelement unit %b = [1 x unit]* %a, int64 0, int64 0"
-    val expected = "address unit* %llvmCompat#1 = [1 x unit]* %a, int32 0, int32 0\n" +
-                   "load unit %b = unit* %llvmCompat#1"
+    val code = "unit %b = loadelement [1 x unit]* %a, int64 0, int64 0"
+    val expected = "unit* %llvmCompat#1 = address [1 x unit]* %a, int32 0, int32 0\n" +
+                   "unit %b = load unit* %llvmCompat#1"
     testCode(expected, code)
   }
 
   @Test
   def stackArrayInst {
-    val code = "stackarray int64* %a = int64 2"
-    val expected = "stackarray int64* %a = int32 2"
+    val code = "int64* %a = stackarray int64 2"
+    val expected = "int64* %a = stackarray int32 2"
     testCode(expected, code)
   }
 
   @Test
   def storeElementInst {
-    val code = "storeelement unit %x = (), [1 x unit]* %a, int64 0, int64 0"
-    val expected = "address unit* %llvmCompat#1 = [1 x unit]* %a, int32 0, int32 0\n" +
-                   "store unit %x = (), unit* %llvmCompat#1"
+    val code = "unit %x = storeelement (), [1 x unit]* %a, int64 0, int64 0"
+    val expected = "unit* %llvmCompat#1 = address [1 x unit]* %a, int32 0, int32 0\n" +
+                   "unit %x = store (), unit* %llvmCompat#1"
     testCode(expected, code)
   }
 

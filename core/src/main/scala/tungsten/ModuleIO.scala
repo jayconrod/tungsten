@@ -399,8 +399,9 @@ object ModuleIO {
     val file = new File(filename)
     val reader = new CharSequenceReader(text)
     val scanner = new Lexer.Scanner(reader)
-    Parser.phrase(Parser.module(file))(scanner) match {
-      case Parser.Success((headers, asts), _) => {
+    val parser = new Parser
+    parser.phrase(parser.module(file))(scanner) match {
+      case parser.Success((headers, asts), _) => {
         val definitions = asts.flatMap(processAst(_, Nil))
         var module = headers
         var errors: List[CompileException] = Nil
@@ -415,7 +416,7 @@ object ModuleIO {
         else
           Right(errors)
       }
-      case error: Parser.NoSuccess => Right(List(ParseException(error.msg, Nowhere)))
+      case error: parser.NoSuccess => Right(List(ParseException(error.msg, Nowhere)))
     }
   }            
 

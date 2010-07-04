@@ -20,24 +20,19 @@ class LlvmCompatibilityPass
   }
 
   def addRuntime(module: tungsten.Module): tungsten.Module = {
-    var cModule = module
-
     val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
-    cModule = cModule.replace(noreturn)
 
     val stringCharacters = tungsten.Field("tungsten.string.characters",
                                           tungsten.PointerType(tungsten.IntType(16)))
     val stringLength = tungsten.Field("tungsten.string.length", tungsten.IntType(64))
     val string = tungsten.Struct("tungsten.string", 
                                  List(stringCharacters.name, stringLength.name))
-    cModule = cModule.replace(stringCharacters, stringLength, string)
 
     val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
     val malloc = tungsten.Function("tungsten.malloc", 
                                    tungsten.PointerType(tungsten.IntType(8)), 
                                    List(mallocParam.name), 
                                    Nil)
-    cModule = cModule.replace(mallocParam, malloc)
 
     val exitParam = tungsten.Parameter("tungsten.exit.code", tungsten.IntType(32))
     val exit = tungsten.Function("tungsten.exit", 
@@ -45,9 +40,24 @@ class LlvmCompatibilityPass
                                  List(exitParam.name),
                                  Nil,
                                  List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
-    cModule = cModule.replace(exitParam, exit)
 
-    cModule    
+    val definitionList = List(noreturn,
+                              stringCharacters, stringLength, string,
+                              mallocParam, malloc,
+                              exitParam, exit)
+    val definitions = (Map[Symbol, tungsten.Definition]() /: definitionList) { (map, defn) =>
+      map + (defn.name -> defn)
+    }
+    val runtime = module.copyWith(definitions=definitions)
+    tungsten.Linker.linkModules(List(module, runtime),
+                                module.name,
+                                module.ty,
+                                module.version,
+                                module.filename,
+                                module.dependencies,
+                                module.searchPaths)
+    // TODO: this will terminate with an error message. It should probably throw an 
+    // exception instead.
   }
 
   def processMain(module: tungsten.Module): tungsten.Module = {

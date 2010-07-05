@@ -4,6 +4,7 @@ import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.parsing.combinator.lexical.Lexical
 import scala.util.parsing.input.CharArrayReader
+import CharArrayReader.EofCh
 import scala.util.matching.Regex
 import Utilities._
 
@@ -32,7 +33,7 @@ object Lexer extends Lexical with RegexParsers {
     elem(' ') | elem('\t') | elem('\n') | elem('\r')
   }
 
-  lazy val comment: Parser[Any] = elem(';') ~ rep(chrExcept('\n') ~ elem('\n'))
+  lazy val comment: Parser[Any] = elem(';') ~ rep(chrExcept('\n', EofCh))
 
   lazy val whitespace: Parser[Any] = rep(whitespaceChar | comment)
 

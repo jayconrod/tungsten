@@ -48,6 +48,12 @@ class LexerTest {
   }
 
   @Test
+  def commentWhitespace {
+    val scanner = new Lexer.Scanner("; this is a comment")
+    assertTrue(scanner.atEnd)
+  }
+
+  @Test
   def integers {
     testToken("0", IntTok(0L))
     testToken("-0", IntTok(0L))

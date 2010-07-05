@@ -1,10 +1,12 @@
 package tungsten.llvm
 
-final case class Global(override name: String, attributes: List[Attribute], value: Value)
+final case class Global(override name: String, value: Either[Value, Type])
   extends Definition(name)
 {
   override def toString = {
-    val attribStr = if (attributes.isEmpty) "" else " " + attributes.mkString(" ")
-    "%s = %sglobal %s".format(name, attribStr, value.typedToString)
+    value match {
+      case Left(v) => "%s = global %s".format(name, v.typedToString)
+      case Right(t) => "%s = external global %s".format(name, t)
+    }
   }
 }

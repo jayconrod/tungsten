@@ -332,11 +332,11 @@ class TungstenToLlvmConverterTest {
                           scall.name -> scall)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
-    val expected = CallInstruction("%x", false, None, Nil, 
+    val expected = CallInstruction("%x", false, None, Set(), 
                                    IntType(64), None,
                                    DefinedValue("@f", FunctionType(IntType(64), List(IntType(64)))),
                                    List(IntValue(12, 64)),
-                                   Nil)
+                                   Set())
     assertEquals(expected, converter.convertInstruction(scall, parent))    
   }
 
@@ -351,11 +351,11 @@ class TungstenToLlvmConverterTest {
                           call.name -> call)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
-    val expected = CallInstruction("%x", false, None, Nil,
+    val expected = CallInstruction("%x", false, None, Set(),
                                    VoidType, None,
                                    DefinedValue("@f", FunctionType(VoidType, Nil)),
                                    Nil,
-                                   List(Attribute.NORETURN))
+                                   Set(FunctionAttribute.NORETURN))
     assertEquals(expected, converter.convertInstruction(call, parent))
   }
 
@@ -398,9 +398,9 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def blockNoReturn {
-    val expected = Block("%bb", List(CallInstruction("%x", false, None, Nil, VoidType, None,
+    val expected = Block("%bb", List(CallInstruction("%x", false, None, Set(), VoidType, None,
                                                      DefinedValue("@f", FunctionType(VoidType, Nil)),
-                                                     Nil, List(Attribute.NORETURN)),
+                                                     Nil, Set(FunctionAttribute.NORETURN)),
                                      UnreachableInstruction))
     val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
     val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil,
@@ -419,22 +419,23 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def parameter {
-    val expected = Parameter("%x", IntType(64), Nil)
+    val expected = Parameter("%x", IntType(64), Set())
     val parameter = tungsten.Parameter("foo.x", tungsten.IntType(64))
     assertEquals(expected, dummyConverter.convertParameter(parameter, parent))
   }
 
   @Test
   def emptyFunction {
-    val expected = Function("@f", VoidType, Nil, Nil, Nil)
+    val expected = Function("@f", Set(), VoidType, Nil, Set(), Nil)
     val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil)
     assertEquals(expected, dummyConverter.convertFunction(function))
   }
 
   @Test
   def function {
-    val expected = Function("@f", IntType(64), Nil,
-                            List(Parameter("%x", IntType(64), Nil)),
+    val expected = Function("@f", Set(), IntType(64),
+                            List(Parameter("%x", IntType(64), Set())),
+                            Set(),
                             List(Block("%entry", List(ReturnInstruction(DefinedValue("%x", IntType(64)))))))
     val parameter = tungsten.Parameter("f.x", tungsten.IntType(64))
     val instruction = tungsten.ReturnInstruction("f.ret", tungsten.UnitType, tungsten.DefinedValue("f.x", tungsten.IntType(64)))
@@ -451,7 +452,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def functionNoReturn {
-    val expected = Function("@f", VoidType, List(Attribute.NORETURN), Nil, Nil)
+    val expected = Function("@f", Set(), VoidType, Nil, Set(FunctionAttribute.NORETURN), Nil)
     val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil, 
                                      List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
     val definitions = Map(function.name -> function)
@@ -473,14 +474,14 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def global {
-    val expected = Global("@g", Nil, IntValue(12, 64))
+    val expected = Global("@g", Left(IntValue(12, 64)))
     val global = tungsten.Global("g", tungsten.IntType(64), Some(tungsten.IntValue(12, 64)))
     assertEquals(expected, dummyConverter.convertGlobal(global))
   }
 
   @Test
   def emptyGlobal {
-    val expected = Global("@g", Nil, IntValue(0, 64))
+    val expected = Global("@g", Right(IntType(64)))
     val global = tungsten.Global("g", tungsten.IntType(64), None)
     assertEquals(expected, dummyConverter.convertGlobal(global))
   }

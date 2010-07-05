@@ -20,14 +20,14 @@ class LlvmToTungstenConverterTest {
 
   @Test
   def emptyFunction {
-    val function = Function("@empty", VoidType, Nil, Nil, Nil)
+    val function = Function("@empty", Set(), VoidType, Nil, Set(), Nil)
     testConversion(tungsten.Function("empty", tungsten.UnitType, Nil, Nil),
                    convertFunction(function))
   }
 
   @Test
   def parameterTest {
-    val parameter = Parameter("%a", IntType(32), Nil)
+    val parameter = Parameter("%a", IntType(32), Set())
     parent = "foo"
     testConversion(tungsten.Parameter("foo.a#1", tungsten.IntType(32)),
                    convertParameter(parameter))

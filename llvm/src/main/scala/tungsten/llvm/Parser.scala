@@ -33,20 +33,51 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   def function: Parser[Function] = {
-    "define" ~> ty ~ globalSymbol ~ 
-      ("(" ~> repsep(defnParameter, ",") <~ ")") ~ rep(attribute) ~
+    "define" ~> parameterAttributes ~ ty ~ globalSymbol ~ 
+      ("(" ~> repsep(defnParameter, ",") <~ ")") ~ functionAttributes ~
       ("{" ~> rep1(block) <~ "}") ^^ {
-      case rty ~ n ~ ps ~ as ~ bs => Function(n, rty, as, ps, bs)
+      case ras ~ rty ~ n ~ ps ~ fas ~ bs => Function(n, ras, rty, ps, fas, bs)
     }
   }
 
   def defnParameter: Parser[Parameter] = {
-    ty ~ rep(attribute) ~ localSymbol ^^ { case t ~ as ~ n => Parameter(n, t, as) }
+    ty ~ parameterAttributes ~ localSymbol ^^ { case t ~ as ~ n => Parameter(n, t, as) }
   }
 
-  def attribute: Parser[Attribute] = {
-    import Attribute._
-    "nounwind" ^^^ NOUNWIND
+  def functionAttributes: Parser[Set[FunctionAttribute]] = {
+    rep(functionAttribute) ^^ { _.toSet }
+  }
+
+  def functionAttribute: Parser[FunctionAttribute] = {
+    import FunctionAttribute._
+    ("alwaysinline" ^^^ ALWAYSINLINE)       |
+    ("inlinehint" ^^^ INLINEHINT)           |
+    ("optsize" ^^^ OPTSIZE)                 |
+    ("noreturn" ^^^ NORETURN)               |
+    ("nounwind" ^^^ NOUNWIND)               |
+    ("readnone" ^^^ READNONE)               |
+    ("readonly" ^^^ READONLY)               |
+    ("ssp" ^^^ SSP)                         |
+    ("sspreq" ^^^ SSPREQ)                   |
+    ("noredzone" ^^^ NOREDZONE)             |
+    ("noimplicitfloat" ^^^ NOIMPLICITFLOAT) |
+    ("naked" ^^^ NAKED)
+  }
+
+  def parameterAttributes: Parser[Set[ParameterAttribute]] = {
+    rep(parameterAttribute) ^^ { _.toSet }
+  }
+
+  def parameterAttribute: Parser[ParameterAttribute] = {
+    import ParameterAttribute._
+    ("zeroext" ^^^ ZEROEXT)     |
+    ("signext" ^^^ SIGNEXT)     |
+    ("inreg" ^^^ INREG)         |
+    ("byval" ^^^ BYVAL)         |
+    ("sret" ^^^ SRET)           |
+    ("noalias" ^^^ NOALIAS)     |
+    ("nocapture" ^^^ NOCAPTURE) |
+    ("nest" ^^^ NEST)
   }
 
   def block: Parser[Block] = {

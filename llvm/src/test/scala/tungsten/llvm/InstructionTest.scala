@@ -93,12 +93,12 @@ class InstructionTest {
                  CallInstruction("%x",
                                  true,
                                  Some("fastcc"),
-                                 List(Attribute.ZEROEXT),
+                                 Set(ParameterAttribute.ZEROEXT),
                                  IntType(64),
                                  None,
                                  DefinedValue("@f", FunctionType(IntType(64), List(IntType(64)))),
                                  List(IntValue(2, 64)),
-                                 List(Attribute.NOUNWIND)).toString)
+                                 Set(FunctionAttribute.NOUNWIND)).toString)
   }
 
   @Test

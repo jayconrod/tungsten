@@ -9,7 +9,7 @@ class BlockParameterAnalysisTest {
                                       BranchInstruction(DefinedValue("bb1", LabelType)))),
                     Block("bb1", List(BranchInstruction(DefinedValue("bb2", LabelType)))),
                     Block("bb2", List(ReturnInstruction(DefinedValue("x", IntType(32))))))
-  val function = Function("f", IntType(32), Nil, Nil, blocks)
+  val function = Function("f", Set(), IntType(32), Nil, Set(), blocks)
   val module = new Module(None, None, Map((function.name -> function)))
   val analysis = new BlockParameterAnalysis(module)
 

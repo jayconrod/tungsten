@@ -187,8 +187,8 @@ class ParserTest {
 
   @Test
   def defnParameterTest {
-    test("i32 nounwind %x", Parser.defnParameter,
-         Parameter("%x", IntType(32), List(Attribute.NOUNWIND)))
+    test("i32 inreg %x", Parser.defnParameter,
+         Parameter("%x", IntType(32), Set(ParameterAttribute.INREG)))
   }
 
   @Test
@@ -198,8 +198,8 @@ class ParserTest {
          "  ret i32 0\n" +
          "}\n",
          Parser.function,
-         Function("@f", IntType(32), List(Attribute.NOUNWIND),
-                  List(Parameter("%n", IntType(32), Nil)), 
+         Function("@f", Set(), IntType(32), List(Parameter("%n", IntType(32), Set())), 
+                  Set(FunctionAttribute.NOUNWIND),
                   List(Block("%entry", List(ReturnInstruction(IntValue(0L, 32)))))))
   }
 
@@ -219,7 +219,7 @@ class ParserTest {
                   "return:                                           ; preds = %entry\n" +
                   "  ret i32 0\n" +
                   "}\n"
-    val function = Function("@main", IntType(32), List(Attribute.NOUNWIND), Nil,
+    val function = Function("@main", Set(), IntType(32), Nil, Set(FunctionAttribute.NOUNWIND),
                             List(Block("%entry",
                                        List(BitCastInstruction("%alloca point",
                                                                IntValue(0L, 32),

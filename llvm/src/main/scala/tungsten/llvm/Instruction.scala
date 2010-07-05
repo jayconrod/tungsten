@@ -167,12 +167,12 @@ final case class BranchInstruction(label: Value)
 final case class CallInstruction(override name: String,
                                  isTailCall: Boolean,
                                  convention: Option[String],
-                                 returnAttributes: List[Attribute],
+                                 returnAttributes: Set[ParameterAttribute],
                                  ty: Type,
                                  targetType: Option[Type],
                                  target: Value,
                                  arguments: List[Value],
-                                 functionAttributes: List[Attribute])
+                                 functionAttributes: Set[FunctionAttribute])
   extends Instruction
 {
   def opname = if (isTailCall) "tail call" else "call"

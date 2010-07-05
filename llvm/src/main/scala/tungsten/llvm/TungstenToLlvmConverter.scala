@@ -26,13 +26,10 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
   def convertGlobal(global: tungsten.Global): Global = {
     val cName = globalSymbol(global.name)
     val cValue = global.value match {
-      case Some(v) => convertValue(v, None)
-      case None => {
-        val v = global.ty.defaultValue(module)
-        convertValue(v, None)
-      }
+      case Some(v) => Left(convertValue(v, None))
+      case None => Right(convertType(global.ty))
     }
-    Global(cName, Nil, cValue)
+    Global(cName, cValue)
   }
 
   def convertStruct(struct: tungsten.Struct): Struct = {
@@ -44,20 +41,22 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
 
   def convertFunction(function: tungsten.Function): Function = {
     val cName = globalSymbol(function.name)
+    val cRetAttribs = convertParameterAttributes(function.annotations)
     val cReturnType = convertType(function.returnType)
     val parameters = module.getParameters(function.parameters)
     val cParameters = parameters.map(convertParameter(_, Some(function.name)))
     val blocks = module.getBlocks(function.blocks)
     val cBlocks = blocks.map(convertBlock(_, Some(function.name)))
     val noReturnName = symbolFromString("tungsten.NoReturn")
-    val cAttributes = convertFunctionAttributes(function.annotations)
-    Function(cName, cReturnType, cAttributes, cParameters, cBlocks)
+    val cFnAttribs = convertFunctionAttributes(function.annotations)
+    Function(cName, cRetAttribs, cReturnType, cParameters, cFnAttribs, cBlocks)
   }
 
   def convertParameter(parameter: tungsten.Parameter, parent: Option[Symbol]): Parameter = {
     val cName = localSymbol(parameter.name, parent)
     val cType = convertType(parameter.ty)
-    Parameter(cName, cType, Nil)
+    val cAttribs = convertParameterAttributes(parameter.annotations)
+    Parameter(cName, cType, cAttribs)
   }
 
   def convertBlock(block: tungsten.Block, parent: Option[Symbol]): Block = {
@@ -66,7 +65,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     val instructions = module.getInstructions(block.instructions)
     var cInstructions = instructions.map(convertInstruction(_, parent))
     cInstructions = cInstructions.lastOption match {
-      case Some(c: CallInstruction) if c.functionAttributes.exists(_ == Attribute.NORETURN) =>
+      case Some(c: CallInstruction) if c.functionAttributes.exists(_ == FunctionAttribute.NORETURN) =>
         cInstructions :+ UnreachableInstruction
       case _ => cInstructions
     }
@@ -203,14 +202,15 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       }        
       case tungsten.StaticCallInstruction(_, ty, target, arguments, _) => {
         val function = module.getFunction(target)
+        val cRetAttribs = convertParameterAttributes(function.annotations)
         val cReturnType = convertType(ty)
         val cArgumentTypes = arguments.map { a: tungsten.Value => convertType(a.ty) }
         val cTargetType = FunctionType(cReturnType, cArgumentTypes)
-        val cAttributes = convertFunctionAttributes(function.annotations)
-        CallInstruction(localName, false, None, Nil, 
+        val cFnAttribs = convertFunctionAttributes(function.annotations)
+        CallInstruction(localName, false, None, cRetAttribs, 
                         cReturnType, None,
                         DefinedValue(globalSymbol(target), cTargetType), 
-                        arguments.map(convertValue(_, parent)), cAttributes)
+                        arguments.map(convertValue(_, parent)), cFnAttribs)
       }
       case tungsten.StoreInstruction(_, _, value, address, _) =>
         StoreInstruction(convertValue(value, parent), convertValue(address, parent), None)
@@ -233,13 +233,21 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     }
   }
 
-  def convertFunctionAttributes(annotations: List[tungsten.AnnotationValue]): List[Attribute] = {
+  def convertFunctionAttributes(annotations: List[tungsten.AnnotationValue]): Set[FunctionAttribute] = {
     import tungsten.{AnnotationValue => AV}
-    import Attribute._
+    import FunctionAttribute._
     val noreturn = symbolFromString("tungsten.NoReturn")
-    annotations collect {
-      case AV(noreturn, _) => NORETURN
+    (Set[FunctionAttribute]() /: annotations) { (attribs, ann) =>
+      ann match {
+        case AV(noreturn, _) => attribs + NORETURN
+        case _ => attribs
+      }
     }
+  }
+
+  def convertParameterAttributes(annotations: List[tungsten.AnnotationValue]): Set[ParameterAttribute] = {
+    // TODO
+    Set()
   }
 
   def convertValue(value: tungsten.Value, parent: Option[Symbol]): Value = {

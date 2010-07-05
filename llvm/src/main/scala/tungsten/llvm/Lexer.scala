@@ -14,7 +14,12 @@ object Lexer extends Lexical with RegexParsers {
   val reservedWords = Set("datalayout", "define", "nounwind", "target", "triple", "to",
                           "align", "label", "void",
                           "alloca", "bitcast", "br", "extractvalue", "insertvalue", "phi", 
-                            "load", "ret", "store", "unreachable")
+                            "load", "ret", "store", "unreachable",
+                          "zeroext", "signext", "inreg", "byval", "sret", "noalias", 
+                            "nocapture", "nest",
+                          "alwaysinline", "inlinehint", "optsize", "noreturn", "nounwind",
+                            "readnone", "readonly", "ssp", "sspreq", "noredzone", 
+                            "noimplicithint", "naked")
 
   override def whitespaceChar: Parser[Elem] = elem(' ') | elem('\t') | elem('\n') | elem('\r')
 

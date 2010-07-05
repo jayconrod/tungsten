@@ -1,11 +1,12 @@
 package tungsten.llvm
 
+import scala.collection.immutable.TreeMap
 import tungsten.Symbol
 import tungsten.DataFlow
 import tungsten.Graph
 
 class LlvmToTungstenConverter(val module: Module) {
-  var cDefinitions = Map[Symbol, tungsten.Definition]()
+  var cDefinitions = TreeMap[Symbol, tungsten.Definition]()
   val symbolFactory = new tungsten.SymbolFactory
   var parent: String = ""
   var localNameMapping = Map[String, Symbol]()

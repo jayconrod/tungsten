@@ -6,15 +6,15 @@ import scala.reflect.Manifest
 import java.io.File
 import Utilities._
 
-final class Module(val name:         Symbol                  = Symbol("default"),
-                   val ty:           ModuleType              = ModuleType.INTERMEDIATE,
-                   val version:      Version                 = Version.MIN,
-                   val filename:     Option[File]            = None,
-                   val dependencies: List[ModuleDependency]  = Nil,
-                   val searchPaths:  List[File]              = Nil,
-                   val is64Bit:      Boolean                 = true,
-                   val isSafe:       Boolean                 = false,
-                   val definitions:  Map[Symbol, Definition] = new TreeMap[Symbol, Definition])
+final class Module(val name:         Symbol                      = Symbol("default"),
+                   val ty:           ModuleType                  = ModuleType.INTERMEDIATE,
+                   val version:      Version                     = Version.MIN,
+                   val filename:     Option[File]                = None,
+                   val dependencies: List[ModuleDependency]      = Nil,
+                   val searchPaths:  List[File]                  = Nil,
+                   val is64Bit:      Boolean                     = true,
+                   val isSafe:       Boolean                     = false,
+                   val definitions:  TreeMap[Symbol, Definition] = new TreeMap())
 {
   def copyWith(name: Symbol = name,
                ty: ModuleType = ty,
@@ -23,7 +23,7 @@ final class Module(val name:         Symbol                  = Symbol("default")
                dependencies: List[ModuleDependency] = dependencies,
                searchPaths: List[File] = searchPaths,
                is64Bit: Boolean = is64Bit,
-               definitions: Map[Symbol, Definition] = definitions) =
+               definitions: TreeMap[Symbol, Definition] = definitions) =
   {
     new Module(name, ty, version, filename, dependencies, searchPaths, is64Bit, isSafe, definitions)
   }
@@ -61,7 +61,8 @@ final class Module(val name:         Symbol                  = Symbol("default")
   }
 
   def mapSymbols(function: Symbol => Symbol): Module = {
-    val newDefinitions = (Map[Symbol, Definition]() /: definitions.values) { (defns, defn) =>
+    val empty = new TreeMap[Symbol, Definition]()
+    val newDefinitions = (empty /: definitions.values) { (defns, defn) =>
       val newDefn = defn.mapSymbols(function)
       if (defns.contains(newDefn.name))
         throw new RuntimeException("mapSymbols gave multiple definitions the same name")
@@ -72,12 +73,20 @@ final class Module(val name:         Symbol                  = Symbol("default")
   }
 
   def mapValues(function: Value => Value): Module = {
-    val newDefinitions = definitions.mapValues(_.mapValues(function))
+    val empty = new TreeMap[Symbol, Definition]()
+    val newDefinitions = (empty /: definitions.values) { (defns, defn) =>
+      val newDefn = defn.mapValues(function)
+      defns + (newDefn.name -> newDefn)
+    }
     copyWith(definitions=newDefinitions)
   }
 
   def mapTypes(function: Type => Type): Module = {
-    val newDefinitions = definitions.mapValues(_.mapTypes(function))
+    val empty = new TreeMap[Symbol, Definition]()
+    val newDefinitions = (empty /: definitions.values) { (defns, defn) =>
+      val newDefn = defn.mapTypes(function)
+      defns + (newDefn.name -> newDefn)
+    }
     copyWith(definitions=newDefinitions)
   }
 

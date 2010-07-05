@@ -1,5 +1,6 @@
 package tungsten.llvm
 
+import scala.collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Assert._
 import tungsten.{ModuleIO, Symbol}
@@ -190,7 +191,7 @@ class LlvmCompatibilityPassTest {
   @Test
   def processStrings {
     val global = tungsten.Global("g", tungsten.StringType, Some(tungsten.StringValue("s")))
-    val definitions = Map(global.name -> global)
+    val definitions = TreeMap(global.name -> global)
     val module = new tungsten.Module(definitions=definitions)
 
     val charType = tungsten.IntType(16)
@@ -204,8 +205,8 @@ class LlvmCompatibilityPassTest {
                                            List(charsValue, tungsten.IntValue(1, 64)))
     val storageGlobal = tungsten.Global("llvmCompat#1", arrayType, Some(arrayValue))
     val stringGlobal = tungsten.Global(global.name, stringType, Some(stringValue))
-    val expectedDefinitions = Map(storageGlobal.name -> storageGlobal,
-                                  stringGlobal.name -> stringGlobal)
+    val expectedDefinitions = TreeMap(storageGlobal.name -> storageGlobal,
+                                      stringGlobal.name -> stringGlobal)
     val expectedModule = new tungsten.Module(definitions=expectedDefinitions)
     assertEquals(expectedModule, pass.processStrings(module))
   }

@@ -1,5 +1,6 @@
 package tungsten
 
+import scala.collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Assert._
 import Utilities._
@@ -45,7 +46,7 @@ class LinkerTest {
     val dependencies @ List(a, b, c, d) = List("a", "b", "c", "d").map { 
       new ModuleDependency(_, Version.MIN, Version.MAX)
     }
-    val definitions = Map[Symbol, Definition]()
+    val definitions = new TreeMap[Symbol, Definition]()
     val m1 = new Module(dependencies = List(b, c), is64Bit = true, definitions = definitions)
     val m2 = new Module(dependencies = List(d, c), is64Bit = true, definitions = definitions)
     val linked = Linker.linkModules(List(m1, m2), "default", ModuleType.INTERMEDIATE,

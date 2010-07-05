@@ -1,5 +1,6 @@
 package tungsten.llvm
 
+import scala.collection.immutable.TreeMap
 import tungsten.Utilities._
 import tungsten.Symbol
 
@@ -45,7 +46,7 @@ class LlvmCompatibilityPass
                               stringCharacters, stringLength, string,
                               mallocParam, malloc,
                               exitParam, exit)
-    val definitions = (Map[Symbol, tungsten.Definition]() /: definitionList) { (map, defn) =>
+    val definitions = (TreeMap[Symbol, tungsten.Definition]() /: definitionList) { (map, defn) =>
       map + (defn.name -> defn)
     }
     val runtime = module.copyWith(definitions=definitions)

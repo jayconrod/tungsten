@@ -161,8 +161,8 @@ object Linker {
     val allDefinitions = for (module <- modules.iterator;
                               defn   <- module.definitions.valuesIterator)
                            yield (defn, module)
-    val empty = Map[Symbol, (Definition, Module)]()
-    val linkedDefinitions = allDefinitions.foldLeft(empty)(linkDefinition _).map { kv =>
+    val empty = new TreeMap[Symbol, (Definition, Module)]()
+    val linkedDefinitions = (empty /: allDefinitions)(linkDefinition _).map { kv =>
       val (name, (definition, _)) = kv
       (name, definition)
     }
@@ -181,8 +181,8 @@ object Linker {
     }
   }
 
-  def linkDefinition(definitions: Map[Symbol, (Definition, Module)], 
-                     defn: (Definition, Module)): Map[Symbol, (Definition, Module)] = 
+  def linkDefinition(definitions: TreeMap[Symbol, (Definition, Module)], 
+                     defn: (Definition, Module)): TreeMap[Symbol, (Definition, Module)] = 
   {
     val name = defn._1.name
 

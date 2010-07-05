@@ -1,5 +1,6 @@
 package tungsten.llvm
 
+import scala.collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Assert._
 import tungsten.Symbol
@@ -98,7 +99,8 @@ class TungstenToLlvmConverterTest {
   @Test
   def convertGlobalDefinedValue {
     val global = tungsten.Global("g", tungsten.IntType(64), None)
-    val module = new tungsten.Module(definitions=Map(global.name -> global))
+    val definitions = TreeMap(global.name -> global)
+    val module = new tungsten.Module(definitions=definitions)
     val expected = DefinedValue("@g", PointerType(IntType(64)))
     val value = tungsten.DefinedValue("g", tungsten.PointerType(tungsten.IntType(64)))
     val converter = new TungstenToLlvmConverter(module)
@@ -327,9 +329,9 @@ class TungstenToLlvmConverterTest {
                                                tungsten.IntType(64),
                                                function.name,
                                                List(tungsten.IntValue(12, 64)))
-    val definitions = Map(param.name -> param,
-                          function.name -> function,
-                          scall.name -> scall)
+    val definitions = TreeMap(param.name -> param,
+                              function.name -> function,
+                              scall.name -> scall)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     val expected = CallInstruction("%x", false, None, Set(), 
@@ -346,9 +348,9 @@ class TungstenToLlvmConverterTest {
     val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil,
                                      List(tungsten.AnnotationValue(noReturn.name, Nil)))
     val call = tungsten.StaticCallInstruction("foo.x", tungsten.UnitType, function.name, Nil)
-    val definitions = Map(noReturn.name -> noReturn,
-                          function.name -> function,
-                          call.name -> call)
+    val definitions = TreeMap(noReturn.name -> noReturn,
+                              function.name -> function,
+                              call.name -> call)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     val expected = CallInstruction("%x", false, None, Set(),
@@ -390,7 +392,7 @@ class TungstenToLlvmConverterTest {
     val expected = Block("%bb", List(ReturnInstruction(IntValue(12, 64))))
     val retInst = tungsten.ReturnInstruction("foo.x", tungsten.UnitType, tungsten.IntValue(12, 64))
     val block = tungsten.Block("foo.bb", Nil, List("foo.x"))
-    val definitions = Map(block.name -> block, retInst.name -> retInst)
+    val definitions = TreeMap(block.name -> block, retInst.name -> retInst)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertBlock(block, parent))
@@ -408,10 +410,10 @@ class TungstenToLlvmConverterTest {
     val call = tungsten.StaticCallInstruction("foo.x", tungsten.UnitType,
                                               function.name, Nil)
     val block = tungsten.Block("foo.bb", Nil, List(call.name))
-    val definitions = Map(noreturn.name -> noreturn,
-                          function.name -> function,
-                          call.name -> call,
-                          block.name -> block)
+    val definitions = TreeMap(noreturn.name -> noreturn,
+                              function.name -> function,
+                              call.name -> call,
+                              block.name -> block)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertBlock(block, parent))
@@ -441,10 +443,10 @@ class TungstenToLlvmConverterTest {
     val instruction = tungsten.ReturnInstruction("f.ret", tungsten.UnitType, tungsten.DefinedValue("f.x", tungsten.IntType(64)))
     val block = tungsten.Block("f.entry", Nil, List(instruction.name))
     val function = tungsten.Function("f", tungsten.IntType(64), List(parameter.name), List(block.name))
-    val definitions = Map(parameter.name -> parameter,
-                          instruction.name -> instruction,
-                          block.name -> block,
-                          function.name -> function)
+    val definitions = TreeMap(parameter.name -> parameter,
+                              instruction.name -> instruction,
+                              block.name -> block,
+                              function.name -> function)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertFunction(function))
@@ -455,7 +457,7 @@ class TungstenToLlvmConverterTest {
     val expected = Function("@f", Set(), VoidType, Nil, Set(FunctionAttribute.NORETURN), Nil)
     val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil, 
                                      List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
-    val definitions = Map(function.name -> function)
+    val definitions = TreeMap(function.name -> function)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertFunction(function))
@@ -466,7 +468,7 @@ class TungstenToLlvmConverterTest {
     val expected = Struct("%T", List(IntType(64)))
     val field = tungsten.Field("x", tungsten.IntType(64))
     val struct = tungsten.Struct("T", List(field.name))
-    val definitions = Map(field.name -> field, struct.name -> struct)
+    val definitions = TreeMap(field.name -> field, struct.name -> struct)
     val module = new tungsten.Module(definitions=definitions)
     val converter = new TungstenToLlvmConverter(module)
     assertEquals(expected, converter.convertStruct(struct))

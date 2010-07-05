@@ -1,5 +1,6 @@
 package tungsten
 
+import scala.collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Assert._
 import java.io._
@@ -30,7 +31,8 @@ class ModuleIOReadTextTest {
   @Test
   def parseTest {
     val program = "global unit @g"
-    val expected = new Module(definitions=Map((Symbol("g") -> Global("g", UnitType, None))))
+    val definitions = TreeMap(Symbol("g") -> Global("g", UnitType, None))
+    val expected = new Module(definitions=definitions)
     assertEquals(Left(expected), parse(program, "<test>"))
   }
 }

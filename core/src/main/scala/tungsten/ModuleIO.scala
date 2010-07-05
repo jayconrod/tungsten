@@ -83,7 +83,7 @@ object ModuleIO {
       val header = readHeader
       readTable(strings, readString)
       readTable(symbols, readSymbol)
-      val empty = scala.collection.immutable.Map[Symbol, Definition]()
+      val empty = new scala.collection.immutable.TreeMap[Symbol, Definition]()
       val definitions = (0 until symbols.size).foldLeft(empty) { (definitions, _) =>
         val defn = readDefinition
         if (definitions.contains(defn.name))

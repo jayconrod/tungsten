@@ -1,18 +1,19 @@
 package tungsten
 
+import scala.collection.immutable.TreeMap
 import Utilities._
 import org.junit.Test
 import org.junit.Assert._
 
 class ModuleTest {
   val global = Global("g", IntType(8), Some(IntValue(2, 8)))
-  val definitions = Map(global.name -> global)
+  val definitions = TreeMap(global.name -> global)
   val module = new Module(definitions=definitions)
 
   def collect[T](s: Set[T], e: T): Set[T] = s + e
 
   def testMap(expected: Definition, module: Module) {
-    val expectedDefinitions = Map(expected.name -> expected)
+    val expectedDefinitions = TreeMap(expected.name -> expected)
     val expectedModule = new Module(definitions=expectedDefinitions)
     assertEquals(expectedModule, module)
   }

@@ -12,9 +12,16 @@ object Lexer extends Lexical with RegexParsers {
 
   val reservedOperators = Set("=", ":", "{", "}", "(", ")", "[", "]", "*", ",")
   val reservedWords = Set("datalayout", "define", "nounwind", "target", "triple", "to",
-                          "align", "label", "void",
-                          "alloca", "bitcast", "br", "extractvalue", "insertvalue", "phi", 
-                            "load", "ret", "store", "unreachable",
+                          "align", "label", "void", "float", "double",
+                          "add", "alloca", "and", "asr", "bitcast", "br", "extractvalue", 
+                            "fadd", "fcmp", "fdiv", "fmul", "fpext", "fptosi", "fptoui", "frem", 
+                            "fsub", "fptrunc", "getelementptr", "icmp", "insertvalue", 
+                            "inttoptr", "load", "lsr", "mul", "or", "phi", "ptrtoint", "ret", 
+                            "sdiv", "sext", "shl", "sitofp", "srem", "store", "sub", "trunc", 
+                            "uitofp", "unreachable", "udiv", "urem", "xor", "zext",
+                          "false", "oeq", "ogt", "oge", "olt", "ole", "ord", "ueq", "ugt", "uge",
+                            "ult", "ule", "une", "uno", "true", "eq", "ne", "sgt", "sge", "slt", 
+                            "sle",
                           "zeroext", "signext", "inreg", "byval", "sret", "noalias", 
                             "nocapture", "nest",
                           "alwaysinline", "inlinehint", "optsize", "noreturn", "nounwind",
@@ -77,6 +84,27 @@ object Lexer extends Lexical with RegexParsers {
     }
   }
 
+  def float: Parser[FloatToken] = {
+    val optSign = opt(elem('-') | elem('+')) ^^ { c => c.map(_.toString).getOrElse("") }
+    val num = rep1(digit) ^^ { _.mkString }
+    val optNum = opt(num) ^^ { _.getOrElse("") }
+    val exp = (elem('e') | elem('E')) ~ optSign ~ num ^^ {
+      case e ~ s ~ n => e + s + n
+    }
+    val optExp = opt(exp) ^^ { _.getOrElse("") }
+
+    val float1 = optSign ~ (num <~ '.') ~ optNum ~ optExp ^^ {
+      case s ~ n ~ f ~ e => s + n + '.' + f + e
+    }
+    val float2 = (optSign <~ '.') ~ num ~ optExp ^^ {
+      case s ~ f ~ e => s + '.' + f + e
+    }
+    val float3 = optSign ~ num ~ exp ^^ {
+      case s ~ n ~ e => s + n + e
+    }
+    (float1 | float2 | float3) ^^ { case s => FloatToken(s) }
+  }
+
   def intType: Parser[IntTypeToken] = {
     elem('i') ~ rep1(digit) ^^ { case i ~ n => IntTypeToken(i + n.mkString) }
   }
@@ -103,6 +131,7 @@ object Lexer extends Lexical with RegexParsers {
     word     |
     label    |
     string   |
+    float    |
     integer  |
     intType  |
     symbol

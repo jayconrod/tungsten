@@ -87,17 +87,95 @@ object Parser extends Parsers with ImplicitConversions {
   }
 
   def instruction: Parser[Instruction] = {
+    addInst          |
     allocaInst       |
+    andInst          |
+    asrInst          |
     bitcastInst      |
     branchInst       |
     extractvalueInst |
+    faddInst         |
+    fcmpInst         |
+    fdivInst         |
+    fmulInst         |
+    fpextInst        |
+    fptosiInst       |
+    fptouiInst       |
+    fptruncInst      |
+    fremInst         |
+    fsubInst         |
+    gepInst          |
+    icmpInst         |
     insertvalueInst  |
+    inttoptrInst     |
     loadInst         |
+    lsrInst          |
+    mulInst          |
+    orInst           |
     phiInst          |
+    ptrtointInst     |
     retInst          |
+    sdivInst         |
+    sextInst         |
+    shlInst          |
+    sitofpInst       |
+    sremInst         |
     storeInst        |
-    unreachableInst
+    subInst          |
+    truncInst        |
+    uitofpInst       |
+    unreachableInst  |
+    udivInst         |
+    uremInst         |
+    xorInst          |
+    zextInst
   }
+
+  def binopInst(opname: String, 
+                constructor: Function4[String, Type, Value, Value, Instruction]): Parser[Instruction] =
+  {
+    (localSymbol <~ "=" <~ opname) ~ ty >> { 
+      case n ~ t => (untypedValue(t) <~ ",") ~ untypedValue(t) ^^ {
+        case l ~ r => constructor(n, t, l, r)
+      }
+    }
+  }
+
+  def conversionInst(opname: String,
+                     constructor: Function3[String, Value, Type, Instruction]): Parser[Instruction] =
+  {
+    (localSymbol <~ "=" <~ opname) ~ (value <~ "to") ~ ty ^^ {
+      case n ~ v ~ t => constructor(n, v, t)
+    }
+  }
+
+  def comparison: Parser[Comparison] = {
+    import Comparison._
+    ("false" ^^^ FALSE) |
+    ("oeq"   ^^^ OEQ)   |
+    ("ogt"   ^^^ OGT)   |
+    ("oge"   ^^^ OGE)   |
+    ("olt"   ^^^ OLT)   |
+    ("ole"   ^^^ OLE)   |
+    ("one"   ^^^ ONE)   |
+    ("ord"   ^^^ ORD)   |
+    ("ueq"   ^^^ UEQ)   |
+    ("ugt"   ^^^ UGT)   |
+    ("uge"   ^^^ UGE)   |
+    ("ult"   ^^^ ULT)   |
+    ("ule"   ^^^ ULE)   |
+    ("une"   ^^^ UNE)   |
+    ("uno"   ^^^ UNO)   |
+    ("true"  ^^^ TRUE)  |
+    ("eq"    ^^^ EQ)    |
+    ("ne"    ^^^ NE)    |
+    ("sgt"   ^^^ SGT)   |
+    ("sge"   ^^^ SGE)   |
+    ("slt"   ^^^ SLT)   |
+    ("sle"   ^^^ SLE)
+  }
+
+  def addInst = binopInst("add", AddInstruction.apply _)
 
   def allocaInst: Parser[Instruction] = {
     (localSymbol <~ "=" <~ "alloca") ~ ty ~ opt("," ~> value) ^^ {
@@ -105,6 +183,9 @@ object Parser extends Parsers with ImplicitConversions {
       case n ~ t ~ None => AllocaInstruction(n, t)
     }
   }
+
+  def andInst = binopInst("and", AndInstruction.apply _)
+  def asrInst = binopInst("asr", ArithmeticShiftRightInstruction.apply _)
 
   def bitcastInst: Parser[BitCastInstruction] = {
     (localSymbol <~ "=" <~ "bitcast") ~ (value <~ "to") ~ ty ^^ {
@@ -122,6 +203,39 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
+  def faddInst = binopInst("fadd", FloatAddInstruction.apply _)
+
+  def fcmpInst: Parser[FloatCompareInstruction] = {
+    (localSymbol <~ "=" <~ "fcmp") ~ comparison ~ ty >> {
+      case n ~ c ~ t => (untypedValue(t) <~ ",") ~ untypedValue(t) ^^ {
+        case l ~ r => FloatCompareInstruction(n, c, t, l, r)
+      }
+    }
+  }
+
+  def fdivInst = binopInst("fdiv", FloatDivideInstruction.apply _)
+  def fmulInst = binopInst("fmul", FloatMultiplyInstruction.apply _)
+  def fpextInst = conversionInst("fpext", FloatExtendInstruction.apply _)
+  def fptosiInst = conversionInst("fptosi", FloatToSignedIntegerInstruction.apply _)
+  def fptouiInst = conversionInst("fptoui", FloatToUnsignedIntegerInstruction.apply _)
+  def fptruncInst = conversionInst("fptrunc", FloatTruncateInstruction.apply _)
+  def fremInst = binopInst("frem", FloatRemainderInstruction.apply _)
+  def fsubInst = binopInst("fsub", FloatSubtractInstruction.apply _)
+
+  def gepInst: Parser[GetElementPointerInstruction] = {
+    (localSymbol <~ "=" <~ "getelementptr") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
+      case n ~ b ~ is => GetElementPointerInstruction(n, b, is)
+    }
+  }
+
+  def icmpInst: Parser[IntegerCompareInstruction] = {
+    (localSymbol <~ "=" <~ "icmp") ~ comparison ~ ty >> {
+      case n ~ c ~ t => (untypedValue(t) <~ ",") ~ untypedValue(t) ^^ {
+        case l ~ r => IntegerCompareInstruction(n, c, t, l, r)
+      }
+    }
+  }
+
   def insertvalueInst: Parser[InsertValueInstruction] = {
     (localSymbol <~ "=" <~ "insertvalue") ~ (value <~ ",") ~ (value <~ ",") ~
       rep1sep(value, ",") ^^ {
@@ -129,11 +243,17 @@ object Parser extends Parsers with ImplicitConversions {
       }
   }      
 
+  def inttoptrInst = conversionInst("inttoptr", IntegerToPointerInstruction.apply _)
+
   def loadInst: Parser[LoadInstruction] = {
     (localSymbol <~ "=" <~ "load") ~ value ~ opt("," ~> alignment) ^^ {
       case n ~ p ~ a => LoadInstruction(n, p, a)
     }
   }
+
+  def lsrInst = binopInst("lsr", LogicalShiftRightInstruction.apply _)
+  def mulInst = binopInst("mul", MultiplyInstruction.apply _)
+  def orInst = binopInst("or", OrInstruction.apply _)
 
   def phiInst: Parser[PhiInstruction] = {
     def phiEntries(intro: String ~ Type) = {
@@ -146,9 +266,17 @@ object Parser extends Parsers with ImplicitConversions {
     ((localSymbol <~ "=" <~ "phi") ~ ty) >> phiEntries
   }
 
+  def ptrtointInst = conversionInst("ptrtoint", PointerToIntegerInstruction.apply _)
+
   def retInst: Parser[ReturnInstruction] = {
     ("ret" ~> value) ^^ { case v => ReturnInstruction(v) }
   }
+
+  def sdivInst = binopInst("sdiv", SignedDivideInstruction.apply _)
+  def sextInst = conversionInst("sext", SignExtendInstruction.apply _)
+  def shlInst = binopInst("shl", ShiftLeftInstruction.apply _)
+  def sitofpInst = conversionInst("sitofp", SignedIntegerToFloatInstruction.apply _)
+  def sremInst = binopInst("srem", SignedRemainderInstruction.apply _)
 
   def storeInst: Parser[StoreInstruction] = {
     "store" ~> (value <~ ",") ~ value ~ opt("," ~> alignment) ^^ {
@@ -156,9 +284,18 @@ object Parser extends Parsers with ImplicitConversions {
     }
   }
 
-  def unreachableInst: Parser[Instruction] = {
+  def subInst = binopInst("sub", SubtractInstruction.apply _)
+  def truncInst = conversionInst("trunc", TruncateInstruction.apply _)
+  def uitofpInst = conversionInst("uitofp", UnsignedIntegerToFloatInstruction.apply _)
+
+  def unreachableInst = {
     "unreachable" ^^^ UnreachableInstruction
   }
+
+  def udivInst = binopInst("udiv", UnsignedDivideInstruction.apply _)
+  def uremInst = binopInst("urem", UnsignedRemainderInstruction.apply _)
+  def xorInst = binopInst("xor", XorInstruction.apply _)
+  def zextInst = conversionInst("zext", ZeroExtendInstruction.apply _)
 
   def alignment: Parser[Int] = {
     "align" ~> integer ^^ { _.toInt }
@@ -172,6 +309,9 @@ object Parser extends Parsers with ImplicitConversions {
   def untypedValue(ty: Type): Parser[Value] = {
     acceptMatch("integer", { case t: IntToken if ty.isInstanceOf[IntType] => 
       IntValue(t.value, ty.asInstanceOf[IntType].width)
+    }) |
+    acceptMatch("float value", { case t: FloatToken if ty.isInstanceOf[FloatType] =>
+      FloatValue(t.value, ty.asInstanceOf[FloatType].width)
     }) |
     structValue(ty) |
     ((localSymbol | globalSymbol) ^^ { case n => DefinedValue(n, ty) }) |
@@ -198,6 +338,8 @@ object Parser extends Parsers with ImplicitConversions {
   def ty: Parser[Type] = {
     def basicTy = {
       intType | 
+      ("float" ^^^ FloatType(32)) |
+      ("double" ^^^ FloatType(64)) |
       ("void" ^^^ VoidType) |
       ("label" ^^^ LabelType) |
       (localSymbol ^^ { case name => NamedStructType(name) }) |

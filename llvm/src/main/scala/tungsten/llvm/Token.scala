@@ -55,6 +55,12 @@ final case class IntTypeToken(chars: String)
   def width: Int = chars.substring(1).toInt
 }
 
+final case class FloatToken(chars: String)
+  extends Token
+{
+  def value: Double = chars.toDouble
+}
+
 final case class SymbolToken(chars: String)
   extends Token
   with EscapeTranslation

@@ -354,6 +354,12 @@ final case class IntegerSignExtendInstruction(override name: String, value: Valu
   def opname = "sext"
 }
 
+final case class IntegerToPointerInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+{
+  def opname = "inttoptr"
+}
+
 final case class IntegerTruncateInstruction(override name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
@@ -414,6 +420,12 @@ final case class PhiInstruction(override name: String,
   }
 }
 
+final case class PointerToIntegerInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+{
+  def opname = "ptrtoint"
+}
+
 final case class ReturnInstruction(value: Value)
   extends Instruction
 {
@@ -447,6 +459,12 @@ final case class SignedRemainderInstruction(override name: String, ty: Type, lef
   def opname = "srem"
 }
 
+final case class SignExtendInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+{
+  def opname = "sext"
+}
+
 final case class StoreInstruction(value: Value,
                                   address: Value,
                                   alignment: Option[Int])
@@ -465,6 +483,12 @@ final case class SubtractInstruction(override name: String, ty: Type, left: Valu
   extends BinaryOperatorInstruction
 {
   def opname = "sub"
+}
+
+final case class TruncateInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+{
+  def opname = "trunc"
 }
 
 final case object UnreachableInstruction
@@ -498,4 +522,10 @@ final case class XorInstruction(override name: String, ty: Type, left: Value, ri
   extends BinaryOperatorInstruction
 {
   def opname = "xor"
+}
+
+final case class ZeroExtendInstruction(override name: String, value: Value, ty: Type)
+  extends ConversionInstruction
+{
+  def opname = "zext"
 }

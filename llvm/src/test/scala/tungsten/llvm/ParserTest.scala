@@ -87,6 +87,13 @@ class ParserTest {
   }
 
   @Test
+  def floatValue {
+    test("float 1.0", Parser.value, FloatValue(1.0, 32))
+    test("double 1.0", Parser.value, FloatValue(1.0, 64))
+    test("double 1e4", Parser.value, FloatValue(1e4, 64))
+  }
+
+  @Test
   def structValue {
     test("{i64, i64} { i64 12, i64 34 }", Parser.value,
          StructValue(List(IntType(64), IntType(64)),
@@ -112,6 +119,12 @@ class ParserTest {
   }
 
   @Test
+  def addInst {
+    test("%x = add i64 1, 2", Parser.instruction, 
+         AddInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
   def allocaInst {
     test("%0 = alloca i32", Parser.instruction, AllocaInstruction("%0", IntType(32)))
   }
@@ -120,6 +133,18 @@ class ParserTest {
   def allocaArrayInst {
     test("%0 = alloca i32, i32 1", Parser.instruction, 
          AllocaArrayInstruction("%0", IntType(32), IntValue(1, 32)))
+  }
+
+  @Test
+  def andInst {
+    test("%x = and i64 1, 2", Parser.instruction,
+         AndInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def asrInst {
+    test("%x = asr i64 1, 2", Parser.instruction,
+         ArithmeticShiftRightInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
   }
 
   @Test
@@ -141,15 +166,115 @@ class ParserTest {
   }
 
   @Test
+  def faddInst {
+    test("%x = fadd double 1.0, 2.0", Parser.instruction,
+         FloatAddInstruction("%x", FloatType(64), FloatValue(1.0, 64), FloatValue(2.0, 64)))
+  }
+
+  @Test
+  def fcmpInst {
+    test("%x = fcmp oeq double 1.0, 2.0", Parser.instruction,
+         FloatCompareInstruction("%x", Comparison.OEQ,
+                                 FloatType(64), FloatValue(1.0, 64), FloatValue(2.0, 64)))
+  }
+
+  @Test
+  def fdivInst {
+    test("%x = fdiv double 1.0, 2.0", Parser.instruction,
+         FloatDivideInstruction("%x", FloatType(64), FloatValue(1.0, 64), FloatValue(2.0, 64)))
+  }
+
+  @Test
+  def fmulInst {
+    test("%x = fmul double 1.0, 2.0", Parser.instruction,
+         FloatMultiplyInstruction("%x", FloatType(64), FloatValue(1.0, 64), FloatValue(2.0, 64)))
+  }
+
+  @Test
+  def fpextInst {
+    test("%x = fpext float 1.0 to double", Parser.instruction,
+         FloatExtendInstruction("%x", FloatValue(1.0, 32), FloatType(64)))
+  }
+
+  @Test
+  def fptouiInst {
+    test("%x = fptoui float 1.0 to i32", Parser.instruction,
+         FloatToUnsignedIntegerInstruction("%x", FloatValue(1.0, 32), IntType(32)))
+  }
+
+  @Test
+  def fptosiInst {
+    test("%x = fptosi float 1.0 to i32", Parser.instruction,
+         FloatToSignedIntegerInstruction("%x", FloatValue(1.0, 32), IntType(32)))
+  }
+
+  @Test
+  def fptruncInst {
+    test("%x = fptrunc double 1.0 to float", Parser.instruction,
+         FloatTruncateInstruction("%x", FloatValue(1.0, 64), FloatType(32)))
+  }
+
+  @Test
+  def fremInst {
+    test("%x = frem double 1.0, 2.0", Parser.instruction,
+         FloatRemainderInstruction("%x", FloatType(64), FloatValue(1.0, 64), FloatValue(2.0, 64)))
+  }
+
+  @Test
+  def fsubInst {
+    test("%x = fsub double 1.0, 2.0", Parser.instruction,
+         FloatSubtractInstruction("%x", FloatType(64), FloatValue(1.0, 64), FloatValue(2.0, 64)))
+  }
+
+  @Test
+  def gepInst {
+    test("%x = getelementptr i64* %base, i32 0", Parser.instruction,
+         GetElementPointerInstruction("%x", 
+                                      DefinedValue("%base", PointerType(IntType(64))),
+                                      List(IntValue(0, 32))))
+  }
+
+  @Test
+  def icmpInst {
+    test("%x = icmp eq i64 1, 2", Parser.instruction,
+         IntegerCompareInstruction("%x", Comparison.EQ, 
+                                   IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
   def insertvalueInst {
     test("%0 = insertvalue i32 0, i32 0, i32 0", Parser.instruction,
          InsertValueInstruction("%0", IntValue(0, 32), IntValue(0, 32), List(IntValue(0, 32))))
   }
 
   @Test
+  def inttoptrInst {
+    test("%x = inttoptr i64 0 to i64*", Parser.instruction,
+         IntegerToPointerInstruction("%x", IntValue(0, 64), PointerType(IntType(64))))
+  }
+
+  @Test
   def loadInst {
     test("%0 = load i32* %p, align 4", Parser.instruction,
          LoadInstruction("%0", DefinedValue("%p", PointerType(IntType(32))), Some(4)))
+  }
+
+  @Test
+  def lsrInst {
+    test("%x = lsr i64 1, 2", Parser.instruction,
+         LogicalShiftRightInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def mulInst {
+    test("%x = mul i64 1, 2", Parser.instruction,
+         MultiplyInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def orInst {
+    test("%x = or i64 1, 2", Parser.instruction,
+         OrInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
   }
 
   @Test
@@ -160,8 +285,45 @@ class ParserTest {
   }
 
   @Test
+  def ptrtointInst {
+    test("%x = ptrtoint i64* %p to i64", Parser.instruction,
+         PointerToIntegerInstruction("%x", DefinedValue("%p", PointerType(IntType(64))),
+                                     IntType(64)))
+  }
+
+  @Test
   def retInst {
     test("ret i32 0", Parser.instruction, ReturnInstruction(IntValue(0L, 32)))
+  }
+
+  @Test
+  def sextInst {
+    test("%x = sext i32 0 to i64", Parser.instruction,
+         SignExtendInstruction("%x", IntValue(0, 32), IntType(64)))
+  }
+
+  @Test
+  def shlInst {
+    test("%x = shl i64 1, 2", Parser.instruction,
+         ShiftLeftInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def sitofpInst {
+    test("%x = sitofp i64 0 to double", Parser.instruction,
+         SignedIntegerToFloatInstruction("%x", IntValue(0, 64), FloatType(64)))
+  }
+
+  @Test
+  def sdivInst {
+    test("%x = sdiv i64 1, 2", Parser.instruction,
+         SignedDivideInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def sremInst {
+    test("%x = srem i64 1, 2", Parser.instruction,
+         SignedRemainderInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
   }
 
   @Test
@@ -173,8 +335,50 @@ class ParserTest {
   }
 
   @Test
+  def subInst {
+    test("%x = sub i64 1, 2", Parser.instruction,
+         SubtractInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def truncInst {
+    test("%x = trunc i64 0 to i32", Parser.instruction,
+         TruncateInstruction("%x", IntValue(0, 64), IntType(32)))
+  }
+
+  @Test
+  def uitofpInst {
+    test("%x = uitofp i64 0 to double", Parser.instruction,
+         UnsignedIntegerToFloatInstruction("%x", IntValue(0, 64), FloatType(64)))
+  }
+
+  @Test
   def unreachableInst {
     test("unreachable", Parser.instruction, UnreachableInstruction)
+  }
+
+  @Test
+  def udivInst {
+    test("%x = udiv i64 1, 2", Parser.instruction,
+         UnsignedDivideInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def uremInst {
+    test("%x = urem i64 1, 2", Parser.instruction,
+         UnsignedRemainderInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def xorInst {
+    test("%x = xor i64 1, 2", Parser.instruction,
+         XorInstruction("%x", IntType(64), IntValue(1, 64), IntValue(2, 64)))
+  }
+
+  @Test
+  def zextInst {
+    test("%x = zext i32 0 to i64", Parser.instruction,
+         ZeroExtendInstruction("%x", IntValue(0, 32), IntType(64)))
   }
 
   @Test

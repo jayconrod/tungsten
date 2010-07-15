@@ -98,6 +98,13 @@ class LexerTest {
   }
 
   @Test
+  def floats {
+    testToken("1.0", FloatToken("1.0"))
+    testToken("-2.0", FloatToken("-2.0"))
+    testToken("1e4", FloatToken("1e4"))
+  }
+
+  @Test
   def intType {
     val input = "i32"
     val expected = IntTypeToken(input)

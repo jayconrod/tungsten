@@ -1,13 +1,30 @@
-Tungsten README
-
 Tungsten is a framework for building compilers. It is currently under
 active development by Jay Conrod.
 
-To build tungsten and run unit tests:
-./build.sh
+Build dependencies:
+Scala 2.8.0
+Buildr 1.4.1
+JUnit 4.6
 
-To set environment variables needed to run Tungsten
-. setenv.sh
+Run dependencies:
+Scala 2.8.0
+LLVM 2.7 (for LLVM bridge)
 
-To run the tungsten interpreter on a Tungsten source file:
-scala tungsten.interpreter.Interpreter file.w
+
+To build tungsten and the LLVM bridge and run unit tests:
+buildr
+
+To assemble a Tungsten source file:
+scala tungsten.Assembler foo.w
+
+To disassemble a Tungsten module:
+scala tungsten.Disassembler foo.wo
+
+To link a Tungsten module into a program:
+scala tungsten.Linker -t program foo.wo -o foo.wp
+
+To link a Tungsten module into a library:
+scala tungsten.Linker -t library -n foo -v 1.0 foo.wo -o foo.wl
+
+To convert a Tungsten module to LLVM source:
+scala tungsten.llvm.TungstenToLlvm foo.wo

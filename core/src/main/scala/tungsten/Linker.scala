@@ -67,6 +67,10 @@ object Linker {
 
     while (i < args.size) {
       args(i) match {
+        case "-h" => {
+          usage
+          System.exit(0)
+        }
         case "-n" => {
           val nameStr = next
           try {

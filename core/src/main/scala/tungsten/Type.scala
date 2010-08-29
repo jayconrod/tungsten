@@ -6,7 +6,6 @@ abstract sealed class Type
   extends Copying[Type]
 {
   def validate(module: Module, location: Location): List[CompileException] = Nil
-  def defaultValue(module: Module): Value
   def size(module: Module): Long
   def isNumeric: Boolean
   def isPointer: Boolean = false
@@ -22,16 +21,12 @@ abstract sealed class Type
 final case object UnitType 
   extends Type 
 {
-  def defaultValue(module: Module) = UnitValue
-
   def size(module: Module) = 0L
 
   def isNumeric = false
 }
 
 final case object BooleanType extends Type {
-  def defaultValue(module: Module) = BooleanValue(false)
-
   def size(module: Module) = 1L
 
   def isNumeric = false
@@ -45,8 +40,6 @@ final case object BooleanType extends Type {
 final case object CharType 
   extends Type
 {
-  def defaultValue(module: Module) = CharValue(0.toChar)
-
   def size(module: Module) = 2L
 
   def isNumeric = false
@@ -57,8 +50,6 @@ final case object CharType
 final case object StringType
   extends Type
 {
-  def defaultValue(module: Module) = StringValue("")
-
   def size(module: Module) = wordSize(module)
 
   def isNumeric = false
@@ -75,15 +66,6 @@ final case class IntType(width: Int)
   def maxValue: Long = (1L << width - 1) - 1L
 
   def minValue: Long = -1L << width - 1
-
-  def defaultValue(module: Module) = {
-    width match {
-      case 8 => IntValue(0, 8)
-      case 16 => IntValue(0, 16)
-      case 32 => IntValue(0, 32)
-      case 64 => IntValue(0, 64)
-    }
-  }
 
   def size(module: Module) = width / 8
 
@@ -106,13 +88,6 @@ final case class FloatType(width: Int)
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
 
-  def defaultValue(module: Module) = {
-    width match {
-      case 32 => FloatValue(0.0, 32)
-      case 64 => FloatValue(0.0, 64)
-    }
-  }
-
   def size(module: Module) = width / 8
 
   def isNumeric = true
@@ -132,8 +107,6 @@ final case class PointerType(elementType: Type)
     elementType.validate(module, location)
   }
 
-  def defaultValue(module: Module) = NullValue
-
   def size(module: Module) = wordSize(module)
 
   def isNumeric = false
@@ -144,8 +117,6 @@ final case class PointerType(elementType: Type)
 final case object NullType
   extends Type
 {
-  def defaultValue(module: Module) = NullValue
-
   def size(module: Module) = wordSize(module)
 
   def isNumeric = false
@@ -173,11 +144,6 @@ final case class ArrayType(length: Long, elementType: Type)
           elementType.validate(module, location))
   }
 
-  def defaultValue(module: Module) = {
-    val defaultElementValue = elementType.defaultValue(module)
-    ArrayValue(elementType, List.fill(length.toInt)(defaultElementValue))
-  }
-
   def size(module: Module) = length * elementType.size(module)
 
   def isNumeric = false
@@ -188,13 +154,6 @@ final case class StructType(structName: Symbol)
 {
   override def validate(module: Module, location: Location) = {
     module.validateName[Struct](structName, location)
-  }
-
-  def defaultValue(module: Module) = {
-    val struct = module.getStruct(structName)
-    val fields = module.getFields(struct.fields)
-    val elements = fields.map(_.ty.defaultValue(module))
-    StructValue(structName, elements)
   }
 
   def size(module: Module): Long = {
@@ -209,8 +168,6 @@ final case class FunctionType(returnType: Type,
                               parameterTypes: List[Type])
   extends Type
 {
-  def defaultValue(module: Module) = throw new UnsupportedOperationException
-
   def size(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
@@ -221,11 +178,6 @@ final case class ClassType(className: Symbol,
   extends Type
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
-    // TODO
-    throw new UnsupportedOperationException
-  }
-
-  override def defaultValue(module: Module): Value = {
     // TODO
     throw new UnsupportedOperationException
   }
@@ -244,11 +196,6 @@ final case class InterfaceType(interfaceName: Symbol,
     throw new UnsupportedOperationException
   }
 
-  override def defaultValue(module: Module): Value = {
-    // TODO
-    throw new UnsupportedOperationException
-  }
-
   override def size(module: Module) = wordSize(module)
 
   override def isNumeric = false
@@ -258,11 +205,6 @@ final case class VariableType(variableName: Symbol)
   extends Type
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
-    // TODO
-    throw new UnsupportedOperationException
-  }
-
-  override def defaultValue(module: Module): Value = {
     // TODO
     throw new UnsupportedOperationException
   }

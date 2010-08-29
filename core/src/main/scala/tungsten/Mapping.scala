@@ -46,7 +46,7 @@ trait Mapping[T <: AnyRef]
    *  cyclic references, as they will through this method into an infinite loop.
    */
   def mapRecursively[S <: AnyRef](function: S => S)(implicit m: Manifest[S]): T = {
-    val SClass = m.erasure.asInstanceOf[Class[S]]
+    val SClass = m.erasure.asInstanceOf[java.lang.Class[S]]
     def mapper(field: ReflectedField, oldValue: AnyRef): AnyRef = {
       val mapped = oldValue match {
         case v: Mapping[_] => v.mapFields(mapper _)
@@ -72,7 +72,7 @@ trait Mapping[T <: AnyRef]
    *  is applied in post-traversal order.
    */
   def foldRecursively[S, V](accum: V, function: (V, S) => V)(implicit m: Manifest[S]): V = {
-    val SClass = m.erasure.asInstanceOf[Class[S]]
+    val SClass = m.erasure.asInstanceOf[java.lang.Class[S]]
     def fold(accum: V, field: AnyRef): V = {
       val newAccum = field match {
         case v: Mapping[_] => {

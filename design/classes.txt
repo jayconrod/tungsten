@@ -1,0 +1,155 @@
+Classes and interfaces
+
+Classes in Tungsten allow object oriented languages to represent classes, interfaces, and objects directly with minimal effort. Each class has the following properties:
+
+- name
+- annotations
+- list of type parameters
+- optional superclass type (must be class type, only the tungsten.Object class may lack a superclass)
+- list of supported interface types
+- list of constructors
+- list of methods
+- list of fields
+
+An interface has the following properties:
+
+- name
+- annotations
+- list of type parameters
+- superclass type
+- list of supported interface types
+- list of methods
+
+==Types==
+
+There are several new types associated with classes and interfaces.
+
+- class type - values of this type are objects of a class (ClassValue). If the class is parameterized, then suitable type arguments are required.
+- interface type - there are no values of this type. If the interface is parameterized, then suitable type arguments are required.
+- parameter type - corresponds to a type parameter declared with an enclosing function or class.
+- nothing type - the bottom of the type hierarchy
+
+All of these are intended to be used with pointer types. We can only do subtyping if we are dealing with pointers. For instance, class B may be a subclass of class A, but a value of class type B does not have class type A because objects of A and B may have different sizes. However, a pointer to an object of B could have type A*.
+
+This is also why there are no values of interface type or parameter type: you can't directly instantiate either. However, you can have pointers to an instance of an interface or a type parameter.
+
+All three types are called object types.
+
+Some subtyping rules. Let C be a class type, I be an interface type, P be a parameter type, and N be the nothing type. Let U and L be the upper and lower bounds of T, respectively. The * suffix denotes a pointer type. O is any object type.
+
+O1 = O2
+--------
+O1 <: O2
+
+O1* <: O2* and O2* <: O3*
+-------------------------
+O1* <: O3*
+
+C1's superclass is C2
+---------------------
+C1* <: C2*
+
+class C implements I
+--------------------
+C* <: I*
+
+L* <: C* and C* <: U*
+---------------------
+C* <: T*
+
+I's superclass is C
+-------------------
+I* <: C*
+
+I1 implements I2
+----------------
+I1* <: I2*
+
+L* <: I* and I* <: U*
+---------------------
+I* <: T*
+
+==Type parameters==
+
+These allow parameterized types, like generics in Java. Each type parameter has a name, an upper bound, a lower bound, and a variance. Both bounds must be object types (class, interface, or parameter). 
+
+Like regular parameters, type parameters are only valid in the scope in which they are declared. In a class or interface, they may be used as part of other type parameters, inherited class or interface types, or in fields and methods.
+
+==Existential types==
+
+==Abstract and final classes==
+
+Classes may be marked abstract using the tungsten.Abstract annotation. This indicates that the class cannot be instantiated. It also means the class is allowed to have abstract methods. The class is otherwise normal: it's still required to have constructors, and it can have a normal set of methods and fields.
+
+A class marked final with the tungsten.Final annotation is not allowed to have any subclasses. A class may be marked both abstract and final (although there's not much point in doing so). There are two purposes for final classes: first, an API can be protected, since there won't be any subclasses accessing hidden methods or data. Second, method calls to objects with a final class type can be optimized to static calls, since the vtable is known in advance by the type.
+
+==Constructors==
+
+Instances of a class are initialized using a constructor. A constructor is a function with the following requirements:
+
+- it is marked with the annotation tungsten.Constructor, and the annotation names the class
+- the first argument must be a pointer to the class type.
+- the return type must be unit.
+- the constructor must either call a constructor of the parent class or another constructor of the same class. The call must always be made before returning, although it's okay to throw an exception first.
+
+The last rule does not apply to constructors of the root class, tungsten.Object.
+
+Note that constructors are only responsible for initializing the user-defined portion of the class. The class implementation (vtable, etc), is initialized once at allocation.
+
+There are no special destructors in Tungsten. Languages that require destructors should define them as methods and call them explicitly.
+
+A class definition lists all of its constructors. Constructors of another class (even a sub- or super-class) cannot be used.
+
+==Methods==
+
+Methods are functions which can be called on instances of classes. A method is a normal function with the following requirements:
+
+- it must be marked with the annotation tungsten.Method, and the annotation must name the class
+- the first argument must be a pointer to the class type
+
+Classes implicitly inherit the methods from their superclass. In order to override an inherited method, a method must be marked with the tungsten.Override annotation, and the overriden method must be named. To prevent a method from being overriden in subclasses, a method can be marked with the tungsten.Final annotation. 
+
+A method with an empty body can be marked with the tungsten.Abstract annotation. Normally an empty function refers to an external definition that must be linked in. However, an abstract method just indicates that non-abstract subclasses must override it. 
+
+==Fields==
+
+Fields are the portion of class instances which actually store data. They are declared the same way fields in Structs are declared. The main difference is that fields are inherited from superclasses.
+
+==Operations==
+
+- heapnew
+Allocates a new instance of a class on the heap and calls one of its constructors. 
+
+@A* %x = heapnew @A[@S] @A.ctor[@T](int64 12)
+
+Three sets of arguments may be specified:
+- type arguments for the class
+- type arguments for the constructor
+- regular arguments for the constructor
+
+A pointer to the allocated object is implicitly passed as the first parameter to the constructor. The return value is a pointer to the newly allocated object.
+
+- stacknew
+Same as heapnew but allocated the object on the stack.
+
+- init
+Initializes internal object memory (such as the vtable pointer). This is useful when the memory for an object is allocated separately (such as with heapnew or stacknew). No constructor is called here; that can be done separately with scall. 
+
+unit %x = init @A[@T]* %a
+
+- vcall
+Calls a method using the object's vtable. This is how polymorphism is implemented.
+
+int64 %x = vcall @A.m[@T](@A* %a, int64 12)
+
+Note that a pointer to the object must be explicitly passed as the first parameter.
+
+This can also be used to call methods on an interface pointer, or other object pointer.
+
+- scall
+Statically calls a method. This is just the regular static call instruction, and it still works since functions are just methods. 
+
+This can be used to invoke a constructor explictly if the memory for an object is allocated without using stacknew or heapnew. This can also be used to implement "super" method calls.
+
+
+

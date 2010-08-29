@@ -1,0 +1,54 @@
+Validation in Tungsten occurs in several phases:
+
+- component and type validation
+- scope validation
+- cycle validation
+- semantic validation
+
+The result of each stage is a list of CompileExceptions. If the list is empty, the next phase of validation can be performed. Later phases may assume that the earlier phases completed successfully.
+
+== Component and type validation ==
+
+This is the first and most basic kind of validation. Each definition has a method, 'validateComponents', which performs this action. This checks two things:
+
+- each definition referenced by name exists and is of the correct class, e.g., a function has a list of blocks, which must be of the Block class.
+- each type used directly by the definition is valid. The 'Type.validate' method should be called by 'validateComponents' to get this information. 'Type.validate' performs a similar structural validation. It operates recursively so types within types don't need to be checked manually.
+
+== Scope validation ==
+
+Some kinds of defintions may only be referenced within the scope they are declared in. These include:
+
+- parameters (within the method or block)
+- type parameters (within the class, its fields, or methods)
+- instructions (within the block)
+- blocks (within the function)
+
+Validating that definitions are only used within appropriate scope is done at the module level. Each definition class provides a 'usedSymbols' method which returns a list of symbols used directly. Type and value classes provide a method of the same name to aid in its implementation. Definition classes also provide a 'children' method, which returns a set of definitions contained within the target definition. 
+
+The validation proceeds as follows:
+
+errors = []
+def validateScope(defn, scope):
+  scope += defn.children
+  for s in defn.usedSymbol:
+    other = definitionOf(s)
+    if other.isInternal and other not in scope:
+      errors += new scope error
+  for c in defn.children:
+    validateScope(c, scope)
+  scope -= defn.children
+
+scope = []
+errors = []
+for each global defn:
+  errors = validateScope(defn, scope, errors)
+
+== Cycle validation ==
+
+Cycle validation identifies definitions which depend on themselves in an illegal way. This is done at the module level in 'Module.validateCycles' since dependencies between definitions can be complicated.
+
+Several different kinds of cycles may occur:
+
+- Struct cycles - occurs when a struct contains a field of the same struct type. This creates a struct whose size is not well defined.
+- Inheritance cycles - occurs when a class or interface inherits from itself.
+- type parameter cycles - occurs when a type parameter uses itself as its upper or lower bound.

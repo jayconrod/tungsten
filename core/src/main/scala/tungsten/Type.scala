@@ -216,3 +216,59 @@ final case class FunctionType(returnType: Type,
   def isNumeric = false
 }
 
+final case class ClassType(className: Symbol,
+                           typeArguments: List[Type])
+  extends Type
+{
+  override def validate(module: Module, location: Location): List[CompileException] = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  override def defaultValue(module: Module): Value = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  override def size(module: Module) = wordSize(module)
+
+  override def isNumeric = false
+}
+
+final case class InterfaceType(interfaceName: Symbol,
+                               typeArguments: List[Type])
+  extends Type
+{
+  override def validate(module: Module, location: Location): List[CompileException] = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  override def defaultValue(module: Module): Value = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  override def size(module: Module) = wordSize(module)
+
+  override def isNumeric = false
+}
+
+final case class VariableType(variableName: Symbol)
+  extends Type
+{
+  override def validate(module: Module, location: Location): List[CompileException] = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  override def defaultValue(module: Module): Value = {
+    // TODO
+    throw new UnsupportedOperationException
+  }
+
+  override def size(module: Module) = wordSize(module)
+
+  override def isNumeric = false
+}
+

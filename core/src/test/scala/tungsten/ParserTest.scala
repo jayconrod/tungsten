@@ -399,6 +399,24 @@ class ParserTest {
   }
 
   @Test
+  def typeParameter {
+    testDefinition("type @T", parser.typeParameter,
+                   TypeParameter("@T", ClassType("@tungsten.Object"), ClassType("@tungsten.Nothing")))
+    testDefinition("type @T <: type @U", parser.typeParameter,
+                   TypeParameter("@T", VariableType("@U"), ClassType("@tungsten.Nothing")))
+    testDefinition("@ann type @T <: type @U", parser.typeParameter,
+                   TypeParameter("@T", VariableType("@U"), ClassType("@tungsten.Nothing"),
+                                 List(AnnotationValue("@ann", Nil))))
+    testDefinition("type @T >: type @L", parser.typeParameter,
+                   TypeParameter("@T", ClassType("@tungsten.Object"), VariableType("@L")))
+    testDefinition("type @T <: type @U >: type @L", parser.typeParameter,
+                   TypeParameter("@T", VariableType("@U"), VariableType("@L")))
+    testDefinition("@ann type @T <: type @U >: type @L", parser.typeParameter,
+                   TypeParameter("@T", VariableType("@U"), VariableType("@L"), 
+                                 List(AnnotationValue("@ann", Nil))))
+  }
+
+  @Test
   def block {
     testDefinition("block %b(unit %x) {\n" +
                    "  unit %i = return ()\n" +

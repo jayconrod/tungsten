@@ -4,6 +4,7 @@ import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.combinator.ImplicitConversions
 import scala.util.parsing.input.Reader
 import java.io.File
+import Utilities._
 
 class Parser extends Parsers with ImplicitConversions {
   type Elem = Lexer.Token
@@ -131,6 +132,21 @@ class Parser extends Parsers with ImplicitConversions {
       }
     }
   }
+
+  lazy val typeParameter: Parser[AstNode] = {
+    val upperBound: Parser[Type] = {
+      opt("<:" ~> ty) ^^ { case t => t.getOrElse(ClassType("@tungsten.Object")) }
+    }
+    val lowerBound: Parser[Type] = {
+      opt(">:" ~> ty) ^^ { case t => t.getOrElse(ClassType("@tungsten.Nothing")) }
+    }
+    annotations ~ ("type" ~> symbol) ~ upperBound ~ lowerBound ^^ {
+      case anns ~ n ~ u ~ l => {
+        val tyParam = TypeParameter(n, u, l, anns)
+        AstNode(tyParam, Nil)
+      }
+    }
+  }    
 
   def childNames(children: List[AstNode], parentName: Symbol): List[Symbol] = {
     children map { child =>

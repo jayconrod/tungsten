@@ -431,7 +431,10 @@ class Parser extends Parsers with ImplicitConversions {
       ("float64"  ^^^ FloatType(64)) |
       ("nulltype" ^^^ NullType)      |
       structTy                       |
-      arrayTy 
+      arrayTy                        |
+      classTy                        |
+      interfaceTy                    |
+      variableTy
     }
                   
     basicTy ~ rep("*") ^^ { case ety ~ stars => makePointerType(ety, stars.size) }    
@@ -443,6 +446,29 @@ class Parser extends Parsers with ImplicitConversions {
 
   lazy val structTy: Parser[StructType] = {
     "struct" ~> symbol ^^ { case name => StructType(name) }
+  }
+
+  lazy val classTy: Parser[ClassType] = {
+    "class" ~> symbol ~ tyArgsOpt ^^ {
+      case n ~ as => ClassType(n, as)
+    }
+  }
+
+  lazy val interfaceTy: Parser[InterfaceType] = {
+    "interface" ~> symbol ~ tyArgsOpt ^^ {
+      case n ~ as => InterfaceType(n, as)
+    }
+  }
+
+  lazy val variableTy: Parser[VariableType] = {
+    "type" ~> symbol ^^ { case n => VariableType(n) }
+  }
+
+  lazy val tyArgsOpt: Parser[List[Type]] = {
+    opt("[" ~> rep1sep(ty, ",") <~ "]") ^^ {
+      case Some(as) => as
+      case None => Nil
+    }
   }
 
   implicit def reserved(r: String): Parser[String] = {

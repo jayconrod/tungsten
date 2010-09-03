@@ -174,7 +174,7 @@ final case class FunctionType(returnType: Type,
 }
 
 final case class ClassType(className: Symbol,
-                           typeArguments: List[Type])
+                           typeArguments: List[Type] = Nil)
   extends Type
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
@@ -188,7 +188,7 @@ final case class ClassType(className: Symbol,
 }
 
 final case class InterfaceType(interfaceName: Symbol,
-                               typeArguments: List[Type])
+                               typeArguments: List[Type] = Nil)
   extends Type
 {
   override def validate(module: Module, location: Location): List[CompileException] = {

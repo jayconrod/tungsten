@@ -124,6 +124,25 @@ class ParserTest {
   }
 
   @Test
+  def classType {
+    testType("class @T", ClassType("@T"))
+    testType("class @T[unit, unit]",
+             ClassType("@T", List(UnitType, UnitType)))
+  }
+
+  @Test
+  def interfaceType {
+    testType("interface @I", InterfaceType("@I"))
+    testType("interface @I[unit, unit]",
+             InterfaceType("@I", List(UnitType, UnitType)))
+  }
+
+  @Test
+  def variableType {
+    testType("type @T", VariableType("@T"))
+  }
+
+  @Test
   def unitValue {
     testValue("()", UnitValue)
   }

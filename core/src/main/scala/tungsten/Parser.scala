@@ -100,6 +100,24 @@ class Parser extends Parsers with ImplicitConversions {
     }
   }
 
+  lazy val interface: Parser[AstNode] = {
+    val interface: Parser[(InterfaceType, List[Symbol])] = {
+      interfaceTy ~ children(symbol, "{", ",", "}") ^^ { case t ~ ms => (t, ms) }
+    }
+    annotations ~ ("interface" ~> symbol) ~ 
+      children(typeParameter, "[", ",", "]") ~ 
+      ("<:" ~> classTy) ~ ("{" ~>
+      rep(interface) ~ 
+      ("methods" ~> children(symbol, "{", ",", "}")) <~
+    "}") ^^ {
+      case anns ~ n ~ tps ~ sc ~ (is ~ ms) => {
+        val (its, ims) = is.unzip
+        val interfac = Interface(n, childNames(tps, n), sc, its, ims, ms, anns)
+        AstNode(interfac, tps)
+      }
+    }
+  }
+
   lazy val function: Parser[AstNode] = {
     annotations ~ ("function" ~> ty) ~ symbol ~ children(parameter, "(", ",", ")") ~
       children(block, "{", "", "}") ^^ {
@@ -169,7 +187,7 @@ class Parser extends Parsers with ImplicitConversions {
         AstNode(tyParam, Nil)
       }
     }
-  }    
+  }
 
   def childNames(children: List[AstNode], parentName: Symbol): List[Symbol] = {
     children map { child =>

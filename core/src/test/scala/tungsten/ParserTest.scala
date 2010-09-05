@@ -470,6 +470,31 @@ class ParserTest {
   }
 
   @Test
+  def interface {
+    val expected = Interface("@I",
+                             List("@T"),
+                             ClassType("@C", List(VariableType("@T"))),
+                             List(InterfaceType("@J", List(VariableType("@T"))),
+                                  InterfaceType("@K")),
+                             List(List("@I.m1", "@I.m2"),
+                                  List("@I.m3", "@I.m4")),
+                             List("@I.m1", "@I.m2", "@I.m3", "@I.m4"),
+                             List(AnnotationValue("@ann", Nil)))
+    val code = "@ann interface @I[type @T] <: class @C[type @T] {\n" +
+               "  interface @J[type @T] {\n" +
+               "    @I.m1, @I.m2\n" +
+               "  }\n" +
+               "  interface @K {\n" +
+               "    @I.m3, @I.m4\n" +
+               "  }\n" +
+               "  methods {\n" +
+               "    @I.m1, @I.m2, @I.m3, @I.m4\n" +
+               "  }\n" +
+               "}\n"
+    testDefinition(code, parser.interface, expected)
+  }
+
+  @Test
   def clas {
     val expected = Class("@C",
                          List("@T"),

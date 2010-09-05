@@ -273,6 +273,9 @@ object ModuleIO {
         }
         case STRUCT_TYPE_ID => StructType(symbol)
         case FUNCTION_TYPE_ID => FunctionType(readType, readList(readType))
+        case CLASS_TYPE_ID => ClassType(symbol, readList(readType))
+        case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readType))
+        case VARIABLE_TYPE_ID => VariableType(symbol)
         case _ => throw new IOException("Invalid type ID")
       }
     }
@@ -802,6 +805,12 @@ object ModuleIO {
     }
 
     def localType(ty: Type, parentName: Option[Symbol]): String = {
+      def localTypeArguments(tyArgs: List[Type]): String = {
+        if (tyArgs.isEmpty)
+          ""
+        else
+          tyArgs.map(localType(_, parentName)).mkString("[", ", ", "]")
+      }
       ty match {
         case UnitType => "unit"
         case BooleanType => "boolean"
@@ -819,6 +828,13 @@ object ModuleIO {
           "(%s) => %s".format(parameterTypes.map(localType(_: Type, parentName)).mkString(", "), 
                               localType(returnType, parentName))
         }
+        case ClassType(className, tyArgs) => {
+          "class " + localSymbol(className, parentName) + localTypeArguments(tyArgs)
+        }
+        case InterfaceType(interfaceName, tyArgs) => {
+          "interface " + localSymbol(interfaceName, parentName) + localTypeArguments(tyArgs)
+        }
+        case VariableType(variableName) => "type " + localSymbol(variableName, parentName)
       }
     }
   }
@@ -1145,6 +1161,20 @@ object ModuleIO {
           writeType(returnType)
           writeList(parameterTypes, writeType _)
         }
+        case ClassType(className, typeParameters) => {
+          output.writeByte(CLASS_TYPE_ID)
+          writeInt(symbols(className))
+          writeList(typeParameters, writeType _)
+        }
+        case InterfaceType(interfaceName, typeParameters) => {
+          output.writeByte(INTERFACE_TYPE_ID)
+          writeInt(symbols(interfaceName))
+          writeList(typeParameters, writeType _)
+        }
+        case VariableType(variableName) => {
+          output.writeByte(VARIABLE_TYPE_ID)
+          writeInt(symbols(variableName))
+        }
       }
     }
 
@@ -1364,6 +1394,9 @@ object ModuleIO {
   val ARRAY_TYPE_ID = 9
   val STRUCT_TYPE_ID = 10
   val FUNCTION_TYPE_ID = 11
+  val CLASS_TYPE_ID = 12
+  val INTERFACE_TYPE_ID = 13
+  val VARIABLE_TYPE_ID = 14
 
   val UNIT_VALUE_ID = 1
   val BOOLEAN_VALUE_ID = 2

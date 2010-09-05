@@ -470,6 +470,38 @@ class ParserTest {
   }
 
   @Test
+  def clas {
+    val expected = Class("@C",
+                         List("@T"),
+                         Some(ClassType("@S", List(VariableType("@T")))),
+                         List(InterfaceType("@I", List(ClassType("@C"))),
+                              InterfaceType("@J")),
+                         List(List("@C.m1", "@C.m2"),
+                              List("@C.m3", "@C.m4")),
+                         List("@C.c1", "@C.c2"),
+                         List("@C.m1", "@C.m2", "@C.m3", "@C.m4"),
+                         List("@C.f1", "@C.f2"),
+                         List(AnnotationValue("@ann", Nil)))
+    val code = "@ann class @C[type @T] <: class @S[type @T]{\n" +
+               "  interface @I[class @C] {\n" +
+               "    @C.m1, @C.m2\n" +
+               "  }\n" +
+               "  interface @J {\n" +
+               "    @C.m3, @C.m4\n" +
+               "  }\n" +
+               "  constructors {\n" +
+               "    @C.c1, @C.c2\n" +
+               "  }\n" +
+               "  methods {\n" +
+               "    @C.m1, @C.m2, @C.m3, @C.m4\n" +
+               "  }\n" +
+               "  field unit @C.f1\n" +
+               "  field unit @C.f2\n" +
+               "}\n"
+    testDefinition(code, parser.clas, expected)
+  }
+
+  @Test
   def childNames {
     val child = Parameter("%p", UnitType)
     val childNodes = List(AstNode(child, Nil))

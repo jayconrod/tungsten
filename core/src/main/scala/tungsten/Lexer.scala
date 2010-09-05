@@ -20,6 +20,7 @@ object Lexer extends Lexical with RegexParsers {
         "name", "type", "intermediate", "library", "program", "version", "filename",
           "dependencies", "searchpaths", "is64bit", "safe",
         "annotation", "block", "class", "interface", "field", "function", "global", "struct",
+          "constructors", "methods",
         "address", "binop", "bitcast", "branch", "cond", "extract", "fextend", "ftoi", 
           "ftruncate", "heap", "heaparray", "insert", "isextend", "itof", "itruncate", 
           "izextend",  "intrinsic", "load", "loadelement", "relop", "return", "scall", "stack",

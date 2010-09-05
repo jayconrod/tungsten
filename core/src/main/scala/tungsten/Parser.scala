@@ -65,7 +65,7 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val definition: Parser[AstNode] = {
-    annotation | function | global | struct
+    annotation | clas | function | global | struct
   }
 
   lazy val annotation: Parser[AstNode] = {
@@ -74,6 +74,29 @@ class Parser extends Parsers with ImplicitConversions {
         val annotation = Annotation(n, childNames(ps, n), anns)
         AstNode(annotation, ps)
       }
+    }
+  }
+
+  lazy val clas: Parser[AstNode] = {
+    val tyParams: Parser[List[AstNode]] = children(typeParameter, "[", ",", "]")
+    val superclass: Parser[Option[ClassType]] = opt("<:" ~> classTy)
+    val interface: Parser[(InterfaceType, List[Symbol])] = {
+      interfaceTy ~ children(symbol, "{", ",", "}") ^^ { case t ~ ms => (t, ms) }
+    }
+    val constructors: Parser[List[Symbol]] = {
+      "constructors" ~> children(symbol, "{", ",", "}")
+    }
+    val methods: Parser[List[Symbol]] = {
+      "methods" ~> children(symbol, "{", ",", "}")
+    }
+    val fields: Parser[List[AstNode]] = rep(field)
+    annotations ~ ("class" ~> symbol) ~ tyParams ~ superclass ~ 
+      ("{" ~> rep(interface) ~ constructors ~ methods ~ fields <~ "}") ^^ {
+        case anns ~ n ~ tps ~ sc ~ (is ~ cs ~ ms ~ fs) => {
+          val (its, ims) = is.unzip
+          val clas = Class(n, childNames(tps, n), sc, its, ims, cs, ms, childNames(fs, n), anns)
+          AstNode(clas, tps ++ fs)
+        }
     }
   }
 
@@ -381,10 +404,10 @@ class Parser extends Parsers with ImplicitConversions {
     "(" ~> repsep(value, ",") <~ ")"
   }
 
-  def children(parser: Parser[AstNode], 
-               prefix: String, 
-               separator: String, 
-               suffix: String): Parser[List[AstNode]] =
+  def children[T](parser: Parser[T], 
+                  prefix: String, 
+                  separator: String, 
+                  suffix: String): Parser[List[T]] =
   {
     val listParser = if (separator.isEmpty)
       rep(parser)

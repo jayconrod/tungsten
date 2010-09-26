@@ -401,18 +401,18 @@ class ParserTest {
   @Test
   def typeParameter {
     testDefinition("type @T", parser.typeParameter,
-                   TypeParameter("@T", ClassType("@tungsten.Object"), ClassType("@tungsten.Nothing")))
+                   TypeParameter("@T", None, None))
     testDefinition("type @T <: type @U", parser.typeParameter,
-                   TypeParameter("@T", VariableType("@U"), ClassType("@tungsten.Nothing")))
+                   TypeParameter("@T", Some(VariableType("@U")), None))
     testDefinition("@ann type @T <: type @U", parser.typeParameter,
-                   TypeParameter("@T", VariableType("@U"), ClassType("@tungsten.Nothing"),
+                   TypeParameter("@T", Some(VariableType("@U")), None,
                                  List(AnnotationValue("@ann", Nil))))
     testDefinition("type @T >: type @L", parser.typeParameter,
-                   TypeParameter("@T", ClassType("@tungsten.Object"), VariableType("@L")))
+                   TypeParameter("@T", None, Some(VariableType("@L"))))
     testDefinition("type @T <: type @U >: type @L", parser.typeParameter,
-                   TypeParameter("@T", VariableType("@U"), VariableType("@L")))
+                   TypeParameter("@T", Some(VariableType("@U")), Some(VariableType("@L"))))
     testDefinition("@ann type @T <: type @U >: type @L", parser.typeParameter,
-                   TypeParameter("@T", VariableType("@U"), VariableType("@L"), 
+                   TypeParameter("@T", Some(VariableType("@U")), Some(VariableType("@L")), 
                                  List(AnnotationValue("@ann", Nil))))
   }
 

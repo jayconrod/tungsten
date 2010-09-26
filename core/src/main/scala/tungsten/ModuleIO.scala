@@ -176,8 +176,9 @@ object ModuleIO {
                     readList(symbol),
                     readAnnotations)
         }
-        case TYPE_PARAMETER_ID => TypeParameter(name, readType, readType, readAnnotations)
-
+        case TYPE_PARAMETER_ID => {
+          TypeParameter(name, readOption(readType), readOption(readType), readAnnotations)
+        }
         case ADDRESS_INST_ID => {
           AddressInstruction(name, readType, readValue, readList(readValue), readAnnotations)
         }
@@ -676,10 +677,12 @@ object ModuleIO {
       writeAnnotations(typeParameter.annotations)
       output.write("type ")
       writeSymbol(typeParameter.name, parentName)
-      if (typeParameter.upperBound != TypeParameter.defaultUpperBound)
-        output.write(" <: " + localType(typeParameter.upperBound, parentName))
-      if (typeParameter.lowerBound != TypeParameter.defaultLowerBound)
-        output.write(" >: " + localType(typeParameter.lowerBound, parentName))
+      typeParameter.upperBound.foreach { t =>
+        output.write(" <: " + localType(t, parentName))
+      }
+      typeParameter.lowerBound.foreach { t =>
+        output.write(" >: " + localType(t, parentName))
+      }
     }
 
     def writeInstruction(instruction: Instruction, parentName: Option[Symbol]) {
@@ -1121,8 +1124,8 @@ object ModuleIO {
         }
         case TypeParameter(_, upperBound, lowerBound, _) => {
           output.writeByte(TYPE_PARAMETER_ID)
-          writeType(upperBound)
-          writeType(lowerBound)
+          writeOption(upperBound, writeType _)
+          writeOption(lowerBound, writeType _)
         }
 
         case inst: Instruction => {

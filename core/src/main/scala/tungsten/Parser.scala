@@ -175,13 +175,7 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val typeParameter: Parser[AstNode] = {
-    val upperBound: Parser[Type] = {
-      opt("<:" ~> ty) ^^ { case t => t.getOrElse(ClassType("@tungsten.Object")) }
-    }
-    val lowerBound: Parser[Type] = {
-      opt(">:" ~> ty) ^^ { case t => t.getOrElse(ClassType("@tungsten.Nothing")) }
-    }
-    annotations ~ ("type" ~> symbol) ~ upperBound ~ lowerBound ^^ {
+    annotations ~ ("type" ~> symbol) ~ opt("<:" ~> ty) ~ opt(">:" ~> ty) ^^ {
       case anns ~ n ~ u ~ l => {
         val tyParam = TypeParameter(n, u, l, anns)
         AstNode(tyParam, Nil)

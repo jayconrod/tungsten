@@ -65,7 +65,7 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val definition: Parser[AstNode] = {
-    annotation | clas | function | global | struct
+    annotation | clas | interface | function | global | struct
   }
 
   lazy val annotation: Parser[AstNode] = {

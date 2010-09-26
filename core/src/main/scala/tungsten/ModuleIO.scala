@@ -156,6 +156,27 @@ object ModuleIO {
         case GLOBAL_ID => Global(name, readType, readOption(readValue), readAnnotations)
         case PARAMETER_ID => Parameter(name, readType, readAnnotations)
         case STRUCT_ID => Struct(name, readList(symbol), readAnnotations)
+        case CLASS_ID => {
+          Class(name, 
+                readList(symbol), 
+                readOption(readCast[ClassType](readType)),
+                readList(readCast[InterfaceType](readType)),
+                readList(readList(symbol)),
+                readList(symbol),
+                readList(symbol),
+                readList(symbol),
+                readAnnotations)
+        }
+        case INTERFACE_ID => {
+          Interface(name,
+                    readList(symbol),
+                    readCast[ClassType](readType),
+                    readList(readCast[InterfaceType](readType)),
+                    readList(readList(symbol)),
+                    readList(symbol),
+                    readAnnotations)
+        }
+        case TYPE_PARAMETER_ID => TypeParameter(name, readType, readType, readAnnotations)
 
         case ADDRESS_INST_ID => {
           AddressInstruction(name, readType, readValue, readList(readValue), readAnnotations)
@@ -357,6 +378,15 @@ object ModuleIO {
       }
     }
 
+    def readCast[S](reader: => AnyRef): S = {
+      try {
+        reader.asInstanceOf[S]
+      } catch {
+        case exn: ClassCastException =>
+          throw new InvalidObjectException("object is not of the correct type")
+      }
+    }
+
     def readBinaryOperator: BinaryOperator = {
       import BinaryOperator._
       input.readByte match {
@@ -454,13 +484,16 @@ object ModuleIO {
       for (defn <- module.definitions.values) {
         defn match {
           case a: Annotation => writeAnnotation(a)
+          case c: Class => writeClass(c)
           case g: Global => writeGlobal(g)
           case f: Function => writeFunction(f)
+          case i: Interface => writeInterface(i)
           case s: Struct => writeStruct(s)
           case _ => ()
         }
         val isGlobal = defn match {
-          case _: Annotation | _: Global | _: Function | _: Struct => true
+          case _: Annotation | _: Class | _: Global | _: Interface | _: Function | _: Struct => 
+            true
           case _ => false
         }
         if (isGlobal)
@@ -499,6 +532,33 @@ object ModuleIO {
       writeFields(annotation.parameters, Some(annotation.name))
     }
 
+    def writeClass(clas: Class) {
+      writeAnnotations(clas.annotations)
+      output.write("class ")
+      writeSymbol(clas.name, None)
+      writeTypeParameters(clas.typeParameters, Some(clas.name))
+      clas.superclass.foreach { case t =>
+        output.write(" <: ")
+        writeType(t, None)
+      }
+      output.write(" {\n")
+
+      writeImplementedInterfaces(clas.interfaceTypes, clas.interfaceMethods, Some(clas.name))
+
+      output.write(INDENT + "constructors")
+      writeSymbolBlock(clas.constructors, Some(clas.name))
+      output.write("\n")
+
+      output.write(INDENT + "methods")
+      writeSymbolBlock(clas.methods, Some(clas.name))
+      output.write("\n")
+
+      val fields = module.getFields(clas.fields)
+      writeChildren(fields, writeField(_: Field, Some(clas.name)), "", "\n", "\n")
+
+      output.write("}")
+    }
+
     def writeFunction(function: Function) {
       writeAnnotations(function.annotations)
       output.write("function ")
@@ -524,6 +584,24 @@ object ModuleIO {
       }
     }
 
+    def writeInterface(interface: Interface) {
+      writeAnnotations(interface.annotations)
+      output.write("interface ")
+      writeSymbol(interface.name, None)
+      writeTypeParameters(interface.typeParameters, Some(interface.name))
+      output.write(" <: ")
+      writeType(interface.superclass, None)
+      output.write(" {\n")
+
+      writeImplementedInterfaces(interface.interfaceTypes, 
+                                 interface.interfaceMethods, 
+                                 Some(interface.name))
+
+      output.write(INDENT + "methods")
+      writeSymbolBlock(interface.methods, Some(interface.name))
+      output.write("\n}")      
+    }
+
     def writeStruct(struct: Struct) {
       writeAnnotations(struct.annotations)
       output.write("struct @" + struct.name)
@@ -538,6 +616,24 @@ object ModuleIO {
     def writeParameters(parameters: List[Symbol], parentName: Option[Symbol]) {
       writeChildren(module.getParameters(parameters), writeParameter(_: Parameter, parentName),
                     "(", ", ", ")")
+    }
+
+    def writeTypeParameters(typeParameters: List[Symbol], parentName: Option[Symbol]) {
+      writeChildren(module.getTypeParameters(typeParameters), 
+                    writeTypeParameter(_: TypeParameter, parentName),
+                    "[", ", ", "]")
+    }
+
+    def writeImplementedInterfaces(interfaceTypes: List[InterfaceType],
+                                   interfaceMethods: List[List[Symbol]],
+                                   parent: Option[Symbol])
+    {
+      (interfaceTypes zip interfaceMethods).map { case (ty, methods) =>
+        output.write(INDENT)
+        writeType(ty, parent)
+        writeSymbolBlock(methods, parent)
+        output.write("\n")
+      }
     }
 
     def writeBlocks(blocks: List[Symbol], parentName: Option[Symbol]) {
@@ -574,6 +670,16 @@ object ModuleIO {
       writeType(parameter.ty, parentName)
       output.write(" ")
       writeSymbol(parameter.name, parentName)
+    }
+
+    def writeTypeParameter(typeParameter: TypeParameter, parentName: Option[Symbol]) {
+      writeAnnotations(typeParameter.annotations)
+      output.write("type ")
+      writeSymbol(typeParameter.name, parentName)
+      if (typeParameter.upperBound != TypeParameter.defaultUpperBound)
+        output.write(" <: " + localType(typeParameter.upperBound, parentName))
+      if (typeParameter.lowerBound != TypeParameter.defaultLowerBound)
+        output.write(" >: " + localType(typeParameter.lowerBound, parentName))
     }
 
     def writeInstruction(instruction: Instruction, parentName: Option[Symbol]) {
@@ -722,6 +828,13 @@ object ModuleIO {
 
     def writeArguments(values: List[Value], parentName: Option[Symbol]) {
       output.write(values.map(localValue(_, parentName)).mkString("(", ", ", ")"))
+    }
+
+    def writeSymbolBlock(symbols: List[Symbol], parent: Option[Symbol]) {
+      writeChildren(symbols, writeSymbol(_: Symbol, parent),
+                    " {\n" + INDENT * 2,
+                    ",\n" + INDENT * 2,
+                    "\n" + INDENT + "}")
     }
 
     def writeChildren[T](children: List[T],
@@ -961,6 +1074,18 @@ object ModuleIO {
           writeSymbolList(parameters)
           writeSymbolList(instructions)
         }
+        case Class(_, typeParameters, superclass, interfaceTypes, interfaceMethods, 
+                   constructors, methods, fields, _) =>
+        {
+          output.writeByte(CLASS_ID)
+          writeSymbolList(typeParameters)
+          writeOption(superclass, writeType _)
+          writeList(interfaceTypes, writeType _)
+          writeList(interfaceMethods, writeSymbolList _)
+          writeSymbolList(constructors)
+          writeSymbolList(methods)
+          writeSymbolList(fields)
+        }
         case Field(_, ty, _) => {
           output.writeByte(FIELD_ID)
           writeType(ty)
@@ -976,6 +1101,16 @@ object ModuleIO {
           writeType(ty)
           writeOption(value, writeValue _)
         }
+        case Interface(_, typeParameters, superclass, 
+                       interfaceTypes, interfaceMethods, methods, _) =>
+        {
+          output.writeByte(INTERFACE_ID)
+          writeSymbolList(typeParameters)
+          writeType(superclass)
+          writeList(interfaceTypes, writeType _)
+          writeList(interfaceMethods, writeSymbolList _)
+          writeSymbolList(methods)
+        }
         case Parameter(_, ty, _) => {
           output.writeByte(PARAMETER_ID)
           writeType(ty)
@@ -983,6 +1118,11 @@ object ModuleIO {
         case Struct(_, fields, _) => {
           output.writeByte(STRUCT_ID)
           writeSymbolList(fields)
+        }
+        case TypeParameter(_, upperBound, lowerBound, _) => {
+          output.writeByte(TYPE_PARAMETER_ID)
+          writeType(upperBound)
+          writeType(lowerBound)
         }
 
         case inst: Instruction => {
@@ -1332,6 +1472,9 @@ object ModuleIO {
   val GLOBAL_ID: Byte = 5
   val PARAMETER_ID: Byte = 6
   val STRUCT_ID: Byte = 7
+  val CLASS_ID: Byte = 8
+  val INTERFACE_ID: Byte = 9
+  val TYPE_PARAMETER_ID: Byte = 10
 
   val ADDRESS_INST_ID: Byte = 100
   // 101 free

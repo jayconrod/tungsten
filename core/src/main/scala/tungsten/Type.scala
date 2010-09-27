@@ -9,8 +9,9 @@ abstract sealed class Type
   def size(module: Module): Long
   def isNumeric: Boolean
   def isPointer: Boolean = false
-  def isSubtypeOf(ty: Type): Boolean = ty == this
-  final def <<:(ty: Type): Boolean = ty isSubtypeOf this
+  def isObject: Boolean = false
+  def isSubtypeOf(ty: Type, module: Module): Boolean = ty == this
+  def isRootClassType(module: Module): Boolean = false
   def supportsOperator(op: BinaryOperator) = false
   def supportsOperator(op: RelationalOperator) = {
     import RelationalOperator._
@@ -123,7 +124,9 @@ final case object NullType
 
   override def isPointer = true
 
-  override def isSubtypeOf(ty: Type) = ty == NullType || ty.isInstanceOf[PointerType]
+  override def isSubtypeOf(ty: Type, module: Module) = {
+    ty == NullType || ty.isInstanceOf[PointerType]
+  }
 }
 
 final case class ArrayType(length: Long, elementType: Type)
@@ -185,6 +188,15 @@ final case class ClassType(className: Symbol,
   override def size(module: Module) = wordSize(module)
 
   override def isNumeric = false
+
+  override def isPointer = true
+
+  override def isObject = true
+
+  override def isRootClassType(module: Module): Boolean = {
+    val clas = module.getClass(className)
+    !clas.superclass.isDefined
+  }
 }
 
 final case class InterfaceType(interfaceName: Symbol,
@@ -199,18 +211,33 @@ final case class InterfaceType(interfaceName: Symbol,
   override def size(module: Module) = wordSize(module)
 
   override def isNumeric = false
+
+  override def isPointer = true
+
+  override def isObject = true
 }
 
 final case class VariableType(variableName: Symbol)
   extends Type
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
-    // TODO
-    throw new UnsupportedOperationException
+    module.validateName[TypeParameter](variableName, location)
   }
 
   override def size(module: Module) = wordSize(module)
 
   override def isNumeric = false
-}
 
+  override def isPointer = true
+
+  override def isObject = true
+
+  override def isSubtypeOf(ty: Type, module: Module): Boolean = {
+    val tyParam = module.getTypeParameter(variableName)
+    val upperBoundIsSubtype = tyParam.upperBound match {
+      case Some(t) => t.isSubtypeOf(ty, module)
+      case None => false
+    }
+    upperBoundIsSubtype || ty.isRootClassType(module)
+  }
+}

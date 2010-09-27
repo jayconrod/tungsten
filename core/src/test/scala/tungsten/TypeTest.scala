@@ -1,9 +1,16 @@
 package tungsten
 
+import scala.collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Assert._
+import Utilities._
 
 class TypeTest {
+  val clas = Class("tungsten.Object", Nil, None, Nil, Nil, Nil, Nil, Nil)
+  val definitions = TreeMap(clas.name -> clas)
+  val module = new Module(definitions = definitions)
+  val rootTy = ClassType(clas.name)
+
   @Test
   def unitEquals {
     val u1 = UnitType
@@ -74,30 +81,59 @@ class TypeTest {
   }
 
   @Test
+  def objectTypes {
+    assertTrue(ClassType("@C").isObject)
+    assertTrue(ClassType("@C").isPointer)
+    assertTrue(InterfaceType("@I").isObject)
+    assertTrue(InterfaceType("@I").isPointer)
+    assertTrue(VariableType("@T").isObject)
+    assertTrue(VariableType("@T").isPointer)
+  }
+
+  @Test
+  def rootClassType {
+    assertTrue(rootTy.isRootClassType(module))
+  }
+
+  @Test
   def defaultSubtypeSelf {
     val t1 = UnitType
     val t2 = UnitType
-    assertTrue(t1 isSubtypeOf t2)
+    assertTrue(t1.isSubtypeOf(t2, module))
   }
 
   @Test
   def defaultSubtypeOther {
     val t1 = UnitType
     val t2 = IntType(32)
-    assertFalse(t1 isSubtypeOf t2)
+    assertFalse(t1.isSubtypeOf(t2, module))
   }
 
   @Test
   def nullSubtypePointer {
     val t1 = NullType
     val t2 = PointerType(UnitType)
-    assertTrue(t1 isSubtypeOf t2)
+    assertTrue(t1.isSubtypeOf(t2, module))
   }
 
   @Test
-  def subtypeOperator {
-    val t1 = NullType
-    val t2 = PointerType(UnitType)
-    assertTrue(t1 <<: t2)
+  def unboundedVariableSubtypeRoot {
+    val tyParam = TypeParameter("T", None, None)
+    val tyVar = VariableType(tyParam.name)
+    val m = module.add(tyParam)
+    assertTrue(tyVar.isSubtypeOf(rootTy, m))
+  }
+
+  @Test
+  def boundedVariableSubtypeRoot {
+    val tyParam = TypeParameter("T", Some(rootTy), None)
+    val tyVar = VariableType(tyParam.name)
+    val m = module.add(tyParam)
+    assertTrue(tyVar.isSubtypeOf(rootTy, m))
+  }
+
+  @Test
+  def classSubtypeSelf {
+    assertTrue(rootTy.isSubtypeOf(rootTy, module))
   }
 }

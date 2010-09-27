@@ -899,7 +899,7 @@ final case class UpcastInstruction(name: Symbol,
   override def validate(module: Module) = {
     def validateCast = {
       val valueTy = value.ty
-      if (valueTy <<: ty)
+      if (valueTy.isSubtypeOf(ty, module))
         Nil
       else
         List(UpcastException(valueTy.toString, ty.toString, getLocation))

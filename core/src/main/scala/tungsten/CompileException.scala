@@ -162,6 +162,21 @@ final case class RedefinedSymbolException(symbol: Symbol,
                              oldLocation,
                            location)
 
+final case class TypeArgumentBoundsException(argument: Type, 
+                                             parameter: TypeParameter, 
+                                             location: Location)
+  extends CompileException("type argument %s is out of bounds for its parameter, %s".
+                             format(argument, parameter),
+                           location)
+
+final case class TypeArgumentCountException(definition: Definition,
+                                            given: Int,
+                                            required: Int,
+                                            location: Location)
+  extends CompileException("definition %s given %d type arguments; it expects %d".
+                             format(definition.name, given, required),
+                           location)
+
 final case class TypeMismatchException(given: Any, required: Any, location: Location)
   extends CompileException("type mismatch: %s  was given; %s was required".
                              format(given, required),

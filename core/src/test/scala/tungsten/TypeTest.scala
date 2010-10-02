@@ -2,14 +2,63 @@ package tungsten
 
 import scala.collection.immutable.TreeMap
 import org.junit.Test
+import org.junit.Ignore
 import org.junit.Assert._
 import Utilities._
 
 class TypeTest {
-  val clas = Class("tungsten.Object", Nil, None, Nil, Nil, Nil, Nil, Nil)
-  val definitions = TreeMap(clas.name -> clas)
-  val module = new Module(definitions = definitions)
-  val rootTy = ClassType(clas.name)
+  def makeClass(name: Symbol, supertype: ClassType): Class = {
+    Class(name, Nil, Some(supertype), Nil, Nil, Nil, Nil, Nil)
+  }
+
+  def makeInterface(name: Symbol, supertype: ObjectType): Interface = {
+    Interface(name, Nil, supertype, Nil, Nil, Nil, Nil)
+  }
+
+  def assertContainsError[T <: CompileException](errors: List[CompileException])
+                                                (implicit m: Manifest[T]) =
+  {
+    assertTrue(errors.exists(m.erasure.isInstance _))
+  }
+
+  def assertIsCorrect(errors: List[CompileException]) = {
+    assertEquals(Nil, errors)
+  }
+
+  val rootClass = Class("tungsten.Object", Nil, None, Nil, Nil, Nil, Nil, Nil)
+  val rootType = ClassType(rootClass.name)
+  val A = makeClass("A", rootType)
+  val B = makeClass("B", ClassType(A.name))
+  val C = makeClass("C", ClassType(B.name))
+  val T = TypeParameter("T", Some(ClassType(A.name)), Some(ClassType(C.name)))
+  val module = testModule(rootClass, A, B, C, T)
+
+  @Test
+  @Ignore
+  def validateTypeArgumentsCorrect {
+    val X = Class("X", List(T.name), Some(rootType), Nil, Nil, Nil, Nil, Nil, Nil)
+    val m = module.add(X)
+    val Xty = ClassType(X.name, List(ClassType(B.name)))
+    assertIsCorrect(Xty.validateTypeArguments(m, Nowhere))
+  }
+
+  @Test
+  @Ignore
+  def validateTypeArgumentsBounds {
+    val D = makeClass("D", ClassType(C.name))
+    val X = Class("X", List(T.name), Some(rootType), Nil, Nil, Nil, Nil, Nil, Nil)
+    val m = module.add(D, X)
+    val Xhigh = ClassType(X.name, List(rootType))
+    assertContainsError[TypeArgumentBoundsException](Xhigh.validateTypeArguments(m, Nowhere))
+    val Xlow = ClassType(X.name, List(ClassType(D.name)))
+    assertContainsError[TypeArgumentBoundsException](Xlow.validateTypeArguments(m, Nowhere))
+  }
+
+  @Test
+  def validateTypeArgumentsCount {
+    val Aty = ClassType(A.name, List(rootType))
+    assertContainsError[TypeArgumentCountException](Aty.validateTypeArguments(module, Nowhere))
+  }
 
   @Test
   def unitEquals {
@@ -92,7 +141,7 @@ class TypeTest {
 
   @Test
   def rootClassType {
-    assertTrue(rootTy.isRootClassType(module))
+    assertTrue(rootType.isRootClassType(module))
   }
 
   @Test
@@ -118,22 +167,22 @@ class TypeTest {
 
   @Test
   def unboundedVariableSubtypeRoot {
-    val tyParam = TypeParameter("T", None, None)
-    val tyVar = VariableType(tyParam.name)
-    val m = module.add(tyParam)
-    assertTrue(tyVar.isSubtypeOf(rootTy, m))
+    val S = TypeParameter("S", None, None)
+    val Sty = VariableType(S.name)
+    val m = module.add(S)
+    assertTrue(Sty.isSubtypeOf(rootType, m))
   }
 
   @Test
   def boundedVariableSubtypeRoot {
-    val tyParam = TypeParameter("T", Some(rootTy), None)
-    val tyVar = VariableType(tyParam.name)
-    val m = module.add(tyParam)
-    assertTrue(tyVar.isSubtypeOf(rootTy, m))
+    val S = TypeParameter("S", Some(rootType), None)
+    val Sty = VariableType(S.name)
+    val m = module.add(S)
+    assertTrue(Sty.isSubtypeOf(rootType, m))
   }
 
   @Test
   def classSubtypeSelf {
-    assertTrue(rootTy.isSubtypeOf(rootTy, module))
+    assertTrue(rootType.isSubtypeOf(rootType, module))
   }
 }

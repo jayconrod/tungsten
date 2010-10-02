@@ -591,7 +591,7 @@ object ModuleIO {
       writeSymbol(interface.name, None)
       writeTypeParameters(interface.typeParameters, Some(interface.name))
       output.write(" <: ")
-      writeType(interface.superclass, None)
+      writeType(interface.supertype, None)
       output.write(" {\n")
 
       writeImplementedInterfaces(interface.interfaceTypes, 

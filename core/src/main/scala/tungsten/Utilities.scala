@@ -162,6 +162,13 @@ object Utilities {
     Lexer.test(string, Lexer.generalSymbol(true))
   }
 
+  def testModule(definitions: Definition*): Module = {
+    import scala.collection.immutable.TreeMap
+    val empty = TreeMap[Symbol, Definition]()
+    val defnMap = (empty /: definitions) { (defnMap, defn) => defnMap + (defn.name -> defn) }
+    new Module(definitions = defnMap)
+  }
+
   def tryParseVersion(string: String): Option[Version] = {
     val versionRegex = "[0-9]+(\\.[0-9]+)*"
     if (string.matches(versionRegex)) {

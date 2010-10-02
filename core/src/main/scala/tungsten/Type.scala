@@ -176,45 +176,87 @@ final case class FunctionType(returnType: Type,
   def isNumeric = false
 }
 
+sealed trait ObjectType 
+  extends Type
+{
+  override def size(module: Module) = wordSize(module)
+
+  override def isNumeric = false
+
+  override def isPointer = true
+
+  override def isObject = true
+
+  protected def definitionName: Symbol
+
+  protected def typeArguments: List[Type]
+
+  protected def typeParameters(module: Module): List[TypeParameter]
+
+  def validateTypeArguments(module: Module, location: Location): List[CompileException] = {
+    val arguments = typeArguments
+    val parameters = typeParameters(module)
+    if (arguments.size != parameters.size)
+      List(TypeArgumentCountException(module(definitionName), arguments.size, parameters.size, location))
+    else {
+      (arguments zip parameters) flatMap { ap =>
+        val (argument, parameter) = ap
+        if (!parameter.isArgumentInBounds(argument, module))
+          List(TypeArgumentBoundsException(argument, parameter, location))
+        else
+          Nil
+      }
+    }
+  }
+}
+
 final case class ClassType(className: Symbol,
                            typeArguments: List[Type] = Nil)
   extends Type
+  with ObjectType
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
     module.validateName[Class](className, location) ++
       typeArguments.flatMap(_.validate(module, location))
   }
 
-  override def size(module: Module) = wordSize(module)
-
-  override def isNumeric = false
-
-  override def isPointer = true
-
-  override def isObject = true
-
   override def isRootClassType(module: Module): Boolean = {
     val clas = module.getClass(className)
     !clas.superclass.isDefined
+  }
+
+  protected def definitionName: Symbol = className
+
+  protected def typeParameters(module: Module): List[TypeParameter] = {
+    module.get[Class](className) match {
+      case Some(clas) => clas.typeParameters.flatMap { name =>
+        module.get[TypeParameter](name)
+      }
+      case None => Nil
+    }
   }
 }
 
 final case class InterfaceType(interfaceName: Symbol,
                                typeArguments: List[Type] = Nil)
   extends Type
+  with ObjectType
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
     module.validateName[Interface](interfaceName, location) ++
       typeArguments.flatMap(_.validate(module, location))
   }
 
-  override def size(module: Module) = wordSize(module)
+  protected def definitionName: Symbol = interfaceName
 
-  override def isNumeric = false
-
-  override def isPointer = true
-
-  override def isObject = true
+  protected def typeParameters(module: Module): List[TypeParameter] = {
+    module.get[Interface](interfaceName) match {
+      case Some(interface) => interface.typeParameters.flatMap { name =>
+        module.get[TypeParameter](name)
+      }
+      case None => Nil
+    }
+  }
 }
 
 final case class VariableType(variableName: Symbol)
@@ -234,10 +276,9 @@ final case class VariableType(variableName: Symbol)
 
   override def isSubtypeOf(ty: Type, module: Module): Boolean = {
     val tyParam = module.getTypeParameter(variableName)
-    val upperBoundIsSubtype = tyParam.upperBound match {
-      case Some(t) => t.isSubtypeOf(ty, module)
-      case None => false
+    tyParam.upperBound match {
+      case Some(upper) => upper.isSubtypeOf(ty, module)
+      case None => ty.isRootClassType(module)
     }
-    upperBoundIsSubtype || ty.isRootClassType(module)
   }
 }

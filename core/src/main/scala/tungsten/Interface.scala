@@ -2,7 +2,7 @@ package tungsten
 
 final case class Interface(name: Symbol,
                            typeParameters: List[Symbol],
-                           superclass: ClassType,
+                           supertype: ObjectType,
                            interfaceTypes: List[InterfaceType],
                            interfaceMethods: List[List[Symbol]],
                            methods: List[Symbol],
@@ -11,7 +11,7 @@ final case class Interface(name: Symbol,
 {
   override def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[TypeParameter](module, typeParameters) ++
-      superclass.validate(module, getLocation) ++
+      supertype.validate(module, getLocation) ++
       interfaceTypes.flatMap(_.validate(module, getLocation)) ++
       interfaceMethods.flatMap(validateComponentsOfClass[Function](module, _)) ++
       validateComponentsOfClass[Function](module, methods)

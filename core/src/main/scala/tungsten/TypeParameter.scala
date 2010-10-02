@@ -17,4 +17,16 @@ final case class TypeParameter(name: Symbol,
     // TODO
     throw new UnsupportedOperationException
   }
+
+  def isArgumentInBounds(ty: Type, module: Module): Boolean = {
+    val belowUpperBound = upperBound match {
+      case Some(upper) => ty.isSubtypeOf(upper, module)
+      case None => true
+    }
+    val aboveLowerBound = lowerBound match {
+      case Some(lower) => lower.isSubtypeOf(ty, module)
+      case None => true
+    }
+    belowUpperBound && aboveLowerBound
+  }
 }

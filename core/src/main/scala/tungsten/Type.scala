@@ -181,8 +181,8 @@ final case class ClassType(className: Symbol,
   extends Type
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
-    // TODO
-    throw new UnsupportedOperationException
+    module.validateName[Class](className, location) ++
+      typeArguments.flatMap(_.validate(module, location))
   }
 
   override def size(module: Module) = wordSize(module)
@@ -204,8 +204,8 @@ final case class InterfaceType(interfaceName: Symbol,
   extends Type
 {
   override def validate(module: Module, location: Location): List[CompileException] = {
-    // TODO
-    throw new UnsupportedOperationException
+    module.validateName[Interface](interfaceName, location) ++
+      typeArguments.flatMap(_.validate(module, location))
   }
 
   override def size(module: Module) = wordSize(module)

@@ -8,6 +8,7 @@ final case class Interface(name: Symbol,
                            methods: List[Symbol],
                            annotations: List[AnnotationValue] = Nil)
   extends Definition
+  with ObjectDefinition
 {
   override def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[TypeParameter](module, typeParameters) ++
@@ -21,4 +22,6 @@ final case class Interface(name: Symbol,
     // TODO
     throw new UnsupportedOperationException
   }
+
+  def getSuperType: Option[ObjectType] = Some(supertype)
 }

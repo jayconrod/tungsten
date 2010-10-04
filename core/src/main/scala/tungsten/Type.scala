@@ -191,11 +191,21 @@ sealed trait ObjectType
 
   override def isObject = true
 
+  def typeArguments: List[Type]
+
+  def typeParameters(module: Module): List[TypeParameter] = {
+    getDefinition(module).getTypeParameters(module)
+  }
+
+  def supertype(module: Module): Option[ObjectType] = {
+    getDefinition(module).getSuperType
+  }
+
   def validateTypeArguments(module: Module, location: Location): List[CompileException] = {
     val arguments = typeArguments
     val parameters = typeParameters(module)
     if (arguments.size != parameters.size)
-      List(TypeArgumentCountException(module(definitionName), arguments.size, parameters.size, location))
+      List(TypeArgumentCountException(getDefinition(module), arguments.size, parameters.size, location))
     else {
       (arguments zip parameters) flatMap { ap =>
         val (argument, parameter) = ap
@@ -208,21 +218,16 @@ sealed trait ObjectType
   }
 
   def getParentType(module: Module): Option[ObjectType] = {
-    supertype(module).map { parentType =>
-      (parentType /: (typeParameters(module) zip typeArguments)) { (parentType, pa) =>
+    supertype(module).map { parentType: ObjectType =>
+      def folder(parentType: ObjectType, pa: (TypeParameter, Type)): ObjectType = {
         val (parameter, argument) = pa
         parentType.substitute(parameter.name, argument).asInstanceOf[ObjectType]
       }
+      (parentType /: (typeParameters(module) zip typeArguments)) (folder _)
     }
-  }        
+  }
 
-  protected def definitionName: Symbol
-
-  protected def typeArguments: List[Type]
-
-  protected def typeParameters(module: Module): List[TypeParameter]
-
-  protected def supertype(module: Module): Option[ObjectType]
+  protected def getDefinition(module: Module): ObjectDefinition
 }
 
 final case class ClassType(className: Symbol,
@@ -240,19 +245,8 @@ final case class ClassType(className: Symbol,
     !clas.superclass.isDefined
   }
 
-  protected def definitionName: Symbol = className
-
-  protected def typeParameters(module: Module): List[TypeParameter] = {
-    module.get[Class](className) match {
-      case Some(clas) => clas.typeParameters.flatMap { name =>
-        module.get[TypeParameter](name)
-      }
-      case None => Nil
-    }
-  }
-
-  protected def supertype(module: Module): Option[ObjectType] = {
-    module.getClass(className).superclass
+  protected def getDefinition(module: Module): Class = {
+    module(className).asInstanceOf[Class]
   }
 }
 
@@ -266,19 +260,8 @@ final case class InterfaceType(interfaceName: Symbol,
       typeArguments.flatMap(_.validate(module, location))
   }
 
-  protected def definitionName: Symbol = interfaceName
-
-  protected def typeParameters(module: Module): List[TypeParameter] = {
-    module.get[Interface](interfaceName) match {
-      case Some(interface) => interface.typeParameters.flatMap { name =>
-        module.get[TypeParameter](name)
-      }
-      case None => Nil
-    }
-  }
-
-  protected def supertype(module: Module): Option[ObjectType] = {
-    Some(module.getInterface(interfaceName).supertype)
+  protected def getDefinition(module: Module): Interface = {
+    module(interfaceName).asInstanceOf[Interface]
   }
 }
 

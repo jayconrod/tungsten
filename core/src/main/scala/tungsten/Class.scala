@@ -10,6 +10,7 @@ final case class Class(name: Symbol,
                        fields: List[Symbol],
                        annotations: List[AnnotationValue] = Nil)
   extends Definition
+  with ObjectDefinition
 {
   override def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[TypeParameter](module, typeParameters) ++
@@ -25,4 +26,6 @@ final case class Class(name: Symbol,
     // TODO
     throw new UnsupportedOperationException
   }
+
+  def getSuperType: Option[ClassType] = superclass
 }

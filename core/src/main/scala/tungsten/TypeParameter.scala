@@ -5,6 +5,7 @@ import Utilities._
 final case class TypeParameter(name: Symbol,
                                upperBound: Option[Type],
                                lowerBound: Option[Type],
+                               variance: Variance,
                                annotations: List[AnnotationValue] = Nil)
   extends Definition
 {
@@ -29,4 +30,13 @@ final case class TypeParameter(name: Symbol,
     }
     belowUpperBound && aboveLowerBound
   }
+}
+
+case class Variance(prefix: String) {
+  override def toString = prefix
+}
+object Variance {
+  val COVARIANT = Variance("+")
+  val CONTRAVARIANT = Variance("-")
+  val INVARIANT = Variance("")
 }

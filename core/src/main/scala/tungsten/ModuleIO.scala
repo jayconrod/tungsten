@@ -177,7 +177,8 @@ object ModuleIO {
                     readAnnotations)
         }
         case TYPE_PARAMETER_ID => {
-          TypeParameter(name, readOption(readType), readOption(readType), readAnnotations)
+          TypeParameter(name, readOption(readType), readOption(readType), 
+                        readVariance, readAnnotations)
         }
         case ADDRESS_INST_ID => {
           AddressInstruction(name, readType, readValue, readList(readValue), readAnnotations)
@@ -319,6 +320,16 @@ object ModuleIO {
         case STRUCT_VALUE_ID => StructValue(symbol, readList(readValue))
         case DEFINED_VALUE_ID => DefinedValue(symbol, readType)
         case _ => throw new IOException("Invalid value ID")
+      }
+    }
+
+    def readVariance: Variance = {
+      import Variance._
+      input.readByte match {
+        case COVARIANT_ID => COVARIANT
+        case CONTRAVARIANT_ID => CONTRAVARIANT
+        case INVARIANT_ID => INVARIANT
+        case _ => throw new IOException("Invalid variance ID")
       }
     }
 
@@ -675,7 +686,7 @@ object ModuleIO {
 
     def writeTypeParameter(typeParameter: TypeParameter, parentName: Option[Symbol]) {
       writeAnnotations(typeParameter.annotations)
-      output.write("type ")
+      output.write("type " + typeParameter.variance)
       writeSymbol(typeParameter.name, parentName)
       typeParameter.upperBound.foreach { t =>
         output.write(" <: " + localType(t, parentName))
@@ -1122,10 +1133,11 @@ object ModuleIO {
           output.writeByte(STRUCT_ID)
           writeSymbolList(fields)
         }
-        case TypeParameter(_, upperBound, lowerBound, _) => {
+        case TypeParameter(_, upperBound, lowerBound, variance, _) => {
           output.writeByte(TYPE_PARAMETER_ID)
           writeOption(upperBound, writeType _)
           writeOption(lowerBound, writeType _)
+          writeVariance(variance)
         }
 
         case inst: Instruction => {
@@ -1418,6 +1430,16 @@ object ModuleIO {
       output.writeByte(id)
     }
 
+    def writeVariance(variance: Variance) = {
+      import Variance._
+      val id = variance match {
+        case COVARIANT => COVARIANT_ID
+        case CONTRAVARIANT => CONTRAVARIANT_ID
+        case INVARIANT => INVARIANT_ID
+      }
+      output.writeByte(id)
+    }
+
     def writeSymbol(symbol: Symbol) {
       writeList(symbol.name, { (n: String) => writeInt(strings(n)) })
       writeInt(symbol.id)
@@ -1558,4 +1580,8 @@ object ModuleIO {
   val ARRAY_VALUE_ID = 12
   val STRUCT_VALUE_ID = 13
   val DEFINED_VALUE_ID = 14
+
+  val COVARIANT_ID = 1
+  val CONTRAVARIANT_ID = 2
+  val INVARIANT_ID = 3
 }

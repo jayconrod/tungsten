@@ -400,19 +400,24 @@ class ParserTest {
 
   @Test
   def typeParameter {
+    import Variance._
     testDefinition("type @T", parser.typeParameter,
-                   TypeParameter("@T", None, None))
+                   TypeParameter("@T", None, None, INVARIANT))
+    testDefinition("type +@T", parser.typeParameter,
+                   TypeParameter("@T", None, None, COVARIANT))
+    testDefinition("type -@T", parser.typeParameter,
+                   TypeParameter("@T", None, None, CONTRAVARIANT))
     testDefinition("type @T <: type @U", parser.typeParameter,
-                   TypeParameter("@T", Some(VariableType("@U")), None))
+                   TypeParameter("@T", Some(VariableType("@U")), None, INVARIANT))
     testDefinition("@ann type @T <: type @U", parser.typeParameter,
-                   TypeParameter("@T", Some(VariableType("@U")), None,
+                   TypeParameter("@T", Some(VariableType("@U")), None, INVARIANT,
                                  List(AnnotationValue("@ann", Nil))))
     testDefinition("type @T >: type @L", parser.typeParameter,
-                   TypeParameter("@T", None, Some(VariableType("@L"))))
+                   TypeParameter("@T", None, Some(VariableType("@L")), INVARIANT))
     testDefinition("type @T <: type @U >: type @L", parser.typeParameter,
-                   TypeParameter("@T", Some(VariableType("@U")), Some(VariableType("@L"))))
+                   TypeParameter("@T", Some(VariableType("@U")), Some(VariableType("@L")), INVARIANT))
     testDefinition("@ann type @T <: type @U >: type @L", parser.typeParameter,
-                   TypeParameter("@T", Some(VariableType("@U")), Some(VariableType("@L")), 
+                   TypeParameter("@T", Some(VariableType("@U")), Some(VariableType("@L")), INVARIANT,
                                  List(AnnotationValue("@ann", Nil))))
   }
 

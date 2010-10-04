@@ -175,9 +175,17 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val typeParameter: Parser[AstNode] = {
-    annotations ~ ("type" ~> symbol) ~ opt("<:" ~> ty) ~ opt(">:" ~> ty) ^^ {
-      case anns ~ n ~ u ~ l => {
-        val tyParam = TypeParameter(n, u, l, anns)
+    val variance: Parser[Variance] = {
+      import Variance._
+      opt("+" | "-") ^^ {
+        case Some("+") => COVARIANT
+        case Some("-") => CONTRAVARIANT
+        case None => INVARIANT
+      }
+    }
+    annotations ~ ("type" ~> variance) ~ symbol ~ opt("<:" ~> ty) ~ opt(">:" ~> ty) ^^ {
+      case anns ~ v ~ n ~ u ~ l => {
+        val tyParam = TypeParameter(n, u, l, v, anns)
         AstNode(tyParam, Nil)
       }
     }

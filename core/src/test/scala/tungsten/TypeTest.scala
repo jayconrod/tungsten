@@ -30,7 +30,7 @@ class TypeTest {
   val A = makeClass("A", rootType)
   val B = makeClass("B", ClassType(A.name))
   val C = makeClass("C", ClassType(B.name))
-  val T = TypeParameter("T", Some(ClassType(A.name)), Some(ClassType(C.name)))
+  val T = TypeParameter("T", Some(ClassType(A.name)), Some(ClassType(C.name)), Variance.INVARIANT)
   val module = testModule(rootClass, A, B, C, T)
 
   @Test
@@ -167,7 +167,7 @@ class TypeTest {
 
   @Test
   def unboundedVariableSubtypeRoot {
-    val S = TypeParameter("S", None, None)
+    val S = TypeParameter("S", None, None, Variance.INVARIANT)
     val Sty = VariableType(S.name)
     val m = module.add(S)
     assertTrue(Sty.isSubtypeOf(rootType, m))
@@ -175,7 +175,7 @@ class TypeTest {
 
   @Test
   def boundedVariableSubtypeRoot {
-    val S = TypeParameter("S", Some(rootType), None)
+    val S = TypeParameter("S", Some(rootType), None, Variance.INVARIANT)
     val Sty = VariableType(S.name)
     val m = module.add(S)
     assertTrue(Sty.isSubtypeOf(rootType, m))

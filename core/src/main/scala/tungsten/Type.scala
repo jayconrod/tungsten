@@ -12,6 +12,10 @@ abstract sealed class Type
   def isObject: Boolean = false
   def isSubtypeOf(ty: Type, module: Module): Boolean = ty == this
   def isRootClassType(module: Module): Boolean = false
+  def substitute(fromName: Symbol, toType: Type): Type = {
+    val fromType = VariableType(fromName)
+    mapTypes { ty => if (ty == fromType) toType else ty }
+  }
   def supportsOperator(op: BinaryOperator) = false
   def supportsOperator(op: RelationalOperator) = {
     import RelationalOperator._

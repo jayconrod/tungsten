@@ -185,4 +185,29 @@ class TypeTest {
   def classSubtypeSelf {
     assertTrue(rootType.isSubtypeOf(rootType, module))
   }
+
+  @Test
+  def substituteVariable {
+    val s = VariableType("S")
+    val t = VariableType("T")
+    assertEquals(t, s.substitute(s.variableName, t))
+  }
+
+  @Test
+  def substituteClassType {
+    val s = VariableType("S")
+    val t = VariableType("T")
+    val c = ClassType("C", List(s))
+    val expected = ClassType(c.className, List(t))
+    assertEquals(expected, c.substitute(s.variableName, t))
+  }
+
+  @Test
+  def substituteInterfaceType {
+    val s = VariableType("S")
+    val t = VariableType("T")
+    val i = InterfaceType("I", List(s))
+    val expected = InterfaceType(i.interfaceName, List(t))
+    assertEquals(expected, i.substitute(s.variableName, t))
+  }      
 }

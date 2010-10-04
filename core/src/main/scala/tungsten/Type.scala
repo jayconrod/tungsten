@@ -191,12 +191,6 @@ sealed trait ObjectType
 
   override def isObject = true
 
-  protected def definitionName: Symbol
-
-  protected def typeArguments: List[Type]
-
-  protected def typeParameters(module: Module): List[TypeParameter]
-
   def validateTypeArguments(module: Module, location: Location): List[CompileException] = {
     val arguments = typeArguments
     val parameters = typeParameters(module)
@@ -212,6 +206,23 @@ sealed trait ObjectType
       }
     }
   }
+
+  def getParentType(module: Module): Option[ObjectType] = {
+    supertype(module).map { parentType =>
+      (parentType /: (typeParameters(module) zip typeArguments)) { (parentType, pa) =>
+        val (parameter, argument) = pa
+        parentType.substitute(parameter.name, argument).asInstanceOf[ObjectType]
+      }
+    }
+  }        
+
+  protected def definitionName: Symbol
+
+  protected def typeArguments: List[Type]
+
+  protected def typeParameters(module: Module): List[TypeParameter]
+
+  protected def supertype(module: Module): Option[ObjectType]
 }
 
 final case class ClassType(className: Symbol,
@@ -239,6 +250,10 @@ final case class ClassType(className: Symbol,
       case None => Nil
     }
   }
+
+  protected def supertype(module: Module): Option[ObjectType] = {
+    module.getClass(className).superclass
+  }
 }
 
 final case class InterfaceType(interfaceName: Symbol,
@@ -260,6 +275,10 @@ final case class InterfaceType(interfaceName: Symbol,
       }
       case None => Nil
     }
+  }
+
+  protected def supertype(module: Module): Option[ObjectType] = {
+    Some(module.getInterface(interfaceName).supertype)
   }
 }
 

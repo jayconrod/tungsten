@@ -209,5 +209,19 @@ class TypeTest {
     val i = InterfaceType("I", List(s))
     val expected = InterfaceType(i.interfaceName, List(t))
     assertEquals(expected, i.substitute(s.variableName, t))
-  }      
+  }
+
+  @Test
+  def getParentType {
+    val S = TypeParameter("S", None, None, Variance.INVARIANT)
+    val T = TypeParameter("T", None, None, Variance.INVARIANT)
+    val A = Class("A", List(S.name), None, Nil, Nil, Nil, Nil, Nil)
+    val B = Class("B", List(T.name), Some(ClassType(A.name, List(VariableType(T.name)))),
+                  Nil, Nil, Nil, Nil, Nil)
+    val module = testModule(S, T, A, B)
+
+    val ty = ClassType(B.name, List(VariableType("U")))
+    val expected = Some(ClassType(A.name, List(VariableType("U"))))
+    assertEquals(expected, ty.getParentType(module))
+  }
 }

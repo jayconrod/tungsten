@@ -10,12 +10,6 @@ final case class Global(name: Symbol,
 {
   def ty(module: Module): Type = ty
 
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      ty.validate(module, getLocation) ++ 
-      value.toList.flatMap(_.validateComponents(module, getLocation))
-  }
-
   override def validate(module: Module) = {
     def validateValueLiteral = {
       value match {
@@ -26,8 +20,6 @@ final case class Global(name: Symbol,
 
     stage(super.validate(module),
           validateValueLiteral,
-          value.toList.flatMap { v => 
-            v.validate(module, getLocation) ++ checkType(v.ty, ty, getLocation)
-          })
+          value.toList.flatMap { v => checkType(v.ty, ty, getLocation) })
   }
 }

@@ -13,9 +13,8 @@ final case class Class(name: Symbol,
   with ObjectDefinition
 {
   override def validateComponents(module: Module): List[CompileException] = {
-    validateComponentsOfClass[TypeParameter](module, typeParameters) ++
-      superclass.toList.flatMap(_.validate(module, getLocation)) ++
-      interfaceTypes.flatMap(_.validate(module, getLocation)) ++
+    super.validateComponents(module) ++
+      validateComponentsOfClass[TypeParameter](module, typeParameters) ++
       interfaceMethods.flatMap(validateComponentsOfClass[Function](module, _)) ++
       validateComponentsOfClass[Function](module, constructors) ++
       validateComponentsOfClass[Function](module, methods) ++

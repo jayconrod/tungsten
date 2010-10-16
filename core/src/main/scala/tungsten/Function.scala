@@ -17,7 +17,6 @@ final case class Function(name: Symbol,
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
       validateComponentsOfClass[Parameter](module, parameters) ++
-      returnType.validate(module, getLocation) ++
       validateComponentsOfClass[Block](module, blocks)
   }
 

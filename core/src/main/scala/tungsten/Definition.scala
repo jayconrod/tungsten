@@ -27,8 +27,7 @@ abstract class Definition
   }
 
   def validateComponents(module: Module): List[CompileException] = {
-    validateComponentsOfClass[Annotation](module, annotations.map(_.name)) ++
-      annotations.flatMap(_.values).flatMap(_.validateComponents(module, getLocation))
+    validateComponentsOfClass[Annotation](module, annotations.map(_.name))
   }
 
   def validate(module: Module): List[CompileException] = {

@@ -11,9 +11,8 @@ final case class Interface(name: Symbol,
   with ObjectDefinition
 {
   override def validateComponents(module: Module): List[CompileException] = {
-    validateComponentsOfClass[TypeParameter](module, typeParameters) ++
-      supertype.validate(module, getLocation) ++
-      interfaceTypes.flatMap(_.validate(module, getLocation)) ++
+    super.validateComponents(module) ++
+      validateComponentsOfClass[TypeParameter](module, typeParameters) ++
       interfaceMethods.flatMap(validateComponentsOfClass[Function](module, _)) ++
       validateComponentsOfClass[Function](module, methods)
   }

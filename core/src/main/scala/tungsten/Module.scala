@@ -152,6 +152,22 @@ final class Module(val name:         Symbol                      = Symbol("defau
       definitions.values.flatMap(_.validateComponents(this)).toList
     }
 
+    def validateTypes = {
+      definitions.values.toList.flatMap { defn =>
+        defn.foldTypes[List[CompileException]](Nil, { (errors, ty) =>
+          ty.validate(this, defn.getLocation) ++ errors
+        })
+      }
+    }
+
+    def validateValues = {
+      definitions.values.toList.flatMap { defn =>
+        defn.foldValues[List[CompileException]](Nil, { (errors: List[CompileException], value) =>
+          value.validate(this, defn.getLocation) ++ errors
+        })
+      }
+    }
+
     def validateDefinitions = {
       definitions.values.flatMap(_.validate(this)).toList
     }
@@ -201,6 +217,8 @@ final class Module(val name:         Symbol                      = Symbol("defau
 
     stage(validateDependencies,
           validateComponents,
+          validateTypes,
+          validateValues,
           validateDefinitions,
           validateMain ++ validateStructDependencies)
   }

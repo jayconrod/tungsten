@@ -7,17 +7,6 @@ sealed abstract class Value
 {
   def ty: Type
 
-  /** Checks that the symbols referred to by this value correspond to the correct type of 
-   *  definitions. For instance, a struct value includes a symbol which must name a struct.
-   *  This method is recursive for values which contain other values.
-   */
-  def validateComponents(module: Module, location: Location): List[CompileException] = Nil
-
-  /** Checks that this value satisfies the invariants of its type. For instance, a struct 
-   *  value must have the correct number of fields, and they must be of the correct type.
-   *  This should be called after valdiateComponents is called for all definitions and only
-   *  if there are no errors. This method is recursive for values which contain other values.
-   */
   def validate(module: Module, location: Location): List[CompileException] = Nil
 }
 
@@ -87,14 +76,8 @@ final case class ArrayValue(elementType: Type,
 {
   def ty = ArrayType(elements.size, elementType)
 
-  override def validateComponents(module: Module, location: Location) = {
-    elementType.validate(module, location) ++ 
-      elements.flatMap(_.validateComponents(module, location))
-  }
-
-  override def validate(module: Module, location: Location): List[CompileException] = {
-    elements.flatMap(_.validate(module, location)) ++
-      elements.flatMap { e: Value => checkType(e.ty, elementType, location) }
+  override def validate(module: Module, location: Location) = {
+    elements.flatMap { e: Value => checkType(e.ty, elementType, location) }
   }
 }      
 
@@ -103,10 +86,6 @@ final case class StructValue(structName: Symbol,
   extends Value
 {
   def ty = StructType(structName)
-
-  override def validateComponents(module: Module, location: Location) = {
-    module.validateName[Struct](structName, location)
-  }
 
   override def validate(module: Module, location: Location): List[CompileException] = {
     def validateFieldCount = {
@@ -127,7 +106,8 @@ final case class StructValue(structName: Symbol,
     }
 
     fields.flatMap(_.validate(module, location)) ++
-      stage(validateFieldCount,
+      stage(module.validateName[Struct](structName, location),
+            validateFieldCount,
             validateFieldTypes)
   }
 }
@@ -135,19 +115,15 @@ final case class StructValue(structName: Symbol,
 final case class DefinedValue(value: Symbol, ty: Type)
   extends Value
 {
-  override def validateComponents(module: Module, location: Location) = {
-    def validateName = {
-      module.getDefn(value) match {
-        case Some(_: Global) | Some(_: Parameter) | Some(_: Instruction) => Nil
-        case Some(defn) => {
-          List(InappropriateSymbolException(value, 
-                                            defn.getLocation,
-                                            "global, parameter, or instruction"))
-        }
-        case None => List(UndefinedSymbolException(value, location))
+  override def validate(module: Module, location: Location) = {
+    module.getDefn(value) match {
+      case Some(_: Global) | Some(_: Parameter) | Some(_: Instruction) => Nil
+      case Some(defn) => {
+        List(InappropriateSymbolException(value, 
+                                          defn.getLocation,
+                                          "global, parameter, or instruction"))
       }
+      case None => List(UndefinedSymbolException(value, location))
     }
-
-    validateName ++ ty.validate(module, location)
   }
 }

@@ -30,17 +30,6 @@ sealed abstract class Instruction
   def liveOutBindings: Map[Symbol, List[Value]] = Map()
 
   final def makeValue: DefinedValue = DefinedValue(name, ty)
-
-  override def validateComponents(module: Module): List[CompileException] = {
-    super.validateComponents(module) ++
-      ty.validate(module, getLocation) ++
-      operands.flatMap(_.validateComponents(module, getLocation))
-  }
-
-  override def validate(module: Module): List[CompileException] = {
-    super.validate(module) ++
-      operands.flatMap(_.validate(module, getLocation))
-  }
 }
 
 trait CallInstruction extends Instruction {

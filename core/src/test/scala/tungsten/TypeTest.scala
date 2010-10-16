@@ -187,6 +187,39 @@ class TypeTest {
   }
 
   @Test
+  @Ignore
+  def invariantSubtype {
+    val D = Class("D", List(T.name), None, Nil, Nil, Nil, Nil, Nil)
+    val x = ClassType(D.name, List(ClassType(A.name)))
+    val y = ClassType(D.name, List(ClassType(B.name)))
+    val module = testModule(A, B, D, T)
+    assertFalse(x.isSubtypeOf(y, module))
+    assertFalse(y.isSubtypeOf(x, module))
+  }
+
+  @Test
+  @Ignore
+  def covariantSubtype {
+    val T = TypeParameter("T", None, None, Variance.COVARIANT)
+    val D = Class("D", List(T.name), None, Nil, Nil, Nil, Nil, Nil)
+    val x = ClassType(D.name, List(ClassType(A.name)))
+    val y = ClassType(D.name, List(ClassType(B.name)))
+    val module = testModule(A, B, D, T)
+    assertTrue(y.isSubtypeOf(x, module))
+  }
+
+  @Test
+  @Ignore
+  def contravariantSubtype {
+    val T = TypeParameter("T", None, None, Variance.CONTRAVARIANT)
+    val D = Class("D", List(T.name), None, Nil, Nil, Nil, Nil, Nil)
+    val x = ClassType(D.name, List(ClassType(A.name)))
+    val y = ClassType(D.name, List(ClassType(B.name)))
+    val module = testModule(A, B, D, T)
+    assertTrue(x.isSubtypeOf(y, module))
+  }
+
+  @Test
   def substituteVariable {
     val s = VariableType("S")
     val t = VariableType("T")

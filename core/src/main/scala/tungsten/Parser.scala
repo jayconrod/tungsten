@@ -80,18 +80,15 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val clas: Parser[AstNode] = {
     val tyParams: Parser[List[AstNode]] = children(typeParameter, "[", ",", "]")
     val superclass: Parser[Option[ClassType]] = opt("<:" ~> classTy)
-    val interface: Parser[(InterfaceType, List[Symbol])] = {
+    val inheritedInterface: Parser[(InterfaceType, List[Symbol])] = {
       interfaceTy ~ children(symbol, "{", ",", "}") ^^ { case t ~ ms => (t, ms) }
     }
-    val constructors: Parser[List[Symbol]] = {
-      "constructors" ~> children(symbol, "{", ",", "}")
-    }
-    val methods: Parser[List[Symbol]] = {
-      "methods" ~> children(symbol, "{", ",", "}")
-    }
     val fields: Parser[List[AstNode]] = rep(field)
-    annotations ~ ("class" ~> symbol) ~ tyParams ~ superclass ~ 
-      ("{" ~> rep(interface) ~ constructors ~ methods ~ fields <~ "}") ^^ {
+    val body = opt("{" ~> rep(inheritedInterface) ~ constructors ~ methods ~ fields <~ "}") ^^ {
+      case Some(b) => b
+      case None => new ~(new ~(new ~(Nil, Nil), Nil), Nil)
+    }
+    annotations ~ ("class" ~> symbol) ~ tyParams ~ superclass ~ body ^^ {
         case anns ~ n ~ tps ~ sc ~ (is ~ cs ~ ms ~ fs) => {
           val (its, ims) = is.unzip
           val clas = Class(n, childNames(tps, n), sc, its, ims, cs, ms, childNames(fs, n), anns)
@@ -101,22 +98,26 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val interface: Parser[AstNode] = {
-    val interface: Parser[(InterfaceType, List[Symbol])] = {
+    val inheritedInterface: Parser[(InterfaceType, List[Symbol])] = {
       interfaceTy ~ children(symbol, "{", ",", "}") ^^ { case t ~ ms => (t, ms) }
     }
+    val body: Parser[~[List[(InterfaceType, List[Symbol])], List[Symbol]]] = {
+      opt("{" ~> rep(inheritedInterface) ~ methods <~ "}") ^^ {
+        case Some(is ~ ms) => new ~(is, ms)
+        case None => new ~(Nil, Nil)
+      }
+    }
     annotations ~ ("interface" ~> symbol) ~ 
-      children(typeParameter, "[", ",", "]") ~ 
-      ("<:" ~> classTy) ~ ("{" ~>
-      rep(interface) ~ 
-      ("methods" ~> children(symbol, "{", ",", "}")) <~
-    "}") ^^ {
+      children(typeParameter, "[", ",", "]") ~ ("<:" ~> classTy) ~ body ^^ 
+    {
       case anns ~ n ~ tps ~ sc ~ (is ~ ms) => {
         val (its, ims) = is.unzip
-        val interfac = Interface(n, childNames(tps, n), sc, its, ims, ms, anns)
-        AstNode(interfac, tps)
+        val interface = Interface(n, childNames(tps, n), sc, its, ims, ms, anns)
+        AstNode(interface, tps)
       }
     }
   }
+
 
   lazy val function: Parser[AstNode] = {
     annotations ~ ("function" ~> ty) ~ symbol ~ children(parameter, "(", ",", ")") ~
@@ -188,6 +189,20 @@ class Parser extends Parsers with ImplicitConversions {
         val tyParam = TypeParameter(n, u, l, v, anns)
         AstNode(tyParam, Nil)
       }
+    }
+  }
+
+  lazy val constructors: Parser[List[Symbol]] = {
+    opt("constructors" ~> children(symbol, "{", ",", "}")) ^^ {
+      case Some(cs) => cs
+      case None => Nil
+    }
+  }
+
+  lazy val methods: Parser[List[Symbol]] = {
+    opt("methods" ~> children(symbol, "{", ",", "}")) ^^ {
+      case Some(ms) => ms
+      case None => Nil
     }
   }
 

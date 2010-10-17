@@ -53,7 +53,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
 
   def apply(name: Symbol): Definition = definitions(name)
 
-  def get[T <: Definition](name: Symbol)(implicit m: Manifest[T]) = {
+  def get[T <: Definition](name: Symbol)(implicit m: Manifest[T]): Option[T] = {
     definitions.get(name) match {
       case Some(d) if m.erasure.isInstance(d) => Some(d.asInstanceOf[T])
       case _ => None
@@ -209,18 +209,40 @@ final class Module(val name:         Symbol                      = Symbol("defau
       }
       val dependencyGraph = new Graph[Symbol](structNames, dependencyMap)
       val sccDependencyGraph = dependencyGraph.findSCCs
-      for (scc <- sccDependencyGraph.nodes;
+      for (scc <- sccDependencyGraph.nodes.toList;
            if sccDependencyGraph.adjacent(scc).contains(scc);
            val location = getStruct(scc.head).getLocation)
         yield CyclicStructException(scc.toList, location)
     }
 
+    def validateInheritance = {
+      def findInheritance(defnName: Symbol): Set[Symbol] = {
+        val defn = get[ObjectDefinition](defnName).get
+        val inheritedTypes = defn.getSuperType.toList ++ defn.interfaceTypes
+        inheritedTypes.map(_.definitionName).toSet
+      }
+      val defnNames = definitions.values.collect { 
+        case clas: Class => clas.name
+        case interface: Interface => interface.name
+      }
+      val inheritanceMap = (Map[Symbol, Set[Symbol]]() /: defnNames) { (deps, defnName) =>
+        deps + (defnName -> findInheritance(defnName))
+      }
+      val inheritanceGraph = new Graph[Symbol](defnNames, inheritanceMap)
+      val sccInheritanceGraph = inheritanceGraph.findSCCs
+      for (scc <- sccInheritanceGraph.nodes;
+           if sccInheritanceGraph.adjacent(scc).contains(scc);
+           val location = definitions(scc.head).getLocation)
+        yield CyclicInheritanceException(scc.toList, location)
+    }
+
     stage(validateDependencies,
           validateComponents,
+          validateStructDependencies ++ validateInheritance,
           validateTypes,
           validateValues,
           validateDefinitions,
-          validateMain ++ validateStructDependencies)
+          validateMain)
   }
 
   def validateProgram: List[CompileException] = {

@@ -519,6 +519,33 @@ class ValidationTest {
   }
 
   @Test
+  def cyclicClassInheritance {
+    val program = "class @A <: class @B\n" +
+                  "class @B <: class @A\n"
+    programContainsError[CyclicInheritanceException](program)
+  }
+
+  @Test
+  def cyclicInterfaceInheritance {
+    val program = "class @A\n" +
+                  "interface @B <: interface @C\n" +
+                  "interface @C <: class @A {\n" +
+                  "  interface @B\n" +
+                  "}\n"
+    programContainsError[CyclicInheritanceException](program)
+  }
+
+  @Test
+  def cyclicClassInterfaceInheritance {
+    val program = "class @A {\n" +
+                  "  interface @I\n" +
+                  "}\n" +
+                  "class @B <: class @A\n" +
+                  "interface @I <: class @B\n"
+    programContainsError[CyclicInheritanceException](program)
+  }
+
+  @Test
   def programMissingMain {
     val module = new Module(ty = ModuleType.PROGRAM)
     val errors = module.validateProgram

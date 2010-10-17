@@ -191,6 +191,8 @@ sealed trait ObjectType
 
   override def isObject = true
 
+  def definitionName: Symbol
+
   def typeArguments: List[Type]
 
   def typeParameters(module: Module): List[TypeParameter] = {
@@ -245,6 +247,8 @@ final case class ClassType(className: Symbol,
     !clas.superclass.isDefined
   }
 
+  def definitionName = className
+
   protected def getDefinition(module: Module): Class = {
     module(className).asInstanceOf[Class]
   }
@@ -259,6 +263,8 @@ final case class InterfaceType(interfaceName: Symbol,
     module.validateName[Interface](interfaceName, location) ++
       typeArguments.flatMap(_.validate(module, location))
   }
+
+  def definitionName = interfaceName
 
   protected def getDefinition(module: Module): Interface = {
     module(interfaceName).asInstanceOf[Interface]

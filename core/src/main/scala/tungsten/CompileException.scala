@@ -29,6 +29,11 @@ final case class ArrayTypeWidthException(length: Long, location: Location)
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 
+final case class CyclicInheritanceException(defnNames: List[Symbol], location: Location)
+  extends CompileException("inheritance cycle detected for the folowing definitions: " +
+                             defnNames.mkString(", "),
+                           location)
+
 final case class CyclicStructException(structNames: List[Symbol], location: Location)
   extends CompileException("the following structs depend on each other: " + 
                              structNames.mkString(", "),

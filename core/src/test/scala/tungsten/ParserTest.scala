@@ -475,6 +475,13 @@ class ParserTest {
   }
 
   @Test
+  def emptyInterface {
+    val expected = Interface("@I", Nil, ClassType("@C"), Nil, Nil, Nil)
+    val code = "interface @I <: class @C"
+    testDefinition(code, parser.interface, expected)
+  }
+
+  @Test
   def interface {
     val expected = Interface("@I",
                              List("@T"),
@@ -497,6 +504,13 @@ class ParserTest {
                "  }\n" +
                "}\n"
     testDefinition(code, parser.interface, expected)
+  }
+
+  @Test
+  def emptyClass {
+    val expected = Class("@C", Nil, None, Nil, Nil, Nil, Nil, Nil)
+    val code = "class @C"
+    testDefinition(code, parser.clas, expected)
   }
 
   @Test

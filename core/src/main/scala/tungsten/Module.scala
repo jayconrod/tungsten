@@ -232,9 +232,45 @@ final class Module(val name:         Symbol                      = Symbol("defau
       validateCycles(findDependencies, generateError)
     }
 
+    def validateIllegalInheritance = {
+      def findInterfaceSuperclass(interface: Interface,
+                                  superclasses: Map[Symbol, Class]): Map[Symbol, Class] =
+      {
+        if (superclasses.contains(interface.name))
+          superclasses
+        else {
+          interface.supertype match {
+            case ClassType(parentName, _) => {
+              val parent = getClass(parentName)
+              superclasses + (interface.name -> parent)
+            }
+            case InterfaceType(parentName, _) => {
+              val parent = getInterface(parentName)
+              val superclassesWithParent = findInterfaceSuperclass(parent, superclasses)
+              superclassesWithParent + (interface.name -> superclassesWithParent(parentName))
+            }
+          }
+        }
+      }
+      val interfaces = definitions.values.collect { case i: Interface => i }.toList
+      val superclasses = (Map[Symbol, Class]() /: interfaces) { (sc, i) =>
+        findInterfaceSuperclass(i, sc)
+      }
+      for (interface <- interfaces;
+           val superclass = superclasses(interface.name);
+           inheritedInterfaceType <- interface.interfaceTypes;
+           val inheritedSuperclass = superclasses(inheritedInterfaceType.interfaceName);
+           if inheritedSuperclass != superclass &&
+              inheritedSuperclass.isSubclassOf(superclass, this))
+        yield IllegalInheritanceException(interface.name, interface.getLocation)
+    }
+
     stage(validateDependencies,
           validateComponents,
-          validateStructCycles ++ validateInheritanceCycles ++ validateTypeParameterCycles,
+          validateStructCycles ++ 
+            validateInheritanceCycles ++ 
+            validateTypeParameterCycles ++
+            validateIllegalInheritance,
           validateTypes,
           validateValues,
           validateDefinitions,

@@ -27,4 +27,18 @@ final case class Class(name: Symbol,
   }
 
   def getSuperType: Option[ClassType] = superclass
+
+  def isSubclassOf(clas: Class, module: Module): Boolean = {
+    if (this == clas)
+      true
+    else {
+      superclass match {
+        case None => false
+        case Some(ClassType(superName, _)) => {
+          val supr = module.getClass(superName)
+          supr.isSubclassOf(clas, module)
+        }
+      }
+    }
+  }
 }

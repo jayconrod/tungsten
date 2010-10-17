@@ -108,7 +108,7 @@ class Parser extends Parsers with ImplicitConversions {
       }
     }
     annotations ~ ("interface" ~> symbol) ~ 
-      children(typeParameter, "[", ",", "]") ~ ("<:" ~> classTy) ~ body ^^ 
+      children(typeParameter, "[", ",", "]") ~ ("<:" ~> (classTy | interfaceTy)) ~ body ^^ 
     {
       case anns ~ n ~ tps ~ sc ~ (is ~ ms) => {
         val (its, ims) = is.unzip

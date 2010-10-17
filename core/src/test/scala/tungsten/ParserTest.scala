@@ -482,6 +482,13 @@ class ParserTest {
   }
 
   @Test
+  def interfaceWithSuperclass {
+    val expected = Interface("@I", Nil, InterfaceType("@J"), Nil, Nil, Nil)
+    val code = "interface @I <: interface @J"
+    testDefinition(code, parser.interface, expected)
+  }
+
+  @Test
   def interface {
     val expected = Interface("@I",
                              List("@T"),

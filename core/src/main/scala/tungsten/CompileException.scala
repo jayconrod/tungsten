@@ -39,6 +39,11 @@ final case class CyclicStructException(structNames: List[Symbol], location: Loca
                              structNames.mkString(", "),
                            location)
 
+final case class CyclicTypeParameterException(typeParameterNames: List[Symbol], location: Location)
+  extends CompileException("the following type parameters depend on each other: " +
+                             typeParameterNames.mkString(", "),
+                           location)
+
 final case class DuplicateComponentException(symbol: Symbol,
                                              component: Symbol,
                                              className: String,
@@ -98,11 +103,22 @@ final case class FunctionTypeException(value: String, location: Location)
 final case class GlobalValueNonLiteralException(symbol: Symbol, location: Location)
   extends CompileException("global " + symbol + " has a non-literal initial value", location)
 
+final case class IllegalInheritanceException(interfaceName: Symbol, location: Location)
+  extends CompileException("interface " + interfaceName + " inherits from an interface whose superclass is a subclass of its superclass",
+                           location)
+
 final case class InappropriateSymbolException(symbol: Symbol,
                                               location: Location,
                                               expected: String)
   extends CompileException(symbol.toString + " does not refer to a(n) " + expected,
                            location)
+
+final case class InheritanceConflictException(definitionName: Symbol,
+                                              inheritedInterfaceName: Symbol,
+                                              location: Location)
+  extends CompileException("interface %s inherits %s multiple times with different types or methods".
+                             format(definitionName, inheritedInterfaceName),
+                           location)                           
 
 final case class InstructionOrderException(symbol: Symbol,
                                            location: Location)

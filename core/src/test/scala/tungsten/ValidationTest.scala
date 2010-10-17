@@ -1,6 +1,7 @@
 package tungsten
 
 import org.junit.Test
+import org.junit.Ignore
 import org.junit.Assert._
 import Utilities._
 
@@ -543,6 +544,37 @@ class ValidationTest {
                   "class @B <: class @A\n" +
                   "interface @I <: class @B\n"
     programContainsError[CyclicInheritanceException](program)
+  }
+
+  @Test
+  def cyclicTypeParameter {
+    val program = "class @A[type @T <: type @S, type @S <: type @T]"
+    programContainsError[CyclicTypeParameterException](program)
+  }
+
+  @Test
+  @Ignore
+  def illegalInheritance {
+    val program = "class @A\n" +
+                  "class @B <: class @A\n" +
+                  "interface @I <: class @B\n" +
+                  "interface @J <: class @A {\n" +
+                  "  interface @I\n" +
+                  "}\n"
+    programContainsError[IllegalInheritanceException](program)
+  }
+
+  @Test
+  @Ignore
+  def multipleInheritance {
+    val program = "class @A\n" +
+                  "class @B <: class @A\n" +
+                  "interface @I[type @T]\n" +
+                  "interface @J <: interface @I[class @A]\n" +
+                  "interface @K <: interface @J {\n" +
+                  "  interface @I[class @B]\n" +
+                  "}\n"
+    programContainsError[InheritanceConflictException](program)
   }
 
   @Test

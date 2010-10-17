@@ -186,59 +186,55 @@ final class Module(val name:         Symbol                      = Symbol("defau
       }
     }
 
-    def validateStructDependencies = {
-      def findStructDependencies(struct: Struct): Set[Symbol] = {
-        val fieldTypes = struct.fields.map(getField(_).ty)
-        val structDeps = fieldTypes.flatMap { fty =>
-          fty match {
-            case StructType(structName) => Some(structName)
-            case _ => None
-          }
-        }
-        structDeps.toSet
+    def validateCycles[T <: Definition](findDependencies: T => Set[Symbol],
+                                        generateError: (List[Symbol], Location) => CompileException)
+                                       (implicit m: Manifest[T]): List[CompileException] =
+    {
+      val matchedDefns = definitions.values.collect {
+        case defn if m.erasure.isInstance(defn) => defn.asInstanceOf[T]
       }
-
-      val structNames = definitions.values.flatMap { defn =>
-        defn match {
-          case s: Struct => Some(s.name)
-          case _ => None
-        }
-      }      
-      val dependencyMap = structNames.foldLeft(Map[Symbol, Set[Symbol]]()) { (deps, structName) =>
-        deps + (structName -> findStructDependencies(getStruct(structName)))
+      val dependencyMap = (Map[Symbol, Set[Symbol]]() /: matchedDefns) { (deps, defn) =>
+        deps + (defn.name -> findDependencies(defn))
       }
-      val dependencyGraph = new Graph[Symbol](structNames, dependencyMap)
+      val dependencyGraph = new Graph(matchedDefns.map(_.name), dependencyMap)
       val sccDependencyGraph = dependencyGraph.findSCCs
       for (scc <- sccDependencyGraph.nodes.toList;
            if sccDependencyGraph.adjacent(scc).contains(scc);
-           val location = getStruct(scc.head).getLocation)
-        yield CyclicStructException(scc.toList, location)
+           val location = definitions(scc.head).getLocation)
+        yield generateError(scc.toList, location)
     }
 
-    def validateInheritance = {
-      def findInheritance(defnName: Symbol): Set[Symbol] = {
-        val defn = get[ObjectDefinition](defnName).get
+    def validateStructCycles = {
+      def findDependencies(struct: Struct): Set[Symbol] = {
+        val fieldTypes = struct.fields.map(getField(_).ty)
+        val structDeps = fieldTypes.collect { case StructType(structName) => structName }
+        structDeps.toSet
+      }
+      val generateError = CyclicStructException.apply _
+      validateCycles(findDependencies _, generateError)
+    }
+
+    def validateInheritanceCycles = {
+      def findDependencies(defn: ObjectDefinition): Set[Symbol] = {
         val inheritedTypes = defn.getSuperType.toList ++ defn.interfaceTypes
         inheritedTypes.map(_.definitionName).toSet
       }
-      val defnNames = definitions.values.collect { 
-        case clas: Class => clas.name
-        case interface: Interface => interface.name
+      val generateError = CyclicInheritanceException.apply _
+      validateCycles(findDependencies, generateError)
+    }
+
+    def validateTypeParameterCycles = {
+      def findDependencies(tyParam: TypeParameter): Set[Symbol] = {
+        val types = tyParam.upperBound.toList ++ tyParam.lowerBound.toList
+        types.collect { case VariableType(tyParamName) => tyParamName }.toSet
       }
-      val inheritanceMap = (Map[Symbol, Set[Symbol]]() /: defnNames) { (deps, defnName) =>
-        deps + (defnName -> findInheritance(defnName))
-      }
-      val inheritanceGraph = new Graph[Symbol](defnNames, inheritanceMap)
-      val sccInheritanceGraph = inheritanceGraph.findSCCs
-      for (scc <- sccInheritanceGraph.nodes;
-           if sccInheritanceGraph.adjacent(scc).contains(scc);
-           val location = definitions(scc.head).getLocation)
-        yield CyclicInheritanceException(scc.toList, location)
+      val generateError = CyclicTypeParameterException.apply _
+      validateCycles(findDependencies, generateError)
     }
 
     stage(validateDependencies,
           validateComponents,
-          validateStructDependencies ++ validateInheritance,
+          validateStructCycles ++ validateInheritanceCycles ++ validateTypeParameterCycles,
           validateTypes,
           validateValues,
           validateDefinitions,

@@ -553,7 +553,7 @@ class ValidationTest {
   }
 
   @Test
-  def illegalInheritance {
+  def illegalInterfaceInheritance {
     val program = "class @A\n" +
                   "class @B <: class @A\n" +
                   "interface @I <: class @B\n" +
@@ -565,10 +565,35 @@ class ValidationTest {
 
   @Test
   @Ignore
-  def multipleInheritance {
-    val program = "class @A\n" +
-                  "class @B <: class @A\n" +
-                  "interface @I[type @T]\n" +
+  def illegalClassInheritance {
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "class @B <: class @R {\n" +
+                  "  interface @I\n" +
+                  "}\n" +
+                  "interface @I <: class @A\n"
+    programContainsError[IllegalInheritanceException](program)
+  }
+
+  @Test
+  def illegalTypeInheritance { 
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "class @B <: class @R\n" +
+                  "class @C[type @T] <: class @R\n" +
+                  "interface @I <: class @C[class @A]\n" +
+                  "interface @J <: class @C[class @B] {\n" +
+                  "  interface @I\n" +
+                  "}\n"
+    programContainsError[InheritanceConflictException](program)
+  }
+
+  @Test
+  def conflictingInheritance {
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "class @B <: class @R\n" +
+                  "interface @I[type @T] <: class @R\n" +
                   "interface @J <: interface @I[class @A]\n" +
                   "interface @K <: interface @J {\n" +
                   "  interface @I[class @B]\n" +

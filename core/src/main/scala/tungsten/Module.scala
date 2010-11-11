@@ -265,12 +265,82 @@ final class Module(val name:         Symbol                      = Symbol("defau
         yield IllegalInheritanceException(interface.name, interface.getLocation)
     }
 
+    /* Conflicting inheritance occurs when a class or interface inherits another class
+     * or interface in more than one way (by more than one path in the inheritance graph),
+     * and there are multiple distinct types for the same inherited definition.
+     */
+    def validateConflictingInheritance = {
+      // Construct the inheritance graph
+      val defns = definitions.values.collect { case d: ObjectDefinition => d }
+      val adjacent = (Map[Symbol, Set[Symbol]]() /: defns) { case (adj, defn) =>
+        adj + (defn.name -> defn.inheritedTypes.toSet.map { t: ObjectType => t.definitionName })
+      }
+      val inheritanceGraph = new Graph(defns.map(_.name), adjacent)
+
+      // This function will process each definition recursively in depth first order. 
+      // Each definition will only be processed once. A set of visited definition names is
+      // returned, as long as the types inherited by each pair of definitions. There should
+      // only be one type in each of these inheritance sets.
+      def visit(defn: ObjectDefinition,
+                visited: Set[Symbol],
+                inheritedTypes: Map[(Symbol, Symbol), Set[ObjectType]],
+                typesFromParent: Set[ObjectType],
+                parent: Option[ObjectDefinition]): (Set[Symbol], Map[(Symbol, Symbol), Set[ObjectType]]) =
+      {
+        val substitutedTypesFromParent: Set[ObjectType] = parent match {
+          case Some(parentDefn) => {
+            val typeArguments = defn.getInheritedType(parentDefn.name).typeArguments
+            typesFromParent.map { ty => 
+              parentDefn.substituteInheritedType(ty, typeArguments) 
+            }
+          }
+          case None => Set()
+        }
+        val typesFromSelf = substitutedTypesFromParent + defn.selfType
+
+        val newInheritedTypes = (inheritedTypes /: typesFromSelf) { (inheritedTypes, ty) =>
+          val key = (defn.name, ty.definitionName)
+          val types = inheritedTypes.getOrElse(key, Set[ObjectType]())
+          inheritedTypes + (key -> (types + ty))
+        }
+        if (visited(defn.name))
+          (visited, newInheritedTypes)
+        else {
+          val newVisited = visited + defn.name
+          ((newVisited, newInheritedTypes) /: inheritanceGraph.incident(defn.name)) { (ind, childName) =>
+            val (visited, inheritedTypes) = ind
+            visit(get[ObjectDefinition](childName).get,
+                  visited,
+                  inheritedTypes,
+                  typesFromSelf,
+                  Some(defn))
+          }
+        }
+      }
+
+      // Process the inheritance graph and flag each pair of definitions with more than
+      // one inherited type.
+      val roots = inheritanceGraph.nodes.filter(inheritanceGraph.adjacent(_).isEmpty)
+      val emptyVisited = Set[Symbol]()
+      val emptyInheritedTypes = Map[(Symbol, Symbol), Set[ObjectType]]()
+      val (_, inheritedTypes) = ((emptyVisited, emptyInheritedTypes) /: roots) { (ind, rootName) =>
+        val defn = get[ObjectDefinition](rootName).get
+        val (visited, inheritedTypes) = ind
+        visit(defn, visited, inheritedTypes, Set(), None)
+      }
+
+      inheritedTypes.collect { case ((defnName, ancestorName), types) if types.size > 1 =>
+        InheritanceConflictException(defnName, ancestorName, definitions(defnName).getLocation)
+      }.toList
+    }
+
     stage(validateDependencies,
           validateComponents,
           validateStructCycles ++ 
             validateInheritanceCycles ++ 
             validateTypeParameterCycles ++
             validateIllegalInheritance,
+          validateConflictingInheritance,
           validateTypes,
           validateValues,
           validateDefinitions,

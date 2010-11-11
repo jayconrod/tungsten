@@ -28,6 +28,10 @@ final case class Class(name: Symbol,
 
   def getSuperType: Option[ClassType] = superclass
 
+  def selfType: ObjectType = {
+    ClassType(name, typeParameters.map { t => VariableType(t) })
+  }
+
   def isSubclassOf(clas: Class, module: Module): Boolean = {
     if (this == clas)
       true

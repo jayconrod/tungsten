@@ -257,4 +257,16 @@ class TypeTest {
     val expected = Some(ClassType(A.name, List(VariableType("U"))))
     assertEquals(expected, ty.getParentType(module))
   }
+
+  @Test
+  def substituteInheritedType {
+    val T = TypeParameter("T", None, None, Variance.INVARIANT)
+    val A = Class("A", List(T.name), None, Nil, Nil, Nil, Nil, Nil)
+    val B = Class("B", Nil, Some(ClassType("A", List(ClassType("B")))), Nil, Nil, Nil, Nil, Nil)
+    val module = testModule(T, A, B)
+
+    val ty = A.selfType
+    val expected = B.superclass.get
+    assertEquals(expected, A.substituteInheritedType(ty, expected.typeArguments))
+  }
 }

@@ -5,6 +5,7 @@ import Utilities._
 abstract sealed class Type
   extends Copying[Type]
 {
+  def validateComponents(module: Module, location: Location): List[CompileException] = Nil
   def validate(module: Module, location: Location): List[CompileException] = Nil
   def size(module: Module): Long
   def isNumeric: Boolean
@@ -159,7 +160,7 @@ final case class ArrayType(length: Long, elementType: Type)
 final case class StructType(structName: Symbol)
   extends Type
 {
-  override def validate(module: Module, location: Location) = {
+  override def validateComponents(module: Module, location: Location) = {
     module.validateName[Struct](structName, location)
   }
 
@@ -203,22 +204,6 @@ sealed trait ObjectType
     getDefinition(module).getSuperType
   }
 
-  def validateTypeArguments(module: Module, location: Location): List[CompileException] = {
-    val arguments = typeArguments
-    val parameters = typeParameters(module)
-    if (arguments.size != parameters.size)
-      List(TypeArgumentCountException(getDefinition(module), arguments.size, parameters.size, location))
-    else {
-      (arguments zip parameters) flatMap { ap =>
-        val (argument, parameter) = ap
-        if (!parameter.isArgumentInBounds(argument, module))
-          List(TypeArgumentBoundsException(argument, parameter, location))
-        else
-          Nil
-      }
-    }
-  }
-
   def getParentType(module: Module): Option[ObjectType] = {
     supertype(module).map { parentType: ObjectType =>
       def folder(parentType: ObjectType, pa: (TypeParameter, Type)): ObjectType = {
@@ -230,6 +215,28 @@ sealed trait ObjectType
   }
 
   protected def getDefinition(module: Module): ObjectDefinition
+
+  def validateTypeArgumentCount(module: Module, 
+                                location: Location): List[CompileException] = 
+  {
+    if (typeArguments.size != typeParameters(module).size) {
+      List(TypeArgumentCountException(getDefinition(module), 
+                                      typeArguments.size, 
+                                      typeParameters(module).size,
+                                      location))
+    } else
+      Nil
+  }
+
+  def validateTypeArguments(module: Module, location: Location): List[CompileException] = {
+    (typeArguments zip typeParameters(module)) flatMap { ap =>
+      val (argument, parameter) = ap
+      if (!parameter.isArgumentInBounds(argument, module))
+        List(TypeArgumentBoundsException(argument, parameter, location))
+      else
+        Nil
+    }
+  }
 }
 
 final case class ClassType(className: Symbol,
@@ -237,9 +244,13 @@ final case class ClassType(className: Symbol,
   extends Type
   with ObjectType
 {
+  override def validateComponents(module: Module, location: Location): List[CompileException] = {
+    stage(module.validateName[Class](className, location),
+          validateTypeArgumentCount(module, location))
+  }
+
   override def validate(module: Module, location: Location): List[CompileException] = {
-    module.validateName[Class](className, location) ++
-      typeArguments.flatMap(_.validate(module, location))
+    validateTypeArguments(module, location)
   }
 
   override def isRootClassType(module: Module): Boolean = {
@@ -259,9 +270,13 @@ final case class InterfaceType(interfaceName: Symbol,
   extends Type
   with ObjectType
 {
-  override def validate(module: Module, location: Location): List[CompileException] = {
+  override def validateComponents(module: Module, location: Location): List[CompileException] = {
     module.validateName[Interface](interfaceName, location) ++
-      typeArguments.flatMap(_.validate(module, location))
+      validateTypeArgumentCount(module, location)
+  }
+
+  override def validate(module: Module, location: Location): List[CompileException] = {
+    validateTypeArguments(module, location)
   }
 
   def definitionName = interfaceName
@@ -274,7 +289,7 @@ final case class InterfaceType(interfaceName: Symbol,
 final case class VariableType(variableName: Symbol)
   extends Type
 {
-  override def validate(module: Module, location: Location): List[CompileException] = {
+  override def validateComponents(module: Module, location: Location): List[CompileException] = {
     module.validateName[TypeParameter](variableName, location)
   }
 

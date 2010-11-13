@@ -149,7 +149,13 @@ final class Module(val name:         Symbol                      = Symbol("defau
     }
   
     def validateComponents = {
-      definitions.values.flatMap(_.validateComponents(this)).toList
+      definitions.values.toList.flatMap { defn =>
+        val location = defn.getLocation
+        defn.validateComponents(this) ++
+          defn.foldTypes[List[CompileException]](Nil, { (errors, ty) => 
+            ty.validateComponents(this, location) ++ errors 
+          })
+      }
     }
 
     def validateTypes = {

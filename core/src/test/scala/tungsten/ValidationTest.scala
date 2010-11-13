@@ -602,6 +602,12 @@ class ValidationTest {
   }
 
   @Test
+  def invalidTypeInClass {
+    val program = "class @A <: class @B"
+    programContainsError[UndefinedSymbolException](program)
+  }
+
+  @Test
   def programMissingMain {
     val module = new Module(ty = ModuleType.PROGRAM)
     val errors = module.validateProgram

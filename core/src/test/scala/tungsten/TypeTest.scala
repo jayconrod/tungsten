@@ -57,7 +57,7 @@ class TypeTest {
   @Test
   def validateTypeArgumentsCount {
     val Aty = ClassType(A.name, List(rootType))
-    assertContainsError[TypeArgumentCountException](Aty.validateTypeArguments(module, Nowhere))
+    assertContainsError[TypeArgumentCountException](Aty.validateTypeArgumentCount(module, Nowhere))
   }
 
   @Test

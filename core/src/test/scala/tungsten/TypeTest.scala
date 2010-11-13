@@ -34,7 +34,6 @@ class TypeTest {
   val module = testModule(rootClass, A, B, C, T)
 
   @Test
-  @Ignore
   def validateTypeArgumentsCorrect {
     val X = Class("X", List(T.name), Some(rootType), Nil, Nil, Nil, Nil, Nil, Nil)
     val m = module.add(X)
@@ -43,7 +42,6 @@ class TypeTest {
   }
 
   @Test
-  @Ignore
   def validateTypeArgumentsBounds {
     val D = makeClass("D", ClassType(C.name))
     val X = Class("X", List(T.name), Some(rootType), Nil, Nil, Nil, Nil, Nil, Nil)
@@ -187,7 +185,32 @@ class TypeTest {
   }
 
   @Test
-  @Ignore
+  def classSubtypeSuper {
+    val program = "class @A\n" +
+                  "class @B <: class @A"
+    val module = compileString(program)
+    val a = ClassType("A")
+    val b = ClassType("B")
+    assertTrue(b.isSubtypeOf(a, module))
+    assertFalse(a.isSubtypeOf(b, module))
+  }
+
+  @Test
+  def classSubtypeInterface {
+    val program = "class @A\n" +
+                  "interface @I <: class @A\n" +
+                  "class @B <: class @A {\n" +
+                  "  interface @I\n" +
+                  "}"
+    val module = compileString(program)
+    val a = ClassType("A")
+    val i = InterfaceType("I")
+    val b = ClassType("B")
+    assertTrue(i.isSubtypeOf(a, module))
+    assertTrue(b.isSubtypeOf(i, module))
+  }
+
+  @Test
   def invariantSubtype {
     val D = Class("D", List(T.name), None, Nil, Nil, Nil, Nil, Nil)
     val x = ClassType(D.name, List(ClassType(A.name)))
@@ -198,7 +221,6 @@ class TypeTest {
   }
 
   @Test
-  @Ignore
   def covariantSubtype {
     val T = TypeParameter("T", None, None, Variance.COVARIANT)
     val D = Class("D", List(T.name), None, Nil, Nil, Nil, Nil, Nil)
@@ -209,7 +231,6 @@ class TypeTest {
   }
 
   @Test
-  @Ignore
   def contravariantSubtype {
     val T = TypeParameter("T", None, None, Variance.CONTRAVARIANT)
     val D = Class("D", List(T.name), None, Nil, Nil, Nil, Nil, Nil)
@@ -242,20 +263,6 @@ class TypeTest {
     val i = InterfaceType("I", List(s))
     val expected = InterfaceType(i.interfaceName, List(t))
     assertEquals(expected, i.substitute(s.variableName, t))
-  }
-
-  @Test
-  def getParentType {
-    val S = TypeParameter("S", None, None, Variance.INVARIANT)
-    val T = TypeParameter("T", None, None, Variance.INVARIANT)
-    val A = Class("A", List(S.name), None, Nil, Nil, Nil, Nil, Nil)
-    val B = Class("B", List(T.name), Some(ClassType(A.name, List(VariableType(T.name)))),
-                  Nil, Nil, Nil, Nil, Nil)
-    val module = testModule(S, T, A, B)
-
-    val ty = ClassType(B.name, List(VariableType("U")))
-    val expected = Some(ClassType(A.name, List(VariableType("U"))))
-    assertEquals(expected, ty.getParentType(module))
   }
 
   @Test

@@ -204,17 +204,39 @@ sealed trait ObjectType
     getDefinition(module).getSuperType
   }
 
-  def getParentType(module: Module): Option[ObjectType] = {
-    supertype(module).map { parentType: ObjectType =>
-      def folder(parentType: ObjectType, pa: (TypeParameter, Type)): ObjectType = {
-        val (parameter, argument) = pa
-        parentType.substitute(parameter.name, argument).asInstanceOf[ObjectType]
+  protected def getDefinition(module: Module): ObjectDefinition
+
+  override def isSubtypeOf(ty: Type, module: Module): Boolean = {
+    ty match {
+      case VariableType(variableName) => {
+        val tyVar = module.getTypeParameter(variableName)
+        tyVar.lowerBound match {
+          case Some(bound) => isSubtypeOf(bound, module)
+          case None => false
+        }
       }
-      (parentType /: (typeParameters(module) zip typeArguments)) (folder _)
+      case objTy: ObjectType => {
+        val defn = module.getObjectDefinition(definitionName)
+        if (definitionName == objTy.definitionName) {
+          val tyParams = typeParameters(module)
+          val selfTyArgs = typeArguments
+          val otherTyArgs = objTy.typeArguments
+          (tyParams zip (selfTyArgs zip otherTyArgs)) forall { pa =>
+            val (tyParam, (selfTyArg, otherTyArg)) = pa
+            tyParam.variance match {
+              case Variance.COVARIANT => selfTyArg.isSubtypeOf(otherTyArg, module)
+              case Variance.CONTRAVARIANT => otherTyArg.isSubtypeOf(selfTyArg, module)
+              case Variance.INVARIANT => selfTyArg == otherTyArg
+            }
+          }
+        } else {
+          val inheritedTypes = defn.substitutedInheritedTypes(typeArguments)
+          inheritedTypes.exists { _.isSubtypeOf(objTy, module) }
+        }
+      }
+      case _ => false
     }
   }
-
-  protected def getDefinition(module: Module): ObjectDefinition
 
   def validateTypeArgumentCount(module: Module, 
                                 location: Location): List[CompileException] = 

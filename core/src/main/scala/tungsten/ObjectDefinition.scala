@@ -36,6 +36,10 @@ trait ObjectDefinition
     }
   }
 
+  def substitutedInheritedTypes(typeArguments: List[Type]): List[ObjectType] = {
+    inheritedTypes.map(substituteInheritedType(_, typeArguments))
+  }
+
   def getInheritedType(fromName: Symbol): ObjectType = {
     getSuperType match {
       case Some(t) if t.definitionName == fromName => t

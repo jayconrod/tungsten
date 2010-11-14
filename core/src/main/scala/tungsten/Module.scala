@@ -240,6 +240,9 @@ final class Module(val name:         Symbol                      = Symbol("defau
       validateCycles(findDependencies, generateError)
     }
 
+    /* Illegal inheritance occurs when the superclass of an object definition is not a
+     * subclass of all inherited interface superclasses.
+     */
     def validateIllegalInheritance = {
       def findInterfaceSuperclass(interface: Interface,
                                   superclasses: Map[Symbol, Class]): Map[Symbol, Class] =
@@ -261,16 +264,31 @@ final class Module(val name:         Symbol                      = Symbol("defau
         }
       }
       val interfaces = definitions.values.collect { case i: Interface => i }.toList
-      val superclasses = (Map[Symbol, Class]() /: interfaces) { (sc, i) =>
+      val interfaceSuperclasses = (Map[Symbol, Class]() /: interfaces) { (sc, i) =>
         findInterfaceSuperclass(i, sc)
       }
-      for (interface <- interfaces;
-           val superclass = superclasses(interface.name);
-           inheritedInterfaceType <- interface.interfaceTypes;
-           val inheritedSuperclass = superclasses(inheritedInterfaceType.interfaceName);
-           if inheritedSuperclass != superclass &&
-              inheritedSuperclass.isSubclassOf(superclass, this))
-        yield IllegalInheritanceException(interface.name, interface.getLocation)
+
+      def findClassSuperclass(clas: Class,
+                              superclasses: Map[Symbol, Class]): Map[Symbol, Class] =
+      {
+        val superclass = clas.superclass match {
+          case Some(classTy) => getClass(classTy.className)
+          case None => clas
+        }
+        superclasses + (clas.name -> clas)
+      }        
+      val classes = definitions.values.collect { case c: Class => c }.toList
+      val classSuperclasses = (Map[Symbol, Class]() /: classes) { (sc, c) =>
+        findClassSuperclass(c, sc)
+      }
+      val superclasses = interfaceSuperclasses ++ classSuperclasses
+
+      for (defn <- classes ++ interfaces;
+           val superclass = superclasses(defn.name);
+           interfaceType <- defn.interfaceTypes;
+           val interfaceSuperclass = superclasses(interfaceType.interfaceName);
+           if !superclass.isSubclassOf(interfaceSuperclass, this))
+        yield IllegalInheritanceException(defn.name, defn.getLocation)
     }
 
     /* Conflicting inheritance occurs when a class or interface inherits another class

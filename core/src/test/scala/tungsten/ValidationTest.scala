@@ -564,7 +564,6 @@ class ValidationTest {
   }
 
   @Test
-  @Ignore
   def illegalClassInheritance {
     val program = "class @R\n" +
                   "class @A <: class @R\n" +

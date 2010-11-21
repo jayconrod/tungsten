@@ -18,8 +18,7 @@ final case class Interface(name: Symbol,
   }
 
   override def validate(module: Module): List[CompileException] = {
-    // TODO
-    throw new UnsupportedOperationException
+    validateMethods(module)
   }
 
   def getSuperType: Option[ObjectType] = Some(supertype)

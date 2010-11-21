@@ -22,8 +22,28 @@ final case class Class(name: Symbol,
   }
 
   override def validate(module: Module): List[CompileException] = {
-    // TODO
-    throw new UnsupportedOperationException
+    val parentFieldTypes = superclass match {
+      case Some(ClassType(superclassName, superclassTypeArgs)) => {
+        val superclassDefn = module.getClass(superclassName)
+        val superclassFieldTypes = module.getFields(superclassDefn.fields).map(_.ty)
+        superclassFieldTypes.map(superclassDefn.substituteInheritedType(_, superclassTypeArgs))
+      }
+      case None => Nil
+    }
+    val fieldDefns = module.getFields(fields)
+
+    def validateFields = {
+      if (fieldDefns.size < parentFieldTypes.size)
+        List(MissingFieldException(name, getLocation))
+      else {
+        (fieldDefns zip parentFieldTypes) collect { 
+          case (fieldDefn, parentFieldType) if fieldDefn.ty != parentFieldType =>
+            TypeMismatchException(parentFieldType, fieldDefn.ty, fieldDefn.getLocation)
+        }
+      }
+    }
+
+    validateFields ++ validateMethods(module)
   }
 
   def getSuperType: Option[ClassType] = superclass

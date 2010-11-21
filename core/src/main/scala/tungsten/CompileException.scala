@@ -89,6 +89,14 @@ final case class FieldCountException(structName: Symbol,
                              format(structName, given, required),
                            location)
 
+final case class ForeignInterfaceMethodException(methodName: Symbol,
+                                                 interfaceName: Symbol,
+                                                 className: Symbol,
+                                                 location: Location)
+  extends CompileException("method %s specified for interface %s is not in class %s".
+                             format(methodName, interfaceName, className),
+                           location)
+
 final case class FunctionArgumentCountException(symbol: Symbol,
                                                 given: Int,
                                                 required: Int,
@@ -130,6 +138,11 @@ final case class IntegerRangeException(value: Long, width: Int, location: Locati
   extends CompileException("the integer %d cannot be stored in %d bits".format(value, width),
                            location)
 
+final case class InterfaceTypeMethodMismatchException(definitionName: Symbol, location: Location)
+  extends CompileException("class %s has a different number of interface types and method lists".
+                             format(definitionName),
+                           location)
+
 final case class InvalidBitCastException(value: Value, 
                                          valueSize: Long, 
                                          ty: Type, 
@@ -150,11 +163,26 @@ final case class MainNonEmptyParametersException(location: Location)
 final case class MainReturnTypeException(location: Location)
   extends CompileException("main function must have unit return type", location)
 
+final case class MethodSelfTypeException(methodName: Symbol, 
+                                         className: Symbol, 
+                                         location: Location)
+  extends CompileException("first parameter of method %s must be an object of class %s or a supertype".
+                             format(methodName, className),
+                           location)
+
 final case class MissingElementIndexException(location: Location)
   extends CompileException("no indices given for a pointer element instruction; at least one is required", location)
 
+final case class MissingFieldException(className: Symbol, location: Location)
+  extends CompileException("class %s is missing fields defined in its parent class".
+                             format(className),
+                           location)
+
 final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)
+
+final case class MissingMethodException(className: Symbol, location: Location)
+  extends CompileException("class %s is missing methods defined in its superclass", location)
 
 final case class NonLocalBranchException(functionName: Symbol,
                                          blockName: Symbol,

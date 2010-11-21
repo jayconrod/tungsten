@@ -1,5 +1,6 @@
 package tungsten
 
+import collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Ignore
 import org.junit.Assert._
@@ -600,6 +601,105 @@ class ValidationTest {
     programContainsError[InheritanceConflictException](program)
   }
 
+  @Test
+  def inheritedFieldType {
+    val program = "class @A {\n" +
+                  "  field unit @x\n" +
+                  "}\n" +
+                  "class @B <: class @A {\n" +
+                  "  field boolean @y\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def missingField {
+    val program = "class @A { field unit %x }\n" +
+                  "class @B <: class @A"
+    programContainsError[MissingFieldException](program)
+  }
+
+  @Test
+  def methodSelfType {
+    val program = "class @A {\n" +
+                  "  methods {\n" +
+                  "    @f\n" +
+                  "  }\n" +
+                  "}\n" +
+                  "function unit @f()\n"
+    programContainsError[MethodSelfTypeException](program)
+  }
+
+  @Test
+  def missingMethod {
+    val program = "class @A { methods { @A.f } }\n" +
+                  "class @B <: class @A\n" +
+                  "function unit @A.f(class @A %this)"
+    programContainsError[MissingMethodException](program)
+  }
+
+  @Test
+  def inheritedMethodTypeFromClass {
+    val program = "class @A {\n" +
+                  "  methods {\n" +
+                  "    @A.f\n" +
+                  "  }\n" +
+                  "}\n" +
+                  "class @B <: class @A {\n" +
+                  "  methods {\n" +
+                  "    @B.f\n" +
+                  "  }\n" +
+                  "}\n" +
+                  "function unit @A.f(class @A %this, unit %x)\n" +
+                  "function unit @B.f(class @A %this)\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def inheritedMethodTypeFromInterface {
+    val program = "class @R\n" +
+                  "interface @I <: class @R { methods { @I.f } }\n" +
+                  "class @A <: class @R {\n" +
+                  "  interface @I { @A.f }\n" +
+                  "  methods { @A.f }\n" +
+                  "}\n" +
+                  "function unit @I.f(interface @I %this, unit %x)\n" +
+                  "function unit @A.f(class @A %this)\n"
+    programContainsError[TypeMismatchException](program)
+  }
+ 
+  @Test
+  def methodVariance {
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "class @C <: class @R { methods { @C.f } }\n" +
+                  "class @D <: class @C { methods { @D.f } }\n" +
+                  "function class @R @C.f(class @C %this, class @A %x)\n" +
+                  "function class @A @D.f(class @D %this, class @R %x)\n"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def foreignMethodInInterface {
+    val program = "class @R\n" +
+                  "interface @I <: class @R { methods { @I.f } }\n" +
+                  "class @C <: class @R { interface @I { @I.f } }\n" +
+                  "function unit @I.f(class @R %this)\n"
+    programContainsError[ForeignInterfaceMethodException](program)
+  }
+
+  @Test
+  @Ignore
+  def interfaceTypeAndMethodMismatch {
+    val r = Class("R", Nil, None, Nil, Nil, Nil, Nil, Nil)
+    val i = Interface("I", Nil, ClassType(r.name), Nil, Nil, Nil)
+    val a = Class("A", Nil, Some(ClassType("A")), List(InterfaceType(i.name)), Nil, Nil, Nil, Nil)
+    val definitions = TreeMap(r.name -> r, i.name -> i, a.name -> a)
+    val module = new Module(definitions = definitions)
+    val errors = module.validate
+    containsError[InterfaceTypeMethodMismatchException](errors)
+  }
+  
   @Test
   def invalidTypeInClass {
     val program = "class @A <: class @B"

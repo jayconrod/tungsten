@@ -14,6 +14,9 @@ final case class Function(name: Symbol,
     // TODO: include type parameters
   }
 
+  def typeParameters: List[Symbol] = Nil
+  // TODO: add real type parameters
+
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
       validateComponentsOfClass[Parameter](module, parameters) ++

@@ -620,14 +620,44 @@ class ValidationTest {
   }
 
   @Test
-  def methodSelfType {
-    val program = "class @A {\n" +
-                  "  methods {\n" +
-                  "    @f\n" +
-                  "  }\n" +
-                  "}\n" +
+  def missingThisParameter {
+    val program = "class @A { methods { @f } }\n" +
                   "function unit @f()\n"
     programContainsError[MethodSelfTypeException](program)
+  }
+
+  @Test
+  def invalidThisParameter {
+    val program = "class @A { methods { @f } }\n" +
+                  "function unit @f(int64 %this)"
+    programContainsError[MethodSelfTypeException](program)
+  }
+
+  @Test
+  @Ignore
+  def invalidThisParameterTypeArgs {
+    val program = "class @R\n" +
+                  "class @A[type %T] <: class @R\n" +
+                  "class @B[type %T] <: class @R { methods { %f } }\n" +
+                  "function unit @B.f[type %T](class @B[class @A[type %T]] %this)"
+    programContainsError[MethodSelfTypeException](program)
+  }
+
+  @Test
+  def methodFromUnrelatedClass {
+    val program = "class @R\n" +
+                  "class @A <: class @R { methods { @A.f } }\n" +
+                  "class @B <: class @R { methods { @A.f } }\n" +
+                  "function unit @A.f(class @A %this)"
+    programContainsError[MethodSelfTypeException](program)
+  }
+
+  @Test
+  def invalidInheritedMethod {
+    val program = "class @R\n" +
+                  "class @A <: class @R { methods { @A.f } }\n" +
+                  "function unit @A.f(class @R %this)"
+    programContainsError[MethodNotInheritedException](program)
   }
 
   @Test

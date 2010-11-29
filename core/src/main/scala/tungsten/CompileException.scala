@@ -163,6 +163,14 @@ final case class MainNonEmptyParametersException(location: Location)
 final case class MainReturnTypeException(location: Location)
   extends CompileException("main function must have unit return type", location)
 
+final case class MethodNotInheritedException(methodName: Symbol,
+                                             className: Symbol,
+                                             methodClassName: Symbol,
+                                             location: Location)
+  extends CompileException("method %s in class %s indicates it is inherited from class %s, but it is not".
+                             format(methodName, className, methodClassName),
+                           location)
+
 final case class MethodSelfTypeException(methodName: Symbol, 
                                          className: Symbol, 
                                          location: Location)

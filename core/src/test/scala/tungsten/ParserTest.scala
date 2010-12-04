@@ -427,7 +427,7 @@ class ParserTest {
                    "  unit %i = return ()\n" +
                    "}", 
                    parser.block,
-                   Block("%b", List("%b.x"), List("%b.i")))
+                   Block("%b", List("%x"), List("%i")))
   }
 
   @Test
@@ -439,7 +439,7 @@ class ParserTest {
   @Test
   def annotation {
     testDefinition("annotation @ann(unit %a, unit %b)", parser.annotation,
-                   Annotation("@ann", List("@ann.a", "@ann.b")))
+                   Annotation("@ann", List("%a", "%b")))
   }
 
   @Test
@@ -453,7 +453,7 @@ class ParserTest {
                    "  }\n" +
                    "}\n",
                    parser.function,
-                   Function("@f", UnitType, List("@f.a", "@f.b"), List("@f.c", "@f.d"), Nil))
+                   Function("@f", UnitType, List("%a", "%b"), List("%c", "%d"), Nil))
   }
 
   @Test
@@ -471,7 +471,7 @@ class ParserTest {
                    "  field unit %b\n" +
                    "}\n",
                    parser.struct,
-                   Struct("@s", List("@s.a", "@s.b")))
+                   Struct("@s", List("%a", "%b")))
   }
 
   @Test
@@ -553,13 +553,6 @@ class ParserTest {
   }
 
   @Test
-  def childNames {
-    val child = Parameter("%p", UnitType)
-    val childNodes = List(AstNode(child, Nil))
-    assertEquals(List(Symbol(List("@a", "p"))), parser.childNames(childNodes, "@a"))
-  }
-
-  @Test
   def emptyModule {
     test("", parser.module,
          (new Module(), Nil))
@@ -589,3 +582,26 @@ class ParserTest {
   }
 }
 
+class AstNodeTest {
+  val childDefn = Parameter("%x", UnitType)
+  val child = AstNode(childDefn, Nil)
+  val parentDefn = Function("@f", UnitType, List("%x"), Nil)
+  val parent = AstNode(parentDefn, List(child))
+
+  @Test
+  def globalizeSymbol {
+    assertEquals(symbolFromString("bar"), parent.globalizeSymbol("@bar", None))
+    assertEquals(symbolFromString("bar"), parent.globalizeSymbol("%bar", None))
+    assertEquals(symbolFromString("bar"), parent.globalizeSymbol("@bar", Some("foo")))
+    assertEquals(symbolFromString("foo.bar"), parent.globalizeSymbol("%bar", Some("foo")))
+  }
+
+  @Test
+  def globalize {
+    val expectedChildDefn = Parameter("f.x", UnitType)
+    val expectedChild = AstNode(expectedChildDefn, Nil)
+    val expectedParentDefn = Function("f", UnitType, List("f.x"), Nil)
+    val expectedParent = AstNode(expectedParentDefn, List(expectedChild))
+    assertEquals(expectedParent, parent.globalize(None))
+  }
+}

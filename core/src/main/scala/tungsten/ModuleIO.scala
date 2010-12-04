@@ -447,7 +447,7 @@ object ModuleIO {
     val parser = new Parser
     parser.phrase(parser.module(file))(scanner) match {
       case parser.Success((headers, asts), _) => {
-        val definitions = asts.flatMap(processAst(_, Nil))
+        val definitions = asts.map(_.toList).flatten
         var module = headers
         var errors: List[CompileException] = Nil
         for (defn <- definitions) {
@@ -464,26 +464,6 @@ object ModuleIO {
       case error: parser.NoSuccess => Right(List(ParseException(error.msg, Nowhere)))
     }
   }            
-
-  def processAst(ast: AstNode, scope: List[String]): List[Definition] = {
-    val definition = ast.definition.mapSymbols(renameInScope(_, scope))
-    val newScope = definition.name.name
-    val children = ast.children.flatMap(processAst(_, newScope))
-    definition :: children
-  }    
-
-  def renameInScope(symbol: Symbol, scope: List[String]): Symbol = {
-    val name = symbol.name
-    val prefix = name.head(0)
-    val strippedName = name.head.substring(1) :: name.tail
-    assert(prefix == '%' || prefix == '@')
-    val isGlobal = prefix == '@'
-    val newName = if (isGlobal)
-      strippedName
-    else
-      scope ++ strippedName
-    Symbol(newName, symbol.id)
-  }
 
   /* writeBinary helpers */
   

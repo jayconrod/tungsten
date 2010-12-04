@@ -12,12 +12,14 @@ class Parser extends Parsers with ImplicitConversions {
   private val symbolFactory = new SymbolFactory
 
   def module(file: File): Parser[(Module, List[AstNode])] = {
-    module ^^ { 
-      case (m, ds) => (m.copyWith(filename=Some(file)), ds)
-    }
+    module ^^ { case (m, ds) => (m.copyWith(filename=Some(file)), ds) }
   }
 
-  lazy val module: Parser[(Module, List[AstNode])] = {
+  def module: Parser[(Module, List[AstNode])] = {
+    unglobalizedModule ^^ { case (m, ds) => (m, ds.map(_.globalize(None)))}
+  }
+
+  lazy val unglobalizedModule: Parser[(Module, List[AstNode])] = {
     headers ~ rep(definition) ^^ {
       case m ~ ds => (m, ds)
     }
@@ -71,7 +73,7 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val annotation: Parser[AstNode] = {
     annotations ~ ("annotation" ~> symbol) ~ children(parameter, "(", ",", ")") ^^ {
       case anns ~ n ~ ps => {
-        val annotation = Annotation(n, childNames(ps, n), anns)
+        val annotation = Annotation(n, ps.map(_.name), anns)
         AstNode(annotation, ps)
       }
     }
@@ -91,7 +93,7 @@ class Parser extends Parsers with ImplicitConversions {
     annotations ~ ("class" ~> symbol) ~ tyParams ~ superclass ~ body ^^ {
         case anns ~ n ~ tps ~ sc ~ (is ~ cs ~ ms ~ fs) => {
           val (its, ims) = is.unzip
-          val clas = Class(n, childNames(tps, n), sc, its, ims, cs, ms, childNames(fs, n), anns)
+          val clas = Class(n, tps.map(_.name), sc, its, ims, cs, ms, fs.map(_.name), anns)
           AstNode(clas, tps ++ fs)
         }
     }
@@ -112,7 +114,7 @@ class Parser extends Parsers with ImplicitConversions {
     {
       case anns ~ n ~ tps ~ sc ~ (is ~ ms) => {
         val (its, ims) = is.unzip
-        val interface = Interface(n, childNames(tps, n), sc, its, ims, ms, anns)
+        val interface = Interface(n, tps.map(_.name), sc, its, ims, ms, anns)
         AstNode(interface, tps)
       }
     }
@@ -123,7 +125,7 @@ class Parser extends Parsers with ImplicitConversions {
     annotations ~ ("function" ~> ty) ~ symbol ~ children(parameter, "(", ",", ")") ~
       children(block, "{", "", "}") ^^ {
         case anns ~ rty ~ n ~ ps ~ bs => {
-          val function = Function(n, rty, childNames(ps, n), childNames(bs, n), anns)
+          val function = Function(n, rty, ps.map(_.name), bs.map(_.name), anns)
           AstNode(function, ps ++ bs)
         }
     }
@@ -141,7 +143,7 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val struct: Parser[AstNode] = {
     annotations ~ ("struct" ~> symbol) ~ children(field, "{", "", "}") ^^ {
       case anns ~ n ~ fs => {
-        val struct = Struct(n, childNames(fs, n), anns)
+        val struct = Struct(n, fs.map(_.name), anns)
         AstNode(struct, fs)
       }
     }
@@ -151,7 +153,7 @@ class Parser extends Parsers with ImplicitConversions {
     annotations ~ ("block" ~> symbol) ~ children(parameter, "(", ",", ")") ~ 
       children(instructionDefn, "{", "", "}") ^^ {
         case anns ~ n ~ ps ~ is => {
-          val block = Block(n, childNames(ps, n), childNames(is, n), anns)
+          val block = Block(n, ps.map(_.name), is.map(_.name), anns)
           AstNode(block, ps ++ is)
         }
     }
@@ -203,21 +205,6 @@ class Parser extends Parsers with ImplicitConversions {
     opt("methods" ~> children(symbol, "{", ",", "}")) ^^ {
       case Some(ms) => ms
       case None => Nil
-    }
-  }
-
-  def childNames(children: List[AstNode], parentName: Symbol): List[Symbol] = {
-    children map { child =>
-      val fullChildName = child.name.name
-      val prefix = fullChildName.head.charAt(0)
-      val isGlobal = prefix == '@'
-      if (isGlobal)
-        child.name
-      else {
-        val strippedChildName = fullChildName.head.substring(1) :: fullChildName.tail
-        val newChildName = parentName.name ++ strippedChildName
-        Symbol(newChildName, child.name.id)
-      }
     }
   }
 
@@ -601,4 +588,42 @@ class Parser extends Parsers with ImplicitConversions {
 
 final case class AstNode(definition: Definition, children: List[AstNode]) {
   def name = definition.name
+
+  def toList: List[Definition] = {
+    definition :: children.map(_.toList).flatten
+  }
+
+  def globalize(parent: Option[Symbol]): AstNode = {
+    val globalizedDefn = globalizeDefn(parent)
+    AstNode(globalizedDefn, children.map(_.globalize(Some(globalizedDefn.name))))
+  }
+
+  def globalizeDefn(parent: Option[Symbol]): Definition = {
+    val globalizedName = globalizeSymbol(definition.name, parent)
+    val newParent = if (definition.isInstanceOf[Instruction])   // allow values used in 
+      parent                                                    // instructions to refer
+    else                                                        // directly to siblings
+      Some(globalizedName)
+
+    definition.copyWith(("name" -> globalizedName)).
+      mapSymbols(globalizeSymbol(_, newParent))
+  }
+
+  def globalizeSymbol(symbol: Symbol, parent: Option[Symbol]): Symbol = {
+    val prefix = symbol.name.head(0)
+    val unprefixedName = symbol.name.head.tail :: symbol.name.tail
+    prefix match {
+      case '@' => Symbol(unprefixedName, symbol.id)
+      case '%' => {
+        parent match {
+          case None => Symbol(unprefixedName, symbol.id)
+          case Some(parentSymbol) => {
+            val parentName = parentSymbol.name
+            Symbol(parentName ++ unprefixedName, symbol.id)
+          }
+        }
+      }
+      case _ => symbol
+    }
+  }
 }

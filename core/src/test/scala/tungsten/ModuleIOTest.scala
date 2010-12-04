@@ -11,24 +11,6 @@ class ModuleIOTest  // generate a classfile so Buildr doesn't rebuild this file 
 
 class ModuleIOReadTextTest {
   @Test
-  def renameInScopeTest {
-    assertEquals(symbolFromString("foo.bar.baz"), renameInScope("%bar.baz", List("foo")))
-    assertEquals(symbolFromString("a"), renameInScope("@a", List("foo")))
-  }
-
-  @Test
-  def processAstTest {
-    val struct = Struct("@s", List("@s.f", "@s.g"))
-    val f = Field("%f", StructType("@a"))
-    val g = Field("%g", StructType("%b"))
-    val ast = AstNode(struct, List(AstNode(f, Nil), AstNode(g, Nil)))
-    val expected = List(Struct("s", List("s.f", "s.g")),
-                        Field("s.f", StructType("a")),
-                        Field("s.g", StructType("s.b")))
-    assertEquals(expected, processAst(ast, Nil))
-  }
-
-  @Test
   def parseTest {
     val program = "global unit @g"
     val definitions = TreeMap(Symbol("g") -> Global("g", UnitType, None))

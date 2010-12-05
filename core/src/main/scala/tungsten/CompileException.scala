@@ -239,6 +239,14 @@ final case class TypeMismatchException(given: Any, required: Any, location: Loca
                              format(given, required),
                            location)
 
+final case class TypeParameterBoundsException(paramName: Symbol,
+                                              upperBound: Type,
+                                              lowerBound: Type,
+                                              location: Location)
+  extends CompileException("for type parameter %s, lower bound %s is not a subtype of upper bound %s".
+                             format(paramName, lowerBound, upperBound),
+                           location)
+
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)
   extends CompileException(symbol.toString + " is not defined", location)
 

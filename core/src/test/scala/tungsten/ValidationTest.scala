@@ -737,6 +737,14 @@ class ValidationTest {
   }
 
   @Test
+  def typeParameterBounds {
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "class @B[type %T <: class @A >: class @R] <: class @R\n"
+    programContainsError[TypeParameterBoundsException](program)
+  }
+
+  @Test
   def programMissingMain {
     val module = new Module(ty = ModuleType.PROGRAM)
     val errors = module.validateProgram

@@ -122,11 +122,13 @@ class Parser extends Parsers with ImplicitConversions {
 
 
   lazy val function: Parser[AstNode] = {
-    annotations ~ ("function" ~> ty) ~ symbol ~ children(parameter, "(", ",", ")") ~
+    annotations ~ ("function" ~> ty) ~ symbol ~ 
+      children(typeParameter, "[", ",", "]") ~
+      children(parameter, "(", ",", ")") ~
       children(block, "{", "", "}") ^^ {
-        case anns ~ rty ~ n ~ ps ~ bs => {
-          val function = Function(n, rty, ps.map(_.name), bs.map(_.name), anns)
-          AstNode(function, ps ++ bs)
+        case anns ~ rty ~ n ~ tps ~ ps ~ bs => {
+          val function = Function(n, rty, tps.map(_.name), ps.map(_.name), bs.map(_.name), anns)
+          AstNode(function, tps ++ ps ++ bs)
         }
     }
   }
@@ -600,13 +602,23 @@ final case class AstNode(definition: Definition, children: List[AstNode]) {
 
   def globalizeDefn(parent: Option[Symbol]): Definition = {
     val globalizedName = globalizeSymbol(definition.name, parent)
-    val newParent = if (definition.isInstanceOf[Instruction])   // allow values used in 
-      parent                                                    // instructions to refer
-    else                                                        // directly to siblings
-      Some(globalizedName)
-
+    val newParent = if (definitionCanHaveChildren) Some(globalizedName) else parent
     definition.copyWith(("name" -> globalizedName)).
       mapSymbols(globalizeSymbol(_, newParent))
+  }
+
+  /** Returns whether the definition is cabable of having child definitions, based on its
+   *  class. Definitions which cannot have children, such as parameters or instructions, are
+   *  allowed to refer to siblings (definitions at the same level) directly with the % prefix.
+   *  Definitions which cannot have children cannot do this.
+   */
+  def definitionCanHaveChildren: Boolean = {
+    definition.isInstanceOf[Annotation]  ||
+      definition.isInstanceOf[Block]     ||
+      definition.isInstanceOf[Function]  ||
+      definition.isInstanceOf[Interface] ||
+      definition.isInstanceOf[Class]     ||
+      definition.isInstanceOf[Struct]
   }
 
   def globalizeSymbol(symbol: Symbol, parent: Option[Symbol]): Symbol = {

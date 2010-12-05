@@ -173,6 +173,7 @@ final case class StructType(structName: Symbol)
 }
 
 final case class FunctionType(returnType: Type,
+                              typeParameters: List[Symbol],
                               parameterTypes: List[Type])
   extends Type
 {

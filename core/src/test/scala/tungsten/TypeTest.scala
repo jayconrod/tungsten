@@ -113,8 +113,8 @@ class TypeTest {
 
   @Test
   def functionEquals {
-    val f1 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
-    val f2 = FunctionType(IntType(32), List(IntType(32), FloatType(32)))
+    val f1 = FunctionType(IntType(32), Nil, List(IntType(32), FloatType(32)))
+    val f2 = FunctionType(IntType(32), Nil, List(IntType(32), FloatType(32)))
     assertTrue(f1 == f2)
     assertEquals(f1.hashCode, f2.hashCode)
   }

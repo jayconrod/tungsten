@@ -151,7 +151,12 @@ object ModuleIO {
         case BLOCK_ID => Block(name, readList(symbol), readList(symbol), readAnnotations)
         case FIELD_ID => Field(name, readType, readAnnotations)
         case FUNCTION_ID => {
-          Function(name, readType, readList(symbol), readList(symbol), readAnnotations)
+          Function(name, 
+                   readType,          // return type
+                   readList(symbol),  // type parameters
+                   readList(symbol),  // parameters
+                   readList(symbol),  // blocks
+                   readAnnotations)
         }
         case GLOBAL_ID => Global(name, readType, readOption(readValue), readAnnotations)
         case PARAMETER_ID => Parameter(name, readType, readAnnotations)
@@ -295,7 +300,7 @@ object ModuleIO {
           ArrayType(length, readType)
         }
         case STRUCT_TYPE_ID => StructType(symbol)
-        case FUNCTION_TYPE_ID => FunctionType(readType, readList(readType))
+        case FUNCTION_TYPE_ID => FunctionType(readType, readList(symbol), readList(readType))
         case CLASS_TYPE_ID => ClassType(symbol, readList(readType))
         case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readType))
         case VARIABLE_TYPE_ID => VariableType(symbol)
@@ -554,9 +559,10 @@ object ModuleIO {
     def writeFunction(function: Function) {
       writeAnnotations(function.annotations)
       output.write("function ")
-      writeType(function.returnType, None)
+      writeType(function.returnType, Some(function.name))
       output.write(" ")
       writeSymbol(function.name, None)
+      writeTypeParameters(function.typeParameters, Some(function.name))
       writeParameters(function.parameters, Some(function.name))
       writeBlocks(function.blocks, Some(function.name))
     }
@@ -931,9 +937,14 @@ object ModuleIO {
           "[%d x %s]".format(length, localType(elementType, parentName))
         }
         case StructType(structName) => "struct " + localSymbol(structName, parentName)
-        case FunctionType(returnType, parameterTypes) => {
-          "(%s) => %s".format(parameterTypes.map(localType(_: Type, parentName)).mkString(", "), 
-                              localType(returnType, parentName))
+        case FunctionType(returnType, typeParameters, parameterTypes) => {
+          val typeParameterStr = if (typeParameters.isEmpty)
+            ""
+          else
+            typeParameters.map(localSymbol(_, parentName)).mkString("[", ", ", "]")
+          val parameterStr = parameterTypes.map(localType(_: Type, parentName))
+          val returnTypeStr = localType(returnType, parentName)
+          "%s(%s) => %s".format(typeParameterStr, parameterStr, returnTypeStr)
         }
         case ClassType(className, tyArgs) => {
           "class " + localSymbol(className, parentName) + localTypeArguments(tyArgs)
@@ -1084,9 +1095,10 @@ object ModuleIO {
           output.writeByte(FIELD_ID)
           writeType(ty)
         }
-        case Function(_, returnType, parameters, blocks, _) => {
+        case Function(_, returnType, typeParameters, parameters, blocks, _) => {
           output.writeByte(FUNCTION_ID)
           writeType(returnType)
+          writeSymbolList(typeParameters)
           writeSymbolList(parameters)
           writeSymbolList(blocks)
         }          
@@ -1291,9 +1303,10 @@ object ModuleIO {
           output.writeByte(STRUCT_TYPE_ID)
           writeInt(symbols(structName))
         }
-        case FunctionType(returnType, parameterTypes) => {
+        case FunctionType(returnType, typeParameters, parameterTypes) => {
           output.writeByte(FUNCTION_TYPE_ID)
           writeType(returnType)
+          writeSymbolList(typeParameters)
           writeList(parameterTypes, writeType _)
         }
         case ClassType(className, typeParameters) => {

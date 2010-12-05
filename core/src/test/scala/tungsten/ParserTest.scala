@@ -453,7 +453,23 @@ class ParserTest {
                    "  }\n" +
                    "}\n",
                    parser.function,
-                   Function("@f", UnitType, List("%a", "%b"), List("%c", "%d"), Nil))
+                   Function("@f", UnitType, Nil, List("%a", "%b"), List("%c", "%d"), Nil))
+  }
+
+  @Test
+  def functionWithTypeParameter {
+    testDefinition("function type %T @id[type %T](type %T %x) {\n" +
+                   "  block %entry {\n" +
+                   "    return type %T %x\n" +
+                   "  }\n" +
+                   "}\n",
+                   parser.function,
+                   Function("@id",
+                            VariableType("%T"),
+                            List("%T"),
+                            List("%x"),
+                            List("%entry"),
+                            Nil))
   }
 
   @Test
@@ -585,7 +601,7 @@ class ParserTest {
 class AstNodeTest {
   val childDefn = Parameter("%x", UnitType)
   val child = AstNode(childDefn, Nil)
-  val parentDefn = Function("@f", UnitType, List("%x"), Nil)
+  val parentDefn = Function("@f", UnitType, Nil, List("%x"), Nil)
   val parent = AstNode(parentDefn, List(child))
 
   @Test
@@ -600,7 +616,7 @@ class AstNodeTest {
   def globalize {
     val expectedChildDefn = Parameter("f.x", UnitType)
     val expectedChild = AstNode(expectedChildDefn, Nil)
-    val expectedParentDefn = Function("f", UnitType, List("f.x"), Nil)
+    val expectedParentDefn = Function("f", UnitType, Nil, List("f.x"), Nil)
     val expectedParent = AstNode(expectedParentDefn, List(expectedChild))
     assertEquals(expectedParent, parent.globalize(None))
   }

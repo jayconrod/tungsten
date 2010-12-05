@@ -637,7 +637,7 @@ case class IntrinsicFunction(number: Int,
                              ty: FunctionType)
 
 object Intrinsic {
-  val EXIT = IntrinsicFunction(1, "exit", FunctionType(UnitType, List(IntType(32))))
+  val EXIT = IntrinsicFunction(1, "exit", FunctionType(UnitType, Nil, List(IntType(32))))
   val INTRINSICS = List(EXIT)
 }
 

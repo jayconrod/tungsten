@@ -4,21 +4,21 @@ import Utilities._
 
 final case class Function(name: Symbol,
                           returnType: Type,
+                          typeParameters: List[Symbol],
                           parameters: List[Symbol],
                           blocks: List[Symbol],
                           annotations: List[AnnotationValue] = Nil)
   extends Definition
 {
   def ty(module: Module): FunctionType = {
-    FunctionType(returnType, module.getParameters(parameters).map(_.ty))
-    // TODO: include type parameters
+    FunctionType(returnType, 
+                 typeParameters,
+                 module.getParameters(parameters).map(_.ty))
   }
-
-  def typeParameters: List[Symbol] = Nil
-  // TODO: add real type parameters
 
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
+      validateComponentsOfClass[TypeParameter](module, typeParameters) ++
       validateComponentsOfClass[Parameter](module, parameters) ++
       validateComponentsOfClass[Block](module, blocks)
   }

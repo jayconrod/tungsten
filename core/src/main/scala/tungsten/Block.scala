@@ -10,7 +10,7 @@ final case class Block(name: Symbol,
 {
   def ty(module: Module): FunctionType = {
     val parameterTypes = module.getParameters(parameters).map(_.ty)
-    FunctionType(UnitType, parameterTypes)
+    FunctionType(UnitType, Nil, parameterTypes)
   }
 
   override def validateComponents(module: Module) = {

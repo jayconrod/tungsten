@@ -7,6 +7,9 @@ abstract sealed class Type
 {
   def validateComponents(module: Module, location: Location): List[CompileException] = Nil
   def validate(module: Module, location: Location): List[CompileException] = Nil
+  def validateVariance(positionVariance: Variance,
+                       module: Module,
+                       location: Location): List[CompileException] = Nil
   def size(module: Module): Long
   def isNumeric: Boolean
   def isPointer: Boolean = false
@@ -177,6 +180,18 @@ final case class FunctionType(returnType: Type,
                               parameterTypes: List[Type])
   extends Type
 {
+  override def validateVariance(positionVariance: Variance,
+                                module: Module,
+                                location: Location) =
+  {
+    import Variance._
+    val returnPositionVariance = positionVariance
+    val returnErrors = returnType.validateVariance(returnPositionVariance, module, location)
+    val parameterPositionVariance = positionVariance.opposite
+    val parameterErrors = parameterTypes.flatMap(_.validateVariance(parameterPositionVariance, module, location))
+    returnErrors ++ parameterErrors
+  }
+
   def size(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
@@ -260,6 +275,23 @@ sealed trait ObjectType
         Nil
     }
   }
+
+  override def validateVariance(positionVariance: Variance,
+                                module: Module,
+                                location: Location): List[CompileException] =
+  {
+    import Variance._
+    val defn = module.getObjectDefinition(definitionName)
+    val typeParameters = module.getTypeParameters(defn.typeParameters)
+    val parameterVariances = typeParameters.map(_.variance)
+    (parameterVariances zip typeArguments) flatMap { case (parameterVariance, typeArgument) =>
+      val parameterPositionVariance = if (parameterVariance == CONTRAVARIANT)
+        positionVariance.opposite
+      else
+        positionVariance
+      typeArgument.validateVariance(parameterPositionVariance, module, location)
+    }
+  }
 }
 
 final case class ClassType(className: Symbol,
@@ -314,6 +346,20 @@ final case class VariableType(variableName: Symbol)
 {
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     module.validateName[TypeParameter](variableName, location)
+  }
+
+  override def validateVariance(positionVariance: Variance,
+                                module: Module,
+                                location: Location): List[CompileException] =
+  {
+    import Variance._
+    val parameterVariance = module.getTypeParameter(variableName).variance
+    
+    if (parameterVariance == INVARIANT ||
+        parameterVariance == positionVariance)
+      Nil
+    else
+      List(TypeParameterVarianceException(this, positionVariance, location))
   }
 
   override def size(module: Module) = wordSize(module)

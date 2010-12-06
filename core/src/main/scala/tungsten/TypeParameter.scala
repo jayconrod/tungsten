@@ -34,11 +34,22 @@ final case class TypeParameter(name: Symbol,
   }
 }
 
-case class Variance(prefix: String) {
+case class Variance(prefix: String, varianceString: String) {
+  import Variance._
+
+  def opposite: Variance = {
+    this match {
+      case COVARIANT => CONTRAVARIANT
+      case CONTRAVARIANT => COVARIANT
+      case INVARIANT => INVARIANT
+      case _ => throw new RuntimeException("invalid variance")
+    }
+  }
+
   override def toString = prefix
 }
 object Variance {
-  val COVARIANT = Variance("+")
-  val CONTRAVARIANT = Variance("-")
-  val INVARIANT = Variance("")
+  val COVARIANT = Variance("+", "covariant")
+  val CONTRAVARIANT = Variance("-", "contravariant")
+  val INVARIANT = Variance("", "invariant")
 }

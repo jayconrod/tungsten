@@ -247,6 +247,12 @@ final case class TypeParameterBoundsException(paramName: Symbol,
                              format(paramName, lowerBound, upperBound),
                            location)
 
+final case class TypeParameterVarianceException(ty: Type,
+                                                variance: Variance,
+                                                location: Location)
+  extends CompileException("type %s used in %s position".format(ty, variance.varianceString),
+                           location)
+
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)
   extends CompileException(symbol.toString + " is not defined", location)
 

@@ -745,6 +745,39 @@ class ValidationTest {
   }
 
   @Test
+  def variance {
+    val program = "class @R\n" +
+                  "class @Pass[type %T] <: class @R\n" +
+                  "class @Source[type +%T] <: class @R\n" +
+                  "class @Sink[type -%T] <: class @R\n"
+    val module = compileString(program)
+    def isIncorrect(ty: Type, variance: Variance) {
+      val errors = ty.validateVariance(variance, module, Nowhere)
+      containsError[TypeParameterVarianceException](errors)
+    }
+    def isCorrect(ty: Type, variance: Variance) {
+      val errors = ty.validateVariance(variance, module, Nowhere)
+      assertTrue(errors.isEmpty)
+    }
+
+    import Variance._
+    isCorrect(VariableType("Pass.T"), INVARIANT)
+    isCorrect(VariableType("Pass.T"), COVARIANT)
+    isCorrect(VariableType("Pass.T"), CONTRAVARIANT)
+    isIncorrect(VariableType("Source.T"), INVARIANT)
+    isCorrect(VariableType("Source.T"), COVARIANT)
+    isIncorrect(VariableType("Source.T"), CONTRAVARIANT)
+    isIncorrect(VariableType("Sink.T"), INVARIANT)
+    isIncorrect(VariableType("Sink.T"), COVARIANT)
+    isCorrect(VariableType("Sink.T"), CONTRAVARIANT)
+
+    isCorrect(ClassType("Source", List(VariableType("Source.T"))), COVARIANT)
+    isIncorrect(ClassType("Source", List(VariableType("Source.T"))), CONTRAVARIANT)
+    isCorrect(ClassType("Sink", List(VariableType("Sink.T"))), COVARIANT)
+    isIncorrect(ClassType("Sink", List(VariableType("Source.T"))), COVARIANT)
+  }
+
+  @Test
   def programMissingMain {
     val module = new Module(ty = ModuleType.PROGRAM)
     val errors = module.validateProgram

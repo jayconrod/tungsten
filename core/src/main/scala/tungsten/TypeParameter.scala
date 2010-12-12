@@ -10,15 +10,28 @@ final case class TypeParameter(name: Symbol,
   extends Definition
 {
   override def validate(module: Module): List[CompileException] = {
-    (upperBound, lowerBound) match {
-      case (Some(upperBoundType), Some(lowerBoundType)) => {
-        if (!lowerBoundType.isSubtypeOf(upperBoundType, module))
-          List(TypeParameterBoundsException(name, upperBoundType, lowerBoundType, getLocation))
-        else
-          Nil
+    def validateBounds = {
+      (upperBound, lowerBound) match {
+        case (Some(upperBoundType), Some(lowerBoundType)) => {
+          if (!lowerBoundType.isSubtypeOf(upperBoundType, module))
+            List(TypeParameterBoundsException(name, upperBoundType, lowerBoundType, getLocation))
+          else
+            Nil
+        }
+        case _ => Nil
       }
-      case _ => Nil
     }
+
+    def validateVariance = {
+      upperBound match {
+        case None => Nil
+        case Some(u) => u.validateVariance(Variance.CONTRAVARIANT, module, getLocation)
+      }
+    }
+
+    super.validate(module) ++
+      validateBounds ++
+      validateVariance
   }
 
   def isArgumentInBounds(ty: Type, module: Module): Boolean = {

@@ -778,6 +778,44 @@ class ValidationTest {
   }
 
   @Test
+  def fieldVariance {
+    val program = "class @C[type +%T] { field type %T %x }"
+    programContainsError[TypeParameterVarianceException](program)
+  }
+
+  @Test
+  def methodResultVariance {
+    val program = "function type %T @f[type -%T]()"
+    programContainsError[TypeParameterVarianceException](program)
+  }
+
+  @Test
+  def methodParameterVariance {
+    val program = "function unit @f[type +%T](type %T %x)"
+    programContainsError[TypeParameterVarianceException](program)
+  }
+
+  @Test
+  def typeParameterContravariance {
+    val program = "class @Sink[type -%S]\n" +
+                  "function class @Sink[type %T] @f[type +%T]()"
+    programContainsError[TypeParameterVarianceException](program)
+  }
+
+  @Test
+  def typeParameterCovariance {
+    val program = "class @Source[type +%S]\n" +
+                  "function unit @f[type +%T](class @Source[type %T] %x)"
+    programContainsError[TypeParameterVarianceException](program)
+  }
+
+  @Test
+  def typeParameterUpperBoundVariance {
+    val program = "function unit @f[type +%T, type %S <: type %T]()"
+    programContainsError[TypeParameterVarianceException](program)
+  }
+
+  @Test
   def programMissingMain {
     val module = new Module(ty = ModuleType.PROGRAM)
     val errors = module.validateProgram

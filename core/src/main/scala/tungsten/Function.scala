@@ -105,11 +105,18 @@ final case class Function(name: Symbol,
       }
       blocks.flatMap(checkBlock _)
     }
+
+    def validateVariance = {
+      val parameterTypes = module.getParameters(parameters).map(_.ty)
+      returnType.validateVariance(Variance.COVARIANT, module, getLocation) ++
+        parameterTypes.flatMap(_.validateVariance(Variance.CONTRAVARIANT, module, getLocation))
+    }
     
     stage(super.validate(module),
           validateEntryParameters,
           validateInstructionOrder,
           validateBranches,
-          validateReturnType)
+          validateReturnType,
+          validateVariance)
   }
 }

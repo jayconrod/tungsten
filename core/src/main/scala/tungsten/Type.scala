@@ -20,6 +20,17 @@ abstract sealed class Type
     val fromType = VariableType(fromName)
     mapTypes { ty => if (ty == fromType) toType else ty }
   }
+  def substitute(fromNames: List[Symbol], toTypes: List[Type]): Type = {
+    if (fromNames.size != toTypes.size)
+      throw new IllegalArgumentException
+    else {
+      (this /: (fromNames zip toTypes)) { (ty, p) =>
+        val (fromName, toType) = p
+        ty.substitute(fromName, toType)
+      }
+    }
+  }
+  def expose(module: Module): Type = this
   def supportsOperator(op: BinaryOperator) = false
   def supportsOperator(op: RelationalOperator) = {
     import RelationalOperator._
@@ -121,6 +132,10 @@ final case class PointerType(elementType: Type)
   def isNumeric = false
 
   override def isPointer = true
+
+  override def expose(module: Module): PointerType = {
+    PointerType(elementType.expose(module))
+  }
 }
 
 final case object NullType
@@ -158,6 +173,10 @@ final case class ArrayType(length: Long, elementType: Type)
   def size(module: Module) = length * elementType.size(module)
 
   def isNumeric = false
+
+  override def expose(module: Module): ArrayType = {
+    ArrayType(length, elementType.expose(module))
+  }
 }
 
 final case class StructType(structName: Symbol)
@@ -195,6 +214,48 @@ final case class FunctionType(returnType: Type,
   def size(module: Module) = throw new UnsupportedOperationException
 
   def isNumeric = false
+
+  override def isSubtypeOf(ty: Type, module: Module): Boolean = {
+    def isExposedSubtypeOf(s: Type, t: Type): Boolean = {
+      val es = s.expose(module)
+      val et = t.expose(module)
+      es.isSubtypeOf(et, module)
+    }
+
+    ty match {
+      case fty: FunctionType => {
+        if (typeParameters.size != fty.typeParameters.size ||
+            parameterTypes.size != fty.parameterTypes.size)
+        {
+          false
+        } else {
+          val typeParameterDefns = module.getTypeParameters(typeParameters)
+          val otherTypeParameterDefns = module.getTypeParameters(fty.typeParameters)
+          val typeParametersMatch = (typeParameterDefns zip otherTypeParameterDefns) forall { p =>
+            val (typeParameter, otherTypeParameter) = p
+            typeParameter.boundsMatch(otherTypeParameter)
+          }
+
+          val parametersAreSupertypes = (parameterTypes zip fty.parameterTypes) forall { p =>
+            val (parameterType, otherParameterType) = p
+            isExposedSubtypeOf(otherParameterType, parameterType)
+          }
+
+          val returnTypeIsSubtype = isExposedSubtypeOf(returnType, fty.returnType)
+
+          typeParametersMatch && parametersAreSupertypes && returnTypeIsSubtype
+        }
+      }
+      case _ => false
+    }
+  }
+
+  override def expose(module: Module): FunctionType = {
+    val typeParameterBounds = module.getTypeParameters(typeParameters).map(_.getUpperBoundType(module))
+    val substitutedReturnType = returnType.substitute(typeParameters, typeParameterBounds)
+    val substitutedParameterTypes = parameterTypes.map(_.substitute(typeParameters, typeParameterBounds))
+    FunctionType(substitutedReturnType, Nil, substitutedParameterTypes)
+  }
 }
 
 sealed trait ObjectType 
@@ -315,6 +376,10 @@ final case class ClassType(className: Symbol,
 
   def definitionName = className
 
+  override def expose(module: Module): ClassType = {
+    ClassType(className, typeArguments.map(_.expose(module)))
+  }
+
   protected def getDefinition(module: Module): Class = {
     module(className).asInstanceOf[Class]
   }
@@ -335,6 +400,10 @@ final case class InterfaceType(interfaceName: Symbol,
   }
 
   def definitionName = interfaceName
+
+  override def expose(module: Module): InterfaceType = {
+    InterfaceType(interfaceName, typeArguments.map(_.expose(module)))
+  }
 
   protected def getDefinition(module: Module): Interface = {
     module(interfaceName).asInstanceOf[Interface]
@@ -376,5 +445,10 @@ final case class VariableType(variableName: Symbol)
       case Some(upper) => upper.isSubtypeOf(ty, module)
       case None => ty.isRootClassType(module)
     }
+  }
+
+  override def expose(module: Module): ObjectType = {
+    val typeParameter = module.getTypeParameter(variableName)
+    typeParameter.getUpperBoundType(module)
   }
 }

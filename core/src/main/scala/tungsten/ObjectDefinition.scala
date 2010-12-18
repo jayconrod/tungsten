@@ -68,32 +68,47 @@ trait ObjectDefinition
   {
     val methodDefns = module.getFunctions(methods)
     val parentDefn = module.getObjectDefinition(parentType.definitionName)
-    val parentMethods = module.getFunctions(parentDefn.methods)
-    val parentMethodTypes = parentMethods.map { method =>
-      val ty = method.ty(module)
-      parentDefn.substituteInheritedType(ty, parentType.typeArguments)
-    }
+    val parentMethodDefns = module.getFunctions(parentDefn.methods)
 
-    def isCompatibleWithParent(methodType: FunctionType, 
-                               parentMethodType: FunctionType): Boolean =
-    {
-      val parameterCountEqual = methodType.parameterTypes.size == parentMethodType.parameterTypes.size
-      val returnTypeIsCompatible = methodType.returnType.isSubtypeOf(parentMethodType.returnType, module)
-      val parameterTypesAreCompatible = (methodType.parameterTypes.tail zip parentMethodType.parameterTypes.tail).
-        forall { p => 
-          val (paramTy, parentTy) = p
-          parentTy.isSubtypeOf(paramTy, module) 
-        }
-      parameterCountEqual && returnTypeIsCompatible && parameterTypesAreCompatible
-    }
-
-    if (methodDefns.size < parentMethodTypes.size)
+    if (methodDefns.size < parentMethodDefns.size)
       List(MissingMethodException(name, getLocation))
     else {
-      (methodDefns zip parentMethodTypes) collect {
-        case (method, parentMethodType) if !isCompatibleWithParent(method.ty(module), parentMethodType) =>
-          TypeMismatchException(method.ty(module), parentMethodType, getLocation)
+      (methodDefns zip parentMethodDefns) flatMap { p =>
+        val (method, parentMethod) = p
+        validateOverride(method, parentMethod, module)
       }
+    }
+  }
+
+  def validateOverride(method: Function,
+                       overriddenMethod: Function,
+                       module: Module): List[CompileException] =
+  {
+    /* Removes the "this" parameter, and all type parameters which correspond to type parameters
+     * in the class. None is returned if the method doesn't have a "this" parameter, or if the
+     * type parameters don't match the class it comes from.
+     */
+    def stripParameters(method: Function): Option[FunctionType] = {
+      getThisParameterTypeForMethod(method, module) match {
+        case Some(thisParamType) => {
+          val returnType = method.returnType
+          val methodClass = module.getObjectDefinition(thisParamType.definitionName)
+          val methodTypeParameterNames = method.typeParameters.drop(methodClass.typeParameters.size)
+          val parameterTypes = module.getParameters(method.parameters.tail).map(_.ty)
+          Some(FunctionType(returnType, methodTypeParameterNames, parameterTypes))
+        }
+        case None => None
+      }
+    }
+
+    (stripParameters(method), stripParameters(overriddenMethod)) match {
+      case (Some(methodType), Some(overriddenType)) => {
+        if (methodType.isSubtypeOf(overriddenType, module))
+          Nil
+        else
+          List(MethodOverrideCompatibilityException(method.name, name, overriddenMethod.name, getLocation))
+      }
+      case _ => Nil // methods are not correctly formed; different errors will be reported
     }
   }
 
@@ -102,10 +117,11 @@ trait ObjectDefinition
    *    a) the method must have at least one argument
    *    b) the first argument must be a valid object type (type validation is performed elsewhere)
    *    c) if the object type corresponds to this class, each type argument must be a simple
-   *       variable type, defined by a type parameter in the method. The bounds for this type
-   *       parameter must be the same as the corresponding type parameter in this class. If the
-   *       object type is not of this class, it must be for a superclass or interface. 
-   *  2) if the method's "this" type is of a different class, that class must define the method
+   *       variable type, defined by a type parameter in the method. The type parameters must
+   *       be at the beginning of the method type parameter list, and they must have the same
+   *       bounds as the corresponding ones in the class.
+   *    d) If the object type is not of this class, it must be for a superclass or interface.
+   *  3) if the method's "this" type is of a different class, that class must define the method
    *     in the same position in the method list as this class. This is necessary to make the
    *     vtable work.
    */
@@ -114,49 +130,14 @@ trait ObjectDefinition
                      module: Module): List[CompileException] = 
   {
     def validateThisParameter = {
-      val thisParameterIsValid = method.parameters.headOption match {
-        case None => false  // no this parameter at all
-        case Some(thisParamName) => {
-          module.getParameter(thisParamName).ty match {
-            case thisParamTy: ObjectType => {
-              if (thisParamTy.definitionName != name) {
-                // Since this method comes from a different class, it will get checked there. We
-                // just need to make sure this is actually a superclass.
-                isDescendedFrom(thisParamTy.definitionName, module)
-              } else {
-                // We only check the "this" parameter type if the method is from this class.
-                val classTypeParameters = module.getTypeParameters(typeParameters)
-                val thisTypeArguments = thisParamTy.typeArguments
-                def typeArgumentIsValid(thisTypeArgument: Type, 
-                                        classTypeParameter: TypeParameter): Boolean =
-                {
-                  thisTypeArgument match {
-                    case VariableType(methodTypeParameterName) => {
-                      val methodTypeParameter = module.getTypeParameter(methodTypeParameterName)
-                      classTypeParameter.upperBound == methodTypeParameter.upperBound &&
-                        classTypeParameter.lowerBound == methodTypeParameter.lowerBound
-                    }
-                    case _ => false
-                  }
-                }
-                (thisTypeArguments zip classTypeParameters) forall { p =>
-                  val (thisTypeArgument, classTypeParameter) = p
-                  typeArgumentIsValid(thisTypeArgument, classTypeParameter)
-                }
-              }
-            }
-            case _ => false // "this" parameter not an object type
-          }
-        }
-      }
-      if (thisParameterIsValid)
+      if (isThisParameterValid(method, module))
         Nil
       else
         List(MethodSelfTypeException(method.name, name, method.getLocation))
     }
 
     def validateMethodInheritance = {
-      val thisParamTy = module.getParameter(method.parameters.head).ty.asInstanceOf[ObjectType]
+      val thisParamTy = getThisParameterTypeForMethod(method, module).get
       val methodClassName = thisParamTy.definitionName
       val methodClassDefn = module.getObjectDefinition(methodClassName)
       if (methodClassDefn eq this)
@@ -166,11 +147,64 @@ trait ObjectDefinition
         Nil // correctly inherited
       else
         List(MethodNotInheritedException(method.name, name, methodClassName, getLocation))
-    }   
+    }
 
     stage(validateThisParameter,
           validateMethodInheritance)
   }    
+
+  def getThisParameterTypeForMethod(method: Function, module: Module): Option[ObjectType] = {
+    method.parameters.headOption.map(module.getParameter _) collect {
+      case Parameter(_, ty: ObjectType, _) => ty
+    }
+  }
+
+  def isMethodDefinedInThisClass(method: Function, module: Module): Boolean = {
+    getThisParameterTypeForMethod(method, module) match {
+      case Some(thisParameterType) if thisParameterType.definitionName == name => true
+      case _ => false
+    }
+  }
+
+  def isThisParameterValid(method: Function, module: Module): Boolean = {
+    getThisParameterTypeForMethod(method, module) match {
+      case None => false
+      case Some(thisParameterType) => {
+        if (thisParameterType.definitionName != name) {
+          // Since this method comes from a different class, it will get checked there. We
+          // just need to make sure this is actually a superclass.
+          isDescendedFrom(thisParameterType.definitionName, module)
+        } else {
+          // We only check the "this" parameter type if the method is from this class.
+          val classTypeParameters = module.getTypeParameters(typeParameters)
+          val methodTypeParameters = module.getTypeParameters(method.typeParameters)
+          val thisTypeArguments = thisParameterType.typeArguments
+          def typeArgumentIsValid(thisTypeArgument: Type, 
+                                  methodTypeParameter: TypeParameter,
+                                  classTypeParameter: TypeParameter): Boolean =
+          {
+            thisTypeArgument match {
+              case VariableType(typeArgumentName) => {
+                typeArgumentName == methodTypeParameter.name &&
+                  classTypeParameter.upperBound == methodTypeParameter.upperBound &&
+                  classTypeParameter.lowerBound == methodTypeParameter.lowerBound
+              }
+              case _ => false
+            }
+          }
+          if (thisTypeArguments.size != classTypeParameters.size ||
+              classTypeParameters.size > methodTypeParameters.size)
+            false
+          else {
+            ((thisTypeArguments zip methodTypeParameters) zip classTypeParameters) forall { p =>
+              val ((thisTypeArgument, methodTypeParameter), classTypeParameter) = p
+              typeArgumentIsValid(thisTypeArgument, methodTypeParameter, classTypeParameter)
+            }
+          }
+        }
+      }
+    }
+  }
 
   def validateMethods(module: Module): List[CompileException] = {
     val methodDefns = module.getFunctions(methods)
@@ -215,33 +249,6 @@ trait ObjectDefinition
         validateInheritedMethods(interfaceType, methodNames, module)
       }
     }
-
-    // def getMethodClass(method: Function): ObjectDefinition = {
-    //   val thisParamTy = module.getParameter(method.parameters.head).ty.asInstanceOf[ObjectType]
-    //   val methodClassName = thisParamTy.definitionName
-    //   module.getObjectDefinition(methodClassName)
-    // }
-
-    // def isLocalOrInheritedFromParent(method: Function, methodIndex: Int): Boolean = {
-    //   val methodClassDefn = getMethodClass(method)
-    //   if (methodClassDefn == this)  // local case
-    //     true
-    //   else {    // inherited case
-    //     methodClassDefn.methods.isDefinedAt(methodIndex) && 
-    //       methodClassDefn.methods(methodIndex) == method.name
-    //   }
-    // }
-
-    // /* Verifies that each method with a "this" parameter type that does not correspond to a 
-    //  * different class actually comes from that class. It must be in the same position in the
-    //  * method list as in this class.
-    //  */
-    // def validateInheritance = {
-    //   ((0 until methodDefns.size).toList zip methodDefns) collect {
-    //     case (methodIndex, method) if !isLocalOrInheritedFromParent(method, methodIndex) =>
-    //       MethodNotInheritedException(method.name, name, getMethodClass(method).name, getLocation)
-    //   }
-    // }
 
     validateIndividualMethods ++ 
       validateInterfaceMethods ++

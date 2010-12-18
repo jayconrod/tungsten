@@ -10,11 +10,23 @@ final case class TypeParameter(name: Symbol,
   extends Definition
 {
   override def validate(module: Module): List[CompileException] = {
-    def validateBounds = {
+    def validateBound(bound: Option[Type], isUpper: Boolean) = {
+      bound match {
+        case None => Nil
+        case Some(ty) => {
+          if (ty.isInstanceOf[VariableType] || ty.isInstanceOf[ObjectType])
+            Nil
+          else
+            List(TypeParameterInvalidBoundException(name, isUpper, getLocation))
+        }
+      }
+    }
+
+    def validateBoundSubtype = {
       (upperBound, lowerBound) match {
         case (Some(upperBoundType), Some(lowerBoundType)) => {
           if (!lowerBoundType.isSubtypeOf(upperBoundType, module))
-            List(TypeParameterBoundsException(name, upperBoundType, lowerBoundType, getLocation))
+            List(TypeParameterBoundsSubtypeException(name, upperBoundType, lowerBoundType, getLocation))
           else
             Nil
         }
@@ -30,8 +42,21 @@ final case class TypeParameter(name: Symbol,
     }
 
     super.validate(module) ++
-      validateBounds ++
+      validateBound(upperBound, true) ++ validateBound(lowerBound, false) ++
+      validateBoundSubtype ++
       validateVariance
+  }
+
+  def getUpperBoundType(module: Module): ObjectType = {
+    upperBound match {
+      case None => module.rootClassType
+      case Some(ty: ObjectType) => ty
+      case Some(VariableType(varName)) => {
+        val upperBoundParameter = module.getTypeParameter(varName)
+        upperBoundParameter.getUpperBoundType(module)
+      }
+      case _ => throw new RuntimeException("invalid type parameter")
+    }
   }
 
   def isArgumentInBounds(ty: Type, module: Module): Boolean = {
@@ -44,6 +69,10 @@ final case class TypeParameter(name: Symbol,
       case None => true
     }
     belowUpperBound && aboveLowerBound
+  }
+
+  def boundsMatch(other: TypeParameter): Boolean = {
+    upperBound == other.upperBound && lowerBound == other.lowerBound
   }
 }
 

@@ -51,6 +51,18 @@ class ValidationTest {
   }
 
   @Test
+  def undefinedParameterType {
+    val program = "function unit @main(class @A %x)"
+    programContainsError[UndefinedSymbolException](program)
+  }
+
+  @Test
+  def undefinedTypeParameterBound {
+    val program = "function unit @f[type %T <: class @R](type %T %x)"
+    programContainsError[UndefinedSymbolException](program)
+  }
+
+  @Test
   def emptyBlockTermination {
     val program = "function unit @main( ) { block %empty }"
     programContainsError[EmptyComponentsException](program)
@@ -682,7 +694,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @A.f(class @A %this, unit %x)\n" +
                   "function unit @B.f(class @A %this)\n"
-    programContainsError[TypeMismatchException](program)
+    programContainsError[MethodOverrideCompatibilityException](program)
   }
 
   @Test
@@ -695,7 +707,7 @@ class ValidationTest {
                   "}\n" +
                   "function unit @I.f(interface @I %this, unit %x)\n" +
                   "function unit @A.f(class @A %this)\n"
-    programContainsError[TypeMismatchException](program)
+    programContainsError[MethodOverrideCompatibilityException](program)
   }
  
   @Test
@@ -737,11 +749,17 @@ class ValidationTest {
   }
 
   @Test
-  def typeParameterBounds {
+  def typeParameterInvalidBounds {
+    val program = "function unit @f[type %T <: unit]()"
+    programContainsError[TypeParameterInvalidBoundException](program)
+  }
+
+  @Test
+  def typeParameterBoundsSubtype {
     val program = "class @R\n" +
                   "class @A <: class @R\n" +
                   "class @B[type %T <: class @A >: class @R] <: class @R\n"
-    programContainsError[TypeParameterBoundsException](program)
+    programContainsError[TypeParameterBoundsSubtypeException](program)
   }
 
   @Test
@@ -813,6 +831,112 @@ class ValidationTest {
   def typeParameterUpperBoundVariance {
     val program = "function unit @f[type +%T, type %S <: type %T]()"
     programContainsError[TypeParameterVarianceException](program)
+  }
+
+  @Test
+  def overrideWrongTypeParameters {
+    val program = "class @R\n" +
+                  "class @A { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function unit @A.f[type %T](class @A %this)\n" +
+                  "function unit @B.f(class @B %this)\n"
+    programContainsError[MethodOverrideCompatibilityException](program)
+  }
+
+  @Test
+  def overrideLessTypeParameters {
+    val program = "class @R\n" +
+                  "class @A[type %T] <: class @R { methods { %f } }\n" +
+                  "class @B <: class @A[class @R] { methods { %f } }\n" +
+                  "function unit @A.f[type %T, type %S](class @A[type %T] %this, type %S %x, type %T %y)\n" +
+                  "function unit @B.f[type %S](class @B %this, type %S %x, class @R %y)\n"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def overrideMoreTypeParameters {
+    val program = "class @R\n" +
+                  "class @A <: class @R { methods { %f } }\n" +
+                  "class @B[type %T] <: class @A { methods { %f } }\n" +
+                  "function unit @A.f[type %S](class @A %this, type %S %x)\n" +
+                  "function unit @B.f[type %T, type %S](class @B[type %T] %this, type %S %x)\n"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def overrideTypeParameterUpperBoundSuper {
+    val program = "class @R\n" +
+                  "class @A <: class @R { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function unit @A.f[type %T <: class @A](class @A %this, type %T %x)\n" +
+                  "function unit @B.f[type %T <: class @R](class @B %this, type %T %x)\n"
+    programContainsError[MethodOverrideCompatibilityException](program)
+  }
+
+  @Test
+  def overrideTypeParameterUpperBoundSub {
+    val program = "class @R\n" +
+                  "class @A <: class @R { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function unit @A.f[type %T <: class @R](class @A %this, type %T %x)\n" +
+                  "function unit @B.f[type %T <: class @A](class @B %this, type %T %x)\n"
+    programContainsError[MethodOverrideCompatibilityException](program)
+  }
+
+  @Test
+  def overrideTypeParameterLowerBoundSuper {
+    val program = "class @R\n" +
+                  "class @A <: class @R { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function unit @A.f[type %T >: class @B](class @A %this, type %T %x)\n" +
+                  "function unit @B.f[type %T >: class @A](class @B %this, type %T %x)\n"
+    programContainsError[MethodOverrideCompatibilityException](program)
+  }
+
+  @Test
+  def overrideTypeParameterLowerBoundSub {
+    val program = "class @R\n" +
+                  "class @A <: class @R { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function unit @A.f[type %T >: class @A](class @A %this, type %T %x)\n" +
+                  "function unit @B.f[type %T >: class @B](class @B %this, type %T %x)\n"
+    programContainsError[MethodOverrideCompatibilityException](program)
+  }
+
+  @Test
+  def overrideContravariantParameters {
+    val program = "class @A { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function unit @A.f(class @A %this, class @B %x)\n" +
+                  "function unit @B.f(class @B %this, class @A %x)\n"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def overrideCovariantParameters {
+    val program = "class @A { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function unit @A.f(class @A %this, class @A %x)\n" +
+                  "function unit @B.f(class @B %this, class @B %x)\n"
+    programContainsError[MethodOverrideCompatibilityException](program)
+  }
+
+  @Test
+  def overrideContravariantReturn {
+    val program = "class @A { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function class @B @A.f(class @A %this)\n" +
+                  "function class @A @B.f(class @B %this)\n"
+    programContainsError[MethodOverrideCompatibilityException](program)
+  }
+
+  @Test
+  def overrideCovariantReturn {
+    val program = "class @A { methods { %f } }\n" +
+                  "class @B <: class @A { methods { %f } }\n" +
+                  "function class @A @A.f(class @A %this)\n" +
+                  "function class @B @B.f(class @B %this)\n"
+    programIsCorrect(program)
   }
 
   @Test

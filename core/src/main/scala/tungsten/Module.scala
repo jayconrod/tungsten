@@ -129,6 +129,20 @@ final class Module(val name:         Symbol                      = Symbol("defau
   def getTypeParameter(name: Symbol) = definitions(name).asInstanceOf[TypeParameter]
   def getTypeParameters(names: List[Symbol]) = names.map(getTypeParameter _)
 
+  lazy val rootClass: Class = {
+    val rootClasses = definitions.values.collect {
+      case defn: Class if !defn.superclass.isDefined => defn
+    }
+    if (rootClasses.size != 1)
+      throw new RuntimeException("there must be only one root class")
+    else if (rootClasses.head.typeParameters.size > 0)
+      throw new RuntimeException("root class must not be parameterized")
+    else
+      rootClasses.head
+  }
+
+  lazy val rootClassType: ClassType = ClassType(rootClass.name, Nil)
+
   def validate: List[CompileException] = {
     def validateDependencies = {
       def checkDuplicates(depNames: Set[Symbol],

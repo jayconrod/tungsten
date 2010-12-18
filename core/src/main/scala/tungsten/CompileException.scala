@@ -171,6 +171,14 @@ final case class MethodNotInheritedException(methodName: Symbol,
                              format(methodName, className, methodClassName),
                            location)
 
+final case class MethodOverrideCompatibilityException(methodName: Symbol,
+                                                      className: Symbol,
+                                                      overrideName: Symbol,
+                                                      location: Location)
+  extends CompileException("method %s in class %s overrides method %s but does not have a compatible type".
+                             format(methodName, className, overrideName),
+                           location)
+
 final case class MethodSelfTypeException(methodName: Symbol, 
                                          className: Symbol, 
                                          location: Location)
@@ -239,13 +247,20 @@ final case class TypeMismatchException(given: Any, required: Any, location: Loca
                              format(given, required),
                            location)
 
-final case class TypeParameterBoundsException(paramName: Symbol,
-                                              upperBound: Type,
-                                              lowerBound: Type,
-                                              location: Location)
+final case class TypeParameterBoundsSubtypeException(paramName: Symbol,
+                                                     upperBound: Type,
+                                                     lowerBound: Type,
+                                                     location: Location)
   extends CompileException("for type parameter %s, lower bound %s is not a subtype of upper bound %s".
                              format(paramName, lowerBound, upperBound),
                            location)
+
+final case class TypeParameterInvalidBoundException(paramName: Symbol,
+                                                    isUpper: Boolean,
+                                                    location: Location)
+  extends CompileException("type parameter %s has invalid %s bound".
+                             format(paramName, if (isUpper) "upper" else "lower"),
+                           location)                           
 
 final case class TypeParameterVarianceException(ty: Type,
                                                 variance: Variance,

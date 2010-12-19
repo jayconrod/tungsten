@@ -526,7 +526,7 @@ object ModuleIO {
       writeAnnotations(annotation.annotations)
       output.write("annotation ")
       writeSymbol(annotation.name, None)
-      writeFields(annotation.parameters, Some(annotation.name))
+      writeParameters(annotation.parameters, Some(annotation.name))
     }
 
     def writeClass(clas: Class) {
@@ -538,22 +538,35 @@ object ModuleIO {
         output.write(" <: ")
         writeType(t, None)
       }
-      output.write(" {\n")
 
-      writeImplementedInterfaces(clas.interfaceTypes, clas.interfaceMethods, Some(clas.name))
+      if (!clas.interfaceTypes.isEmpty || 
+          !clas.constructors.isEmpty || 
+          !clas.methods.isEmpty || 
+          !clas.fields.isEmpty)
+      {
+        output.write(" {\n")
 
-      output.write(INDENT + "constructors")
-      writeSymbolBlock(clas.constructors, Some(clas.name))
-      output.write("\n")
+        writeImplementedInterfaces(clas.interfaceTypes, clas.interfaceMethods, Some(clas.name))
 
-      output.write(INDENT + "methods")
-      writeSymbolBlock(clas.methods, Some(clas.name))
-      output.write("\n")
+        if (!clas.constructors.isEmpty) {
+          output.write(INDENT + "constructors")
+          writeSymbolBlock(clas.constructors, Some(clas.name))
+          output.write("\n")
+        }
 
-      val fields = module.getFields(clas.fields)
-      writeChildren(fields, writeField(_: Field, Some(clas.name)), "", "\n", "\n")
+        if (!clas.methods.isEmpty) {
+          output.write(INDENT + "methods")
+          writeSymbolBlock(clas.methods, Some(clas.name))
+          output.write("\n")
+        }
 
-      output.write("}")
+        if (!clas.fields.isEmpty) {
+          val fields = module.getFields(clas.fields)
+          writeChildren(fields, writeField(_: Field, Some(clas.name)), "", "\n", "\n")
+        }
+
+        output.write("}")
+      }
     }
 
     def writeFunction(function: Function) {
@@ -589,15 +602,22 @@ object ModuleIO {
       writeTypeParameters(interface.typeParameters, Some(interface.name))
       output.write(" <: ")
       writeType(interface.supertype, None)
-      output.write(" {\n")
 
-      writeImplementedInterfaces(interface.interfaceTypes, 
-                                 interface.interfaceMethods, 
-                                 Some(interface.name))
+      if (!interface.interfaceTypes.isEmpty ||
+          !interface.methods.isEmpty)
+      {
+        output.write(" {\n")
 
-      output.write(INDENT + "methods")
-      writeSymbolBlock(interface.methods, Some(interface.name))
-      output.write("\n}")      
+        writeImplementedInterfaces(interface.interfaceTypes, 
+                                   interface.interfaceMethods, 
+                                   Some(interface.name))
+
+        if (!interface.methods.isEmpty) {
+          output.write(INDENT + "methods")
+          writeSymbolBlock(interface.methods, Some(interface.name))
+          output.write("\n}")      
+        }
+      }
     }
 
     def writeStruct(struct: Struct) {

@@ -21,11 +21,12 @@ object Assembler extends Converter[Module, Module] {
   }
 
   def convert(source: Module): Option[Module] = {
-    val errors = source.validate
+    val linkedModule = linkRuntime(source)
+    val errors = linkedModule.validate
     if (errors.isEmpty)
-      Some(source)
+      Some(linkedModule)
     else {
-      val filename = source.filename.map(_.toString + ": ").getOrElse("")
+      val filename = linkedModule.filename.map(_.toString + ": ").getOrElse("")
       System.err.println(filename + "validation errors occurred\n")
       errors.foreach(System.err.println _)
       None

@@ -68,6 +68,16 @@ object Utilities {
 
   def isPowerOf2(x: Int) = (x & (x - 1)) == 0
 
+  def linkRuntime(module: Module): Module = {
+    Linker.linkModules(List(module, Runtime.getRuntime(module.is64Bit)),
+                       module.name,
+                       module.ty,
+                       module.version,
+                       module.filename,
+                       module.dependencies,
+                       module.searchPaths)
+  }
+
   def padMap[K, V](map: Map[K, V], keys: Set[K], defaultValue: V): Map[K, V] = {
     (map /: keys) { (map, k) =>
       if (map.contains(k))

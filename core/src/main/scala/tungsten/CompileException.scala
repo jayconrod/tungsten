@@ -200,6 +200,11 @@ final case class MissingMainException()
 final case class MissingMethodException(className: Symbol, location: Location)
   extends CompileException("class %s is missing methods defined in its superclass", location)
 
+final case class MultipleRootClassException(className: Symbol, location: Location)
+  extends CompileException("multiple root classes are defined; %s is one of them".
+                             format(className),
+                           location)                             
+
 final case class NonLocalBranchException(functionName: Symbol,
                                          blockName: Symbol,
                                          location: Location)
@@ -216,6 +221,10 @@ final case class NumericTruncationException(fromTy: String, toTy: String, locati
 
 final case class NumericTypeException(ty: String, location: Location)
   extends CompileException("type " + ty + " must be numeric", location)
+
+final case class ParameterizedRootClassException(className: Symbol, location: Location)
+  extends CompileException("root class %s must not be parameterized".format(className),
+                           location)
 
 final case class ParseException(message: String, location: Location)
   extends CompileException(message, location)

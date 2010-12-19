@@ -561,8 +561,22 @@ class ValidationTest {
 
   @Test
   def cyclicTypeParameter {
-    val program = "class @A[type @T <: type @S, type @S <: type @T]"
+    val program = "class @R\n" +
+                  "class @A[type @T <: type @S, type @S <: type @T] <: class @R"
     programContainsError[CyclicTypeParameterException](program)
+  }
+
+  @Test
+  def multipleRootClass {
+    val program = "class @A\n" +
+                  "class @B\n"
+    programContainsError[MultipleRootClassException](program)
+  }
+
+  @Test
+  def parameterizedRootClass {
+    val program = "class @A[type %T]"
+    programContainsError[ParameterizedRootClassException](program)
   }
 
   @Test
@@ -797,7 +811,8 @@ class ValidationTest {
 
   @Test
   def fieldVariance {
-    val program = "class @C[type +%T] { field type %T %x }"
+    val program = "class @R\n" +
+                  "class @C[type +%T] <: class @R { field type %T %x }"
     programContainsError[TypeParameterVarianceException](program)
   }
 
@@ -815,14 +830,16 @@ class ValidationTest {
 
   @Test
   def typeParameterContravariance {
-    val program = "class @Sink[type -%S]\n" +
+    val program = "class @R\n" +
+                  "class @Sink[type -%S] <: class @R\n" +
                   "function class @Sink[type %T] @f[type +%T]()"
     programContainsError[TypeParameterVarianceException](program)
   }
 
   @Test
   def typeParameterCovariance {
-    val program = "class @Source[type +%S]\n" +
+    val program = "class @R\n" +
+                  "class @Source[type +%S] <: class @R\n" +
                   "function unit @f[type +%T](class @Source[type %T] %x)"
     programContainsError[TypeParameterVarianceException](program)
   }
@@ -836,7 +853,7 @@ class ValidationTest {
   @Test
   def overrideWrongTypeParameters {
     val program = "class @R\n" +
-                  "class @A { methods { %f } }\n" +
+                  "class @A <: class @R { methods { %f } }\n" +
                   "class @B <: class @A { methods { %f } }\n" +
                   "function unit @A.f[type %T](class @A %this)\n" +
                   "function unit @B.f(class @B %this)\n"

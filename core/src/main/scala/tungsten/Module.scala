@@ -208,6 +208,23 @@ final class Module(val name:         Symbol                      = Symbol("defau
       }
     }
 
+    def validateRootClass = {
+      val rootClasses = definitions.values.collect {
+        case clas: Class if !clas.superclass.isDefined => clas
+      }
+      if (rootClasses.size > 1) {
+        rootClasses.toList.map { clas => 
+          MultipleRootClassException(clas.name, clas.getLocation) 
+        }
+      } else {
+        rootClasses.headOption match {
+          case Some(clas) if !clas.typeParameters.isEmpty =>
+            List(ParameterizedRootClassException(clas.name, clas.getLocation))
+          case _ => Nil
+        }
+      }
+    }
+
     def validateCycles[T <: Definition](findDependencies: T => Set[Symbol],
                                         generateError: (List[Symbol], Location) => CompileException)
                                        (implicit m: Manifest[T]): List[CompileException] =
@@ -376,6 +393,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
 
     stage(validateDependencies,
           validateComponents,
+          validateRootClass,
           validateStructCycles ++ 
             validateInheritanceCycles ++ 
             validateTypeParameterCycles ++

@@ -4,6 +4,8 @@ import java.io._
 import Utilities._
 
 object Disassembler extends Converter[Module, Module] {
+  def usageSynopsis = "disassembler file1 file2..."
+
   def readSource(filename: String, input: InputStream): Option[Module] = {
     Some(ModuleIO.readBinary(input))
   }

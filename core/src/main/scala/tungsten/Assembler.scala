@@ -3,7 +3,15 @@ package tungsten
 import java.io._
 import Utilities._
 
-object Assembler extends Converter[Module, Module] {
+object Assembler extends Converter[Module, Module] 
+{
+  def usageSynopsis = "assembler file1 file2..."
+
+  override def availableOptions: List[CommandLineOption] = {
+    super.availableOptions ++
+      List(CommandLineOption(Some('r'), "no-runtime", "skips linking runtime definitions"))
+  }
+
   def readSource(filename: String, input: InputStream): Option[Module] = {
     val code = readContentsOfFile(input)
     ModuleIO.parse(code, filename) match {
@@ -21,7 +29,10 @@ object Assembler extends Converter[Module, Module] {
   }
 
   def convert(source: Module): Option[Module] = {
-    val linkedModule = linkRuntime(source)
+    val linkedModule = if (hasOption("no-runtime"))
+      source
+    else
+      linkRuntime(source)
     val errors = linkedModule.validate
     if (errors.isEmpty)
       Some(linkedModule)

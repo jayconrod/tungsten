@@ -3,16 +3,18 @@ package tungsten
 import java.io._
 import Utilities._
 
-trait Converter[S, T] {
+trait Converter[S, T] extends CommandLineProgram {
   private var errorOccurred = false
 
-  def main(args: Array[String]) {
-    if (args.isEmpty) {
+  override def main(args: Array[String]) {
+    super.main(args)
+
+    if (arguments.isEmpty) {
       for (source <- readSourceFromStdin;
            target <- convert(source))
         writeTargetToStdout(target)
     } else {
-      for (filename <- args;
+      for (filename <- arguments;
            val inputFile =  new File(filename);
            source <- readSourceFromFile(inputFile);
            target <- convert(source))

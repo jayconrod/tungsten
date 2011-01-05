@@ -16,6 +16,8 @@ final case class Function(name: Symbol,
                  module.getParameters(parameters).map(_.ty))
   }
 
+  def isDefined = !blocks.isEmpty
+
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
       validateComponentsOfClass[TypeParameter](module, typeParameters) ++
@@ -111,12 +113,20 @@ final case class Function(name: Symbol,
       returnType.validateVariance(Variance.COVARIANT, module, getLocation) ++
         parameterTypes.flatMap(_.validateVariance(Variance.CONTRAVARIANT, module, getLocation))
     }
+
+    def validateAbstract = {
+      if (isAbstract && isDefined)
+        List(AbstractMethodDefinedException(name, getLocation))
+      else
+        Nil
+    }
     
     stage(super.validate(module),
           validateEntryParameters,
           validateInstructionOrder,
           validateBranches,
           validateReturnType,
-          validateVariance)
+          validateVariance,
+          validateAbstract)
   }
 }

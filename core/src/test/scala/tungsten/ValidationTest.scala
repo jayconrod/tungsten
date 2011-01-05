@@ -757,6 +757,21 @@ class ValidationTest {
   }
   
   @Test
+  def abstractMethodInNonAbstractClass {
+    val program = "annotation @tungsten.Abstract\n" +
+                  "class @R { methods { %f } }\n" +
+                  "@tungsten.Abstract function unit @R.f(class @R %this)\n"
+    programContainsError[AbstractMethodException](program)
+  }
+
+  @Test
+  def abstractMethodIsDefined {
+    val program = "annotation @tungsten.Abstract\n" +
+                  "@tungsten.Abstract function unit @f { block %entry { return () } }\n"
+    programContainsError[AbstractMethodDefinedException](program)
+  }
+
+  @Test
   def invalidTypeInClass {
     val program = "class @A <: class @B"
     programContainsError[UndefinedSymbolException](program)

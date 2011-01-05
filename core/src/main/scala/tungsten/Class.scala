@@ -43,7 +43,19 @@ final case class Class(name: Symbol,
       }
     }
 
-    validateFields ++ validateMethods(module)
+    def validateAbstract = {
+      if (isAbstract)
+        Nil
+      else {
+        val methodDefns = module.getFunctions(methods)
+        methodDefns collect {
+          case method if method.isAbstract => 
+            AbstractMethodException(name, method.name, getLocation)
+        }
+      }
+    }
+
+    validateFields ++ validateMethods(module) ++ validateAbstract
   }
 
   def getSuperType: Option[ClassType] = superclass

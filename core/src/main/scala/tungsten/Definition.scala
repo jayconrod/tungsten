@@ -9,6 +9,10 @@ abstract class Definition
 
   def annotations: List[AnnotationValue]
 
+  def hasAnnotation(annotationName: Symbol): Boolean = {
+    annotations.exists(_.name == annotationName)
+  }
+
   def getLocation: Location = {
     val locationAnnotation = annotations.find(_.name == symbolFromString("tungsten.Location"))
     locationAnnotation match {
@@ -25,6 +29,8 @@ abstract class Definition
       case _ => Nowhere
     }
   }
+
+  def isAbstract = hasAnnotation("tungsten.Abstract")
 
   def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[Annotation](module, annotations.map(_.name))

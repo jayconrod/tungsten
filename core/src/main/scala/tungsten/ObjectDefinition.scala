@@ -250,8 +250,8 @@ trait ObjectDefinition
       }
     }
 
-    validateIndividualMethods ++ 
-      validateInterfaceMethods ++
+    validateIndividualMethods   ++ 
+      validateInterfaceMethods  ++
       validateParentInheritance ++
       validateInterfaces
   }

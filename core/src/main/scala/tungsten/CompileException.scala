@@ -13,6 +13,17 @@ sealed abstract class CompileException(message: String, location: Location) exte
   }
 }
 
+final case class AbstractMethodException(className: Symbol,
+                                         methodName: Symbol,
+                                         location: Location)
+  extends CompileException("class %s is not abstract, but it contains abstract method %s".
+                             format(className, methodName),
+                           location)
+
+final case class AbstractMethodDefinedException(methodName: Symbol, location: Location)
+  extends CompileException("method %s is abstract but is defined".format(methodName),
+                           location)
+
 final case class AnnotationArgumentCountException(annotationName: Symbol,
                                                   given: Int,
                                                   required: Int,

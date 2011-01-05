@@ -43,7 +43,7 @@ final case class Class(name: Symbol,
       }
     }
 
-    def validateAbstract = {
+    def validateAbstractMethods = {
       if (isAbstract)
         Nil
       else {
@@ -55,7 +55,18 @@ final case class Class(name: Symbol,
       }
     }
 
-    validateFields ++ validateMethods(module) ++ validateAbstract
+    def validateAbstractFinal = {
+      if (isAbstract && isFinal)
+        List(AbstractFinalClassException(name, getLocation))
+      else
+        Nil
+    }
+
+    validateFields ++ 
+      validateMethods(module) ++ 
+      validateAbstractMethods ++ 
+      validateAbstractFinal ++
+      validateParentNotFinal(module)
   }
 
   def getSuperType: Option[ClassType] = superclass

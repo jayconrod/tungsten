@@ -18,7 +18,8 @@ final case class Interface(name: Symbol,
   }
 
   override def validate(module: Module): List[CompileException] = {
-    validateMethods(module)
+    validateMethods(module) ++
+      validateParentNotFinal(module)
   }
 
   def getSuperType: Option[ObjectType] = Some(supertype)

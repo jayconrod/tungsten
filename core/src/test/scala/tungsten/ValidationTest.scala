@@ -772,6 +772,48 @@ class ValidationTest {
   }
 
   @Test
+  def finalClassInheritedByClass {
+    val program = "annotation @tungsten.Final\n" +
+                  "@tungsten.Final class @R\n" +
+                  "class @C <: class @R\n"
+    programContainsError[FinalClassInheritanceException](program)
+  }
+
+  @Test
+  def finalClassInheritedByInterface {
+    val program = "annotation @tungsten.Final\n" +
+                  "@tungsten.Final class @R\n" +
+                  "interface @I <: class @R\n"
+    programContainsError[FinalClassInheritanceException](program)
+  }
+
+  @Test
+  def finalMethodOverrideException {
+    val program = "annotation @tungsten.Final\n" +
+                  "class @R { methods { %f } }\n" +
+                  "class @A <: class @R { methods { %f } }\n" +
+                  "@tungsten.Final function unit @R.f(class @R %this)\n" +
+                  "function unit @A.f(class @A %this)\n"
+    programContainsError[FinalMethodOverrideException](program)
+  }
+
+  @Test
+  def abstractFinalClass {
+    val program = "annotation @tungsten.Abstract\n" +
+                  "annotation @tungsten.Final\n" +
+                  "@tungsten.Abstract @tungsten.Final class @R\n"
+    programContainsError[AbstractFinalClassException](program)
+  }
+
+  @Test
+  def abstractFinalMethod {
+    val program = "annotation @tungsten.Abstract\n" +
+                  "annotation @tungsten.Final\n" +
+                  "@tungsten.Abstract @tungsten.Final function unit @f\n"
+    programContainsError[AbstractFinalMethodException](program)
+  }
+
+  @Test
   def invalidTypeInClass {
     val program = "class @A <: class @B"
     programContainsError[UndefinedSymbolException](program)

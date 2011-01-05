@@ -101,14 +101,18 @@ trait ObjectDefinition
       }
     }
 
-    (stripParameters(method), stripParameters(overriddenMethod)) match {
-      case (Some(methodType), Some(overriddenType)) => {
-        if (methodType.isSubtypeOf(overriddenType, module))
-          Nil
-        else
-          List(MethodOverrideCompatibilityException(method.name, name, overriddenMethod.name, getLocation))
+    if (overriddenMethod.isFinal)
+      List(FinalMethodOverrideException(method.name, name, getLocation))
+    else {
+      (stripParameters(method), stripParameters(overriddenMethod)) match {
+        case (Some(methodType), Some(overriddenType)) => {
+          if (methodType.isSubtypeOf(overriddenType, module))
+            Nil
+          else
+            List(MethodOverrideCompatibilityException(method.name, name, overriddenMethod.name, getLocation))
+        }
+        case _ => Nil // methods are not correctly formed; different errors will be reported
       }
-      case _ => Nil // methods are not correctly formed; different errors will be reported
     }
   }
 
@@ -254,6 +258,19 @@ trait ObjectDefinition
       validateInterfaceMethods  ++
       validateParentInheritance ++
       validateInterfaces
+  }
+
+  def validateParentNotFinal(module: Module): List[CompileException] = {
+    getSuperType match {
+      case Some(ClassType(superclassName, _)) => {
+        val superclass = module.getClass(superclassName)
+        if (superclass.isFinal)
+          List(FinalClassInheritanceException(name, superclassName, getLocation))
+        else
+          Nil
+      }
+      case _ => Nil
+    }
   }
 }
 

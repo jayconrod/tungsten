@@ -13,6 +13,14 @@ sealed abstract class CompileException(message: String, location: Location) exte
   }
 }
 
+final case class AbstractFinalClassException(className: Symbol, location: Location)
+  extends CompileException("class %s is marked both abstract and final".format(className),
+                           location)
+
+final case class AbstractFinalMethodException(methodName: Symbol, location: Location)
+  extends CompileException("method %s is marked both abstract and final".format(methodName),
+                           location)
+
 final case class AbstractMethodException(className: Symbol,
                                          methodName: Symbol,
                                          location: Location)
@@ -98,6 +106,19 @@ final case class FieldCountException(structName: Symbol,
                                      location: Location)
   extends CompileException("struct %s value has %d fields; %d are required".
                              format(structName, given, required),
+                           location)
+
+final case class FinalClassInheritanceException(className: Symbol,
+                                                superclassName: Symbol,
+                                                location: Location)
+  extends CompileException("class %s inherits final class %s".format(className, superclassName),
+                           location)
+
+final case class FinalMethodOverrideException(methodName: Symbol,
+                                              className: Symbol,
+                                              location: Location)
+  extends CompileException("method %s in class %s overrides a final method".
+                             format(methodName, className),
                            location)
 
 final case class ForeignInterfaceMethodException(methodName: Symbol,

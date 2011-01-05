@@ -117,10 +117,12 @@ final case class Function(name: Symbol,
     def validateAbstract = {
       if (isAbstract && isDefined)
         List(AbstractMethodDefinedException(name, getLocation))
+      else if (isAbstract && isFinal)
+        List(AbstractFinalMethodException(name, getLocation))
       else
         Nil
     }
-    
+
     stage(super.validate(module),
           validateEntryParameters,
           validateInstructionOrder,

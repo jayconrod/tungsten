@@ -32,6 +32,8 @@ abstract class Definition
 
   def isAbstract = hasAnnotation("tungsten.Abstract")
 
+  def isFinal = hasAnnotation("tungsten.Final")
+
   def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[Annotation](module, annotations.map(_.name))
   }

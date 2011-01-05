@@ -14,7 +14,8 @@ object Runtime {
              "                              int32 %beginColumn,\n" +
              "                              int32 %endLine,\n" +
              "                              int32 %endColumn)\n" +
-             "annotation @tungsten.Abstract\n"
+             "annotation @tungsten.Abstract\n" +
+             "annotation @tungsten.Final\n"
   lazy val runtime64 = compileString(code)
   lazy val runtime32 = runtime64.copyWith(is64Bit = false)
 

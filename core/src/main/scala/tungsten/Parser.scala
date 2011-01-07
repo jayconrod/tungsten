@@ -397,8 +397,8 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val scallInst: Parser[StaticCallInstruction] = {
-    instName("scall") ~ symbol ~ argumentList ^^ {
-      case anns ~ ty ~ n ~ f ~ as => StaticCallInstruction(n, ty, f, as, anns)
+    instName("scall") ~ symbol ~ typeArgumentList ~ argumentList ^^ {
+      case anns ~ ty ~ n ~ f ~ tas ~ as => StaticCallInstruction(n, ty, f, tas, as, anns)
     }
   }
 
@@ -512,13 +512,13 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val classTy: Parser[ClassType] = {
-    "class" ~> symbol ~ tyArgsOpt ^^ {
+    "class" ~> symbol ~ typeArgumentList ^^ {
       case n ~ as => ClassType(n, as)
     }
   }
 
   lazy val interfaceTy: Parser[InterfaceType] = {
-    "interface" ~> symbol ~ tyArgsOpt ^^ {
+    "interface" ~> symbol ~ typeArgumentList ^^ {
       case n ~ as => InterfaceType(n, as)
     }
   }
@@ -527,7 +527,7 @@ class Parser extends Parsers with ImplicitConversions {
     "type" ~> symbol ^^ { case n => VariableType(n) }
   }
 
-  lazy val tyArgsOpt: Parser[List[Type]] = {
+  lazy val typeArgumentList: Parser[List[Type]] = {
     opt("[" ~> rep1sep(ty, ",") <~ "]") ^^ {
       case Some(as) => as
       case None => Nil

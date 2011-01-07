@@ -275,12 +275,12 @@ final case class TypeArgumentBoundsException(argument: Type,
                              format(argument, parameter),
                            location)
 
-final case class TypeArgumentCountException(definition: Definition,
+final case class TypeArgumentCountException(definitionName: Symbol,
                                             given: Int,
                                             required: Int,
                                             location: Location)
   extends CompileException("definition %s given %d type arguments; it expects %d".
-                             format(definition.name, given, required),
+                             format(definitionName, given, required),
                            location)
 
 final case class TypeMismatchException(given: Any, required: Any, location: Location)

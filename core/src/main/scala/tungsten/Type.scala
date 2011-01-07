@@ -319,7 +319,7 @@ sealed trait ObjectType
                                 location: Location): List[CompileException] = 
   {
     if (typeArguments.size != typeParameters(module).size) {
-      List(TypeArgumentCountException(getDefinition(module), 
+      List(TypeArgumentCountException(definitionName, 
                                       typeArguments.size, 
                                       typeParameters(module).size,
                                       location))

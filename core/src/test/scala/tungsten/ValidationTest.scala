@@ -231,6 +231,30 @@ class ValidationTest {
   }
 
   @Test
+  def staticCallTypeParameterCount {
+    val program = "function unit @f[type %T]\n" +
+                  "function unit @g {\n" +
+                  "  block %entry {\n" +
+                  "    scall @f()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeArgumentCountException](program)
+  }
+
+  @Test
+  def staticCallTypeParameterBounds {
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "function unit @f[type %T <: class @A]\n" +
+                  "function unit @g {\n" +
+                  "  block %entry {\n" +
+                  "    scall @f[class @R]()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeArgumentBoundsException](program)
+  }
+
+  @Test
   def entryBlockWithParameters {
     val program = "function unit @main { block %entry(unit %u) { return () } }"
     programContainsError[EntryParametersException](program)

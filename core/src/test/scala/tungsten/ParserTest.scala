@@ -382,8 +382,14 @@ class ParserTest {
 
   @Test
   def staticCallInst {
+    testInstruction("unit %x = scall @f[unit](())",
+                    StaticCallInstruction("%x", UnitType, "@f", List(UnitType), List(UnitValue)))
+  }
+
+  @Test
+  def staticCallInstWithoutTypeArguments {
     testInstruction("unit %x = scall @f(())",
-                    StaticCallInstruction("%x", UnitType, "@f", List(UnitValue)))
+                    StaticCallInstruction("%x", UnitType, "@f", Nil, List(UnitValue)))
   }
 
   @Test

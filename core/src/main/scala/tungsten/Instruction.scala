@@ -35,20 +35,44 @@ sealed abstract class Instruction
 trait CallInstruction extends Instruction {
   protected def validateCall(module: Module,
                              targetName: Symbol,
-                             parameterTypes: List[Type],
+                             targetType: FunctionType,
+                             typeArguments: List[Type],
                              arguments: List[Value]): List[CompileException] = 
   {
-    if (arguments.size != parameterTypes.size) {
-      List(FunctionArgumentCountException(targetName, 
-                                          arguments.size,
-                                          parameterTypes.size,
-                                          getLocation))
-    } else {
-      (arguments zip parameterTypes) flatMap { at => 
-        val (a, t) = at
-        checkType(a.ty, t, getLocation)
-      }
+    val typeArgumentCountErrors = if (typeArguments.size != targetType.typeParameters.size) {
+      List(TypeArgumentCountException(targetName, 
+                                      typeArguments.size,
+                                      targetType.typeParameters.size,
+                                      getLocation))
+    } else
+      Nil
+
+    val typeArgumentBoundsErrors = (typeArguments zip targetType.typeParameters) flatMap { p =>
+      val (typeArgument, typeParameterName) = p
+      val typeParameter = module.getTypeParameter(typeParameterName)
+      if (typeParameter.isArgumentInBounds(typeArgument, module))
+        Nil
+      else
+        List(TypeArgumentBoundsException(typeArgument, typeParameter, getLocation))
     }
+
+    val argumentCountErrors = if (arguments.size != targetType.parameterTypes.size) {
+      List(FunctionArgumentCountException(targetName,
+                                          arguments.size,
+                                          targetType.parameterTypes.size,
+                                          getLocation))
+    } else
+      Nil
+
+    val argumentTypeErrors = (arguments zip targetType.parameterTypes) flatMap { p =>
+      val (argument, parameterType) = p
+      checkType(argument.ty, parameterType, getLocation)
+    }
+
+    typeArgumentCountErrors ++
+      typeArgumentBoundsErrors ++
+      argumentCountErrors ++
+      argumentTypeErrors
   }
 }   
 
@@ -319,7 +343,7 @@ final case class BranchInstruction(name: Symbol,
     val parameters = module.getParameters(block.parameters)
     val parameterTypes = parameters.map(_.ty)
     super.validate(module) ++ 
-      stage(validateCall(module, target, parameterTypes, arguments),
+      stage(validateCall(module, target, block.ty(module), Nil, arguments),
             checkType(UnitType, ty, getLocation))
   }
 }
@@ -380,7 +404,7 @@ final case class ConditionalBranchInstruction(name: Symbol,
     def validateBranch(target: Symbol, arguments: List[Value]) = {
       val block = module.getBlock(target)
       val parameterTypes = module.getParameters(block.parameters).map(_.ty)
-      validateCall(module, target, parameterTypes, arguments)
+      validateCall(module, target, block.ty(module), Nil, arguments)
     }
 
     stage(super.validate(module),
@@ -654,7 +678,7 @@ final case class IntrinsicCallInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ 
-      validateCall(module, Symbol(intrinsic.name), intrinsic.ty.parameterTypes, arguments) ++
+      validateCall(module, Symbol(intrinsic.name), intrinsic.ty, Nil, arguments) ++
       checkType(intrinsic.ty.returnType, ty, getLocation)
   }
 }
@@ -853,6 +877,7 @@ final case class StackAllocateArrayInstruction(name: Symbol,
 final case class StaticCallInstruction(name: Symbol,
                                        ty: Type,
                                        target: Symbol,
+                                       typeArguments: List[Type],
                                        arguments: List[Value],
                                        annotations: List[AnnotationValue] = Nil)
   extends Instruction with CallInstruction
@@ -867,9 +892,10 @@ final case class StaticCallInstruction(name: Symbol,
   }
 
   override def validate(module: Module) = {
+    val targetType = module.getFunction(target).ty(module)
     super.validate(module) ++ 
-      validateCall(module, target, targetType(module).parameterTypes, arguments) ++
-      checkType(module.getFunction(target).returnType, ty, getLocation)
+      validateCall(module, target, targetType, typeArguments, arguments) ++
+      checkType(targetType.returnType, ty, getLocation)
   }
 
   private def targetName = target

@@ -258,7 +258,8 @@ object ModuleIO {
           StackAllocateArrayInstruction(name, readType, readValue, readAnnotations)
         }
         case STATIC_CALL_INST_ID => {
-          StaticCallInstruction(name, readType, symbol, readList(readValue), readAnnotations)
+          StaticCallInstruction(name, readType, symbol, 
+                                readList(readType), readList(readValue), readAnnotations)
         }
         case UPCAST_INST_ID => UpcastInstruction(name, readType, readValue, readAnnotations)
         case _ => throw new IOException("Invalid definition ID")
@@ -819,8 +820,9 @@ object ModuleIO {
         case StackAllocateArrayInstruction(_, _, count, _) => {
           output.write(localValue(count))
         }
-        case StaticCallInstruction(_, _, target, arguments, _) => {
+        case StaticCallInstruction(_, _, target, typeArguments, arguments, _) => {
           output.write(localSymbol(target))
+          writeTypeArguments(typeArguments, parentName)
           writeArguments(arguments, parentName)
         }
         case StoreInstruction(_, _, value, pointer, _) => {
@@ -848,6 +850,11 @@ object ModuleIO {
 
     def writeArguments(values: List[Value], parentName: Option[Symbol]) {
       output.write(values.map(localValue(_, parentName)).mkString("(", ", ", ")"))
+    }
+
+    def writeTypeArguments(typeArguments: List[Type], parentName: Option[Symbol]) {
+      if (!typeArguments.isEmpty)
+        output.write(typeArguments.map(localType(_, parentName)).mkString("[", ", ", "]"))
     }
 
     def writeSymbolBlock(symbols: List[Symbol], parent: Option[Symbol]) {
@@ -1277,8 +1284,9 @@ object ModuleIO {
             case StackAllocateArrayInstruction(_, _, count, _) => {
               writeValue(count)
             }
-            case StaticCallInstruction(_, _, target, arguments, _) => {
+            case StaticCallInstruction(_, _, target, typeArguments, arguments, _) => {
               writeInt(symbols(target))
+              writeList(typeArguments, writeType _)
               writeList(arguments, writeValue _)
             }
             case UpcastInstruction(_, _, value, _) => {

@@ -694,6 +694,22 @@ class ValidationTest {
   }
 
   @Test
+  def methodTypeParameterMismatch {
+    val program = "class @R\n" +
+                  "class @A[type %T] <: class @R { methods { %f } }\n" +
+                  "function unit @A.f[type %S >: class @R, type %T](class @A[type %T] %this)\n"
+    programContainsError[MethodTypeParameterMismatchException](program)
+  }
+
+  @Test
+  def constructorTypeParameterMismatch {
+    val program = "class @R\n" +
+                  "class @A[type %T] <: class @R { constructors { %ctor } }\n" +
+                  "function unit @A.ctor[type %S >: class @R, type %T](class @A[type %T] %this)\n"
+    programContainsError[ConstructorTypeParameterMismatchException](program)
+  }
+
+  @Test
   def methodFromUnrelatedClass {
     val program = "class @R\n" +
                   "class @A <: class @R { methods { @A.f } }\n" +
@@ -757,6 +773,28 @@ class ValidationTest {
                   "function class @R @C.f(class @C %this, class @A %x)\n" +
                   "function class @A @D.f(class @D %this, class @R %x)\n"
     programIsCorrect(program)
+  }
+
+  @Test
+  def constructorNonUnit {
+    val program = "class @R { constructors { %ctor } }\n" +
+                  "function int64 @R.ctor(class @R %this)\n"
+    programContainsError[ConstructorReturnTypeException](program)
+  }
+
+  @Test
+  def constructorMissingThis {
+    val program = "class @R { constructors { %ctor } }\n" +
+                  "function unit @R.ctor\n"
+    programContainsError[ConstructorSelfTypeException](program)
+  }
+
+  @Test
+  def constructorWrongThis {
+    val program = "class @R\n" +
+                  "class @A <: class @R { constructors { %ctor } }\n" +
+                  "function unit @A.ctor(class @R %this)"
+    programContainsError[ConstructorSelfTypeException](program)
   }
 
   @Test
@@ -1142,5 +1180,37 @@ class ValidationTest {
   def bitcastSizes {
     val code = "int64 %a = bitcast int32 0"
     codeContainsError[InvalidBitCastException](code)
+  }
+
+  @Test
+  @Ignore
+  def newInvalidType {
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "class @C[type %T <: class @A] <: class @R {\n" +
+                  "  constructors { %ctor }\n" +
+                  "}\n" +
+                  "function unit @C.ctor[type %T](class @C[type %T] %this)\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @C[class @R] %x = new @C.ctor()\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeArgumentBoundsException](program)
+  }
+
+  @Test
+  @Ignore
+  def newWrongTypeArguments {
+    val program = "class @R { constructors { %ctor } }\n" +
+                  "function unit @R.ctor[type %T](class @R %this)\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = new @R.ctor()\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeArgumentCountException](program)
   }
 }

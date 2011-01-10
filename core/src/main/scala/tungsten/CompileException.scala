@@ -48,6 +48,27 @@ final case class ArrayTypeWidthException(length: Long, location: Location)
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 
+final case class ConstructorReturnTypeException(constructorName: Symbol,
+                                                className: Symbol,
+                                                location: Location)
+  extends CompileException("constructor %s in class %s expected to have unit return type".
+                             format(constructorName, className),
+                           location)
+
+final case class ConstructorSelfTypeException(constructorName: Symbol,
+                                              className: Symbol,
+                                              location: Location)
+  extends CompileException("first parameter of constructor %s must have type from class %s".
+                             format(constructorName, className),
+                           location)
+
+final case class ConstructorTypeParameterMismatchException(constructorName: Symbol,
+                                                           className: Symbol,
+                                                           location: Location)
+  extends CompileException("type parameters for constructor %s must match those from class %s".
+                             format(constructorName, className),
+                           location)
+
 final case class CyclicInheritanceException(defnNames: List[Symbol], location: Location)
   extends CompileException("inheritance cycle detected for the folowing definitions: " +
                              defnNames.mkString(", "),
@@ -218,6 +239,13 @@ final case class MethodSelfTypeException(methodName: Symbol,
                              format(methodName, className),
                            location)
 
+final case class MethodTypeParameterMismatchException(methodName: Symbol,
+                                                      className: Symbol,
+                                                      location: Location)
+  extends CompileException("type parameters of method %s must match those of class %s".
+                             format(methodName, className),
+                           location)
+
 final case class MissingElementIndexException(location: Location)
   extends CompileException("no indices given for a pointer element instruction; at least one is required", location)
 
@@ -284,7 +312,7 @@ final case class TypeArgumentCountException(definitionName: Symbol,
                            location)
 
 final case class TypeMismatchException(given: Any, required: Any, location: Location)
-  extends CompileException("type mismatch: %s  was given; %s was required".
+  extends CompileException("type mismatch: %s was given; %s was required".
                              format(given, required),
                            location)
 

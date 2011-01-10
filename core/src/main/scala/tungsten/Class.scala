@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 final case class Class(name: Symbol,
                        typeParameters: List[Symbol],
                        superclass: Option[ClassType],
@@ -32,6 +34,11 @@ final case class Class(name: Symbol,
     }
     val fieldDefns = module.getFields(fields)
 
+    def validateConstructors = {
+      val constructorDefns = module.getFunctions(constructors)
+      constructorDefns flatMap { validateConstructor(_, module) }
+    }
+
     def validateFields = {
       if (fieldDefns.size < parentFieldTypes.size)
         List(MissingFieldException(name, getLocation))
@@ -62,11 +69,39 @@ final case class Class(name: Symbol,
         Nil
     }
 
-    validateFields ++ 
+    validateConstructors ++
+      validateFields ++ 
       validateMethods(module) ++ 
       validateAbstractMethods ++ 
       validateAbstractFinal ++
       validateParentNotFinal(module)
+  }
+
+  def validateConstructor(constructor: Function, module: Module): List[CompileException] = {
+    def validateTypeParametersMatch = {
+      if (methodHasMatchingTypeParameters(constructor, module))
+        Nil
+      else
+        List(ConstructorTypeParameterMismatchException(constructor.name, name, constructor.getLocation))
+    }
+
+    def validateThisParameter = {
+      if (isThisParameterValidForThisClass(constructor, module))
+        Nil
+      else
+        List(ConstructorSelfTypeException(constructor.name, name, constructor.getLocation))
+    }
+
+    def validateReturnType = {
+      if (constructor.returnType == UnitType)
+        Nil
+      else
+        List(ConstructorReturnTypeException(constructor.name, name, constructor.getLocation))
+    }
+
+    stage(validateTypeParametersMatch,
+          validateThisParameter) ++
+      validateReturnType
   }
 
   def getSuperType: Option[ClassType] = superclass

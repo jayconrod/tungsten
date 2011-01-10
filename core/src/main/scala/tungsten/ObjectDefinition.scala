@@ -133,6 +133,13 @@ trait ObjectDefinition
                      methodIndex: Int, 
                      module: Module): List[CompileException] = 
   {
+    def validateTypeParametersMatch = {
+      if (methodHasMatchingTypeParameters(method, module))
+        Nil
+      else
+        List(MethodTypeParameterMismatchException(method.name, name, method.getLocation))
+    }
+
     def validateThisParameter = {
       if (isThisParameterValid(method, module))
         Nil
@@ -153,7 +160,8 @@ trait ObjectDefinition
         List(MethodNotInheritedException(method.name, name, methodClassName, getLocation))
     }
 
-    stage(validateThisParameter,
+    stage(validateTypeParametersMatch,
+          validateThisParameter,
           validateMethodInheritance)
   }    
 
@@ -180,32 +188,46 @@ trait ObjectDefinition
           isDescendedFrom(thisParameterType.definitionName, module)
         } else {
           // We only check the "this" parameter type if the method is from this class.
-          val classTypeParameters = module.getTypeParameters(typeParameters)
-          val methodTypeParameters = module.getTypeParameters(method.typeParameters)
-          val thisTypeArguments = thisParameterType.typeArguments
-          def typeArgumentIsValid(thisTypeArgument: Type, 
-                                  methodTypeParameter: TypeParameter,
-                                  classTypeParameter: TypeParameter): Boolean =
-          {
+          isThisParameterValidForThisClass(method, module)
+        }
+      }
+    }
+  }
+
+  def isThisParameterValidForThisClass(method: Function, module: Module): Boolean = {
+    getThisParameterTypeForMethod(method, module) match {
+      case Some(thisParameterType) if thisParameterType.definitionName == name => {
+        val thisParameterType = getThisParameterTypeForMethod(method, module).get
+        val classTypeParameters = module.getTypeParameters(typeParameters)
+        val methodTypeParameters = module.getTypeParameters(method.typeParameters)
+        val thisTypeArguments = thisParameterType.typeArguments
+        if (thisTypeArguments.size != classTypeParameters.size ||
+            thisTypeArguments.size > methodTypeParameters.size)
+          false
+        else {
+          (thisTypeArguments zip methodTypeParameters) forall { p =>
+            val (thisTypeArgument, methodTypeParameter) = p
             thisTypeArgument match {
-              case VariableType(typeArgumentName) => {
-                typeArgumentName == methodTypeParameter.name &&
-                  classTypeParameter.upperBound == methodTypeParameter.upperBound &&
-                  classTypeParameter.lowerBound == methodTypeParameter.lowerBound
-              }
+              case VariableType(typeParameterName) if typeParameterName == methodTypeParameter.name =>
+                true
               case _ => false
             }
           }
-          if (thisTypeArguments.size != classTypeParameters.size ||
-              classTypeParameters.size > methodTypeParameters.size)
-            false
-          else {
-            ((thisTypeArguments zip methodTypeParameters) zip classTypeParameters) forall { p =>
-              val ((thisTypeArgument, methodTypeParameter), classTypeParameter) = p
-              typeArgumentIsValid(thisTypeArgument, methodTypeParameter, classTypeParameter)
-            }
-          }
         }
+      }
+      case _ => false
+    }
+  }
+
+  def methodHasMatchingTypeParameters(method: Function, module: Module): Boolean = {
+    val methodTypeParameters = module.getTypeParameters(method.typeParameters)
+    val classTypeParameters = module.getTypeParameters(typeParameters)
+    if (methodTypeParameters.size < classTypeParameters.size)
+      false
+    else {
+      (methodTypeParameters zip classTypeParameters) forall { p =>
+        val (methodTypeParameter, classTypeParameter) = p
+        methodTypeParameter.boundsMatch(classTypeParameter)
       }
     }
   }

@@ -255,6 +255,21 @@ class ValidationTest {
   }
 
   @Test
+  def staticCallTypeArgumentApplication {
+    val program = "class @R { constructors { %ctor } }\n" +
+                  "function unit @R.ctor(class @R %this)\n" +
+                  "function type %T @id[type %T](type %T %x)\n" +
+                  "function unit @g {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = new @R.ctor()\n" +
+                  "    class @R %y = scall @id[class @R](class @R %x)\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
+  }
+
+  @Test
   def entryBlockWithParameters {
     val program = "function unit @main { block %entry(unit %u) { return () } }"
     programContainsError[EntryParametersException](program)
@@ -1183,7 +1198,6 @@ class ValidationTest {
   }
 
   @Test
-  @Ignore
   def newInvalidType {
     val program = "class @R\n" +
                   "class @A <: class @R\n" +
@@ -1201,7 +1215,6 @@ class ValidationTest {
   }
 
   @Test
-  @Ignore
   def newWrongTypeArguments {
     val program = "class @R { constructors { %ctor } }\n" +
                   "function unit @R.ctor[type %T](class @R %this)\n" +
@@ -1212,5 +1225,32 @@ class ValidationTest {
                   "  }\n" +
                   "}\n"
     programContainsError[TypeArgumentCountException](program)
+  }
+
+  @Test
+  def newNonConstructor {
+    val program = "class @R\n" +
+                  "function unit @R.ctor(class @R %this)\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = new @R.ctor()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[NewConstructorException](program)
+  }
+
+  @Test
+  def newAbstractClass {
+    val program = "annotation @tungsten.Abstract\n" +
+                  "class @R\n" +
+                  "@tungsten.Abstract class @A <: class @R { constructors { %ctor } }\n" +
+                  "function unit @A.ctor(class @A %this)\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @A %x = new @A.ctor()\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[NewAbstractException](program)
   }
 }

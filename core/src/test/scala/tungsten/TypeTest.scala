@@ -276,4 +276,13 @@ class TypeTest {
     val expected = B.superclass.get
     assertEquals(expected, A.substituteInheritedType(ty, expected.typeArguments))
   }
+
+  @Test
+  def applyTypeArguments {
+    val t = VariableType("T")
+    val x = ClassType("X")
+    val f = FunctionType(t, List("T"), List(t))
+    val expected = FunctionType(x, Nil, List(x))
+    assertEquals(expected, f.applyTypeArguments(List(x)))
+  }
 }

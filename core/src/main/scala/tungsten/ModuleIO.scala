@@ -241,6 +241,10 @@ object ModuleIO {
         case LOAD_ELEMENT_INST_ID => {
           LoadElementInstruction(name, readType, readValue, readList(readValue), readAnnotations)
         }
+        case NEW_INST_ID => {
+          NewInstruction(name, readType, symbol, 
+                         readList(readType), readList(readValue), readAnnotations)
+        }
         case RELATIONAL_OPERATOR_INST_ID => {
           RelationalOperatorInstruction(name, readType, readRelationalOperator, 
                                         readValue, readValue, readAnnotations)
@@ -729,6 +733,7 @@ object ModuleIO {
         case _: IntrinsicCallInstruction => "intrinsic"
         case _: LoadInstruction => "load"
         case _: LoadElementInstruction => "loadelement"
+        case _: NewInstruction => "new"
         case _: RelationalOperatorInstruction => "relop"
         case _: ReturnInstruction => "return"
         case _: StoreInstruction => "store"
@@ -741,11 +746,7 @@ object ModuleIO {
 
       output.write(INDENT + INDENT)
       writeAnnotations(instruction.annotations)
-      output.write(instName + " " + localType(instruction.ty) + " " + localName)
-      instruction match {
-        case _: HeapAllocateInstruction | _: StackAllocateInstruction => ()
-        case _ => output.write(" = ")
-      }
+      output.write(localType(instruction.ty) + " " + localName + " = " + instName + " ")
       instruction match {
         case AddressInstruction(_, _, base, indices, _) => {
           output.write(localValue(base) + ", " + indices.map(localValue _).mkString(", "))
@@ -802,6 +803,11 @@ object ModuleIO {
         }
         case IntrinsicCallInstruction(_, _, intrinsic, arguments, _) => {
           output.write(intrinsic.name)
+          writeArguments(arguments, parentName)
+        }
+        case NewInstruction(_, _, constructor, typeArguments, arguments, _) => {
+          output.write(localSymbol(constructor))
+          writeTypeArguments(typeArguments, parentName)
           writeArguments(arguments, parentName)
         }
         case LoadInstruction(_, _, pointer, _) => {
@@ -1180,6 +1186,7 @@ object ModuleIO {
             case _: IntrinsicCallInstruction => INTRINSIC_CALL_INST_ID
             case _: LoadInstruction => LOAD_INST_ID
             case _: LoadElementInstruction => LOAD_ELEMENT_INST_ID
+            case _: NewInstruction => NEW_INST_ID
             case _: RelationalOperatorInstruction => RELATIONAL_OPERATOR_INST_ID
             case _: ReturnInstruction => RETURN_INST_ID
             case _: StoreInstruction => STORE_INST_ID
@@ -1262,6 +1269,11 @@ object ModuleIO {
             case LoadElementInstruction(_, _, base, indices, _) => {
               writeValue(base)
               writeList(indices, writeValue _)
+            }
+            case NewInstruction(_, _, constructor, typeArguments, arguments, _) => {
+              writeInt(symbols(constructor))
+              writeList(typeArguments, writeType _)
+              writeList(arguments, writeValue _)
             }
             case RelationalOperatorInstruction(_, _, operator, left, right, _) => {
               writeRelationalOperator(operator)
@@ -1523,16 +1535,16 @@ object ModuleIO {
   val TYPE_PARAMETER_ID: Byte = 10
 
   val ADDRESS_INST_ID: Byte = 100
-  // 101 free
-  val BINARY_OPERATOR_INST_ID: Byte = 102
-  val BIT_CAST_INST_ID: Byte = 103
-  val BRANCH_INST_ID: Byte = 104
-  val CONDITIONAL_BRANCH_INST_ID: Byte = 105
-  val EXTRACT_INST_ID: Byte = 106
-  val INSERT_INST_ID: Byte = 107
-  val INTRINSIC_CALL_INST_ID: Byte = 108
-  val LOAD_INST_ID: Byte = 109
-  val LOAD_ELEMENT_INST_ID: Byte = 110
+  val BINARY_OPERATOR_INST_ID: Byte = 101
+  val BIT_CAST_INST_ID: Byte = 102
+  val BRANCH_INST_ID: Byte = 103
+  val CONDITIONAL_BRANCH_INST_ID: Byte = 104
+  val EXTRACT_INST_ID: Byte = 105
+  val INSERT_INST_ID: Byte = 106
+  val INTRINSIC_CALL_INST_ID: Byte = 107
+  val LOAD_INST_ID: Byte = 108
+  val LOAD_ELEMENT_INST_ID: Byte = 109
+  val NEW_INST_ID: Byte = 110
   val RELATIONAL_OPERATOR_INST_ID: Byte = 111
   val RETURN_INST_ID: Byte = 112
   val STORE_INST_ID: Byte = 113

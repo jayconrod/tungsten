@@ -342,6 +342,12 @@ class ParserTest {
   }
 
   @Test
+  def newInst {
+    testInstruction("class @A %x = new @A.ctor[unit](())",
+                    NewInstruction("%x", ClassType("@A"), "@A.ctor", List(UnitType), List(UnitValue)))
+  }
+
+  @Test
   def relopInst {
     testInstruction("unit %x = relop () < ()",
                     RelationalOperatorInstruction("%x",

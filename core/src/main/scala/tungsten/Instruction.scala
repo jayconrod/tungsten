@@ -37,42 +37,55 @@ trait CallInstruction extends Instruction {
                              targetName: Symbol,
                              targetType: FunctionType,
                              typeArguments: List[Type],
-                             arguments: List[Value]): List[CompileException] = 
+                             arguments: List[Value],
+                             expectedReturnType: Type): List[CompileException] = 
   {
-    val typeArgumentCountErrors = if (typeArguments.size != targetType.typeParameters.size) {
-      List(TypeArgumentCountException(targetName, 
-                                      typeArguments.size,
-                                      targetType.typeParameters.size,
-                                      getLocation))
-    } else
-      Nil
-
-    val typeArgumentBoundsErrors = (typeArguments zip targetType.typeParameters) flatMap { p =>
-      val (typeArgument, typeParameterName) = p
-      val typeParameter = module.getTypeParameter(typeParameterName)
-      if (typeParameter.isArgumentInBounds(typeArgument, module))
+    def validateTypeArguments = {
+      val typeArgumentCountErrors = if (typeArguments.size != targetType.typeParameters.size) {
+        List(TypeArgumentCountException(targetName, 
+                                        typeArguments.size,
+                                        targetType.typeParameters.size,
+                                        getLocation))
+      } else
         Nil
-      else
-        List(TypeArgumentBoundsException(typeArgument, typeParameter, getLocation))
+
+      val typeArgumentBoundsErrors = (typeArguments zip targetType.typeParameters) flatMap { p =>
+        val (typeArgument, typeParameterName) = p
+        val typeParameter = module.getTypeParameter(typeParameterName)
+        if (typeParameter.isArgumentInBounds(typeArgument, module))
+          Nil
+        else
+          List(TypeArgumentBoundsException(typeArgument, typeParameter, getLocation))
+      }
+
+      typeArgumentCountErrors ++ typeArgumentBoundsErrors
     }
 
-    val argumentCountErrors = if (arguments.size != targetType.parameterTypes.size) {
-      List(FunctionArgumentCountException(targetName,
-                                          arguments.size,
-                                          targetType.parameterTypes.size,
-                                          getLocation))
-    } else
-      Nil
+    def validateEverythingElse = {
+      val argumentCountErrors = if (arguments.size != targetType.parameterTypes.size) {
+        List(FunctionArgumentCountException(targetName,
+                                            arguments.size,
+                                            targetType.parameterTypes.size,
+                                            getLocation))
+      } else
+        Nil
 
-    val argumentTypeErrors = (arguments zip targetType.parameterTypes) flatMap { p =>
-      val (argument, parameterType) = p
-      checkType(argument.ty, parameterType, getLocation)
+      val substitutedTargetType = targetType.applyTypeArguments(typeArguments)
+      val argumentTypes = arguments.map(_.ty)
+      val argumentTypeErrors = (argumentTypes zip substitutedTargetType.parameterTypes) flatMap { p =>
+        val (argumentType, parameterType) = p
+        checkType(argumentType, parameterType, getLocation)
+      }
+
+      val returnTypeErrors = checkType(substitutedTargetType.returnType,
+                                       expectedReturnType,
+                                       getLocation)
+
+      argumentCountErrors ++ argumentTypeErrors ++ returnTypeErrors
     }
 
-    typeArgumentCountErrors ++
-      typeArgumentBoundsErrors ++
-      argumentCountErrors ++
-      argumentTypeErrors
+    stage(validateTypeArguments,
+          validateEverythingElse)
   }
 }   
 
@@ -343,8 +356,7 @@ final case class BranchInstruction(name: Symbol,
     val parameters = module.getParameters(block.parameters)
     val parameterTypes = parameters.map(_.ty)
     super.validate(module) ++ 
-      stage(validateCall(module, target, block.ty(module), Nil, arguments),
-            checkType(UnitType, ty, getLocation))
+      validateCall(module, target, block.ty(module), Nil, arguments, ty)
   }
 }
 
@@ -404,14 +416,13 @@ final case class ConditionalBranchInstruction(name: Symbol,
     def validateBranch(target: Symbol, arguments: List[Value]) = {
       val block = module.getBlock(target)
       val parameterTypes = module.getParameters(block.parameters).map(_.ty)
-      validateCall(module, target, block.ty(module), Nil, arguments)
+      validateCall(module, target, block.ty(module), Nil, arguments, ty)
     }
 
     stage(super.validate(module),
           validateBranch(trueTarget, trueArguments),
           validateBranch(falseTarget, falseArguments),
-          checkType(condition.ty, BooleanType, getLocation),
-          checkType(UnitType, ty, getLocation))
+          checkType(condition.ty, BooleanType, getLocation))
   }
 }
 
@@ -678,8 +689,7 @@ final case class IntrinsicCallInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ 
-      validateCall(module, Symbol(intrinsic.name), intrinsic.ty, Nil, arguments) ++
-      checkType(intrinsic.ty.returnType, ty, getLocation)
+      validateCall(module, Symbol(intrinsic.name), intrinsic.ty, Nil, arguments, ty)
   }
 }
 
@@ -726,6 +736,64 @@ final case class LoadElementInstruction(name: Symbol,
             validateType)
   }
 }    
+
+final case class NewInstruction(name: Symbol,
+                                ty: Type,
+                                constructorName: Symbol,
+                                typeArguments: List[Type],
+                                arguments: List[Value],
+                                annotations: List[AnnotationValue] = Nil)
+  extends Instruction with CallInstruction
+{
+  def operands = arguments
+
+  override def usedSymbols = constructorName :: operandSymbols
+
+  override def validateComponents(module: Module) = {
+    def validateType = {
+      if (ty.isInstanceOf[ClassType])
+        Nil
+      else
+        List(TypeMismatchException(ty, "class type", getLocation))
+    }
+
+    super.validateComponents(module) ++
+      validateType ++
+      validateComponentOfClass[Function](module, constructorName)
+  }
+
+  override def validate(module: Module) = {
+    val classType = ty.asInstanceOf[ClassType]
+    val ctorType = module.getFunction(constructorName).ty(module)
+    val newType = ctorType.copy(returnType = classType)
+    val clas = classType.getDefinition(module)
+    val thisValue = makeValue
+
+    def validateAbstract = {
+      if (clas.isAbstract)
+        List(NewAbstractException(name, clas.name, getLocation))
+      else
+        Nil
+    }
+
+    def validateConstructor = {
+      if (clas.constructors.contains(constructorName))
+        Nil
+      else
+        List(NewConstructorException(name, constructorName, clas.name, getLocation))
+    }
+
+    super.validate(module) ++
+      stage(validateAbstract,
+            validateConstructor,
+            validateCall(module, 
+                         constructorName, 
+                         newType, 
+                         classType.typeArguments ++ typeArguments, 
+                         thisValue :: arguments,
+                         classType))
+  }
+}
 
 final case class RelationalOperator(name: String)
 
@@ -894,8 +962,7 @@ final case class StaticCallInstruction(name: Symbol,
   override def validate(module: Module) = {
     val targetType = module.getFunction(target).ty(module)
     super.validate(module) ++ 
-      validateCall(module, target, targetType, typeArguments, arguments) ++
-      checkType(targetType.returnType, ty, getLocation)
+      validateCall(module, target, targetType, typeArguments, arguments, ty)
   }
 
   private def targetName = target

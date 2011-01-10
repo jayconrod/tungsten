@@ -265,6 +265,21 @@ final case class MultipleRootClassException(className: Symbol, location: Locatio
                              format(className),
                            location)                             
 
+final case class NewAbstractException(instructionName: Symbol,
+                                      className: Symbol,
+                                      location: Location)
+  extends CompileException("instruction %s cannot create an instance of abstract class %s".
+                             format(instructionName, className),
+                           location)
+
+final case class NewConstructorException(instructionName: Symbol,
+                                         constructorName: Symbol,
+                                         className: Symbol,
+                                         location: Location)
+  extends CompileException("instruction %s calls function %s, which is not a constructor of class %s".
+                             format(instructionName, constructorName, className),
+                           location)
+
 final case class NonLocalBranchException(functionName: Symbol,
                                          blockName: Symbol,
                                          location: Location)

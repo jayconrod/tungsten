@@ -256,6 +256,12 @@ final case class FunctionType(returnType: Type,
     val substitutedParameterTypes = parameterTypes.map(_.substitute(typeParameters, typeParameterBounds))
     FunctionType(substitutedReturnType, Nil, substitutedParameterTypes)
   }
+
+  def applyTypeArguments(typeArguments: List[Type]): FunctionType = {
+    assert(typeArguments.size == typeParameters.size)
+    val substituted = substitute(typeParameters, typeArguments).asInstanceOf[FunctionType]
+    substituted.copy(typeParameters = Nil)
+  }
 }
 
 sealed trait ObjectType 
@@ -281,7 +287,7 @@ sealed trait ObjectType
     getDefinition(module).getSuperType
   }
 
-  protected def getDefinition(module: Module): ObjectDefinition
+  def getDefinition(module: Module): ObjectDefinition
 
   override def isSubtypeOf(ty: Type, module: Module): Boolean = {
     ty match {
@@ -380,7 +386,7 @@ final case class ClassType(className: Symbol,
     ClassType(className, typeArguments.map(_.expose(module)))
   }
 
-  protected def getDefinition(module: Module): Class = {
+  def getDefinition(module: Module): Class = {
     module(className).asInstanceOf[Class]
   }
 }
@@ -405,7 +411,7 @@ final case class InterfaceType(interfaceName: Symbol,
     InterfaceType(interfaceName, typeArguments.map(_.expose(module)))
   }
 
-  protected def getDefinition(module: Module): Interface = {
+  def getDefinition(module: Module): Interface = {
     module(interfaceName).asInstanceOf[Interface]
   }
 }

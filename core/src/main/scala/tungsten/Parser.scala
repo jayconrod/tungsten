@@ -234,6 +234,7 @@ class Parser extends Parsers with ImplicitConversions {
     intrinsicInst      |
     loadInst           |
     loadElementInst    |
+    newInst            |
     relopInst          |
     returnInst         |
     storeInst          |
@@ -357,6 +358,12 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val loadElementInst: Parser[LoadElementInstruction] = {
     instName("loadelement") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
       case anns ~ ty ~ n ~ v ~ is => LoadElementInstruction(n, ty, v, is, anns)
+    }
+  }
+
+  lazy val newInst: Parser[NewInstruction] = {
+    instName("new") ~ symbol ~ typeArgumentList ~ argumentList ^^ {
+      case anns ~ ty ~ n ~ c ~ tas ~ as => NewInstruction(n, ty, c, tas, as, anns)
     }
   }
 

@@ -97,8 +97,10 @@ final case class Function(name: Symbol,
           }
         }
       }
-      val globalNames = module.definitions.values.
-                        filter(_.isInstanceOf[Global]).map(_.name).toSet
+      val globalNames = module.definitions.values.collect {
+        case defn @ (_: Function | _: Global) => defn.name
+      }.toSet
+
       def checkBlock(blockName: Symbol) = {
         val block = module.getBlock(blockName)
         val validNames = (parameters ++ block.parameters).toSet union globalNames

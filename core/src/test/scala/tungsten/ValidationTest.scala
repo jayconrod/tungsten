@@ -399,6 +399,18 @@ class ValidationTest {
   }
 
   @Test
+  def pointerCall {
+    val code = "pcall int64 0()"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def pointerCallCorrect {
+    val code = "pcall ->unit @main()"
+    codeIsCorrect(code)
+  }
+
+  @Test
   def stackArrayAllocCountType {
     val code = "unit* %a = stackarray ()"
     codeContainsError[TypeMismatchException](code)

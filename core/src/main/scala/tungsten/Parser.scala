@@ -235,6 +235,7 @@ class Parser extends Parsers with ImplicitConversions {
     loadInst           |
     loadElementInst    |
     newInst            |
+    pcallInst          |
     relopInst          |
     returnInst         |
     storeInst          |
@@ -367,6 +368,12 @@ class Parser extends Parsers with ImplicitConversions {
     }
   }
 
+  lazy val pcallInst: Parser[PointerCallInstruction] = {
+    instName("pcall") ~ value ~ typeArgumentList ~ argumentList ^^ {
+      case anns ~ ty ~ n ~ t ~ tas ~ as => PointerCallInstruction(n, ty, t, tas, as, anns)
+    }
+  }
+
   lazy val relopInst: Parser[RelationalOperatorInstruction] = {
     instName("relop") ~ value ~ relop ~ value ^^ {
       case anns ~ ty ~ n ~ l ~ op ~ r => RelationalOperatorInstruction(n, ty, op, l, r, anns)
@@ -489,6 +496,7 @@ class Parser extends Parsers with ImplicitConversions {
         makePointerType(PointerType(elementType), count - 1)
     }
     def basicTy: Parser[Type] = {
+      functionTy                     |
       ("unit"     ^^^ UnitType)      |
       ("boolean"  ^^^ BooleanType)   |
       ("char"     ^^^ CharType)      |
@@ -510,12 +518,18 @@ class Parser extends Parsers with ImplicitConversions {
     basicTy ~ rep("*") ^^ { case ety ~ stars => makePointerType(ety, stars.size) }    
   }
 
-  lazy val arrayTy: Parser[ArrayType] = {
-    "[" ~> (integer <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
-  }
-
   lazy val structTy: Parser[StructType] = {
     "struct" ~> symbol ^^ { case name => StructType(name) }
+  }
+
+  lazy val functionTy: Parser[FunctionType] = {
+    children(symbol, "[", ",", "]") ~ children(ty, "(", ",", ")") ~ ("->" ~> ty) ^^ {
+      case tps ~ pts ~ rt => FunctionType(rt, tps, pts)
+    }
+  }
+
+  lazy val arrayTy: Parser[ArrayType] = {
+    "[" ~> (integer <~ "x") ~ ty <~ "]" ^^ { case s ~ ety => ArrayType(s, ety) }
   }
 
   lazy val classTy: Parser[ClassType] = {

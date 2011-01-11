@@ -795,6 +795,32 @@ final case class NewInstruction(name: Symbol,
   }
 }
 
+final case class PointerCallInstruction(name: Symbol,
+                                        ty: Type,
+                                        target: Value,
+                                        typeArguments: List[Type],
+                                        arguments: List[Value],
+                                        annotations: List[AnnotationValue] = Nil)
+extends Instruction
+  with CallInstruction
+{
+  def operands = target :: arguments
+
+  override def validate(module: Module) = {
+    val callErrors = target.ty match {
+      case targetType: FunctionType => {
+        // We assume the target is a defined value. This must be true if there is no 
+        // specific "function" value. 
+        val targetName = target.asInstanceOf[DefinedValue].value
+        validateCall(module, targetName, targetType, typeArguments, arguments, ty)
+      }
+      case _ => List(TypeMismatchException(target.ty, "function type", getLocation))
+    }
+
+    super.validate(module) ++ callErrors
+  }
+}
+
 final case class RelationalOperator(name: String)
 
 object RelationalOperator {

@@ -114,6 +114,17 @@ class ParserTest {
   }
 
   @Test
+  def functionType {
+    testType("()->unit", FunctionType(UnitType, Nil, Nil))
+    testType("[@S, @T](unit, unit)->unit", 
+             FunctionType(UnitType, 
+                          List("@S", "@T"),
+                          List(UnitType, UnitType)))
+    testType("()->()->unit", FunctionType(FunctionType(UnitType, Nil, Nil), Nil, Nil))
+    testType("->->unit", FunctionType(FunctionType(UnitType, Nil, Nil), Nil, Nil))
+  }
+
+  @Test
   def arrayType {
     testType("[12 x unit]", ArrayType(12L, UnitType))
   }
@@ -345,6 +356,12 @@ class ParserTest {
   def newInst {
     testInstruction("class @A %x = new @A.ctor[unit](())",
                     NewInstruction("%x", ClassType("@A"), "@A.ctor", List(UnitType), List(UnitValue)))
+  }
+
+  @Test
+  def pcallInst {
+    testInstruction("unit %x = pcall ()[unit](())",
+                    PointerCallInstruction("%x", UnitType, UnitValue, List(UnitType), List(UnitValue)))
   }
 
   @Test

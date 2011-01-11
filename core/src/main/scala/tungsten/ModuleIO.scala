@@ -146,7 +146,9 @@ object ModuleIO {
 
     def readDefinition: Definition = {
       val name = symbol
-      input.readByte match {
+      val id = input.readByte
+      System.err.println("read definition id: " + id)
+      id match {
         case ANNOTATION_ID => Annotation(name, readList(symbol), readAnnotations)
         case BLOCK_ID => Block(name, readList(symbol), readList(symbol), readAnnotations)
         case FIELD_ID => Field(name, readType, readAnnotations)
@@ -244,6 +246,10 @@ object ModuleIO {
         case NEW_INST_ID => {
           NewInstruction(name, readType, symbol, 
                          readList(readType), readList(readValue), readAnnotations)
+        }
+        case POINTER_CALL_INST_ID => {
+          PointerCallInstruction(name, readType, readValue,
+                                 readList(readType), readList(readValue), readAnnotations)
         }
         case RELATIONAL_OPERATOR_INST_ID => {
           RelationalOperatorInstruction(name, readType, readRelationalOperator, 
@@ -734,6 +740,7 @@ object ModuleIO {
         case _: LoadInstruction => "load"
         case _: LoadElementInstruction => "loadelement"
         case _: NewInstruction => "new"
+        case _: PointerCallInstruction => "pcall"
         case _: RelationalOperatorInstruction => "relop"
         case _: ReturnInstruction => "return"
         case _: StoreInstruction => "store"
@@ -807,6 +814,11 @@ object ModuleIO {
         }
         case NewInstruction(_, _, constructor, typeArguments, arguments, _) => {
           output.write(localSymbol(constructor))
+          writeTypeArguments(typeArguments, parentName)
+          writeArguments(arguments, parentName)
+        }
+        case PointerCallInstruction(_, _, target, typeArguments, arguments, _) => {
+          output.write(localValue(target))
           writeTypeArguments(typeArguments, parentName)
           writeArguments(arguments, parentName)
         }
@@ -957,6 +969,18 @@ object ModuleIO {
         else
           tyArgs.map(localType(_, parentName)).mkString("[", ", ", "]")
       }
+      def localTypeParameters(typeParameters: List[Symbol]): String = {
+        if (typeParameters.isEmpty)
+          ""
+        else
+          typeParameters.map(localSymbol(_, parentName)).mkString("[", ", ", "]")
+      }
+      def localParameterTypes(parameterTypes: List[Type]): String = {
+        if (parameterTypes.isEmpty)
+          ""
+        else
+          parameterTypes.map(localType(_, parentName)).mkString("(", ", ", ")")
+      }
       ty match {
         case UnitType => "unit"
         case BooleanType => "boolean"
@@ -971,13 +995,10 @@ object ModuleIO {
         }
         case StructType(structName) => "struct " + localSymbol(structName, parentName)
         case FunctionType(returnType, typeParameters, parameterTypes) => {
-          val typeParameterStr = if (typeParameters.isEmpty)
-            ""
-          else
-            typeParameters.map(localSymbol(_, parentName)).mkString("[", ", ", "]")
-          val parameterStr = parameterTypes.map(localType(_: Type, parentName))
+          val typeParametersStr = localTypeParameters(typeParameters)
+          val parameterTypesStr = localParameterTypes(parameterTypes)
           val returnTypeStr = localType(returnType, parentName)
-          "%s(%s) => %s".format(typeParameterStr, parameterStr, returnTypeStr)
+          "%s%s->%s".format(typeParametersStr, parameterTypesStr, returnTypeStr)
         }
         case ClassType(className, tyArgs) => {
           "class " + localSymbol(className, parentName) + localTypeArguments(tyArgs)
@@ -1187,6 +1208,7 @@ object ModuleIO {
             case _: LoadInstruction => LOAD_INST_ID
             case _: LoadElementInstruction => LOAD_ELEMENT_INST_ID
             case _: NewInstruction => NEW_INST_ID
+            case _: PointerCallInstruction => POINTER_CALL_INST_ID
             case _: RelationalOperatorInstruction => RELATIONAL_OPERATOR_INST_ID
             case _: ReturnInstruction => RETURN_INST_ID
             case _: StoreInstruction => STORE_INST_ID
@@ -1272,6 +1294,11 @@ object ModuleIO {
             }
             case NewInstruction(_, _, constructor, typeArguments, arguments, _) => {
               writeInt(symbols(constructor))
+              writeList(typeArguments, writeType _)
+              writeList(arguments, writeValue _)
+            }
+            case PointerCallInstruction(_, _, target, typeArguments, arguments, _) => {
+              writeValue(target)
               writeList(typeArguments, writeType _)
               writeList(arguments, writeValue _)
             }
@@ -1534,34 +1561,35 @@ object ModuleIO {
   val INTERFACE_ID: Byte = 9
   val TYPE_PARAMETER_ID: Byte = 10
 
-  val ADDRESS_INST_ID: Byte = 100
-  val BINARY_OPERATOR_INST_ID: Byte = 101
-  val BIT_CAST_INST_ID: Byte = 102
-  val BRANCH_INST_ID: Byte = 103
-  val CONDITIONAL_BRANCH_INST_ID: Byte = 104
-  val EXTRACT_INST_ID: Byte = 105
-  val INSERT_INST_ID: Byte = 106
-  val INTRINSIC_CALL_INST_ID: Byte = 107
-  val LOAD_INST_ID: Byte = 108
-  val LOAD_ELEMENT_INST_ID: Byte = 109
-  val NEW_INST_ID: Byte = 110
-  val RELATIONAL_OPERATOR_INST_ID: Byte = 111
-  val RETURN_INST_ID: Byte = 112
-  val STORE_INST_ID: Byte = 113
-  val STORE_ELEMENT_INST_ID: Byte = 114
-  val STACK_ALLOCATE_INST_ID: Byte = 115
-  val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 116
-  val STATIC_CALL_INST_ID: Byte = 117
-  val UPCAST_INST_ID: Byte = 118
-  val HEAP_ALLOCATE_INST_ID = 119
-  val HEAP_ALLOCATE_ARRAY_INST_ID = 120
-  val FLOAT_EXTEND_INST_ID = 121
-  val FLOAT_TO_INTEGER_INST_ID = 122
-  val FLOAT_TRUNCATE_INST_ID = 123
-  val INTEGER_SIGN_EXTEND_INST_ID = 124
-  val INTEGER_TO_FLOAT_INST_ID = 125
-  val INTEGER_TRUNCATE_INST_ID = 126
-  val INTEGER_ZERO_EXTEND_INST_ID = 127
+  val ADDRESS_INST_ID: Byte = 20
+  val BINARY_OPERATOR_INST_ID: Byte = 21
+  val BIT_CAST_INST_ID: Byte = 22
+  val BRANCH_INST_ID: Byte = 23
+  val CONDITIONAL_BRANCH_INST_ID: Byte = 24
+  val EXTRACT_INST_ID: Byte = 25
+  val INSERT_INST_ID: Byte = 26
+  val INTRINSIC_CALL_INST_ID: Byte = 27
+  val LOAD_INST_ID: Byte = 28
+  val LOAD_ELEMENT_INST_ID: Byte = 29
+  val NEW_INST_ID: Byte = 30
+  val RELATIONAL_OPERATOR_INST_ID: Byte = 31
+  val RETURN_INST_ID: Byte = 32
+  val STORE_INST_ID: Byte = 33
+  val STORE_ELEMENT_INST_ID: Byte = 34
+  val STACK_ALLOCATE_INST_ID: Byte = 35
+  val STACK_ALLOCATE_ARRAY_INST_ID: Byte = 36
+  val STATIC_CALL_INST_ID: Byte = 37
+  val UPCAST_INST_ID: Byte = 38
+  val HEAP_ALLOCATE_INST_ID = 39
+  val HEAP_ALLOCATE_ARRAY_INST_ID = 40
+  val FLOAT_EXTEND_INST_ID = 41
+  val FLOAT_TO_INTEGER_INST_ID = 42
+  val FLOAT_TRUNCATE_INST_ID = 43
+  val INTEGER_SIGN_EXTEND_INST_ID = 44
+  val INTEGER_TO_FLOAT_INST_ID = 45
+  val INTEGER_TRUNCATE_INST_ID = 46
+  val INTEGER_ZERO_EXTEND_INST_ID = 47
+  val POINTER_CALL_INST_ID = 48
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

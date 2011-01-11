@@ -117,11 +117,14 @@ final case class DefinedValue(value: Symbol, ty: Type)
 {
   override def validate(module: Module, location: Location) = {
     module.getDefn(value) match {
-      case Some(_: Global) | Some(_: Parameter) | Some(_: Instruction) => Nil
+      case Some(_: Function)  | 
+           Some(_: Global)    | 
+           Some(_: Parameter) | 
+           Some(_: Instruction) => Nil
       case Some(defn) => {
         List(InappropriateSymbolException(value, 
                                           defn.getLocation,
-                                          "global, parameter, or instruction"))
+                                          "function, global, parameter, or instruction"))
       }
       case None => List(UndefinedSymbolException(value, location))
     }

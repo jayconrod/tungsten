@@ -24,7 +24,7 @@ object Lexer extends Lexical with RegexParsers {
         "address", "binop", "bitcast", "branch", "cond", "extract", "fextend", "ftoi", 
           "ftruncate", "heap", "heaparray", "insert", "isextend", "itof", "itruncate", 
           "izextend",  "intrinsic", "load", "loadelement", "new", "pcall", "relop", "return", 
-          "scall", "stack", "stackarray", "store", "storeelement", "upcast",
+          "scall", "stack", "stackarray", "store", "storeelement", "upcast", "vcall",
         "unit", "boolean", "char", "string", "int8", "int16", "int32", "int64", "float32",
           "float64", "nulltype", "struct",
         "true", "false", "null")

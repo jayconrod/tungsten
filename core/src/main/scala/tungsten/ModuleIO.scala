@@ -272,6 +272,10 @@ object ModuleIO {
                                 readList(readType), readList(readValue), readAnnotations)
         }
         case UPCAST_INST_ID => UpcastInstruction(name, readType, readValue, readAnnotations)
+        case VIRTUAL_CALL_INST_ID => {
+          VirtualCallInstruction(name, readType, readValue, readInt, 
+                                 readList(readType), readList(readValue), readAnnotations)
+        }
         case _ => throw new IOException("Invalid definition ID")
       }
     }
@@ -749,6 +753,7 @@ object ModuleIO {
         case _: StackAllocateArrayInstruction => "stackarray"
         case _: StaticCallInstruction => "scall"
         case _: UpcastInstruction => "upcast"
+        case _: VirtualCallInstruction => "vcall"
       }
 
       output.write(INDENT + INDENT)
@@ -852,6 +857,11 @@ object ModuleIO {
         }
         case UpcastInstruction(_, _, value, _) => {
           output.write(localValue(value))
+        }
+        case VirtualCallInstruction(_, _, target, methodIndex, typeArguments, arguments, _) => {
+          output.write(localValue(target) + ":" + methodIndex)
+          writeTypeArguments(typeArguments, parentName)
+          writeArguments(arguments, parentName)
         }
       }
     }
@@ -1217,6 +1227,7 @@ object ModuleIO {
             case _: StackAllocateArrayInstruction => STACK_ALLOCATE_ARRAY_INST_ID
             case _: StaticCallInstruction => STATIC_CALL_INST_ID
             case _: UpcastInstruction => UPCAST_INST_ID
+            case _: VirtualCallInstruction => VIRTUAL_CALL_INST_ID
           }
           output.writeByte(instId)
           writeType(inst.ty)
@@ -1330,6 +1341,12 @@ object ModuleIO {
             }
             case UpcastInstruction(_, _, value, _) => {
               writeValue(value)
+            }
+            case VirtualCallInstruction(_, _, target, methodIndex, typeArguments, arguments, _) => {
+              writeValue(target)
+              writeInt(methodIndex)
+              writeList(typeArguments, writeType _)
+              writeList(arguments, writeValue _)
             }
           }
         }
@@ -1590,6 +1607,7 @@ object ModuleIO {
   val INTEGER_TRUNCATE_INST_ID = 46
   val INTEGER_ZERO_EXTEND_INST_ID = 47
   val POINTER_CALL_INST_ID = 48
+  val VIRTUAL_CALL_INST_ID = 49
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

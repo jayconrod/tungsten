@@ -210,6 +210,13 @@ final case class InvalidIndexException(value: String, ty: String, location: Loca
                              " cannot be used as an index into type " + ty,
                            location)
 
+final case class InvalidVirtualMethodIndexException(index: Int,
+                                                    ty: Type,
+                                                    location: Location)
+  extends CompileException("invalid virtual method index %d for type %s".
+                             format(index, ty),
+                           location)
+
 final case class MainNonEmptyParametersException(location: Location)
   extends CompileException("main function must not have parameters", location)
 

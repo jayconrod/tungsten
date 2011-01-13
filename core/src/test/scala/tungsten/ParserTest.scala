@@ -422,6 +422,12 @@ class ParserTest {
   }
 
   @Test
+  def vcallInst {
+    testInstruction("unit %x = vcall ():0[unit](())",
+                    VirtualCallInstruction("%x", UnitType, UnitValue, 0, List(UnitType), List(UnitValue)))
+  }
+
+  @Test
   def parameter {
     testDefinition("@ann unit %p", parser.parameter,
                    Parameter("%p", UnitType, List(AnnotationValue("@ann", Nil))))

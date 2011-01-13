@@ -1265,4 +1265,64 @@ class ValidationTest {
                   "}\n"
     programContainsError[NewAbstractException](program)
   }
+
+  @Test
+  def virtualCallNonClass {
+    val code = "vcall int64 0:0()\n"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def virtualCallInvalidIndex {
+    val program = "class @R {\n" +
+                  "  constructors { %ctor }\n" +
+                  "}\n" +
+                  "function unit @R.ctor(class @R %this)\n" +
+                  "function unit @main {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = new @R.ctor()\n" +
+                  "    vcall class @R %x:0()\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[InvalidVirtualMethodIndexException](program)
+  }
+
+  @Test
+  def virtualCallVariableType {
+    val program = "class @R {\n" +
+                  "  constructors { %ctor }\n" +
+                  "  methods { %f }\n" +
+                  "}\n" +
+                  "function unit @R.ctor(class @R %this)\n" +
+                  "function unit @R.f(class @R %this)\n" +
+                  "function unit @f[type %T](type %T %x) {\n" +
+                  "  block %entry {\n" +
+                  "    vcall type @f.T @f.x:0()\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def virtualCallWithTypeParameter {
+    val program = "class @R { constructors { %ctor } }\n" +
+                  "class @C[type %T] <: class @R {\n" +
+                  "  constructors { %ctor }\n" +
+                  "  methods { %f }\n" +
+                  "}\n" +
+                  "function unit @R.ctor(class @R %this)\n" +
+                  "function unit @C.ctor[type %T](class @C[type %T] %this)\n" +
+                  "function unit @C.f[type %T, type %S](class @C[type %T] %this, type %S %x)\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %a = new @R.ctor()\n" +
+                  "    class @C[class @R] %b = new @C.ctor()\n" +
+                  "    vcall class @C[class @R] %b:0[class @R](class @R %a)\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
+  }
 }

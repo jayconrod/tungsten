@@ -243,7 +243,8 @@ class Parser extends Parsers with ImplicitConversions {
     stackInst          |
     stackArrayInst     |
     scallInst          |
-    upcastInst
+    upcastInst         |
+    vcallInst
   }
 
   lazy val addressInst: Parser[AddressInstruction] = {
@@ -419,6 +420,13 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val upcastInst: Parser[UpcastInstruction] = {
     instName("upcast") ~ value ^^ {
       case anns ~ ty ~ n ~ v => UpcastInstruction(n, ty, v, anns)
+    }
+  }
+
+  lazy val vcallInst: Parser[VirtualCallInstruction] = {
+    instName("vcall") ~ value ~ (":" ~> integer) ~ typeArgumentList ~ argumentList ^^ {
+      case anns ~ ty ~ n ~ o ~ i ~ tas ~ as => 
+        VirtualCallInstruction(n, ty, o, i.toInt, tas, as, anns)
     }
   }
 

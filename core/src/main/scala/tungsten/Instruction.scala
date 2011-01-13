@@ -1015,3 +1015,47 @@ final case class UpcastInstruction(name: Symbol,
     super.validate(module) ++ validateCast
   }
 }
+
+final case class VirtualCallInstruction(name: Symbol,
+                                        ty: Type,
+                                        target: Value,
+                                        methodIndex: Int,
+                                        typeArguments: List[Type],
+                                        arguments: List[Value],
+                                        annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+  with CallInstruction
+{
+  def operands = target :: arguments
+
+  override def validate(module: Module) = {
+    def validateVirtualCall = {
+      if (!target.ty.isObject)
+        List(TypeMismatchException(ty, "object type", getLocation))
+      else {
+        val targetType = target.ty match {
+          case oty: ObjectType => oty
+          case VariableType(varName) => {
+            val typeParameter = module.getTypeParameter(varName)
+            typeParameter.getUpperBoundType(module)
+          }
+          case _ => throw new RuntimeException("must be object type!")
+        }
+        val fullTypeArguments = targetType.typeArguments ++ typeArguments
+        val definition = targetType.getDefinition(module)
+        definition.methods.lift(methodIndex) match {
+          case None => List(InvalidVirtualMethodIndexException(methodIndex, ty, getLocation))
+          case Some(methodName) => {
+            val method = module.getFunction(methodName)
+            val methodType = method.ty(module)
+            val methodTypeWithoutThis = methodType.copy(parameterTypes = methodType.parameterTypes.tail)
+            validateCall(module, method.name, methodTypeWithoutThis, 
+                         fullTypeArguments, arguments, ty)
+          }
+        }
+      }
+    }
+
+    super.validate(module) ++ validateVirtualCall
+  }
+}

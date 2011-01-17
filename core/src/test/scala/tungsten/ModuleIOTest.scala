@@ -131,7 +131,7 @@ class ModuleIOWriteBinaryTest {
 class ModuleIOWriteTextTest {
   val output = new StringWriter
   val emptyModule = new Module(is64Bit=true)
-  val dummyWriter = new ModuleIO.TextModuleWriter(emptyModule, output)
+  val dummyWriter = new TextModuleWriter(emptyModule, output)
 
 
   @Test

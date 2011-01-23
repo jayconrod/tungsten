@@ -447,6 +447,11 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         writeInt(symbols(name))
         writeType(ty)
       }
+      case BitCastValue(value, ty) => {
+        output.writeByte(BIT_CAST_VALUE_ID)
+        writeValue(value)
+        writeType(ty)
+      }
     }
   }
 

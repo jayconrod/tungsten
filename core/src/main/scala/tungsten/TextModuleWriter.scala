@@ -484,6 +484,9 @@ class TextModuleWriter(module: Module, output: Writer) {
       case DefinedValue(name, ty) => {
         localType(ty, parentName) + " " + localSymbol(name, parentName)
       }
+      case BitCastValue(value, ty) => {
+        "bitcast %s to %s".format(localValue(value, parentName), localType(ty, parentName))
+      }
     }
   }
 

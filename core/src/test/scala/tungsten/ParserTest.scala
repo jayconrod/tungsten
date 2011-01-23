@@ -211,6 +211,11 @@ class ParserTest {
   }
 
   @Test
+  def bitCastValue {
+    testValue("bitcast () to unit", BitCastValue(UnitValue, UnitType))
+  }
+
+  @Test
   def annotationValue {
     test("@x", parser.annotationValue, AnnotationValue("@x", Nil))
     test("@x(true)", parser.annotationValue, AnnotationValue("@x", List(BooleanValue(true))))

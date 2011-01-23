@@ -1325,4 +1325,10 @@ class ValidationTest {
                   "}\n"
     programIsCorrect(program)
   }
+
+  @Test
+  def bitCastValueSize {
+    val program = "global int64 @g = bitcast int32 2 to int64"
+    programContainsError[InvalidBitCastException](program)
+  }
 }

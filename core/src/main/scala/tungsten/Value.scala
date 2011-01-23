@@ -12,6 +12,9 @@ sealed abstract class Value
 
 abstract class ExtendedValue extends Value
 
+sealed abstract class ConstantExpressionValue
+  extends Value
+
 final case object UnitValue
   extends Value
 {
@@ -128,5 +131,18 @@ final case class DefinedValue(value: Symbol, ty: Type)
       }
       case None => List(UndefinedSymbolException(value, location))
     }
+  }
+}
+
+final case class BitCastValue(value: Value, ty: Type)
+  extends ConstantExpressionValue
+{
+  override def validate(module: Module, location: Location) = {
+    val valueSize = value.ty.size(module)
+    val tySize = ty.size(module)
+    if (valueSize != tySize)
+      List(InvalidBitCastException(value, valueSize, ty, tySize, location))
+    else
+      Nil
   }
 }

@@ -478,6 +478,11 @@ class Parser extends Parsers with ImplicitConversions {
         case StructType(name) ~ es => StructValue(name, es)
       }
     }
+    def bitCastValue: Parser[Value] = {
+      "bitcast" ~> value ~ ("to" ~> ty) ^^ {
+        case v ~ t => BitCastValue(v, t)
+      }
+    }
 
     ("(" ~ ")"           ^^^ UnitValue)                  |
     ("true"              ^^^ BooleanValue(true))         |
@@ -493,6 +498,7 @@ class Parser extends Parsers with ImplicitConversions {
     ("null"              ^^^ NullValue)                  |
     arrayValue                                           |
     structValue                                          |
+    bitCastValue                                         |
     (ty ~ symbol          ^^ { case t ~ n => DefinedValue(n, t) })
   }
 

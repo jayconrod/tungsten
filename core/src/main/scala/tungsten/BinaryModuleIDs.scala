@@ -97,6 +97,7 @@ object BinaryModuleIDs {
   val ARRAY_VALUE_ID = 12
   val STRUCT_VALUE_ID = 13
   val DEFINED_VALUE_ID = 14
+  val BIT_CAST_VALUE_ID = 15
 
   val COVARIANT_ID = 1
   val CONTRAVARIANT_ID = 2

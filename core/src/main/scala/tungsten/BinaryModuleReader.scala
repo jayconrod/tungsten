@@ -268,6 +268,7 @@ class BinaryModuleReader(input: DataInputStream) {
       case ARRAY_VALUE_ID => ArrayValue(readType, readList(readValue))
       case STRUCT_VALUE_ID => StructValue(symbol, readList(readValue))
       case DEFINED_VALUE_ID => DefinedValue(symbol, readType)
+      case BIT_CAST_VALUE_ID => BitCastValue(readValue, readType)
       case _ => throw new IOException("Invalid value ID")
     }
   }

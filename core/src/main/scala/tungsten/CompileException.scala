@@ -201,7 +201,7 @@ final case class InvalidBitCastException(value: Value,
                                          ty: Type, 
                                          tySize: Long,
                                          location: Location)
-  extends CompileException("value %s (%d bits) cannot be bit-cast to type %s (%d bits) because they have different sizes".
+  extends CompileException("value %s (%d bytes) cannot be bit cast to type %s (%d bytes) because they have different sizes".
                              format(value, valueSize, ty, tySize),
                            location)
 

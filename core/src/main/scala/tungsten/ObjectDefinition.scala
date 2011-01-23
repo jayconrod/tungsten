@@ -76,6 +76,15 @@ trait ObjectDefinition
                   ivtableMap: Map[Symbol, Either[List[Symbol], Symbol]],
                   module: Module): Map[Symbol, Either[List[Symbol], Symbol]] =
   {
+    def makeInterfaceIVTable(ivtable: List[Symbol], 
+                             interfaceMethods: List[Symbol]): Some[List[Symbol]] = 
+    {
+      Some(interfaceMethods map { methodName => 
+        val methodIndex = methods.indexOf(methodName)
+        ivtable(methodIndex)
+      })
+    }
+
     if (ivtableMap.contains(name))
       ivtableMap
     else {
@@ -86,16 +95,23 @@ trait ObjectDefinition
         }
         case None => methods
       }
+      assert(ivtable.size == methods.size)
+      System.err.println("%s.getIVTables(%s) = %s".format(name, descendentMethods, ivtable))
       val myIVTableMap = if (isInstanceOf[Interface])
         ivtableMap + (name -> Left(ivtable))
       else
         ivtableMap
       val superIVTableMap = getSuperDefn(module) match {
-        case Some(defn) => defn.getIVTables(Some(ivtable), myIVTableMap, module)
-        case None => myIVTableMap
+        case Some(defn) 
+          if !(isInstanceOf[Interface] && defn.isInstanceOf[Class]) =>
+            defn.getIVTables(Some(ivtable), myIVTableMap, module)
+        case _ => myIVTableMap
       }
-      (superIVTableMap /: interfaceDefns(module)) { (ivtableMap, defn) =>
-        defn.getIVTables(Some(ivtable), ivtableMap, module)
+      (superIVTableMap /: (0 until interfaceTypes.size)) { (ivtableMap, interfaceIndex) =>
+        val methodNames = interfaceMethods(interfaceIndex)
+        val interface = interfaceTypes(interfaceIndex).getDefinition(module)
+        val interfaceIVTable = makeInterfaceIVTable(ivtable, methodNames)
+        interface.getIVTables(interfaceIVTable, ivtableMap, module)
       }
     }
   }

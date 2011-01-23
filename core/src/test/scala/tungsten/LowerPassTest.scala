@@ -13,6 +13,38 @@ class LowerPassTest {
       assertEquals(expectedModule.definitions(name), module.definitions(name))
   }
 
+  @Test
+  def getIVTables {
+    val program = "class @R\n" +
+                  "class @A <: class @R {\n" +
+                  "  interface @I { %f }\n" +
+                  "  methods { %f, %g }\n" +
+                  "}\n" +
+                  "class @B <: class @A {\n" +
+                  "  interface @J { @A.g, %h }\n" +
+                  "  methods { @A.f, @A.g, %h }\n" +
+                  "}\n" +
+                  "interface @I <: class @R {\n" +
+                  "  methods { %f }\n" +
+                  "}\n" +
+                  "interface @J <: interface @I {\n" +
+                  "  methods { @I.f, %g }\n" +
+                  "}\n" +
+                  "function unit @A.f(class @A %this)\n" +
+                  "function unit @A.g(class @A %this)\n" +
+                  "function unit @B.h(class @B %this)\n" +
+                  "function unit @I.f(interface @I %this)\n" +
+                  "function unit @J.g(interface @J %this)\n"
+    val module = compileString(program)
+    val errors = module.validate
+    assertTrue(errors.isEmpty)
+    val B = module.getClass("B")
+    val expectedIVTables = Map[Symbol, Either[List[Symbol], Symbol]](("I", Left(List("A.f"))),
+                                                                     ("J", Left(List("A.g", "B.h"))))
+    val ivtables = B.getIVTables(None, Map(), module)
+    assertEquals(expectedIVTables, ivtables)
+  }
+
   // @Test
   // def createVtableStruct {
   //   val program = "class @R { methods { %f, %g } }\n" +

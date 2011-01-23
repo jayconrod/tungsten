@@ -12,8 +12,14 @@ trait ObjectDefinition
   }
 
   def getSuperType: Option[ObjectType]
+  def getSuperDefn(module: Module): Option[ObjectDefinition] = {
+    getSuperType.map(_.getDefinition(module))
+  }
   def interfaceTypes: List[InterfaceType]
   def interfaceMethods: List[List[Symbol]]
+  def interfaceDefns(module: Module): List[ObjectDefinition] = {
+    interfaceTypes.map(_.getDefinition(module))
+  }
   def methods: List[Symbol]
 
   def selfType: ObjectType
@@ -23,6 +29,10 @@ trait ObjectDefinition
       case Some(superType) => superType :: interfaceTypes
       case None => interfaceTypes
     }
+  }
+
+  def inheritedDefns(module: Module): List[ObjectDefinition] = {
+    getSuperDefn(module).toList ++ interfaceDefns(module)
   }
 
   /** Replaces type variables in the given type with the given type arguments. The
@@ -58,6 +68,34 @@ trait ObjectDefinition
         val inheritedName = ty.definitionName
         val inheritedDefn = module.getObjectDefinition(inheritedName)
         inheritedDefn.isDescendedFrom(defnName, module)
+      }
+    }
+  }
+
+  def getIVTables(descendentMethods: Option[List[Symbol]],
+                  ivtableMap: Map[Symbol, Either[List[Symbol], Symbol]],
+                  module: Module): Map[Symbol, Either[List[Symbol], Symbol]] =
+  {
+    if (ivtableMap.contains(name))
+      ivtableMap
+    else {
+      val ivtable = descendentMethods match {
+        case Some(ms) => {
+          assert(ms.size >= methods.size)
+          ms.take(methods.size)
+        }
+        case None => methods
+      }
+      val myIVTableMap = if (isInstanceOf[Interface])
+        ivtableMap + (name -> Left(ivtable))
+      else
+        ivtableMap
+      val superIVTableMap = getSuperDefn(module) match {
+        case Some(defn) => defn.getIVTables(Some(ivtable), myIVTableMap, module)
+        case None => myIVTableMap
+      }
+      (superIVTableMap /: interfaceDefns(module)) { (ivtableMap, defn) =>
+        defn.getIVTables(Some(ivtable), ivtableMap, module)
       }
     }
   }

@@ -1,5 +1,6 @@
 package tungsten
 
+import scala.collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Assert._
 import Utilities._
@@ -43,6 +44,35 @@ class LowerPassTest {
                                                                      ("J", Left(List("A.g", "B.h"))))
     val ivtables = B.getIVTables(None, Map(), module)
     assertEquals(expectedIVTables, ivtables)
+  }
+
+  @Test
+  def createITableGlobal {
+    val clas = Class("C", Nil, None,
+                     List(InterfaceType("I"), InterfaceType("J")),
+                     List(List("f"), List("f")),
+                     Nil,
+                     List("f"),
+                     Nil)
+    val definitions = TreeMap((clas.name -> clas))
+    val module = new Module(definitions = definitions)
+    val ivtableMap = Map[Symbol, Either[List[Symbol], Symbol]](("I", Left(List("f"))),
+                                                               ("J", Right("I")))
+
+    val expectedITableGlobalCode = "global [2 x struct @tungsten._itable_entry] @C._itable =\n" +
+                                   "  [2 x struct @tungsten._itable_entry] {\n" +
+                                   "    struct @tungsten._itable_entry {\n" +
+                                   "      \"I\",\n" +
+                                   "      bitcast struct @I._vtable_type* @C._ivtable.I to int8*\n" +
+                                   "    },\n" +
+                                   "    struct @tungsten._itable_entry {\n" +
+                                   "      \"J\",\n" +
+                                   "      bitcast struct @I._vtable_type* @C._ivtable.I to int8*\n" +
+                                   "    }\n" +
+                                   "  }\n"
+    val expectedITableGlobal = compileString(expectedITableGlobalCode).getGlobal("C._itable")
+    val itableGlobal = pass.createITableGlobal(clas, ivtableMap, module).getGlobal("C._itable")
+    assertEquals(expectedITableGlobal, itableGlobal)
   }
 
   // @Test

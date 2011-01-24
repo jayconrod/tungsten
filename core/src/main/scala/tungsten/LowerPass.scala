@@ -113,7 +113,7 @@ class LowerPass
                          module: Module): Module =
   {
     def createIVTablePtr(interfaceName: Symbol): Value = {
-      BitCastValue(DefinedValue(vtableGlobalName(interfaceName),
+      BitCastValue(DefinedValue(ivtableGlobalName(clas.name, interfaceName),
                                 PointerType(StructType(vtableStructName(interfaceName)))),
                    PointerType(IntType(8)))
     }

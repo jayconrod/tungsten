@@ -72,46 +72,50 @@ trait ObjectDefinition
     }
   }
 
-  def getIVTables(descendentMethods: Option[List[Symbol]],
+  def getIVTables(module: Module): Map[Symbol, Either[List[Symbol], Symbol]] = {
+    getIVTables(methods, None, Map(), module)
+  }
+
+  def getIVTables(descendentMethods: List[Symbol],
+                  descendentName: Option[Symbol],
                   ivtableMap: Map[Symbol, Either[List[Symbol], Symbol]],
                   module: Module): Map[Symbol, Either[List[Symbol], Symbol]] =
   {
     def makeInterfaceIVTable(ivtable: List[Symbol], 
-                             interfaceMethods: List[Symbol]): Some[List[Symbol]] = 
+                             interfaceMethods: List[Symbol]): List[Symbol] = 
     {
-      Some(interfaceMethods map { methodName => 
+      interfaceMethods map { methodName => 
         val methodIndex = methods.indexOf(methodName)
         ivtable(methodIndex)
-      })
+      }
     }
 
     if (ivtableMap.contains(name))
       ivtableMap
     else {
-      val ivtable = descendentMethods match {
-        case Some(ms) => {
-          assert(ms.size >= methods.size)
-          ms.take(methods.size)
-        }
-        case None => methods
+      assert(descendentMethods.size >= methods.size)
+      val ivtableMethods = descendentMethods.take(methods.size)
+      val ivtable = descendentName match {
+        case Some(dn) => Right(dn)
+        case None => Left(ivtableMethods)
       }
-      assert(ivtable.size == methods.size)
-      System.err.println("%s.getIVTables(%s) = %s".format(name, descendentMethods, ivtable))
       val myIVTableMap = if (isInstanceOf[Interface])
-        ivtableMap + (name -> Left(ivtable))
+        ivtableMap + (name -> ivtable)
       else
         ivtableMap
       val superIVTableMap = getSuperDefn(module) match {
         case Some(defn) 
-          if !(isInstanceOf[Interface] && defn.isInstanceOf[Class]) =>
-            defn.getIVTables(Some(ivtable), myIVTableMap, module)
+          if !(isInstanceOf[Interface] && defn.isInstanceOf[Class]) => {
+            defn.getIVTables(ivtableMethods, descendentName.orElse(Some(name)), 
+                             myIVTableMap, module)
+          }
         case _ => myIVTableMap
       }
       (superIVTableMap /: (0 until interfaceTypes.size)) { (ivtableMap, interfaceIndex) =>
         val methodNames = interfaceMethods(interfaceIndex)
         val interface = interfaceTypes(interfaceIndex).getDefinition(module)
-        val interfaceIVTable = makeInterfaceIVTable(ivtable, methodNames)
-        interface.getIVTables(interfaceIVTable, ivtableMap, module)
+        val interfaceIVTable = makeInterfaceIVTable(ivtableMethods, methodNames)
+        interface.getIVTables(interfaceIVTable, None, ivtableMap, module)
       }
     }
   }

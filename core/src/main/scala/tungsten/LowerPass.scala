@@ -16,7 +16,7 @@ class LowerPass
   def convertClassesAndInterfaces(module: Module): Module = {
     val classes = module.definitions.values collect { case c: Class => c }
     val interfaces = module.definitions.values collect { case i: Interface => i }
-    val ivtableMaps = classes.map { c => (c.name, c.getIVTables(None, Map(), module)) }.toMap
+    val ivtableMaps = classes.map { c => (c.name, c.getIVTables(module)) }.toMap
 
     var m = module
     m = createITableEntryStruct(m)
@@ -89,8 +89,14 @@ class LowerPass
     val realIVTables = ivtableMap.filter { kv => kv._2.isLeft }.mapValues(_.left.get)
     val ivtableGlobals = realIVTables.toList.map { p =>
       val (interfaceName, methodNames) = p
+      val interface = module.getInterface(interfaceName)
+      val methodTypes = module.getFunctions(interface.methods).map(_.ty(module))
       val methods = module.getFunctions(methodNames)
-      val ivtableFields = methods.map { m => DefinedValue(m.name, m.ty(module)) }
+      val ivtableFields = (methods zip methodTypes) map { p =>
+        val (method, methodType) = p
+        val methodValue = DefinedValue(method.name, method.ty(module))
+        BitCastValue(methodValue, methodType)
+      }
       val ivtableValue = StructValue(vtableStructName(interfaceName), ivtableFields)
       Global(ivtableGlobalName(clas.name, interfaceName),
                                StructType(vtableStructName(interfaceName)),

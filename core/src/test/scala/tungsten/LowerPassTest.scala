@@ -1,7 +1,7 @@
 package tungsten
 
 import scala.collection.immutable.TreeMap
-import org.junit.Test
+import org.junit.{Test, Ignore}
 import org.junit.Assert._
 import Utilities._
 
@@ -171,36 +171,59 @@ class LowerPassTest {
     val Rstruct = pass.replaceClassWithStruct(R, module).getStruct("R")
     assertEquals(expected, Rstruct)
   }
+}
+
+class LowerPassInstructionConversionTest {
+  val programTemplate = "class @R {\n" +
+                        "  constructors { %ctor }\n" +
+                        "  methods { %get }\n" +
+                        "  field int64 %x\n" +
+                        "}\n" +
+                        "function unit @R.ctor(class @R %this, int64 %x)\n" +
+                        "function int64 @R.get(class @R %this)\n" +
+                        "function unit @f {\n" +
+                        "  block %entry {\n"
+  val pass = new LowerPass
+
+  def makeModule(code: String): Module = {
+    val program = programTemplate + code + "} }"
+    compileString(program)
+  }
+
+  def getInstructions(module: Module): List[Instruction] = {
+    val block = module.getBlock("f.entry")
+    module.getInstructions(block.instructions)
+  }
+
+  def makeInstructions(code: String): List[Instruction] = {
+    val module = makeModule(code)
+    getInstructions(module)
+  }
+
+  def testConversion(expectedCode: String, code: String)
+  {
+    val module = makeModule(code)
+    var processedModule = pass.convertClassesAndInterfaces(module)
+    processedModule = pass.convertInstructions(processedModule)
+    val instructions = getInstructions(processedModule)
+    val expectedInstructions = makeInstructions(expectedCode)
+    assertEquals(expectedInstructions, instructions)
+  }
 
   @Test
-  def convertNewInstruction {
-    val program = "class @R {\n" +
-                  "  constructors { %ctor }\n" +
-                  "  field int64 %x\n" +
-                  "}\n" +
-                  "function unit @R.ctor(class @R %this, int64 %x)\n" +
-                  "function unit @f {\n" +
-                  "  block %entry {\n" +
-                  "    class @R %r = new @R.ctor(int64 2)\n" +
-                  "    return ()\n" +
-                  "  }\n" +
-                  "}\n"
-    var module = compileString(program)
-    module = pass.convertClassesAndInterfaces(module)
-    module = pass.convertInstructions(module)
-    val block = module.getBlock("f.entry")
-    val instructions = module.getInstructions(block.instructions)
+  def testNew {
+    val code = "class @R %r = new @R.ctor(int64 2)"
+    val expectedCode = "struct @R* %r = heap\n" +
+                       "unit %r._init#1 = scall @R.ctor(struct @R* %r, int64 2)"
+    testConversion(expectedCode, code)
+  }
 
-    val expectedCode = "function unit @f {\n" +
-                       "  block %entry {\n" +
-                       "    struct @R* %r = heap\n" +
-                       "    unit %r._init#1 = scall @R.ctor(struct @R* %r, int64 2)\n" +
-                       "    return ()\n" +
-                       "  }\n" +
-                       "}\n"
-    val expectedModule = compileString(expectedCode)
-    val expectedBlock = expectedModule.getBlock("f.entry")
-    val expectedInstructions = expectedModule.getInstructions(expectedBlock.instructions)
-    assertEquals(expectedInstructions, instructions)
+  @Test
+  def testVCallClass {
+    val code = "int64 %x = vcall class @R %r:0()"
+    val expectedCode = "struct @R._vtable_type* %x._vtable#1 = loadelement class @R %r, int64 0, int64 0\n" +
+                       "(class @R)->int64 %x._method#2 = loadelement struct @R._vtable_type* %x._vtable#1, int64 0, int64 2\n" +
+                       "int64 %x = pcall (class @R)->int64 %x._method#2(class @R %r)"
+    testConversion(expectedCode, code)
   }
 }

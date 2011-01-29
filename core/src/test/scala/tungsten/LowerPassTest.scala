@@ -171,4 +171,36 @@ class LowerPassTest {
     val Rstruct = pass.replaceClassWithStruct(R, module).getStruct("R")
     assertEquals(expected, Rstruct)
   }
+
+  @Test
+  def convertNewInstruction {
+    val program = "class @R {\n" +
+                  "  constructors { %ctor }\n" +
+                  "  field int64 %x\n" +
+                  "}\n" +
+                  "function unit @R.ctor(class @R %this, int64 %x)\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %r = new @R.ctor(int64 2)\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    var module = compileString(program)
+    module = pass.convertClassesAndInterfaces(module)
+    module = pass.convertInstructions(module)
+    val block = module.getBlock("f.entry")
+    val instructions = module.getInstructions(block.instructions)
+
+    val expectedCode = "function unit @f {\n" +
+                       "  block %entry {\n" +
+                       "    struct @R* %r = heap\n" +
+                       "    unit %r._init#1 = scall @R.ctor(struct @R* %r, int64 2)\n" +
+                       "    return ()\n" +
+                       "  }\n" +
+                       "}\n"
+    val expectedModule = compileString(expectedCode)
+    val expectedBlock = expectedModule.getBlock("f.entry")
+    val expectedInstructions = expectedModule.getInstructions(expectedBlock.instructions)
+    assertEquals(expectedInstructions, instructions)
+  }
 }

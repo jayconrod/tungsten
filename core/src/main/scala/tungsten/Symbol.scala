@@ -101,6 +101,10 @@ object Symbol {
 final class SymbolFactory {
   private var currentId = 0
 
+  def apply(name: Symbol) = complexSymbol(name.name)
+  def apply(name: List[String]) = complexSymbol(name)
+  def apply(name: String) = symbol(name)
+
   def complexSymbol(name: List[String]) = {
     currentId += 1
     new Symbol(name, currentId)

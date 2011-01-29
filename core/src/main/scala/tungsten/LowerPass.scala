@@ -10,6 +10,7 @@ class LowerPass
   def apply(module: Module) = {
     var m = module
     m = convertClassesAndInterfaces(m)
+    m = convertInstructions(m)
     m
   }
 
@@ -173,6 +174,38 @@ class LowerPass
   def itablePtrName(vtableName: Symbol): Symbol = vtableName + "_itable_ptr"
   def itableSizeName(vtableName: Symbol): Symbol = vtableName + "_itable_size"
   val itableEntryStructName = symbolFromString("tungsten._itable_entry")
+
+  def convertInstructions(module: Module): Module = {
+    var m = module
+    for (b <- module.definitions.values.collect { case b: Block => b }) {
+      val oldInstructions = m.getInstructions(b.instructions)
+      val newInstructions = oldInstructions.flatMap(convertInstruction(_, m))
+      val newBlock = b.copy(instructions = newInstructions.map(_.name))
+      m = m.replace(newBlock).replace(newInstructions: _*)
+    }
+    m
+  }
+
+  def convertInstruction(instruction: Instruction, module: Module): List[Instruction] = {
+    instruction match {
+      case inst: NewInstruction => {
+        val classType = inst.ty.asInstanceOf[ClassType]
+        val className = classType.definitionName
+        val struct = module.getStruct(className)
+        val allocInst = HeapAllocateInstruction(inst.name, 
+                                                PointerType(StructType(className)),
+                                                inst.annotations)
+        val initInst = StaticCallInstruction(symbolFactory(inst.name.name :+ "_init"),
+                                             UnitType,
+                                             inst.constructorName,
+                                             classType.typeArguments ++ inst.typeArguments, 
+                                             allocInst.makeValue :: inst.arguments,
+                                             inst.annotations)
+        List(allocInst, initInst)
+      }
+      case _ => List(instruction)
+    }
+  }
 }
 
 object LowerPass

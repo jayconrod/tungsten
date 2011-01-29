@@ -1,7 +1,7 @@
 package tungsten
 
 trait CommandLine {
-  def parseArguments(args: Seq[String]): Either[(Map[String, String], List[String]), String] = {
+  def parseArguments(args: Seq[String]): Either[(Map[String, String], List[String], List[String]), String] = {
     val optionList = availableOptions
     val optionShortMap = (Map[Char, CommandLineOption]() /: optionList) { (optionMap, option) =>
       option.shortName match {
@@ -18,7 +18,7 @@ trait CommandLine {
           optionStr.startsWith("-") &&
           optionShortMap.contains(optionStr(1)))
         Some(optionShortMap(optionStr(1)))
-      else if (2 > optionStr.size &&
+      else if (2 < optionStr.size &&
                optionStr.startsWith("--") &&
                optionLongMap.contains(optionStr.drop(2)))
         Some(optionLongMap(optionStr.drop(2)))
@@ -34,48 +34,61 @@ trait CommandLine {
     }
 
     def parseNext(remainingArgs: List[String],
-                  options: Map[String, String],
-                  realArgs: List[String]): Either[(Map[String, String], List[String]), String] =
+                  optionValues: Map[String, String],
+                  options: List[String],
+                  realArgs: List[String]): Either[(Map[String, String], List[String], List[String]), String] =
     {
       remainingArgs match {
-        case Nil => Left((options, realArgs.reverse))
-        case "--" :: more => Left((options, (realArgs ++ more).reverse))
-        case arg :: more => {
+        case Nil => Left((optionValues, options.reverse, realArgs.reverse))
+        case "--" :: more => Left((optionValues, options.reverse, (realArgs ++ more).reverse))
+        case arg :: more if arg.size > 1 && arg.startsWith("-") => {
           getOption(arg) match {
-            case None => parseNext(more, options, arg :: realArgs)
+            case None => Right("invalid option: " + arg)
             case Some(option) => {
               if (option.requiresValue) {
                 more match {
-                  case Nil => Right("option %s requires an argument".format(arg))
+                  case Nil => 
+                    Right("option %s requires an argument".format(arg))
                   case optArg :: _ if !option.valueFilter(optArg) => 
                     Right("invalid argument for option %s".format(optArg))
-                  case optArg :: more =>
-                    parseNext(more, options + (option.longName -> optArg), realArgs)
+                  case optArg :: more => {
+                    parseNext(more, 
+                              optionValues + (option.longName -> optArg), 
+                              option.longName :: options,
+                              realArgs)
+                  }
                 }
-              } else
-                parseNext(more, options + (option.longName -> null), realArgs)
+              } else {
+                parseNext(more, 
+                          optionValues + (option.longName -> null), 
+                          option.longName :: options,
+                          realArgs)
+              }
             }
           }
         }
+        case arg :: more => parseNext(more, optionValues, options, arg :: realArgs)
       }
     }
 
-    parseNext(args.toList, Map(), Nil)
+    parseNext(args.toList, Map(), Nil, Nil)
   }
 
   def usage: String = {
     val optionDescriptions = availableOptions map { opt =>
       val shortNameStr = opt.shortName match {
         case None => ""
-        case Some(name) => name + ", "
+        case Some(name) => "-%s, ".format(name)
       }
       val valueStr = opt.valueName match {
         case None => ""
         case Some(valueName) => "=" + valueName
       }
-      "  %s%s%s %-40s\n".format(shortNameStr, opt.longName, valueStr, opt.valueName)
+      val optionStr = "%s--%s%s".format(shortNameStr, opt.longName, valueStr)
+      "  %-30s  %s".format(optionStr, opt.description)
     }
-    "%s\n\n%s\n".format(usageSynopsis, optionDescriptions)
+    val optionDescriptionStr = optionDescriptions.mkString("Available Options:\n", "\n", "\n")
+    usageSynopsis + "\n\n" + optionDescriptionStr
   }
 
   def usageSynopsis: String
@@ -85,12 +98,14 @@ trait CommandLine {
 
 trait CommandLineProgram extends CommandLine {
   private var _arguments: List[String] = null
-  private var _options: Map[String, String] = null
+  private var _optionValues: Map[String, String] = null
+  private var _options: List[String] = null
 
   def arguments = _arguments
+  def optionValues = _optionValues
   def options = _options
-  def hasOption(name: String) = _options.contains(name)
-  def getOption(name: String) = _options.get(name)
+  def hasOption(name: String) = _optionValues.contains(name)
+  def getOption(name: String) = _optionValues.get(name)
 
   def main(args: Array[String]) {
     parseArguments(args) match {
@@ -98,8 +113,9 @@ trait CommandLineProgram extends CommandLine {
         System.err.println(errorMessage)
         System.exit(Utilities.FAILURE_CODE)
       }
-      case Left((opts, args)) => {
+      case Left((vals, opts, args)) => {
         _arguments = args
+        _optionValues = vals
         _options = opts
       }
     }

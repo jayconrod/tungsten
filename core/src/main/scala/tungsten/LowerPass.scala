@@ -209,8 +209,12 @@ class LowerPass
 }
 
 object LowerPass
-  extends Function1[Module, Module]
+  extends Pass
 {
+  def name = "lower"
+
+  def description = "converts code using higher level features (classes, interfaces, type parameters) to a simpler form"
+
   def apply(module: Module) = {
     val pass = new LowerPass
     pass(module)

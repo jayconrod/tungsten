@@ -397,8 +397,8 @@ final case class InterfaceType(interfaceName: Symbol,
   with ObjectType
 {
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
-    module.validateName[Interface](interfaceName, location) ++
-      validateTypeArgumentCount(module, location)
+    stage(module.validateName[Interface](interfaceName, location),
+          validateTypeArgumentCount(module, location))
   }
 
   override def validate(module: Module, location: Location): List[CompileException] = {

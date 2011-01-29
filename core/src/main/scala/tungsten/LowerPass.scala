@@ -42,7 +42,7 @@ class LowerPass
     m = createIVTableGlobals(clas, ivtableMap, m)
     m = createITableGlobal(clas, ivtableMap, m)
     m = createVTableStruct(clas, m)
-    m = createVTableGlobal(clas, m)
+    m = createVTableGlobal(clas, ivtableMap.size, m)
     m = replaceClassWithStruct(clas, m)
     m
   }
@@ -65,17 +65,18 @@ class LowerPass
     }
     val itableType = module.getGlobal(itableGlobalName(clas.name)).ty
     val itableField = Field(itablePtrName(vtableName), PointerType(itableType))
-    val vtableFields = itableField :: methodFields
+    val itableSizeField = Field(itableSizeName(vtableName), IntType.wordType(module))
+    val vtableFields = itableField :: itableSizeField :: methodFields
     val vtableStruct = Struct(vtableName, vtableFields.map(_.name))
     module.add(vtableFields: _*).add(vtableStruct)
   }
 
-  def createVTableGlobal(clas: Class, module: Module): Module = {
+  def createVTableGlobal(clas: Class, itableSize: Int, module: Module): Module = {
+    val itableValues = createITableValuesForVTable(clas.name, itableSize, module)
     val methods = module.getFunctions(clas.methods)
     val methodValues = methods.map { m => DefinedValue(m.name, m.ty(module)) }
-    val itableType = module.getGlobal(itableGlobalName(clas.name)).ty
-    val itableValue = DefinedValue(itableGlobalName(clas.name), itableType)
-    val vtableValue = StructValue(vtableStructName(clas.name), itableValue :: methodValues)
+    val vtableValue = StructValue(vtableStructName(clas.name), 
+                                  itableValues ++ methodValues)
     val vtableGlobal = Global(vtableGlobalName(clas.name),
                               StructType(vtableStructName(clas.name)),
                               Some(vtableValue))
@@ -86,24 +87,40 @@ class LowerPass
                            ivtableMap: Map[Symbol, Either[List[Symbol], Symbol]],
                            module: Module): Module =
   {
+    val itableValues = createITableValuesForVTable(clas.name, ivtableMap.size, module)
     val realIVTables = ivtableMap.filter { kv => kv._2.isLeft }.mapValues(_.left.get)
     val ivtableGlobals = realIVTables.toList.map { p =>
       val (interfaceName, methodNames) = p
       val interface = module.getInterface(interfaceName)
       val methodTypes = module.getFunctions(interface.methods).map(_.ty(module))
       val methods = module.getFunctions(methodNames)
-      val ivtableFields = (methods zip methodTypes) map { p =>
+      val ivtableMethodValues = (methods zip methodTypes) map { p =>
         val (method, methodType) = p
         val methodValue = DefinedValue(method.name, method.ty(module))
         BitCastValue(methodValue, methodType)
       }
-      val ivtableValue = StructValue(vtableStructName(interfaceName), ivtableFields)
+      val ivtableValues = itableValues ++ ivtableMethodValues
+      val ivtableValue = StructValue(vtableStructName(interfaceName), ivtableValues)
       Global(ivtableGlobalName(clas.name, interfaceName),
                                StructType(vtableStructName(interfaceName)),
                                Some(ivtableValue))
     }
     module.add(ivtableGlobals: _*)
   }
+
+  def createITableValuesForVTable(className: Symbol, 
+                                  itableSize: Int, 
+                                  module: Module): List[Value] = 
+  {
+    val itableGlobalType = PointerType(ArrayType(itableSize, StructType(itableEntryStructName)))
+    val itableType = PointerType(StructType(itableEntryStructName))
+    val itableGlobalValue = DefinedValue(itableGlobalName(className), itableGlobalType)
+    val itableValue = BitCastValue(itableGlobalValue, itableType)
+
+    val itableSizeValue = IntValue(itableSize, IntType.wordSize(module))
+
+    List(itableValue, itableSizeValue)
+  }    
 
   def createITableEntryStruct(module: Module): Module = {
     val nameField = Field(itableEntryStructName + "interfaceName", StringType)
@@ -154,6 +171,7 @@ class LowerPass
 
   def itableGlobalName(className: Symbol): Symbol = className + "_itable"    
   def itablePtrName(vtableName: Symbol): Symbol = vtableName + "_itable_ptr"
+  def itableSizeName(vtableName: Symbol): Symbol = vtableName + "_itable_size"
   val itableEntryStructName = symbolFromString("tungsten._itable_entry")
 }
 

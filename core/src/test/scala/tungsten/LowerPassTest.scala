@@ -8,12 +8,6 @@ import Utilities._
 class LowerPassTest {
   val pass = new LowerPass
 
-  def testTransformation(expectedCode: String, module: Module, definitionNames: Symbol*) {
-    val expectedModule = compileString(expectedCode)
-    for (name <- definitionNames)
-      assertEquals(expectedModule.definitions(name), module.definitions(name))
-  }
-
   @Test
   def getIVTablesPrimary {
     val program = "class @R\n" +
@@ -113,6 +107,8 @@ class LowerPassTest {
     val ivtableMap = clas.getIVTables(module)
 
     val expectedIVTableGlobalCode = "global struct @J._vtable_type @C._ivtable.J = struct @J._vtable_type {\n" +
+                                    "  bitcast [2 x struct @tungsten._itable_entry]* @C._itable to struct @tungsten._itable_entry*,\n" +
+                                    "  int64 2,\n" +
                                     "  bitcast (class @C)->unit @C.f to (interface @I)->unit\n" +
                                     "}\n"
     val expectedIVTableGlobal = compileString(expectedIVTableGlobalCode).getGlobal("C._ivtable.J")
@@ -122,42 +118,57 @@ class LowerPassTest {
     assertFalse(moduleWithIVTables.definitions.contains("C._ivtable.I"))
   }
 
-  // @Test
-  // def createVtableStruct {
-  //   val program = "class @R { methods { %f, %g } }\n" +
-  //                 "function unit @R.f(class @R %this)\n" +
-  //                 "function unit @R.g(class @R %this)\n"
-  //   val module = compileString(program)
-  //   val clas = module.getClass("R")
-  //   val expected = "struct @R._vtable_type {\n" +
-  //                  "  field (class @R)->unit %f#0\n" +
-  //                  "  field (class @R)->unit %g#1\n" +
-  //                  "}\n"
-  //   testTransformation(expected, pass.createVtableStruct(clas, module),
-  //                      "R._vtable_type", "R._vtable_type.f#0", "R._vtable_type.g#1")
-  // }
+  @Test
+  def createVTableStruct {
+    val program = "class @R { methods { %f, %g } }\n" +
+                  "function unit @R.f(class @R %this)\n" +
+                  "function unit @R.g(class @R %this)\n"
+    var module = compileString(program)
+    val R = module.getClass("R")
+    val ivtableMap = R.getIVTables(module)
+    module = pass.createITableEntryStruct(module)
+    module = pass.createITableGlobal(R, ivtableMap, module)
+    
+    val expectedCode = "struct @R._vtable_type {\n" +
+                       "  field struct @tungsten._itable_entry* %_itable_ptr\n" +
+                       "  field int64 %_itable_size\n" +
+                       "  field (class @R)->unit %f#0\n" +
+                       "  field (class @R)->unit %g#1\n" +
+                       "}\n"
+    val expected = compileString(expectedCode).getStruct("R._vtable_type")
+    val vtableStruct = pass.createVTableStruct(R, module).getStruct("R._vtable_type")
+    assertEquals(expected, vtableStruct)
+  }
 
-  // @Test
-  // def createVtableGlobal {
-  //   val program = "class @R { methods { %f, %g } }\n" +
-  //                 "function unit @R.f(class @R %this)\n" +
-  //                 "function unit @R.g(class @R %this)\n"
-  //   val module = compileString(program)
-  //   val clas = module.getClass("R")
-  //   val expected = "global struct @R._vtable_type @R._vtable = \n" +
-  //                  "  struct @R._vtable_type { (class @R)->unit @R.f, (class @R)->unit @R.g }\n"
-  //   testTransformation(expected, pass.createVtableGlobal(clas, module), "R._vtable")
-  // }
+  @Test
+  def createVtableGlobal {
+    val program = "class @R { methods { %f, %g } }\n" +
+                  "function unit @R.f(class @R %this)\n" +
+                  "function unit @R.g(class @R %this)\n"
+    val module = compileString(program)
+    val R = module.getClass("R")
+    val expectedCode = "global struct @R._vtable_type @R._vtable = struct @R._vtable_type {\n" +
+                       "  bitcast [0 x struct @tungsten._itable_entry]* @R._itable to struct @tungsten._itable_entry*,\n" +
+                       "  int64 0,\n" +
+                       "  (class @R)->unit @R.f,\n" +
+                       "  (class @R)->unit @R.g\n" +
+                       "}\n"
+    val expected = compileString(expectedCode).getGlobal("R._vtable")
+    val vtableGlobal = pass.createVTableGlobal(R, 0, module).getGlobal("R._vtable")
+    assertEquals(expected, vtableGlobal)
+  }
 
   @Test
   def replaceClassWithStruct {
     val program = "class @R { field int64 %x }\n"
     val module = compileString(program)
-    val clas = module.getClass("R")
-    val expected = "struct @R {\n" +
-                   "  field struct @R._vtable_type* %_vtable_ptr\n" +
-                   "  field int64 %x\n" +
-                   "}\n"
-    testTransformation(expected, pass.replaceClassWithStruct(clas, module))
+    val R = module.getClass("R")
+    val expectedCode = "struct @R {\n" +
+                       "  field struct @R._vtable_type* %_vtable_ptr\n" +
+                       "  field int64 %x\n" +
+                       "}\n"
+    val expected = compileString(expectedCode).getStruct("R")
+    val Rstruct = pass.replaceClassWithStruct(R, module).getStruct("R")
+    assertEquals(expected, Rstruct)
   }
 }

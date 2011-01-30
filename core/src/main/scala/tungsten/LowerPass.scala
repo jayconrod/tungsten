@@ -25,13 +25,14 @@ class LowerPass
       m = convertInterface(i, m)
     for (c <- classes)
       m = convertClass(c, ivtableMaps(c.name), m)
+    for (i <- interfaces)
+      m = m.remove(i.name)
     m
   }
 
   def convertInterface(interface: Interface, module: Module): Module = {
     var m = module
     m = createVTableStruct(interface, module)
-    m = m.remove(interface.name)
     m
   }
 
@@ -56,15 +57,15 @@ class LowerPass
     module.add(vtableField).replace(struct)
   }
 
-  def createVTableStruct(clas: ObjectDefinition, module: Module): Module = {
-    val vtableName = vtableStructName(clas.name)
-    val methods = module.getFunctions(clas.methods)
+  def createVTableStruct(defn: ObjectDefinition, module: Module): Module = {
+    val vtableName = vtableStructName(defn.name)
+    val methods = module.getFunctions(defn.methods)
     val methodFields = ((0 until methods.size).toList zip methods) map { p =>
       val (methodIndex, method) = p
       val fieldName = vtableFieldName(vtableName, method.name, methodIndex)
       Field(fieldName, method.ty(module))
     }
-    val itableType = module.getGlobal(itableGlobalName(clas.name)).ty
+    val itableType = PointerType(StructType(itableEntryStructName))
     val itableField = Field(itablePtrName(vtableName), PointerType(itableType))
     val itableSizeField = Field(itableSizeName(vtableName), IntType.wordType(module))
     val vtableFields = itableField :: itableSizeField :: methodFields
@@ -196,37 +197,40 @@ class LowerPass
   def convertVCallInstruction(instruction: VirtualCallInstruction, 
                               module: Module): List[Instruction] = 
   {
-    val objectType = instruction.target.ty match {
+    val zero = IntValue(0, IntType.wordSize(module))
+    val targetType = instruction.target.ty match {
       case VariableType(typeParameterName) => {
         val typeParameter = module.getTypeParameter(typeParameterName)
         typeParameter.getUpperBoundType(module)
       }
-      case ty => ty
+      case ty: ObjectType => ty
+      case _ => throw new RuntimeException("unsupported type: " + instruction.target.ty)
+    }
+    val defnName = targetType.definitionName
+
+    val vtableInstName = symbolFactory(instruction.name + "_vtable")
+    val vtableType = PointerType(StructType(vtableStructName(defnName)))
+    val vtableInst = targetType match {
+      case _: ClassType => {
+        LoadElementInstruction(vtableInstName,
+                               vtableType,
+                               instruction.target,
+                               List(zero, zero),
+                               instruction.annotations)
+      }
+      case interfaceType: InterfaceType => {
+        // TODO: need to convert defnName to a string without quoting. This may require
+        // some mangling since symbols may contain special characters.
+        StaticCallInstruction(vtableInstName,
+                              vtableType,
+                              "tungsten.load_ivtable",
+                              Nil,
+                              List(instruction.target, StringValue(defnName.toString)),
+                              instruction.annotations)
+      }
     }
 
-    objectType match {
-      case classType: ClassType => 
-        convertVCallInstructionForClass(instruction, classType, module)
-      case interfaceType: InterfaceType =>
-        convertVCallInstructionForInterface(instruction, interfaceType, module)
-      case _ => throw new RuntimeException("invalid type: " + objectType)
-    }
-  }
-
-  def convertVCallInstructionForClass(instruction: VirtualCallInstruction,
-                                      classType: ClassType,
-                                      module: Module): List[Instruction] =
-  {
-    val zero = IntValue(0, IntType.wordSize(module))
-    val className = classType.definitionName
-
-    val vtableInst = LoadElementInstruction(symbolFactory(instruction.name + "_vtable"),
-                                            PointerType(StructType(vtableStructName(className))),
-                                            instruction.target,
-                                            List(zero, zero),
-                                            instruction.annotations)
-
-    val vtableStruct = module.getStruct(vtableStructName(className))
+    val vtableStruct = module.getStruct(vtableStructName(defnName))
     val fieldIndex = 2 + instruction.methodIndex
     val methodType = module.getField(vtableStruct.fields(2 + instruction.methodIndex)).ty
     val methodInst = LoadElementInstruction(symbolFactory(instruction.name + "_method"),
@@ -236,7 +240,7 @@ class LowerPass
                                                  IntValue(fieldIndex, IntType.wordSize(module))),
                                             instruction.annotations)
 
-    val typeArguments = classType.typeArguments ++ instruction.typeArguments
+    val typeArguments = targetType.typeArguments ++ instruction.typeArguments
     val callInst = PointerCallInstruction(instruction.name,
                                           instruction.ty,
                                           methodInst.makeValue,
@@ -244,13 +248,6 @@ class LowerPass
                                           instruction.target :: instruction.arguments,
                                           instruction.annotations)
     List(vtableInst, methodInst, callInst)
-  }
-
-  def convertVCallInstructionForInterface(instruction: VirtualCallInstruction,
-                                          interfaceType: InterfaceType,
-                                          module: Module): List[Instruction] =
-  {
-    throw new UnsupportedOperationException
   }
 
   def vtableStructName(className: Symbol): Symbol = className + "_vtable_type"

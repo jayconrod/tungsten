@@ -173,14 +173,26 @@ class LowerPassTest {
   }
 }
 
+
 class LowerPassInstructionConversionTest {
   val programTemplate = "class @R {\n" +
                         "  constructors { %ctor }\n" +
                         "  methods { %get }\n" +
                         "  field int64 %x\n" +
                         "}\n" +
+                        "interface @I <: class @R {\n" +
+                        "  methods { @R.get, %f }\n" +
+                        "}\n" +
+                        "class @C <: class @R {\n" +
+                        "  interface @I { @R.get, @I.f }\n" +
+                        "  constructors { %ctor }\n" +
+                        "  methods { @R.get, @I.f }\n" +
+                        "  field int64 %x\n" +
+                        "}\n" +
                         "function unit @R.ctor(class @R %this, int64 %x)\n" +
                         "function int64 @R.get(class @R %this)\n" +
+                        "function unit @I.f(interface @I %this)\n" +
+                        "function unit @C.ctor(class @C %this)\n" +
                         "function unit @f {\n" +
                         "  block %entry {\n"
   val pass = new LowerPass
@@ -224,6 +236,17 @@ class LowerPassInstructionConversionTest {
     val expectedCode = "struct @R._vtable_type* %x._vtable#1 = loadelement class @R %r, int64 0, int64 0\n" +
                        "(class @R)->int64 %x._method#2 = loadelement struct @R._vtable_type* %x._vtable#1, int64 0, int64 2\n" +
                        "int64 %x = pcall (class @R)->int64 %x._method#2(class @R %r)"
+    testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testVCallInterface {
+    val code = "interface @I %i = upcast null\n" +
+               "unit %x = vcall interface @I %i:1()"
+    val expectedCode = "interface @I %i = upcast null\n" +
+                       "struct @I._vtable_type* %x._vtable#1 = scall @tungsten.load_ivtable(interface @I %i, \"I\")\n" +
+                       "(interface @I)->unit %x._method#2 = loadelement struct @I._vtable_type* %x._vtable#1, int64 0, int64 3\n" +
+                       "unit %x = pcall (interface @I)->unit %x._method#2(interface @I %i)"
     testConversion(expectedCode, code)
   }
 }

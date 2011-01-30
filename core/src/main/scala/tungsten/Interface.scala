@@ -27,4 +27,11 @@ final case class Interface(name: Symbol,
   def selfType: ObjectType = {
     InterfaceType(name, typeParameters.map { t => VariableType(t) })
   }
+
+  def getParentClass(module: Module): Class = {
+    supertype.getDefinition(module) match {
+      case c: Class => c
+      case i: Interface => i.getParentClass(module)
+    }
+  }
 }

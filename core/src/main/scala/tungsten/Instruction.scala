@@ -97,6 +97,15 @@ abstract class ExtendedInstruction extends Instruction
  *  provided to validate the indices and type check.
  */
 trait ElementInstruction extends Instruction {
+  /** Returns a list of indices used for calculating the offset past the base pointer. Element
+   *  instructions always assume the base pointer points into an array, so the first index
+   *  is an element of this array (always 0 if there's just one object). The next index
+   *  refers to a field or element within the target. Structs and classes must be indexed with
+   *  literal integers. Arrays can be indexed with any integer value. The width of each index
+   *  must be the same as the word size for the module. There must be at least one index.
+   */
+  def indices: List[Value]
+
   /** Determines the type of the element being referenced by this instruction.
    *  @param baseType the type of the base value for this instruction. If the instruction
    *    deals with pointers, this is the base type of the pointer. If the instruction

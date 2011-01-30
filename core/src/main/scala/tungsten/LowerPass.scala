@@ -172,10 +172,21 @@ class LowerPass
 
   def convertInstruction(instruction: Instruction, module: Module): List[Instruction] = {
     instruction match {
+      case elemInst: ElementInstruction => convertElementInstruction(elemInst, module)
       case newInst: NewInstruction => convertNewInstruction(newInst, module)
       case vcallInst: VirtualCallInstruction => convertVCallInstruction(vcallInst, module)
       case _ => List(instruction)
     }
+  }
+
+  def convertElementInstruction(elemInst: ElementInstruction, module: Module): List[Instruction] = {
+    val newIndices = elemInst.indices match {
+      case i :: IntValue(fieldIndex, width) :: rest =>
+        i :: IntValue(fieldIndex + 1, width) :: rest
+      case indices => indices
+    }
+    val newInst = elemInst.copyWith(("indices" -> newIndices)).asInstanceOf[Instruction]
+    List(newInst)
   }
 
   def convertNewInstruction(instruction: NewInstruction, module: Module): List[Instruction] = {

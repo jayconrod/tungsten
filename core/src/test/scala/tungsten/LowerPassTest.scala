@@ -223,10 +223,31 @@ class LowerPassInstructionConversionTest {
   }
 
   @Test
+  def testAddress {
+    val code = "int64* %x = address class @R %r, int64 0, int64 0"
+    val expectedCode = "int64* %x = address class @R %r, int64 0, int64 1"
+    testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testLoadElement {
+    val code = "int64 %x = loadelement class @R %r, int64 0, int64 0"
+    val expectedCode = "int64 %x = loadelement class @R %r, int64 0, int64 1"
+    testConversion(expectedCode, code)
+  }
+
+  @Test
   def testNew {
     val code = "class @R %r = new @R.ctor(int64 2)"
     val expectedCode = "struct @R* %r = heap\n" +
                        "unit %r._init#1 = scall @R.ctor(struct @R* %r, int64 2)"
+    testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testStoreElement {
+    val code = "storeelement int64 42, class @R %r, int64 0, int64 0"
+    val expectedCode = "storeelement int64 42, class @R %r, int64 0, int64 1"
     testConversion(expectedCode, code)
   }
 

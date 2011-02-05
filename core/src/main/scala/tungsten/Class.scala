@@ -106,7 +106,7 @@ final case class Class(name: Symbol,
 
   def getSuperType: Option[ClassType] = superclass
 
-  def selfType: ObjectType = {
+  def selfType: ClassType = {
     ClassType(name, typeParameters.map { t => VariableType(t) })
   }
 

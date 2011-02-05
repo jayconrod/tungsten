@@ -775,7 +775,7 @@ final case class NewInstruction(name: Symbol,
     val classType = ty.asInstanceOf[ClassType]
     val ctorType = module.getFunction(constructorName).ty(module)
     val newType = ctorType.copy(returnType = classType)
-    val clas = classType.getDefinition(module)
+    val clas = module.getClass(classType.className)
     val thisValue = makeValue
 
     def validateAbstract = {
@@ -1039,29 +1039,22 @@ final case class VirtualCallInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateVirtualCall = {
-      if (!target.ty.isObject)
-        List(TypeMismatchException(ty, "object type", getLocation))
-      else {
-        val targetType = target.ty match {
-          case oty: ObjectType => oty
-          case VariableType(varName) => {
-            val typeParameter = module.getTypeParameter(varName)
-            typeParameter.getUpperBoundType(module)
-          }
-          case _ => throw new RuntimeException("must be object type!")
-        }
-        val fullTypeArguments = targetType.typeArguments ++ typeArguments
-        val definition = targetType.getDefinition(module)
-        definition.methods.lift(methodIndex) match {
-          case None => List(InvalidVirtualMethodIndexException(methodIndex, ty, getLocation))
-          case Some(methodName) => {
-            val method = module.getFunction(methodName)
-            val methodType = method.ty(module)
-            val methodTypeWithoutThis = methodType.copy(parameterTypes = methodType.parameterTypes.tail)
-            validateCall(module, method.name, methodTypeWithoutThis, 
-                         fullTypeArguments, arguments, ty)
+      target.ty match {
+        case targetType: ObjectType => {
+          val fullTypeArguments = targetType.typeArguments(module) ++ typeArguments
+          val definition = targetType.getObjectDefinition(module)
+          definition.methods.lift(methodIndex) match {
+            case None => List(InvalidVirtualMethodIndexException(methodIndex, ty, getLocation))
+            case Some(methodName) => {
+              val method = module.getFunction(methodName)
+              val methodType = method.ty(module)
+              val methodTypeWithoutThis = methodType.copy(parameterTypes = methodType.parameterTypes.tail)
+              validateCall(module, method.name, methodTypeWithoutThis, 
+                           fullTypeArguments, arguments, ty)
+            }
           }
         }
+        case _ => List(TypeMismatchException(ty, "object type", getLocation))
       }
     }
 

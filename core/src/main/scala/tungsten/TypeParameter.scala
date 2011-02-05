@@ -13,12 +13,8 @@ final case class TypeParameter(name: Symbol,
     def validateBound(bound: Option[Type], isUpper: Boolean) = {
       bound match {
         case None => Nil
-        case Some(ty) => {
-          if (ty.isInstanceOf[VariableType] || ty.isInstanceOf[ObjectType])
-            Nil
-          else
-            List(TypeParameterInvalidBoundException(name, isUpper, getLocation))
-        }
+        case Some(ty: ObjectType) => Nil
+        case Some(_) => List(TypeParameterInvalidBoundException(name, isUpper, getLocation))
       }
     }
 
@@ -47,14 +43,14 @@ final case class TypeParameter(name: Symbol,
       validateVariance
   }
 
-  def getUpperBoundType(module: Module): ObjectType = {
+  def getUpperBoundType(module: Module): ObjectDefinitionType = {
     upperBound match {
       case None => module.rootClassType
-      case Some(ty: ObjectType) => ty
       case Some(VariableType(varName)) => {
         val upperBoundParameter = module.getTypeParameter(varName)
         upperBoundParameter.getUpperBoundType(module)
       }
+      case Some(ty: ObjectDefinitionType) => ty
       case _ => throw new RuntimeException("invalid type parameter")
     }
   }

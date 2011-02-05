@@ -2,7 +2,7 @@ package tungsten
 
 final case class Interface(name: Symbol,
                            typeParameters: List[Symbol],
-                           supertype: ObjectType,
+                           supertype: ObjectDefinitionType,
                            interfaceTypes: List[InterfaceType],
                            interfaceMethods: List[List[Symbol]],
                            methods: List[Symbol],
@@ -22,14 +22,14 @@ final case class Interface(name: Symbol,
       validateParentNotFinal(module)
   }
 
-  def getSuperType: Option[ObjectType] = Some(supertype)
+  def getSuperType: Option[ObjectDefinitionType] = Some(supertype)
 
-  def selfType: ObjectType = {
+  def selfType: InterfaceType = {
     InterfaceType(name, typeParameters.map { t => VariableType(t) })
   }
 
   def getParentClass(module: Module): Class = {
-    supertype.getDefinition(module) match {
+    supertype.getObjectDefinition(module) match {
       case c: Class => c
       case i: Interface => i.getParentClass(module)
     }

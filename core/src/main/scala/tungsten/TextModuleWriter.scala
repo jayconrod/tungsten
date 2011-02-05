@@ -346,7 +346,7 @@ class TextModuleWriter(module: Module, output: Writer) {
         output.write(localValue(pointer))
       }
       case LoadElementInstruction(_, _, base, indices, _) => {
-        output.write(base + ", " + indices.map(localValue _).mkString(", "))
+        output.write(localValue(base) + ", " + indices.map(localValue _).mkString(", "))
       }
       case RelationalOperatorInstruction(_, _, operator, left, right, _) => {
         output.write(localValue(left) + " " + operator.name + " " + localValue(right))

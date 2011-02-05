@@ -11,6 +11,7 @@ class ElementInstructionTest {
   {
     def ty = UnitType
     def operands = Nil
+    def indices = Nil
     def name = Symbol("dummy")
     def annotations = Nil
   }

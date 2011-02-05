@@ -11,20 +11,20 @@ trait ObjectDefinition
     module.getTypeParameters(typeParameters)
   }
 
-  def getSuperType: Option[ObjectType]
+  def getSuperType: Option[ObjectDefinitionType]
   def getSuperDefn(module: Module): Option[ObjectDefinition] = {
-    getSuperType.map(_.getDefinition(module))
+    getSuperType.map(_.getObjectDefinition(module))
   }
   def interfaceTypes: List[InterfaceType]
   def interfaceMethods: List[List[Symbol]]
   def interfaceDefns(module: Module): List[ObjectDefinition] = {
-    interfaceTypes.map(_.getDefinition(module))
+    interfaceTypes.map(_.getObjectDefinition(module))
   }
   def methods: List[Symbol]
 
-  def selfType: ObjectType
+  def selfType: ObjectDefinitionType
 
-  def inheritedTypes: List[ObjectType] = {
+  def inheritedTypes: List[ObjectDefinitionType] = {
     getSuperType match {
       case Some(superType) => superType :: interfaceTypes
       case None => interfaceTypes
@@ -46,11 +46,11 @@ trait ObjectDefinition
     }
   }
 
-  def substitutedInheritedTypes(typeArguments: List[Type]): List[ObjectType] = {
+  def substitutedInheritedTypes(typeArguments: List[Type]): List[ObjectDefinitionType] = {
     inheritedTypes.map(substituteInheritedType(_, typeArguments))
   }
 
-  def getInheritedType(fromName: Symbol): ObjectType = {
+  def getInheritedType(fromName: Symbol): ObjectDefinitionType = {
     getSuperType match {
       case Some(t) if t.definitionName == fromName => t
       case _ => inheritedTypes.find(_.definitionName == fromName) match {
@@ -113,14 +113,14 @@ trait ObjectDefinition
       }
       (superIVTableMap /: (0 until interfaceTypes.size)) { (ivtableMap, interfaceIndex) =>
         val methodNames = interfaceMethods(interfaceIndex)
-        val interface = interfaceTypes(interfaceIndex).getDefinition(module)
+        val interface = interfaceTypes(interfaceIndex).getObjectDefinition(module)
         val interfaceIVTable = makeInterfaceIVTable(ivtableMethods, methodNames)
         interface.getIVTables(interfaceIVTable, None, ivtableMap, module)
       }
     }
   }
 
-  def validateInheritedMethods(parentType: ObjectType,
+  def validateInheritedMethods(parentType: ObjectDefinitionType,
                                methodNames: List[Symbol],
                                module: Module): List[CompileException] =
   {
@@ -223,9 +223,9 @@ trait ObjectDefinition
           validateMethodInheritance)
   }    
 
-  def getThisParameterTypeForMethod(method: Function, module: Module): Option[ObjectType] = {
+  def getThisParameterTypeForMethod(method: Function, module: Module): Option[ObjectDefinitionType] = {
     method.parameters.headOption.map(module.getParameter _) collect {
-      case Parameter(_, ty: ObjectType, _) => ty
+      case Parameter(_, ty: ObjectDefinitionType, _) => ty
     }
   }
 

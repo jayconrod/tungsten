@@ -210,11 +210,7 @@ class LowerPass
   {
     val zero = IntValue(0, IntType.wordSize(module))
     val targetType = instruction.target.ty match {
-      case VariableType(typeParameterName) => {
-        val typeParameter = module.getTypeParameter(typeParameterName)
-        typeParameter.getUpperBoundType(module)
-      }
-      case ty: ObjectType => ty
+      case ty: ObjectType => ty.getEffectiveType(module)
       case _ => throw new RuntimeException("unsupported type: " + instruction.target.ty)
     }
     val defnName = targetType.definitionName

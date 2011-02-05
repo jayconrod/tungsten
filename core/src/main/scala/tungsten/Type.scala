@@ -275,19 +275,19 @@ sealed trait ObjectType
 
   override def isObject = true
 
-  def definitionName: Symbol
-
-  def typeArguments: List[Type]
+  def typeArguments(module: Module): List[Type]
 
   def typeParameters(module: Module): List[TypeParameter] = {
-    getDefinition(module).getTypeParameters(module)
+    getObjectDefinition(module).getTypeParameters(module)
   }
 
   def supertype(module: Module): Option[ObjectType] = {
-    getDefinition(module).getSuperType
+    getObjectDefinition(module).getSuperType
   }
 
-  def getDefinition(module: Module): ObjectDefinition
+  def getObjectDefinition(module: Module): ObjectDefinition
+
+  def getEffectiveType(module: Module): ObjectDefinitionType
 
   override def isSubtypeOf(ty: Type, module: Module): Boolean = {
     ty match {
@@ -298,12 +298,12 @@ sealed trait ObjectType
           case None => false
         }
       }
-      case objTy: ObjectType => {
-        val defn = module.getObjectDefinition(definitionName)
-        if (definitionName == objTy.definitionName) {
+      case objTy: ObjectDefinitionType => {
+        val defn = getObjectDefinition(module)
+        if (defn.name == objTy.definitionName) {
           val tyParams = typeParameters(module)
-          val selfTyArgs = typeArguments
-          val otherTyArgs = objTy.typeArguments
+          val selfTyArgs = typeArguments(module)
+          val otherTyArgs = objTy.typeArguments(module)
           (tyParams zip (selfTyArgs zip otherTyArgs)) forall { pa =>
             val (tyParam, (selfTyArg, otherTyArg)) = pa
             tyParam.variance match {
@@ -313,20 +313,36 @@ sealed trait ObjectType
             }
           }
         } else {
-          val inheritedTypes = defn.substitutedInheritedTypes(typeArguments)
+          val inheritedTypes = defn.substitutedInheritedTypes(typeArguments(module))
           inheritedTypes.exists { _.isSubtypeOf(objTy, module) }
         }
       }
       case _ => false
     }
   }
+}
+
+sealed trait ObjectDefinitionType
+  extends ObjectType
+{
+  def definitionName: Symbol
+
+  def typeArguments: List[Type]
+
+  def typeArguments(module: Module): List[Type] = typeArguments
+
+  def getObjectDefinition(module: Module): ObjectDefinition = {
+    module.getObjectDefinition(definitionName)
+  }
+
+  def getEffectiveType(module: Module): ObjectDefinitionType = this
 
   def validateTypeArgumentCount(module: Module, 
                                 location: Location): List[CompileException] = 
   {
-    if (typeArguments.size != typeParameters(module).size) {
+    if (typeArguments(module).size != typeParameters(module).size) {
       List(TypeArgumentCountException(definitionName, 
-                                      typeArguments.size, 
+                                      typeArguments(module).size, 
                                       typeParameters(module).size,
                                       location))
     } else
@@ -334,7 +350,7 @@ sealed trait ObjectType
   }
 
   def validateTypeArguments(module: Module, location: Location): List[CompileException] = {
-    (typeArguments zip typeParameters(module)) flatMap { ap =>
+    (typeArguments(module) zip typeParameters(module)) flatMap { ap =>
       val (argument, parameter) = ap
       if (!parameter.isArgumentInBounds(argument, module))
         List(TypeArgumentBoundsException(argument, parameter, location))
@@ -351,7 +367,7 @@ sealed trait ObjectType
     val defn = module.getObjectDefinition(definitionName)
     val typeParameters = module.getTypeParameters(defn.typeParameters)
     val parameterVariances = typeParameters.map(_.variance)
-    (parameterVariances zip typeArguments) flatMap { case (parameterVariance, typeArgument) =>
+    (parameterVariances zip typeArguments(module)) flatMap { case (parameterVariance, typeArgument) =>
       val parameterPositionVariance = if (parameterVariance == CONTRAVARIANT)
         positionVariance.opposite
       else
@@ -364,7 +380,7 @@ sealed trait ObjectType
 final case class ClassType(className: Symbol,
                            typeArguments: List[Type] = Nil)
   extends Type
-  with ObjectType
+  with ObjectDefinitionType
 {
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     stage(module.validateName[Class](className, location),
@@ -380,21 +396,17 @@ final case class ClassType(className: Symbol,
     !clas.superclass.isDefined
   }
 
-  def definitionName = className
-
   override def expose(module: Module): ClassType = {
     ClassType(className, typeArguments.map(_.expose(module)))
   }
 
-  def getDefinition(module: Module): Class = {
-    module(className).asInstanceOf[Class]
-  }
+  def definitionName = className
 }
 
 final case class InterfaceType(interfaceName: Symbol,
                                typeArguments: List[Type] = Nil)
   extends Type
-  with ObjectType
+  with ObjectDefinitionType
 {
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     stage(module.validateName[Interface](interfaceName, location),
@@ -405,19 +417,16 @@ final case class InterfaceType(interfaceName: Symbol,
     validateTypeArguments(module, location)
   }
 
-  def definitionName = interfaceName
-
   override def expose(module: Module): InterfaceType = {
     InterfaceType(interfaceName, typeArguments.map(_.expose(module)))
   }
 
-  def getDefinition(module: Module): Interface = {
-    module(interfaceName).asInstanceOf[Interface]
-  }
+  def definitionName = interfaceName
 }
 
 final case class VariableType(variableName: Symbol)
   extends Type
+  with ObjectType
 {
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     module.validateName[TypeParameter](variableName, location)
@@ -437,13 +446,22 @@ final case class VariableType(variableName: Symbol)
       List(TypeParameterVarianceException(this, positionVariance, location))
   }
 
-  override def size(module: Module) = wordSize(module)
+  def typeArguments(module: Module): List[Type] = {
+    getUpperBoundType(module).typeArguments(module)
+  }
 
-  override def isNumeric = false
+  def getObjectDefinition(module: Module): ObjectDefinition = {
+    val typeParameter = module.getTypeParameter(variableName)
+    val upperBoundType = typeParameter.getUpperBoundType(module)
+    upperBoundType.getObjectDefinition(module)
+  }
 
-  override def isPointer = true
+  def getEffectiveType(module: Module): ObjectDefinitionType = getUpperBoundType(module)
 
-  override def isObject = true
+  def getUpperBoundType(module: Module): ObjectDefinitionType = {
+    val typeParameter = module.getTypeParameter(variableName)
+    typeParameter.getUpperBoundType(module)
+  }
 
   override def isSubtypeOf(ty: Type, module: Module): Boolean = {
     val tyParam = module.getTypeParameter(variableName)
@@ -454,7 +472,6 @@ final case class VariableType(variableName: Symbol)
   }
 
   override def expose(module: Module): ObjectType = {
-    val typeParameter = module.getTypeParameter(variableName)
-    typeParameter.getUpperBoundType(module)
+    getUpperBoundType(module)
   }
 }

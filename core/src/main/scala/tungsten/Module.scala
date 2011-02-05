@@ -330,7 +330,9 @@ final class Module(val name:         Symbol                      = Symbol("defau
       // Construct the inheritance graph
       val defns = definitions.values.collect { case d: ObjectDefinition => d }
       val adjacent = (Map[Symbol, Set[Symbol]]() /: defns) { case (adj, defn) =>
-        adj + (defn.name -> defn.inheritedTypes.toSet.map { t: ObjectType => t.definitionName })
+        adj + (defn.name -> defn.inheritedTypes.toSet.map { t: ObjectDefinitionType => 
+          t.definitionName
+        })
       }
       val inheritanceGraph = new Graph(defns.map(_.name), adjacent)
 
@@ -341,10 +343,10 @@ final class Module(val name:         Symbol                      = Symbol("defau
       def visit(defn: ObjectDefinition,
                 visited: Set[Symbol],
                 inheritedTypes: Map[(Symbol, Symbol), Set[ObjectType]],
-                typesFromParent: Set[ObjectType],
+                typesFromParent: Set[ObjectDefinitionType],
                 parent: Option[ObjectDefinition]): (Set[Symbol], Map[(Symbol, Symbol), Set[ObjectType]]) =
       {
-        val substitutedTypesFromParent: Set[ObjectType] = parent match {
+        val substitutedTypesFromParent: Set[ObjectDefinitionType] = parent match {
           case Some(parentDefn) => {
             val typeArguments = defn.getInheritedType(parentDefn.name).typeArguments
             typesFromParent.map { ty => 
@@ -381,7 +383,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
       val emptyVisited = Set[Symbol]()
       val emptyInheritedTypes = Map[(Symbol, Symbol), Set[ObjectType]]()
       val (_, inheritedTypes) = ((emptyVisited, emptyInheritedTypes) /: roots) { (ind, rootName) =>
-        val defn = get[ObjectDefinition](rootName).get
+        val defn = getObjectDefinition(rootName)
         val (visited, inheritedTypes) = ind
         visit(defn, visited, inheritedTypes, Set(), None)
       }

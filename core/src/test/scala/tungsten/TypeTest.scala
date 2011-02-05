@@ -11,7 +11,7 @@ class TypeTest {
     Class(name, Nil, Some(supertype), Nil, Nil, Nil, Nil, Nil)
   }
 
-  def makeInterface(name: Symbol, supertype: ObjectType): Interface = {
+  def makeInterface(name: Symbol, supertype: ObjectDefinitionType): Interface = {
     Interface(name, Nil, supertype, Nil, Nil, Nil, Nil)
   }
 

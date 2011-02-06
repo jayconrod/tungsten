@@ -224,14 +224,14 @@ class LowerPassInstructionConversionTest {
 
   @Test
   def testAddress {
-    val code = "int64* %x = address class @R %r, int64 0, int64 0"
+    val code = "int64* %x = address class @R %r, int64 0"
     val expectedCode = "int64* %x = address class @R %r, int64 0, int64 1"
     testConversion(expectedCode, code)
   }
 
   @Test
   def testLoadElement {
-    val code = "int64 %x = loadelement class @R %r, int64 0, int64 0"
+    val code = "int64 %x = loadelement class @R %r, int64 0"
     val expectedCode = "int64 %x = loadelement class @R %r, int64 0, int64 1"
     testConversion(expectedCode, code)
   }
@@ -246,9 +246,16 @@ class LowerPassInstructionConversionTest {
 
   @Test
   def testStoreElement {
-    val code = "storeelement int64 42, class @R %r, int64 0, int64 0"
+    val code = "storeelement int64 42, class @R %r, int64 0"
     val expectedCode = "storeelement int64 42, class @R %r, int64 0, int64 1"
     testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testNonClassElementPreserved {
+    val code = "[2 x int64]* %a = stack\n" +
+               "int64* %b = address [2 x int64]* %a, int64 0, int64 1"
+    testConversion(code, code)
   }
 
   @Test

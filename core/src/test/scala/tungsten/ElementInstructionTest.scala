@@ -7,9 +7,10 @@ import Utilities._
 class ElementInstructionTest {
   object dummy
     extends ExtendedInstruction
-    with ElementInstruction
+    with PointerElementInstruction
   {
     def ty = UnitType
+    def base = UnitValue
     def operands = Nil
     def indices = Nil
     def name = Symbol("dummy")

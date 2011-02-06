@@ -172,18 +172,21 @@ class LowerPass
 
   def convertInstruction(instruction: Instruction, module: Module): List[Instruction] = {
     instruction match {
-      case elemInst: ElementInstruction => convertElementInstruction(elemInst, module)
+      case ptrElemInst: PointerElementInstruction if ptrElemInst.base.ty.isInstanceOf[ClassType] =>
+        convertElementInstruction(ptrElemInst, module)
       case newInst: NewInstruction => convertNewInstruction(newInst, module)
       case vcallInst: VirtualCallInstruction => convertVCallInstruction(vcallInst, module)
       case _ => List(instruction)
     }
   }
 
-  def convertElementInstruction(elemInst: ElementInstruction, module: Module): List[Instruction] = {
+  def convertElementInstruction(elemInst: PointerElementInstruction, 
+                                module: Module): List[Instruction] = 
+  {
     val newIndices = elemInst.indices match {
-      case i :: IntValue(fieldIndex, width) :: rest =>
-        i :: IntValue(fieldIndex + 1, width) :: rest
-      case indices => indices
+      case IntValue(fieldIndex, width) :: rest =>
+        IntValue(0, width) :: IntValue(fieldIndex + 1, width) :: rest
+      case _ => throw new RuntimeException("invalid indices")
     }
     val newInst = elemInst.copyWith(("indices" -> newIndices)).asInstanceOf[Instruction]
     List(newInst)

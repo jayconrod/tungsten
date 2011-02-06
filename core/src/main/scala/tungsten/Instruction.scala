@@ -91,11 +91,7 @@ trait CallInstruction extends Instruction {
 
 abstract class ExtendedInstruction extends Instruction
 
-/** A trait for instructions which deal with values within aggregate values. An example is 
- *  AddressInstruction, which calculates the address of an element inside an aggregate. All
- *  Element instructions have a base address and a number of indices. Utility methods are 
- *  provided to validate the indices and type check.
- */
+/** A trait for instructions which deal with values within aggregate values. */
 trait ElementInstruction extends Instruction {
   /** Returns a list of indices used for calculating the offset past the base. */
   def indices: List[Value]
@@ -189,6 +185,14 @@ trait ElementInstruction extends Instruction {
     }
     check(baseType, indices, Nil)
   }
+}
+
+/* A trait for element instructions where the base is a pointer to an aggregate value */
+trait PointerElementInstruction
+  extends ElementInstruction
+{
+  /** Return the base pointer this instruction operates on */
+  def base: Value
 
   /** Like getElementType, but intended for instructions that deal with pointers or class
    *  references. If pointerType is a true PointerType, the first index is treated like
@@ -272,7 +276,7 @@ final case class AddressInstruction(name: Symbol,
                                     indices: List[Value],
                                     annotations: List[AnnotationValue] = Nil)
   extends Instruction 
-  with ElementInstruction
+  with PointerElementInstruction
 {
   def operands = base :: indices
 
@@ -759,7 +763,7 @@ final case class LoadElementInstruction(name: Symbol,
                                         base: Value,
                                         indices: List[Value],
                                         annotations: List[AnnotationValue] = Nil)
-  extends Instruction with ElementInstruction
+  extends Instruction with PointerElementInstruction
 {
   if (indices.isEmpty)
     throw new IllegalArgumentException
@@ -962,7 +966,7 @@ final case class StoreElementInstruction(name: Symbol,
                                          indices: List[Value],
                                          annotations: List[AnnotationValue] = Nil)
   extends Instruction
-  with ElementInstruction
+  with PointerElementInstruction
 {
   if (indices.isEmpty)
     throw new IllegalArgumentException

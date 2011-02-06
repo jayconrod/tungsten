@@ -16,10 +16,16 @@ class ElementInstructionTest {
     def annotations = Nil
   }
 
-  val module = ModuleIO.readText("is64bit: true\n" +
-                                 "struct @A { field [2 x int64] %a }\n")
+  val program = "is64bit: true\n" +
+                "struct @A { field [2 x int64] %a }\n" +
+                "class @R {\n" +
+                "  field int64 %x\n" +
+                "}\n"
+  val module = compileString(program)
+
   val baseType = StructType("A")
   val pointerType = PointerType(baseType)
+  val classType = ClassType("R")
 
   def containsError[T <: CompileException](errors: List[CompileException])(implicit m: Manifest[T]) {
     assertTrue(errors.exists(m.erasure.isInstance _))
@@ -36,6 +42,13 @@ class ElementInstructionTest {
   def getPointerType {
     val indices = List(IntValue(2, 64), IntValue(0, 64), IntValue(1, 64))
     val elementType = dummy.getPointerType(module, pointerType, indices)
+    assertEquals(PointerType(IntType(64)), elementType)
+  }
+
+  @Test
+  def getPointerTypeClass {
+    val indices = List(IntValue(0, 64))
+    val elementType = dummy.getPointerType(module, classType, indices)
     assertEquals(PointerType(IntType(64)), elementType)
   }
 
@@ -80,4 +93,29 @@ class ElementInstructionTest {
   def validatePointerIndicesNil {
     containsError[MissingElementIndexException](dummy.validatePointerIndices(module, pointerType, Nil))
   }
+
+  @Test
+  def validatePointerIndicesClassArray {
+    val indices = List(IntValue(0, 64), IntValue(0, 64))
+    containsError[InvalidIndexException](dummy.validatePointerIndices(module, classType, indices))
+  }
+
+  @Test
+  def validatePointerIndicesClassNonConstant {
+    val indices = List(DefinedValue("x", IntType(64)))
+    containsError[InvalidIndexException](dummy.validatePointerIndices(module, classType, indices))
+  }
+
+  @Test
+  def validatePointerIndicesClassNegative {
+    val indices = List(IntValue(-1, 64))
+    containsError[InvalidIndexException](dummy.validatePointerIndices(module, classType, indices))
+  }
+
+  @Test
+  def validatePointerIndicesClassTooBig {
+    val indices = List(IntValue(1, 64))
+    containsError[InvalidIndexException](dummy.validatePointerIndices(module, classType, indices))
+  }
 }
+

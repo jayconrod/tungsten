@@ -1302,7 +1302,7 @@ class ValidationTest {
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
-    programIsCorrect(program)
+    programContainsError[TypeMismatchException](program)
   }
 
   @Test
@@ -1330,5 +1330,33 @@ class ValidationTest {
   def bitCastValueSize {
     val program = "global int64 @g = bitcast int32 2 to int64"
     programContainsError[InvalidBitCastException](program)
+  }
+
+  @Test
+  def loadVariableType {
+    val program = "class @R {\n" +
+                  "  field int64 %x\n" +
+                  "}\n" +
+                  "function unit @f[type %T <: class @R](type %T %x) {\n" +
+                  "  block %entry {\n" +
+                  "    int64 %x = loadelement type @f.T @f.x, int64 0, int64 0\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def loadClassType {
+    val program = "class @R {\n" +
+                  "  field int64 %x\n" +
+                  "}\n" +
+                  "function unit @f(class @R %r) {\n" +
+                  "  block %entry {\n" +
+                  "    int64 %x = loadelement class @R @f.r, int64 0\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
   }
 }

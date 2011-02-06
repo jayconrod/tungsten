@@ -14,6 +14,7 @@ abstract sealed class Type
   def isNumeric: Boolean
   def isPointer: Boolean = false
   def isObject: Boolean = false
+  def isAddressable: Boolean = false
   def isSubtypeOf(ty: Type, module: Module): Boolean = ty == this
   def isRootClassType(module: Module): Boolean = false
   def substitute(fromName: Symbol, toType: Type): Type = {
@@ -132,6 +133,8 @@ final case class PointerType(elementType: Type)
   def isNumeric = false
 
   override def isPointer = true
+
+  override def isAddressable = true
 
   override def expose(module: Module): PointerType = {
     PointerType(elementType.expose(module))
@@ -395,6 +398,8 @@ final case class ClassType(className: Symbol,
     val clas = module.getClass(className)
     !clas.superclass.isDefined
   }
+
+  override def isAddressable = true
 
   override def expose(module: Module): ClassType = {
     ClassType(className, typeArguments.map(_.expose(module)))

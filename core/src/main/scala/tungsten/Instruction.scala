@@ -97,21 +97,18 @@ abstract class ExtendedInstruction extends Instruction
  *  provided to validate the indices and type check.
  */
 trait ElementInstruction extends Instruction {
-  /** Returns a list of indices used for calculating the offset past the base pointer. Element
-   *  instructions always assume the base pointer points into an array, so the first index
-   *  is an element of this array (always 0 if there's just one object). The next index
-   *  refers to a field or element within the target. Structs and classes must be indexed with
-   *  literal integers. Arrays can be indexed with any integer value. The width of each index
-   *  must be the same as the word size for the module. There must be at least one index.
-   */
+  /** Returns a list of indices used for calculating the offset past the base. */
   def indices: List[Value]
 
   /** Determines the type of the element being referenced by this instruction.
    *  @param baseType the type of the base value for this instruction. If the instruction
-   *    deals with pointers, this is the base type of the pointer. If the instruction
-   *    deals directly with aggregates, this is the type of the aggregate.
+   *    deals with PointerType, this is the base type of the pointer. If the instruction
+   *    deals directly with aggregates, this is the type of the aggregate. If the instruction
+   *    deals with ClassType, this is the type of the field the first index refers to (the
+   *    first index should be omitted)
    *  @param indices a list of index values. These have 32- or 64-bit integer type depending
-   *    on whether the module is 64-bit.
+   *    on whether the module is 64-bit. Literal integers (IntValue) are needed to index
+   *    StructType, but any integer can index ArrayType.
    */
   def getElementType(module: Module, baseType: Type, indices: List[Value]): Type = {
     indices match {
@@ -124,7 +121,7 @@ trait ElementInstruction extends Instruction {
             val wordSize = IntType.wordSize(module)
             i match {
               case IntValue(ix, wordSize) if 0 <= ix && ix < struct.fields.size => {
-                val field = module.getField(struct.fields(ix.asInstanceOf[Int]))
+                val field = module.getField(struct.fields(ix.toInt))
                 getElementType(module, field.ty, is)
               }
               case _ => throw new RuntimeException("non-integer index found; did you call validateIndices first?")
@@ -173,7 +170,7 @@ trait ElementInstruction extends Instruction {
               val wordSize = IntType.wordSize(module)
               i match {
                 case IntValue(ix, wordSize) if 0 <= ix && ix < numFields => {
-                  val field = module.getField(struct.fields(ix.asInstanceOf[Int]))
+                  val field = module.getField(struct.fields(ix.toInt))
                   check(field.ty, is, newErrors)
                 }
                 case _ => {
@@ -193,9 +190,12 @@ trait ElementInstruction extends Instruction {
     check(baseType, indices, Nil)
   }
 
-  /** Like getElementType, but intended for instructions that deal with pointers to aggregates.
-   *  The first index is treated like an array index, and the rest are treated normally.
-   *  @param pointerType the type of the base pointer value. This must be a non-null pointer.
+  /** Like getElementType, but intended for instructions that deal with pointers or class
+   *  references. If pointerType is a true PointerType, the first index is treated like
+   *  an array index; if that is the only index, you will get back the same type. If
+   *  pointerType is a ClassType, this does not apply since objects cannot be allocated
+   *  contiguously. The remaining indices are treated normally.
+   *  @param pointerType the type of the base pointer value. This must be an addressable pointer.
    *    Call validatePointerIndices first if you aren't sure.
    *  @param indices the indices to the element. These should be validated first by 
    *    validatePointerIndices.
@@ -203,33 +203,65 @@ trait ElementInstruction extends Instruction {
    */
   def getPointerType(module: Module, pointerType: Type, indices: List[Value]): PointerType = 
   {
-    (pointerType, indices) match {
-      case (PointerType(baseType), i :: is) => {
-        val elementType = getElementType(module, baseType, is)
-        PointerType(elementType)
+    indices match {
+      case i :: is => {
+        pointerType match {
+          case PointerType(baseType) => {
+            val elementType = getElementType(module, baseType, is)
+            PointerType(elementType)
+          }
+          case ClassType(className, typeArguments) => {
+            val clas = module.getClass(className)
+            val wordSize = IntType.wordSize(module)
+            i match {
+              case IntValue(ix, wordSize) if 0 <= ix && ix < clas.fields.size => {
+                val field = module.getField(clas.fields(ix.toInt))
+                val fieldType = field.ty.substitute(clas.typeParameters, typeArguments)
+                val elementType = getElementType(module, fieldType, is)
+                PointerType(elementType)
+              }
+              case _ => throw new RuntimeException("non-constant index; did you call validatePointerIndices?")
+            }
+          }
+          case _ => throw new RuntimeException("non-addressable pointer type; did you call validatePointerIndices?")
+        }
       }
-      case (PointerType(_), Nil) => throw new RuntimeException("invalid indices; did you call validatePointerIndices first")
-      case _ => throw new RuntimeException("invalidate pointer type; did you call validatePointerIndices first?")
+      case Nil => throw new RuntimeException("no indices; did you call validatePointerIndices?")
     }
   }
 
-  /** Like validateIndicies, but intended for instructions that deal with pointers to 
-   *  aggregates. The first index in these instructions is treated like an array index. 
-   *  The remaining indices are treated normally.
-   *  @param baseType the type of the base pointer value. This will usually be a pointer type.
-   *    an error will be returned if it is not.
+  /** Like validateIndicies, but intended for instructions that deal with pointers.
+   *  If pointerType is a PointerType, the first index in these instructions is treated like an
+   *  array index. If pointerType is a ClassType, this does not apply since objects cannot be
+   *  allocated contiguously. The remaining indices are treated normally.
+   *  @param baseType the type of the base pointer value. This should be an addressable pointer
+   *    type. An error will be returned if it is not.
    */
   def validatePointerIndices(module: Module, 
                              pointerType: Type,
                              indices: List[Value]): List[CompileException] =
   {
-    (pointerType, indices) match {
-      case (PointerType(baseType), i :: is) => {
-        checkType(i.ty, IntType.wordType(module), getLocation) ++ 
-          validateIndices(module, baseType, is)
+    indices match {
+      case Nil => List(MissingElementIndexException(getLocation))
+      case i :: is => {
+        val firstIndexErrors = checkType(i.ty, IntType.wordType(module), getLocation)
+        firstIndexErrors ++ (pointerType match {
+          case PointerType(baseType) => validateIndices(module, baseType, is)
+          case ClassType(className, typeArguments) => {
+            val wordSize = IntType.wordSize(module)
+            val clas = module.getClass(className)
+            i match {
+              case IntValue(ix, wordSize) if 0 <= ix && ix < clas.fields.size => {
+                val field = module.getField(clas.fields(ix.toInt))
+                val fieldType = field.ty.substitute(clas.typeParameters, typeArguments)
+                validateIndices(module, field.ty, is)
+              }
+              case _ => List(InvalidIndexException(i.toString, pointerType.toString, getLocation))
+            }
+          }
+          case _ => List(TypeMismatchException(pointerType.toString, "addressable pointer type", getLocation))
+        })
       }
-      case (PointerType(_), Nil) => List(MissingElementIndexException(getLocation))
-      case _ => List(TypeMismatchException(pointerType.toString, "pointer type", getLocation))
     }
   }
 }
@@ -1040,11 +1072,10 @@ final case class VirtualCallInstruction(name: Symbol,
   override def validate(module: Module) = {
     def validateVirtualCall = {
       target.ty match {
-        case targetType: ObjectType => {
-          val fullTypeArguments = targetType.typeArguments(module) ++ typeArguments
+        case targetType: ObjectDefinitionType=> {
+          val fullTypeArguments = targetType.typeArguments ++ typeArguments
           val definition = targetType.getObjectDefinition(module)
           definition.methods.lift(methodIndex) match {
-            case None => List(InvalidVirtualMethodIndexException(methodIndex, ty, getLocation))
             case Some(methodName) => {
               val method = module.getFunction(methodName)
               val methodType = method.ty(module)
@@ -1052,9 +1083,10 @@ final case class VirtualCallInstruction(name: Symbol,
               validateCall(module, method.name, methodTypeWithoutThis, 
                            fullTypeArguments, arguments, ty)
             }
+            case None => List(InvalidVirtualMethodIndexException(methodIndex, ty, getLocation))
           }
         }
-        case _ => List(TypeMismatchException(ty, "object type", getLocation))
+        case _ => List(TypeMismatchException(ty, "class or interface type", getLocation))
       }
     }
 

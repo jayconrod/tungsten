@@ -151,7 +151,7 @@ final case object NullType
   override def isPointer = true
 
   override def isSubtypeOf(ty: Type, module: Module) = {
-    ty == NullType || ty.isInstanceOf[PointerType]
+    ty == NullType || ty.isPointer
   }
 }
 

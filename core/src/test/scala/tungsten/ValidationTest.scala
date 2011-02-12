@@ -1359,4 +1359,16 @@ class ValidationTest {
                   "}\n"
     programIsCorrect(program)
   }
+
+  @Test
+  def nullCastToClass {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = upcast null\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programIsCorrect(program)
+  }
 }

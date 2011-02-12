@@ -11,6 +11,7 @@ class LowerPass
     var m = module
     m = convertClassesAndInterfaces(m)
     m = convertInstructions(m)
+    m = convertFunctions(m)
     m
   }
 
@@ -25,8 +26,6 @@ class LowerPass
       m = convertInterface(i, m)
     for (c <- classes)
       m = convertClass(c, ivtableMaps(c.name), m)
-    for (i <- interfaces)
-      m = m.remove(i.name)
     m
   }
 
@@ -45,16 +44,16 @@ class LowerPass
     m = createITableGlobal(clas, ivtableMap, m)
     m = createVTableStruct(clas, m)
     m = createVTableGlobal(clas, ivtableMap.size, m)
-    m = replaceClassWithStruct(clas, m)
+    m = createClassStruct(clas, m)
     m
   }
 
-  def replaceClassWithStruct(clas: Class, module: Module): Module = {
+  def createClassStruct(clas: Class, module: Module): Module = {
     val vtableField = Field(vtablePtrName(clas.name),
                             PointerType(StructType(vtableStructName(clas.name))))
     val structFieldNames = vtableField.name :: clas.fields
-    val struct = Struct(clas.name, structFieldNames)
-    module.add(vtableField).replace(struct)
+    val struct = Struct(classStructName(clas.name), structFieldNames)
+    module.add(vtableField, struct)
   }
 
   def createVTableStruct(defn: ObjectDefinition, module: Module): Module = {
@@ -159,6 +158,15 @@ class LowerPass
     module.add(itableGlobal)
   }
 
+  def convertFunctions(module: Module): Module = {
+    var m = module
+    for (f <- module.definitions.values.collect { case f: Function => f }) {
+      val convertedFunction = f.copyWith("typeParameters" -> Nil)
+      m = m.replace(convertedFunction)
+    }
+    m
+  }
+
   def convertInstructions(module: Module): Module = {
     var m = module
     for (b <- module.definitions.values.collect { case b: Block => b }) {
@@ -175,6 +183,8 @@ class LowerPass
       case ptrElemInst: PointerElementInstruction if ptrElemInst.base.ty.isInstanceOf[ClassType] =>
         convertElementInstruction(ptrElemInst, module)
       case newInst: NewInstruction => convertNewInstruction(newInst, module)
+      case pcallInst: PointerCallInstruction => convertPCallInstruction(pcallInst, module)
+      case scallInst: StaticCallInstruction => convertSCallInstruction(scallInst, module)
       case vcallInst: VirtualCallInstruction => convertVCallInstruction(vcallInst, module)
       case _ => List(instruction)
     }
@@ -195,11 +205,10 @@ class LowerPass
   def convertNewInstruction(instruction: NewInstruction, module: Module): List[Instruction] = {
     val classType = instruction.ty.asInstanceOf[ClassType]
     val className = classType.definitionName
-    val struct = module.getStruct(className)
     val allocInst = HeapAllocateInstruction(instruction.name, 
-                                            PointerType(StructType(className)),
+                                            PointerType(StructType(classStructName(className))),
                                             instruction.annotations)
-    val initInst = StaticCallInstruction(symbolFactory(instruction.name.name :+ "_init"),
+    val initInst = StaticCallInstruction(symbolFactory(instruction.name.name :+ "init$"),
                                          UnitType,
                                          instruction.constructorName,
                                          classType.typeArguments ++ instruction.typeArguments, 
@@ -208,19 +217,49 @@ class LowerPass
     List(allocInst, initInst)
   }
 
+  def convertPCallInstruction(instruction: PointerCallInstruction,
+                              module: Module): List[Instruction] =
+  {
+    val targetType = instruction.target.ty.asInstanceOf[FunctionType]
+    val (arguments, argCastInsts) = castCallArguments(instruction,
+                                                      targetType.parameterTypes,
+                                                      instruction.arguments,
+                                                      module)
+    val convertedInst = instruction.copyWith("typeArguments" -> Nil,
+                                             "arguments"     -> arguments)
+                                   .asInstanceOf[Instruction]
+    val returnInsts = castCallReturn(convertedInst, targetType.returnType, module)
+    argCastInsts ++ returnInsts
+  }
+
+  def convertSCallInstruction(instruction: StaticCallInstruction,
+                              module: Module): List[Instruction] =
+  {
+    val targetType = module.getFunction(instruction.target).ty(module)
+    val (arguments, argumentInsts) = castCallArguments(instruction,
+                                                       targetType.parameterTypes,
+                                                       instruction.arguments,
+                                                       module)
+    val convertedInst = instruction.copyWith(("typeArguments" -> Nil),
+                                             ("arguments"     -> arguments))
+                                   .asInstanceOf[Instruction]
+    val returnInsts = castCallReturn(convertedInst, targetType.returnType, module)
+    argumentInsts ++ returnInsts
+  }
+
   def convertVCallInstruction(instruction: VirtualCallInstruction, 
                               module: Module): List[Instruction] = 
   {
     val zero = IntValue(0, IntType.wordSize(module))
-    val targetType = instruction.target.ty match {
+    val objectType = instruction.target.ty match {
       case ty: ObjectType => ty.getEffectiveType(module)
       case _ => throw new RuntimeException("unsupported type: " + instruction.target.ty)
     }
-    val defnName = targetType.definitionName
+    val defnName = objectType.definitionName
 
-    val vtableInstName = symbolFactory(instruction.name + "_vtable")
+    val vtableInstName = symbolFactory(instruction.name + "vtable$")
     val vtableType = PointerType(StructType(vtableStructName(defnName)))
-    val vtableInst = targetType match {
+    val vtableInst = objectType match {
       case _: ClassType => {
         LoadElementInstruction(vtableInstName,
                                vtableType,
@@ -242,40 +281,93 @@ class LowerPass
 
     val vtableStruct = module.getStruct(vtableStructName(defnName))
     val fieldIndex = 2 + instruction.methodIndex
-    val methodType = module.getField(vtableStruct.fields(2 + instruction.methodIndex)).ty
-    val methodInst = LoadElementInstruction(symbolFactory(instruction.name + "_method"),
+    val methodType = module.getField(vtableStruct.fields(fieldIndex)).ty.asInstanceOf[FunctionType]
+    val methodInst = LoadElementInstruction(symbolFactory(instruction.name + "method$"),
                                             methodType,
                                             vtableInst.makeValue,
                                             List(zero, 
                                                  IntValue(fieldIndex, IntType.wordSize(module))),
                                             instruction.annotations)
 
-    val typeArguments = targetType.typeArguments ++ instruction.typeArguments
+    val (arguments, argCastInsts) = castCallArguments(instruction,
+                                                      methodType.parameterTypes,
+                                                      instruction.target :: instruction.arguments,
+                                                      module)
+
+    val typeArguments = objectType.typeArguments ++ instruction.typeArguments
     val callInst = PointerCallInstruction(instruction.name,
                                           instruction.ty,
                                           methodInst.makeValue,
-                                          typeArguments,
-                                          instruction.target :: instruction.arguments,
+                                          Nil,
+                                          arguments,
                                           instruction.annotations)
-    List(vtableInst, methodInst, callInst)
+
+    val retCastInsts = castCallReturn(callInst, methodType.returnType, module)
+
+    vtableInst :: methodInst :: (argCastInsts ++ retCastInsts)
   }
 
-  def vtableStructName(className: Symbol): Symbol = className + "_vtable_type"
-  def vtableGlobalName(className: Symbol): Symbol = className + "_vtable"
-  def vtablePtrName(className: Symbol): Symbol = className + "_vtable_ptr"
+  def castCallArguments(instruction: Instruction,
+                        parameterTypes: List[Type], 
+                        arguments: List[Value],
+                        module: Module): (List[Value], List[Instruction]) = 
+  {
+    def castNext(parameterTypes: List[Type],
+                 arguments: List[Value],
+                 castArguments: List[Value],
+                 castInstructions: List[Instruction]): (List[Value], List[Instruction]) =
+    {
+      (parameterTypes, arguments) match {
+        case (paramType :: pts, arg :: as) if paramType != arg.ty => {
+          val castInst = BitCastInstruction(symbolFactory(instruction.name + "cast$"),
+                                            paramType,
+                                            arg,
+                                            instruction.annotations)
+          castNext(pts, as, castInst.makeValue :: castArguments, castInst :: castInstructions)
+        }
+        case (_ :: pts, arg :: as) =>
+          castNext(pts, as, arg :: castArguments, castInstructions)
+        case (Nil, Nil) => (castArguments.reverse, castInstructions.reverse)
+        case _ => throw new RuntimeException("argument and parameter lists are different lengths")
+      }
+    }
+    castNext(parameterTypes, arguments, Nil, Nil)
+  }
+
+  def castCallReturn(callInst: Instruction,
+                     returnType: Type,
+                     module: Module): List[Instruction] = 
+  {
+    if (returnType == callInst.ty)
+      List(callInst)
+    else {
+      val origInst = callInst.copyWith("name" -> symbolFactory(callInst.name + "cast$"),
+                                       "ty" -> returnType)
+                             .asInstanceOf[Instruction]
+      val castInst = BitCastInstruction(callInst.name,
+                                        callInst.ty,
+                                        origInst.makeValue)
+      List(origInst, castInst)
+    }
+  }
+
+  def classStructName(className: Symbol): Symbol = className + "data$"
+  def vtableStructName(className: Symbol): Symbol = className + "vtable_type$"
+  def vtableGlobalName(className: Symbol): Symbol = className + "vtable$"
+  def vtablePtrName(className: Symbol): Symbol = classStructName(className) + "vtable_ptr$"
   def vtableFieldName(vtableName: Symbol, methodName: Symbol, methodIndex: Int): Symbol = {
     new Symbol(vtableName.name :+ methodName.name.last, methodIndex)
   }
 
   def ivtableGlobalName(className: Symbol, interfaceName: Symbol): Symbol = {
-    val fullName = className.name ++ ("_ivtable" :: interfaceName.name)
+    val fullName = className.name ++ ("ivtable$" :: interfaceName.name)
     new Symbol(fullName, className.id)
   }
 
-  def itableGlobalName(className: Symbol): Symbol = className + "_itable"    
-  def itablePtrName(vtableName: Symbol): Symbol = vtableName + "_itable_ptr"
-  def itableSizeName(vtableName: Symbol): Symbol = vtableName + "_itable_size"
-  val itableEntryStructName = symbolFromString("tungsten._itable_entry")
+  def itableGlobalName(className: Symbol): Symbol = className + "itable$"
+  def itablePtrName(vtableName: Symbol): Symbol = vtableName + "itable_ptr$"
+  def itableSizeName(vtableName: Symbol): Symbol = vtableName + "itable_size$"
+  val itableEntryStructName = symbolFromString("tungsten.itable_entry$")
 }
 
 object LowerPass

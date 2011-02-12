@@ -133,8 +133,10 @@ final class Module(val name:         Symbol                      = Symbol("defau
     val rootClasses = definitions.values.collect {
       case defn: Class if !defn.superclass.isDefined => defn
     }
-    if (rootClasses.size != 1)
-      throw new RuntimeException("there must be only one root class")
+    if (rootClasses.isEmpty)
+      throw new RuntimeException("no root class is defined!")
+    else if (rootClasses.size > 1)
+      throw new RuntimeException("multiple root classes are defined")
     else if (rootClasses.head.typeParameters.size > 0)
       throw new RuntimeException("root class must not be parameterized")
     else

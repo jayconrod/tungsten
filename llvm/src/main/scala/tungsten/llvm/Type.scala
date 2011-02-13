@@ -59,5 +59,5 @@ final case class NamedStructType(name: String)
 final case class FunctionType(returnType: Type, parameterTypes: List[Type])
   extends Type
 {
-  override def toString = returnType + parameterTypes.mkString(" (", ", ", ")")
+  override def toString = returnType + parameterTypes.mkString(" (", ", ", ")") + "*"
 }

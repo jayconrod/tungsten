@@ -160,6 +160,14 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         IntegerZeroExtendInstruction(localName, convertValue(value, parent), convertType(ty))
       case tungsten.LoadInstruction(_, _, address, _) =>
         LoadInstruction(localName, convertValue(address, parent), None)
+      case tungsten.PointerCallInstruction(_, ty, target, _, arguments, _) => {
+        val cReturnType = convertType(ty)
+        val cTarget = convertValue(target, parent)
+        val cArguments = arguments.map(convertValue(_, parent))
+        CallInstruction(localName, false, None, Set(), 
+                        cReturnType, None,
+                        cTarget, cArguments, Set())
+      }
       case tungsten.RelationalOperatorInstruction(_, _, op, left, right, _) => {
         import tungsten.RelationalOperator._
         import Comparison._
@@ -271,6 +279,11 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
           case _ => DefinedValue(localSymbol(name, parent), cTy)
         }
       }
+      case tungsten.BitCastValue(value, ty) => {
+        val cValue = convertValue(value, parent)
+        val cTy = convertType(ty)
+        BitCastValue(cValue, cTy)
+      }
       case WBitCastValue(value, ty) => {
         val cValue = convertValue(value, parent)
         val cTy = convertType(ty)
@@ -294,6 +307,11 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         val globalName = globalSymbol(structName)
         val localName = "%" + globalName.tail
         NamedStructType(localName)
+      }
+      case tungsten.FunctionType(returnType, _, parameterTypes) => {
+        val cReturnType = convertType(returnType)
+        val cParamTypes = parameterTypes.map(convertType _)
+        FunctionType(cReturnType, cParamTypes)
       }
       case _ => throw new UnsupportedOperationException
     }

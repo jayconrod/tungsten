@@ -375,6 +375,28 @@ final case class BinaryOperatorInstruction(name: Symbol,
   }
 }
 
+final case class BitCastInstruction(name: Symbol,
+                                    ty: Type,
+                                    value: Value,
+                                    annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = List(value)
+
+  override def validate(module: Module) = {
+    def validateCast = {
+      val valueSize = value.ty.size(module)
+      val tySize = ty.size(module)
+      if (valueSize != tySize)
+        List(InvalidBitCastException(value, valueSize, ty, tySize, getLocation))
+      else
+        Nil
+    }
+    stage(super.validate(module),
+          validateCast)
+  }
+}
+
 final case class BranchInstruction(name: Symbol, 
                                    ty: Type,
                                    target: Symbol,
@@ -402,28 +424,6 @@ final case class BranchInstruction(name: Symbol,
     val parameterTypes = parameters.map(_.ty)
     super.validate(module) ++ 
       validateCall(module, target, block.ty(module), Nil, arguments, ty)
-  }
-}
-
-final case class BitCastInstruction(name: Symbol,
-                                    ty: Type,
-                                    value: Value,
-                                    annotations: List[AnnotationValue] = Nil)
-  extends Instruction
-{
-  def operands = List(value)
-
-  override def validate(module: Module) = {
-    def validateCast = {
-      val valueSize = value.ty.size(module)
-      val tySize = ty.size(module)
-      if (valueSize != tySize)
-        List(InvalidBitCastException(value, valueSize, ty, tySize, getLocation))
-      else
-        Nil
-    }
-    stage(super.validate(module),
-          validateCast)
   }
 }
 
@@ -928,6 +928,61 @@ final case class ReturnInstruction(name: Symbol,
   }
 }
 
+final case class StackAllocateInstruction(name: Symbol,
+                                          ty: Type,
+                                          annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = Nil
+
+  override def validate(module: Module) = {
+    super.validate(module) ++ checkNonNullPointerType(ty, getLocation)
+  }
+}
+
+final case class StackAllocateArrayInstruction(name: Symbol,
+                                               ty: Type,
+                                               count: Value,
+                                               annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = List(count)
+
+  override def validate(module: Module) = {
+    super.validate(module) ++
+      checkType(count.ty, IntType.wordType(module), getLocation) ++
+      checkNonNullPointerType(ty, getLocation)
+  }
+}
+
+final case class StaticCallInstruction(name: Symbol,
+                                       ty: Type,
+                                       target: Symbol,
+                                       typeArguments: List[Type],
+                                       arguments: List[Value],
+                                       annotations: List[AnnotationValue] = Nil)
+  extends Instruction with CallInstruction
+{
+  def operands = arguments
+
+  override def usedSymbols = target :: operandSymbols
+
+  override def validateComponents(module: Module) = {
+    super.validateComponents(module) ++ 
+      validateComponentOfClass[Function](module, target)
+  }
+
+  override def validate(module: Module) = {
+    val targetType = module.getFunction(target).ty(module)
+    super.validate(module) ++ 
+      validateCall(module, target, targetType, typeArguments, arguments, ty)
+  }
+
+  private def targetName = target
+
+  private def targetType(module: Module) = module.getFunction(target).ty(module)
+}
+
 final case class StoreInstruction(name: Symbol,
                                   ty: Type,
                                   value: Value,
@@ -984,61 +1039,6 @@ final case class StoreElementInstruction(name: Symbol,
             validateType,
             checkType(UnitType, ty, getLocation))
   }
-}
-
-final case class StackAllocateInstruction(name: Symbol,
-                                          ty: Type,
-                                          annotations: List[AnnotationValue] = Nil)
-  extends Instruction
-{
-  def operands = Nil
-
-  override def validate(module: Module) = {
-    super.validate(module) ++ checkNonNullPointerType(ty, getLocation)
-  }
-}
-
-final case class StackAllocateArrayInstruction(name: Symbol,
-                                               ty: Type,
-                                               count: Value,
-                                               annotations: List[AnnotationValue] = Nil)
-  extends Instruction
-{
-  def operands = List(count)
-
-  override def validate(module: Module) = {
-    super.validate(module) ++
-      checkType(count.ty, IntType.wordType(module), getLocation) ++
-      checkNonNullPointerType(ty, getLocation)
-  }
-}
-
-final case class StaticCallInstruction(name: Symbol,
-                                       ty: Type,
-                                       target: Symbol,
-                                       typeArguments: List[Type],
-                                       arguments: List[Value],
-                                       annotations: List[AnnotationValue] = Nil)
-  extends Instruction with CallInstruction
-{
-  def operands = arguments
-
-  override def usedSymbols = target :: operandSymbols
-
-  override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      validateComponentOfClass[Function](module, target)
-  }
-
-  override def validate(module: Module) = {
-    val targetType = module.getFunction(target).ty(module)
-    super.validate(module) ++ 
-      validateCall(module, target, targetType, typeArguments, arguments, ty)
-  }
-
-  private def targetName = target
-
-  private def targetType(module: Module) = module.getFunction(target).ty(module)
 }
 
 final case class UpcastInstruction(name: Symbol,                

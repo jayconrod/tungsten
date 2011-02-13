@@ -21,7 +21,7 @@ class LlvmToTungstenConverterTest {
   @Test
   def emptyFunction {
     val function = Function("@empty", Set(), VoidType, Nil, Set(), Nil)
-    testConversion(tungsten.Function("empty", tungsten.UnitType, Nil, Nil),
+    testConversion(tungsten.Function("empty", tungsten.UnitType, Nil, Nil, Nil),
                    convertFunction(function))
   }
 

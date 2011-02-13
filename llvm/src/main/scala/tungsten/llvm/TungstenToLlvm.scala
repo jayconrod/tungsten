@@ -6,6 +6,8 @@ import tungsten.ModuleIO
 import tungsten.Utilities._
 
 object TungstenToLlvm extends Converter[tungsten.Module, Module] {
+  def usageSynopsis = "tungsten-to-llvm file1 file2..."
+
   def readSource(filename: String, input: InputStream): Option[tungsten.Module] = {
     val module = ModuleIO.readBinary(input)
     val errors = module.validate

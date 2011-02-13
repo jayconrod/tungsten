@@ -32,12 +32,14 @@ class LlvmCompatibilityPass
     val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
     val malloc = tungsten.Function("tungsten.malloc", 
                                    tungsten.PointerType(tungsten.IntType(8)), 
+                                   Nil,
                                    List(mallocParam.name), 
                                    Nil)
 
     val exitParam = tungsten.Parameter("tungsten.exit.code", tungsten.IntType(32))
     val exit = tungsten.Function("tungsten.exit", 
                                  tungsten.UnitType, 
+                                 Nil,
                                  List(exitParam.name),
                                  Nil,
                                  List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
@@ -176,6 +178,7 @@ class LlvmCompatibilityPass
         val malloc = tungsten.StaticCallInstruction(newName(name),
                                                     tungsten.PointerType(tungsten.IntType(8)),
                                                     "tungsten.malloc",
+                                                    Nil,
                                                     List(tungsten.IntValue(size, 32)))
         val cast = tungsten.BitCastInstruction(name,
                                                ty,
@@ -194,6 +197,7 @@ class LlvmCompatibilityPass
         val malloc = tungsten.StaticCallInstruction(newName(name),
                                                     tungsten.PointerType(tungsten.IntType(8)),
                                                     "tungsten.malloc",
+                                                    Nil,
                                                     List(totalSize.makeValue))
         val cast = tungsten.BitCastInstruction(name,
                                                ty,
@@ -213,7 +217,7 @@ class LlvmCompatibilityPass
           case EXIT => "tungsten.exit"
           case _ => throw new RuntimeException("Invalid intrinsic: " + intrinsic)
         }
-        List(tungsten.StaticCallInstruction(name, ty, cTarget, arguments, anns))
+        List(tungsten.StaticCallInstruction(name, ty, cTarget, Nil, arguments, anns))
       }
 
       case tungsten.LoadElementInstruction(name, ty, base, indices, anns) => {

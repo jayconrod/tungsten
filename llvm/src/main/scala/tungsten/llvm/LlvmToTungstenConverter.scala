@@ -39,6 +39,7 @@ class LlvmToTungstenConverter(val module: Module) {
     }
     val cFunction = tungsten.Function(cName, 
                                       cReturnType,
+                                      Nil,
                                       cParameters.map(_.name),
                                       cBlocks.map(_.name))
     cDefinitions += cFunction.name -> cFunction

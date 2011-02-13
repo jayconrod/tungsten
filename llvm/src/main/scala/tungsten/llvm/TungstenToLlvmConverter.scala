@@ -200,7 +200,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         val tungsten.PointerType(elementType) = ty
         AllocaArrayInstruction(localName, convertType(elementType), convertValue(count, parent))
       }        
-      case tungsten.StaticCallInstruction(_, ty, target, arguments, _) => {
+      case tungsten.StaticCallInstruction(_, ty, target, _, arguments, _) => {
         val function = module.getFunction(target)
         val cRetAttribs = convertParameterAttributes(function.annotations)
         val cReturnType = convertType(ty)

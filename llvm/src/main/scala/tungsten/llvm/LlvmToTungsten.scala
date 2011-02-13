@@ -5,6 +5,8 @@ import tungsten.ModuleIO
 import tungsten.Utilities._
 
 object LlvmToTungsten extends tungsten.Converter[Module, tungsten.Module] {
+  def usageSynopsis = "llvm-to-tungsten file1 file2..."
+
   def readSource(filename: String, input: InputStream): Option[Module] = {
     val text = readContentsOfFile(input)
     val reader = new Lexer.Scanner(text)

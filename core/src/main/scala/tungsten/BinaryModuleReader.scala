@@ -123,6 +123,9 @@ class BinaryModuleReader(input: DataInputStream) {
         BinaryOperatorInstruction(name, readType, readBinaryOperator, 
                                   readValue, readValue, readAnnotations)
       }
+      case BIT_CAST_INST_ID => {
+        BitCastInstruction(name, readType, readValue, readAnnotations)
+      }
       case BRANCH_INST_ID => {
         BranchInstruction(name, readType, symbol, readList(readValue), readAnnotations)
       }
@@ -205,7 +208,7 @@ class BinaryModuleReader(input: DataInputStream) {
         VirtualCallInstruction(name, readType, readValue, readInt, 
                                readList(readType), readList(readValue), readAnnotations)
       }
-      case _ => throw new IOException("Invalid definition ID")
+      case _ => throw new IOException("Invalid definition ID: " + id)
     }
   }
 

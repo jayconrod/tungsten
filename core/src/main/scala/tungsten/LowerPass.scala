@@ -12,6 +12,8 @@ class LowerPass
     m = convertClassesAndInterfaces(m)
     m = convertInstructions(m)
     m = convertFunctions(m)
+    m = substituteTypes(m)
+    m = removeDefinitions(m)
     m
   }
 
@@ -65,7 +67,7 @@ class LowerPass
       Field(fieldName, method.ty(module))
     }
     val itableType = PointerType(StructType(itableEntryStructName))
-    val itableField = Field(itablePtrName(vtableName), PointerType(itableType))
+    val itableField = Field(itablePtrName(vtableName), itableType)
     val itableSizeField = Field(itableSizeName(vtableName), IntType.wordType(module))
     val vtableFields = itableField :: itableSizeField :: methodFields
     val vtableStruct = Struct(vtableName, vtableFields.map(_.name))
@@ -350,6 +352,36 @@ class LowerPass
       List(origInst, castInst)
     }
   }
+
+  def substituteTypes(module: Module): Module = {
+    module.mapTypes(substituteType(_, module))
+  }
+
+  def substituteType(ty: Type, module: Module): Type = {
+    ty match {
+      case ClassType(className, _) => 
+        PointerType(StructType(classStructName(className)))
+      case InterfaceType(interfaceName, _) => {
+        val interfaceDefn = module.getInterface(interfaceName)
+        val classDefn = interfaceDefn.getParentClass(module)
+        PointerType(StructType(classStructName(classDefn.name)))
+      }
+      case vty: VariableType => 
+        substituteType(vty.getEffectiveType(module), module)
+      case FunctionType(returnType, _, parameterTypes) => 
+        FunctionType(returnType, Nil, parameterTypes)
+      case _ => ty
+    }
+  }
+
+  def removeDefinitions(module: Module): Module = {
+    val newDefinitions = module.definitions.filterNot { case (_, defn) =>
+      defn.isInstanceOf[Class]         ||
+      defn.isInstanceOf[Interface]     ||
+      defn.isInstanceOf[TypeParameter]
+    }
+    module.copyWith(definitions = newDefinitions)
+  }  
 
   def classStructName(className: Symbol): Symbol = className + "data$"
   def vtableStructName(className: Symbol): Symbol = className + "vtable_type$"

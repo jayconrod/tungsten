@@ -284,11 +284,6 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         val cTy = convertType(ty)
         BitCastValue(cValue, cTy)
       }
-      case WBitCastValue(value, ty) => {
-        val cValue = convertValue(value, parent)
-        val cTy = convertType(ty)
-        BitCastValue(cValue, cTy)
-      }
       case _ => throw new UnsupportedOperationException("cannot convert un-lowered value: " + value)
     }
   }

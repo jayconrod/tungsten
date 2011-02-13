@@ -124,7 +124,8 @@ class LlvmCompatibilityPass
         val storageType = tungsten.ArrayType(s.length, tungsten.IntType(16))
         val storageValue = tungsten.DefinedValue(stringMap(s), 
                                                  tungsten.PointerType(storageType))
-        val storagePtr = WBitCastValue(storageValue, tungsten.PointerType(tungsten.IntType(16)))
+        val storagePtr = tungsten.BitCastValue(storageValue, 
+                                               tungsten.PointerType(tungsten.IntType(16)))
         tungsten.StructValue("tungsten.string",
                              List(storagePtr, tungsten.IntValue(s.length, 64)))
       }
@@ -305,6 +306,3 @@ final case class TungstenPhiInstruction(name: Symbol,
 
   override def usedSymbols = operandSymbols ++ bindings.map(_._2)
 }
-
-final case class WBitCastValue(value: tungsten.Value, ty: tungsten.Type)
-  extends tungsten.ExtendedValue

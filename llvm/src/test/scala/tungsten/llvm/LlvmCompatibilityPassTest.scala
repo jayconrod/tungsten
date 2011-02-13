@@ -180,9 +180,9 @@ class LlvmCompatibilityPassTest {
     val value = tungsten.StringValue("s")
     val stringName = symbolFromString("llvmCompat#1")
     val stringMap = Map("s" -> stringName)
-    val charPtr = WBitCastValue(tungsten.DefinedValue(stringName,
-                                                      tungsten.PointerType(tungsten.ArrayType(1, tungsten.IntType(16)))),
-                                tungsten.PointerType(tungsten.IntType(16)))
+    val charPtr = tungsten.BitCastValue(tungsten.DefinedValue(stringName,
+                                                              tungsten.PointerType(tungsten.ArrayType(1, tungsten.IntType(16)))),
+                                        tungsten.PointerType(tungsten.IntType(16)))
     val expected = tungsten.StructValue("tungsten.string",
                                         List(charPtr, tungsten.IntValue(1, 64)))
     assertEquals(expected, pass.convertStringValue(value, stringMap))
@@ -198,9 +198,9 @@ class LlvmCompatibilityPassTest {
     val arrayType = tungsten.ArrayType(1, charType)
     val arrayValue = tungsten.ArrayValue(tungsten.IntType(16), List(tungsten.IntValue(115, 16)))
     val stringType = tungsten.StructType("tungsten.string")
-    val charsValue = WBitCastValue(tungsten.DefinedValue("llvmCompat#1",
-                                                         tungsten.PointerType(arrayType)),
-                                   tungsten.PointerType(charType))
+    val charsValue = tungsten.BitCastValue(tungsten.DefinedValue("llvmCompat#1",
+                                                                 tungsten.PointerType(arrayType)),
+                                           tungsten.PointerType(charType))
     val stringValue = tungsten.StructValue("tungsten.string",
                                            List(charsValue, tungsten.IntValue(1, 64)))
     val storageGlobal = tungsten.Global("llvmCompat#1", arrayType, Some(arrayValue))

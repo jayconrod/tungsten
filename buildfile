@@ -15,7 +15,7 @@ define 'tungsten' do
 
   define 'llvm' do
     package :jar
-    test.using :junit
+    test.using :junit, :fork => false, :clonevm => false
     compile.with project('tungsten:core')
   end
 end

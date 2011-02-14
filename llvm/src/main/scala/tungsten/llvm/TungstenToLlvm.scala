@@ -22,8 +22,10 @@ object TungstenToLlvm extends Converter[tungsten.Module, Module] {
 
   def writeTarget(module: Module, filename: String, output: OutputStream) {
     val writer = new OutputStreamWriter(output)
-    for (defn <- module.definitions.values)
-      writer.write(defn + "\n\n")
+    val definitions = module.definitions.values
+    definitions.filter(_.isInstanceOf[Struct]).foreach { d => writer.write(d + "\n\n") }
+    definitions.filter(_.isInstanceOf[Global]).foreach { d => writer.write(d + "\n\n") }
+    definitions.filter(_.isInstanceOf[Function]).foreach { d => writer.write(d + "\n\n") }
     writer.flush
   }
 

@@ -1,26 +1,34 @@
-Validation in Tungsten takes place in two stages: name validation and
-semantic validation.
+Stages in validation (in order)
+If an error is detected in any level of validation, the levels below it are not performed. This means that lower levels may assume invariants checked by higher levels.
 
-In the name validation, connections between different definitions are
-tested. This is necessary because definitions refer to each other by
-symbols. If a definition refers to another definition that doesn't
-exist, this generates an undefined symbol exception. If a definition
-refers to another definition inappropriately (such as a block which
-should contain instructions but contains fields), this generates an
-inappropriate symbol exception. During this stage, we may also check
-for empty component lists (for instance, a block must contain at least
-one instruction) and duplicate components. If types or values are
-included as part of a definition (for instance, in fields, globals, or
-parameters), they are validated at this time. 
+* Dependency validation
+This check makes sure that a module doesn't depend on another module more than once.
+* Component validation
+Verifies the basic structure of each definition and type. This mainly checks symbolic references between definitions. Each symbol must refer to a definition of the correct class. In cases where a definition references a list of other definitions (such as a block containing instructions), this will check whether the same definition is referenced more than once in a list.
+* Root class validation
+This verifies that there is at most one root class (a class which has no superclass) and that the root class is not parameterized.
+* Cycle validation
+** Struct cycle 
+Verifies that a struct does not contain a field (either directly or within another field) whose type is the same struct type. 
+** Inheritance cycle 
+Verifies that no class or interface descends from itself.
+** Type parameter cycle 
+Verifies that no type parameter is upper or lower bounded (directly orindirectly) by itself.
+** Illegal inheritance 
+Verifies that for every class or interface C:
+Let C' be the direct superclass of C
+For each inherited interface I:
+  Let I' be the superclass of I (direct or indirect)
+  C' descends from I'
+* Conflicting inheritance validation
+Verifies that for every class or interface C:
+For each inherited class or interface C':
+There is exactly one inherited type for C', even if C' is inherited multiple ways.
+* Type valiation
+* Value validation
+* Type parameter validation
+Type parameter definitions are validated first to simplify validation of other definitions. It is easier if we can assume type parameters are correct when checking classes and interfaces.
+* Other definition validation
+* Main function validation (programs only)
+This checks whether a "main" function is present and whether it has the correct type.
 
-If name validation succeeds, semantic validation will be performed.
-During semantic validation, we assume all symbols, types, and values
-are valid. This is where each definition checks whatever other
-invariants it expects. For instance, we would check that a function
-call has the correct number of arguments and that instructions occur
-in the right order. All type checking occurs in this stage.
-
-Two stage validation is necessary because definitions may refer to
-each other. Because we validate all references between definitions
-before validating more specific invariants, we can assume the validity
-of most components. This greatly simplifies semantic validation.

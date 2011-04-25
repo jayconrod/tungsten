@@ -145,6 +145,11 @@ final class Module(val name:         Symbol                      = Symbol("defau
 
   lazy val rootClassType: ClassType = ClassType(rootClass.name, Nil)
 
+  /** Performs a thorough check of invariants required by Tungsten and returns any
+   *  errors found. See design/validation.txt for a list of checks performed. Note that
+   *  some errors may prevent further checking, so the returned list of errors is not
+   *  guaranteed to be complete.
+   */
   def validate: List[CompileException] = {
     def validateDependencies = {
       def checkDuplicates(depNames: Set[Symbol],
@@ -192,8 +197,14 @@ final class Module(val name:         Symbol                      = Symbol("defau
       }
     }
 
+    def validateTypeParameters = {
+      val typeParameters = definitions.values.collect { case t: TypeParameter => t }
+      typeParameters.flatMap(_.validate(this)).toList
+    }
+
     def validateDefinitions = {
-      definitions.values.flatMap(_.validate(this)).toList
+      val otherDefns = definitions.values.collect { case d if !d.isInstanceOf[TypeParameter] => d }
+      otherDefns.flatMap(_.validate(this)).toList
     }
 
     def validateMain = {
@@ -405,6 +416,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
           validateConflictingInheritance,
           validateTypes,
           validateValues,
+          validateTypeParameters,
           validateDefinitions,
           validateMain)
   }

@@ -5,6 +5,8 @@ If an error is detected in any level of validation, the levels below it are not 
 This check makes sure that a module doesn't depend on another module more than once.
 * Component validation
 Verifies the basic structure of each definition and type. This mainly checks symbolic references between definitions. Each symbol must refer to a definition of the correct class. In cases where a definition references a list of other definitions (such as a block containing instructions), this will check whether the same definition is referenced more than once in a list.
+* Scope validation
+Verifies that non-global definitions are not used outside of the scope in which they are defined. For example type parameters can only be used in the function, class, or interface that defines them. Instructions can only be used as values by the block in which they are defined, and only AFTER they are defined.
 * Root class validation
 This verifies that there is at most one root class (a class which has no superclass) and that the root class is not parameterized.
 * Cycle validation

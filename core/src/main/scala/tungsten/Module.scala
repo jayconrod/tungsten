@@ -174,11 +174,23 @@ final class Module(val name:         Symbol                      = Symbol("defau
     def validateComponents = {
       definitions.values.toList.flatMap { defn =>
         val location = defn.getLocation
+        def validateTypeComponents(errors: List[CompileException], ty: Type) = {
+          ty.validateComponents(this, location) ++ errors
+        }
+        def validateValueComponents(errors: List[CompileException], value: Value) = {
+          value.validateComponents(this, location) ++ errors
+        }
+
         defn.validateComponents(this) ++
-          defn.foldTypes[List[CompileException]](Nil, { (errors, ty) => 
-            ty.validateComponents(this, location) ++ errors 
-          })
+          defn.foldTypes[List[CompileException]](Nil, validateTypeComponents _) ++
+          defn.foldValues[List[CompileException]](Nil, validateValueComponents _)
       }
+    }
+
+    def validateScope = {
+      val globalDefns = definitions.values.filter(_.isGlobal)
+      val globalScope = globalDefns.map(_.name).toSet
+      globalDefns.toList.flatMap(_.validateScope(this, globalScope))
     }
 
     def validateTypes = {
@@ -408,6 +420,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
 
     stage(validateDependencies,
           validateComponents,
+          validateScope,
           validateRootClass,
           validateStructCycles ++ 
             validateInheritanceCycles ++ 

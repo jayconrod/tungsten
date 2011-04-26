@@ -8,6 +8,8 @@ final case class Global(name: Symbol,
                         annotations: List[AnnotationValue] = Nil)
   extends Definition
 {
+  override def isGlobal = true
+
   def ty(module: Module): Type = ty
 
   override def validate(module: Module) = {

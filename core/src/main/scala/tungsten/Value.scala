@@ -7,6 +7,8 @@ sealed abstract class Value
 {
   def ty: Type
 
+  def validateComponents(module: Module, location: Location): List[CompileException] = Nil
+
   def validate(module: Module, location: Location): List[CompileException] = Nil
 }
 
@@ -90,6 +92,10 @@ final case class StructValue(structName: Symbol,
 {
   def ty = StructType(structName)
 
+  override def validateComponents(module: Module, location: Location): List[CompileException] = {
+    module.validateName[Struct](structName, location)
+  }
+
   override def validate(module: Module, location: Location): List[CompileException] = {
     def validateFieldCount = {
       val struct = module.getStruct(structName)
@@ -109,8 +115,7 @@ final case class StructValue(structName: Symbol,
     }
 
     fields.flatMap(_.validate(module, location)) ++
-      stage(module.validateName[Struct](structName, location),
-            validateFieldCount,
+      stage(validateFieldCount,
             validateFieldTypes)
   }
 }
@@ -118,7 +123,7 @@ final case class StructValue(structName: Symbol,
 final case class DefinedValue(value: Symbol, ty: Type)
   extends Value
 {
-  override def validate(module: Module, location: Location) = {
+  override def validateComponents(module: Module, location: Location) = {
     module.getDefn(value) match {
       case Some(_: Function)  | 
            Some(_: Global)    | 

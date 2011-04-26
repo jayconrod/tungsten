@@ -10,11 +10,18 @@ final case class Interface(name: Symbol,
   extends Definition
   with ObjectDefinition
 {
+  override def isGlobal = true
+
   override def validateComponents(module: Module): List[CompileException] = {
     super.validateComponents(module) ++
       validateComponentsOfClass[TypeParameter](module, typeParameters) ++
       interfaceMethods.flatMap(validateComponentsOfClass[Function](module, _)) ++
       validateComponentsOfClass[Function](module, methods)
+  }
+
+  override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
+    validateTypeAndValueScope(scope) ++
+      validateComponentsScope(module, scope ++ typeParameters, typeParameters)
   }
 
   override def validate(module: Module): List[CompileException] = {

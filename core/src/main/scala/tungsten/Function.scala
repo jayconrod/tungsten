@@ -10,6 +10,8 @@ final case class Function(name: Symbol,
                           annotations: List[AnnotationValue] = Nil)
   extends Definition
 {
+  override def isGlobal = true
+
   def ty(module: Module): FunctionType = {
     FunctionType(returnType, 
                  typeParameters,
@@ -23,6 +25,13 @@ final case class Function(name: Symbol,
       validateComponentsOfClass[TypeParameter](module, typeParameters) ++
       validateComponentsOfClass[Parameter](module, parameters) ++
       validateComponentsOfClass[Block](module, blocks)
+  }
+
+  override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
+    val tpErrors = validateComponentsScope(module, scope, typeParameters)
+    validateTypeAndValueScope(scope ++ typeParameters) ++
+      validateComponentsScope(module, scope ++ typeParameters, parameters) ++
+      validateComponentsScope(module, scope ++ typeParameters ++ parameters ++ blocks, blocks)
   }
 
   override def validate(module: Module) = {
@@ -82,34 +91,6 @@ final case class Function(name: Symbol,
       }
     }
 
-    def validateInstructionOrder = {
-      def checkOrder(insts: List[Instruction],
-                     validNames: Set[Symbol],
-                     errors: List[CompileException]): List[CompileException] =
-      {
-        insts match {
-          case Nil => errors
-          case i :: is => {
-            val instNames = i.operandSymbols.toSet
-            val invalidNames = instNames &~ validNames
-            val newErrors = invalidNames.toList.map(InstructionOrderException(_, i.getLocation))
-            checkOrder(is, validNames + i.name, newErrors ++ errors)
-          }
-        }
-      }
-      val globalNames = module.definitions.values.collect {
-        case defn @ (_: Function | _: Global) => defn.name
-      }.toSet
-
-      def checkBlock(blockName: Symbol) = {
-        val block = module.getBlock(blockName)
-        val validNames = (parameters ++ block.parameters).toSet union globalNames
-        val insts = module.getInstructions(block.instructions)
-        checkOrder(insts, validNames, Nil)
-      }
-      blocks.flatMap(checkBlock _)
-    }
-
     def validateVariance = {
       val parameterTypes = module.getParameters(parameters).map(_.ty)
       returnType.validateVariance(Variance.COVARIANT, module, getLocation) ++
@@ -127,7 +108,6 @@ final case class Function(name: Symbol,
 
     stage(super.validate(module),
           validateEntryParameters,
-          validateInstructionOrder,
           validateBranches,
           validateReturnType,
           validateVariance,

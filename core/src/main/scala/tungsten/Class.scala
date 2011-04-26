@@ -14,6 +14,8 @@ final case class Class(name: Symbol,
   extends Definition
   with ObjectDefinition
 {
+  override def isGlobal = true
+
   override def validateComponents(module: Module): List[CompileException] = {
     super.validateComponents(module) ++
       validateComponentsOfClass[TypeParameter](module, typeParameters) ++
@@ -21,6 +23,13 @@ final case class Class(name: Symbol,
       validateComponentsOfClass[Function](module, constructors) ++
       validateComponentsOfClass[Function](module, methods) ++
       validateComponentsOfClass[Field](module, fields)
+  }
+
+  override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
+    val tpScope = scope ++ typeParameters
+    validateTypeAndValueScope(scope) ++
+      validateComponentsScope(module, tpScope, typeParameters) ++
+      validateComponentsScope(module, tpScope, fields)
   }
 
   override def validate(module: Module): List[CompileException] = {

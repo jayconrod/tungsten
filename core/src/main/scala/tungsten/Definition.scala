@@ -7,6 +7,8 @@ abstract class Definition
 {
   def name: Symbol
 
+  def isGlobal: Boolean = false
+
   def annotations: List[AnnotationValue]
 
   def hasAnnotation(annotationName: Symbol): Boolean = {
@@ -36,6 +38,10 @@ abstract class Definition
 
   def validateComponents(module: Module): List[CompileException] = {
     validateComponentsOfClass[Annotation](module, annotations.map(_.name))
+  }
+
+  def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
+    validateTypeAndValueScope(scope)
   }
 
   def validate(module: Module): List[CompileException] = {
@@ -103,5 +109,42 @@ abstract class Definition
       List(EmptyComponentsException(name, className, getLocation))
     else
       validateComponentsOfClass[T](module, componentNames)
+  }
+
+  protected def validateComponentScope(module: Module, 
+                                       scope: Set[Symbol], 
+                                       symbol: Symbol): List[CompileException] =
+  {
+    module.definitions(symbol).validateScope(module, scope)
+  }
+
+  protected def validateComponentsScope(module: Module,
+                                        scope: Set[Symbol],
+                                        symbols: Traversable[Symbol]): List[CompileException] =
+  {
+    symbols.flatMap { symbol => validateComponentScope(module, scope, symbol) }.toList
+  }
+
+  protected def validateSymbolScope(errors: List[CompileException], 
+                                    symbol: Symbol, 
+                                    scope: Set[Symbol]): List[CompileException] = 
+  {
+    if (!scope(symbol)) {
+      ScopeException(symbol, name, getLocation) :: errors
+    } else
+      errors
+  }
+
+  protected def validateTypeAndValueScope(scope: Set[Symbol]) = {
+    def checkSymbol(errors: List[CompileException], symbol: Symbol) = 
+      validateSymbolScope(errors, symbol, scope)
+
+    def checkType(errors: List[CompileException], ty: Type) =
+      ty.foldSymbols(errors, checkSymbol)
+
+    def checkValue(errors: List[CompileException], value: Value) =
+      value.foldSymbols(errors, checkSymbol)
+
+    foldTypes(Nil, checkType) ++ foldValues(Nil, checkValue)
   }
 }

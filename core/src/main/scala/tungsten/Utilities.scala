@@ -168,6 +168,13 @@ object Utilities {
     if (!a.isEmpty) a else stage(b, c, d, e, f, g, h, i, j)
   }
 
+  def stage[T](a: List[T], b: => List[T], c: => List[T], d: => List[T],
+               e: => List[T], f: => List[T], g: => List[T], h: => List[T],
+               i: => List[T], j: => List[T], k: => List[T]): List[T] =
+  {
+    if (!a.isEmpty) a else stage(b, c, d, e, f, g, h, i, j, k)
+  }
+
   implicit def symbolFromString(string: String) = {
     Lexer.test(string, Lexer.generalSymbol(true))
   }

@@ -154,13 +154,6 @@ class ValidationTest {
   }
 
   @Test
-  def useOutOfOrder {
-    val code = "int64 %a = binop int64 1 + int64 %b\n" +
-               "int64 %b = binop int64 2 + int64 3\n"
-    codeContainsError[InstructionOrderException](code)
-  }
-
-  @Test
   def relopMismatch {
     val code = "boolean %a = relop int32 12 == ()"
     codeContainsError[TypeMismatchException](code)
@@ -1370,5 +1363,57 @@ class ValidationTest {
                   "  }\n" +
                   "}\n"
     programIsCorrect(program)
+  }
+
+  @Test
+  def instructionScope {
+    val program = "function int64 @f {\n" +
+                  "  block %entry {\n" +
+                  "    return int64 @f.a.x\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    int64 %x = binop int64 1 + int64 2\n" +
+                  "    return int64 %x\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[ScopeException](program)
+  }
+
+  @Test
+  def instructionOrder {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    int64 %a = binop int64 1 + int64 %b\n" +
+                  "    int64 %b = binop int64 2 + int64 3\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[ScopeException](program)
+  }
+
+  @Test
+  def validateAnnotationScope {
+    val program = "annotation @A(type @T %x)\n" +
+                  "class @R\n" + 
+                  "function unit @f[type @T]\n"
+    programContainsError[ScopeException](program)
+  }
+
+  @Test
+  def validateStructScope {
+    val program = "struct @S {\n" +
+                  "  field type @T %x\n" +
+                  "}\n" +
+                  "class @R\n" +
+                  "function unit @f[type @T]\n"
+    programContainsError[ScopeException](program)
+  }
+
+  @Test
+  def validateGlobalScope {
+    val program = "global type @T @g\n" +
+                  "class @R\n" +
+                  "function unit @f[type @T]\n"
+    programContainsError[ScopeException](program)
   }
 }

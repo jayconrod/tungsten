@@ -181,12 +181,6 @@ final case class InheritanceConflictException(definitionName: Symbol,
                              format(definitionName, inheritedInterfaceName),
                            location)                           
 
-final case class InstructionOrderException(symbol: Symbol,
-                                           location: Location)
-  extends CompileException("the symbol " + symbol + 
-                             " is not valid at the point where it is used",
-                           location)
-
 final case class IntegerRangeException(value: Long, width: Int, location: Location)
   extends CompileException("the integer %d cannot be stored in %d bits".format(value, width),
                            location)
@@ -316,6 +310,13 @@ final case class RedefinedSymbolException(symbol: Symbol,
                                           oldLocation: Location)
   extends CompileException(symbol.toString + " was redefined; original definition was at " + 
                              oldLocation,
+                           location)
+
+final case class ScopeException(symbol: Symbol, 
+                                parent: Symbol,
+                                location: Location)
+  extends CompileException("%s is not valid at the point where it is used in %s".
+                             format(symbol, parent),
                            location)
 
 final case class TypeArgumentBoundsException(argument: Type, 

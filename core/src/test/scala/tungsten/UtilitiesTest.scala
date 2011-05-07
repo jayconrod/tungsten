@@ -42,4 +42,11 @@ class UtilitiesTest {
     assertEquals(new Version(List(0, 1, 2)), parseVersion("0.1.2"))
     assertEquals(new Version(List(34, 45)), parseVersion("34.45"))
   }
+
+  @Test
+  def stagedValidation {
+    def f(x: Int) = if (x > 0) List(1, 2, 3) else throw new RuntimeException("stage failed")
+    stage(f(1), f(-1))
+    ()
+  }
 }

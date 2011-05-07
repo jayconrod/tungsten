@@ -118,6 +118,8 @@ object Utilities {
     buffer.toString 
   }    
 
+  implicit def listToStagedList[T](list: List[T]): StagedList[T] = new StagedList(list)
+
   def stage[T](a: List[T], b: => List[T]): List[T] = {
     if (!a.isEmpty) a else b
   }
@@ -196,4 +198,10 @@ object Utilities {
   }
 
   def wordSize(module: Module) = if (module.is64Bit) 8 else 4
+}
+
+class StagedList[T](left: List[T]) {
+  def ++?[S >: T](right: => List[S]): List[S] = {
+    if (left.isEmpty) right else left
+  }
 }

@@ -2,13 +2,22 @@ package tungsten
 
 import collection.immutable.TreeMap
 import org.junit.Test
-import org.junit.Ignore
 import org.junit.Assert._
 import Utilities._
 
 class ClassValidationTest
   extends ValidationTest
 {
+  @Test
+  def cyclicClassSelfInheritance {
+    val program = "class @R\n" +
+                  "interface @I <: class @R\n" +
+                  "class @A <: class @A {\n" +
+                  "  interface @I\n" +
+                  "}\n"
+    programContainsError[CyclicInheritanceException](program)
+  }
+
   @Test
   def cyclicClassInheritance {
     val program = "class @A <: class @B\n" +
@@ -137,7 +146,6 @@ class ClassValidationTest
   }
 
   @Test
-  @Ignore
   def invalidThisParameterTypeArgs {
     val program = "class @R\n" +
                   "class @A[type %T] <: class @R\n" +
@@ -259,18 +267,6 @@ class ClassValidationTest
     programContainsError[ForeignInterfaceMethodException](program)
   }
 
-  @Test
-  @Ignore
-  def interfaceTypeAndMethodMismatch {
-    val r = Class("R", Nil, None, Nil, Nil, Nil, Nil, Nil)
-    val i = Interface("I", Nil, ClassType(r.name), Nil, Nil, Nil)
-    val a = Class("A", Nil, Some(ClassType("A")), List(InterfaceType(i.name)), Nil, Nil, Nil, Nil)
-    val definitions = TreeMap(r.name -> r, i.name -> i, a.name -> a)
-    val module = new Module(definitions = definitions)
-    val errors = module.validate
-    containsError[InterfaceTypeMethodMismatchException](errors)
-  }
-  
   @Test
   def abstractMethodInNonAbstractClass {
     val program = "annotation @tungsten.Abstract\n" +

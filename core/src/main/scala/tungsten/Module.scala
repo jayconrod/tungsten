@@ -418,20 +418,20 @@ final class Module(val name:         Symbol                      = Symbol("defau
       }.toList
     }
 
-    stage(validateDependencies,
-          validateComponents,
-          validateScope,
-          validateRootClass,
-          validateStructCycles ++ 
-            validateInheritanceCycles ++ 
-            validateTypeParameterCycles ++
-            validateIllegalInheritance,
-          validateConflictingInheritance,
-          validateTypes,
-          validateValues,
-          validateTypeParameters,
-          validateDefinitions,
-          validateMain)
+    validateDependencies ++?
+      validateComponents ++?
+      validateScope ++?
+      validateRootClass ++?
+      (validateStructCycles ++ 
+         validateInheritanceCycles ++ 
+         validateTypeParameterCycles) ++?
+       validateIllegalInheritance ++?
+       validateConflictingInheritance ++?
+       validateTypes ++?
+       validateValues ++?
+       validateTypeParameters ++?
+       validateDefinitions ++?
+       validateMain
   }
 
   def validateProgram: List[CompileException] = {

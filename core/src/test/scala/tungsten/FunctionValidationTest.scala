@@ -107,4 +107,14 @@ class FunctionValidationTest
                   "}\n"
     programContainsError[BlockPredecessorException](program)
   }
+
+  @Test
+  def entryBlockWithPredecessors {
+    val program = "function unit @main {\n" +
+                  "  block %entry {\n" +
+                  "    branch @main.entry()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[EntryBlockPredecessorException](program)
+  }
 }

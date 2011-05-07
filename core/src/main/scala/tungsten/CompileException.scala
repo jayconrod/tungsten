@@ -114,6 +114,13 @@ final case class EmptyComponentsException(symbol: Symbol,
   extends CompileException(symbol.toString + " must contain at least one " + componentName, 
                            location)
 
+final case class EntryBlockPredecessorException(functionName: Symbol,
+                                                blockName: Symbol,
+                                                location: Location)
+  extends CompileException("entry block %s in function %s must not have any predecessors".
+                             format(blockName, functionName),
+                           location)
+
 final case class EntryParametersException(functionName: Symbol, 
                                           blockName: Symbol,
                                           location: Location)

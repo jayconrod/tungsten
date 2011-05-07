@@ -108,9 +108,16 @@ final case class Function(name: Symbol,
 
     def validatePredecessors = {
       val cfg = controlFlowGraph(module)
-      for (block <- cfg.nodes.toList;
-           if !block.parameters.isEmpty && cfg.incident(block).isEmpty)
-        yield BlockPredecessorException(block.name, block.getLocation)
+      val paramErrors = for (block <- cfg.nodes.toList;
+                             if !block.parameters.isEmpty && cfg.incident(block).isEmpty)
+                          yield BlockPredecessorException(block.name, block.getLocation)
+
+      val entryErrors = for (entryName <- blocks.headOption.toList;
+                             val entry = module.getBlock(entryName);
+                             if !cfg.incident(entry).isEmpty)
+                          yield EntryBlockPredecessorException(name, entry.name, getLocation)
+
+      paramErrors ++ entryErrors
     }
 
     stage(super.validate(module),

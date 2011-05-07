@@ -9,6 +9,8 @@ sealed abstract class Instruction
 
   def isTerminating = false
 
+  def successors: Set[Symbol] = Set()
+
   def operands: List[Value]
 
   /** Collects symbols used by operands. This does not count symbols used inside types, only
@@ -31,6 +33,8 @@ sealed abstract class Instruction
 
   final def makeValue: DefinedValue = DefinedValue(name, ty)
 }
+
+abstract class ExtendedInstruction extends Instruction
 
 trait CallInstruction extends Instruction {
   protected def validateCall(module: Module,
@@ -88,8 +92,6 @@ trait CallInstruction extends Instruction {
           validateEverythingElse)
   }
 }   
-
-abstract class ExtendedInstruction extends Instruction
 
 /** A trait for instructions which deal with values within aggregate values. */
 trait ElementInstruction extends Instruction {
@@ -407,6 +409,8 @@ final case class BranchInstruction(name: Symbol,
 {
   override def isTerminating = true
 
+  override def successors = Set(target)
+
   def operands = arguments
 
   override def usedSymbols = target :: operandSymbols
@@ -439,6 +443,8 @@ final case class ConditionalBranchInstruction(name: Symbol,
   with CallInstruction
 {
   override def isTerminating = true
+
+  override def successors = Set(trueTarget, falseTarget)
 
   def operands = condition :: trueArguments ++ falseArguments
 

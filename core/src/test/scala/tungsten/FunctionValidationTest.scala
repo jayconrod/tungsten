@@ -94,4 +94,17 @@ class FunctionValidationTest
     val errors = module.validateProgram
     containsError[ExternalDefinitionException](errors)
   }
+
+  @Test
+  def blockWithParameterWithoutPredecessor {
+    val program = "function unit @main {\n" +
+                  "  block %entry {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "  block %b(unit %x) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[BlockPredecessorException](program)
+  }
 }

@@ -45,6 +45,9 @@ final case class ArrayTypeWidthException(length: Long, location: Location)
                              format(length),
                            location)
 
+final case class BlockPredecessorException(symbol: Symbol, location: Location)
+  extends CompileException("block " + symbol + " has parameters but no predecessors", location)
+
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 

@@ -13,6 +13,11 @@ final case class Block(name: Symbol,
     FunctionType(UnitType, Nil, parameterTypes)
   }
 
+  def successors(module: Module): Set[Block] = {
+    val terminator = module.getInstruction(instructions.last)
+    terminator.successors.map(module.getBlock _)
+  }
+
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
       validateComponentsOfClass[Parameter](module, parameters) ++

@@ -106,11 +106,27 @@ final case class Function(name: Symbol,
         Nil
     }
 
+    def validatePredecessors = {
+      val cfg = controlFlowGraph(module)
+      for (block <- cfg.nodes.toList;
+           if !block.parameters.isEmpty && cfg.incident(block).isEmpty)
+        yield BlockPredecessorException(block.name, block.getLocation)
+    }
+
     stage(super.validate(module),
           validateEntryParameters,
           validateBranches,
           validateReturnType,
           validateVariance,
-          validateAbstract)
+          validateAbstract,
+          validatePredecessors)
+  }
+
+  def controlFlowGraph(module: Module): Graph[Block] = {
+    val blockDefns = module.getBlocks(blocks)
+    val successorMap = (Map[Block, Set[Block]]() /: blockDefns) { (deps, defn) =>
+      deps + (defn -> defn.successors(module))
+    }
+    new Graph(blockDefns, successorMap)
   }
 }

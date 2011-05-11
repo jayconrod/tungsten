@@ -1,5 +1,7 @@
 package tungsten
 
+import Utilities._
+
 /** A compile exception represents an error with a module. These are usually simply found and 
  *  returned as lists during validation. However, they are exceptions, so it also possible
  *  to throw them. All exceptions have a message (which will be printed for the user) and a 
@@ -169,7 +171,14 @@ final case class FunctionArgumentCountException(symbol: Symbol,
                            location)
 
 final case class FunctionTypeException(value: String, location: Location)
-  extends CompileException("value cannot be called as a function", location)
+  extends CompileException("value %s cannot be called as a function".
+                             format(value), 
+                           location)
+{
+  def this(value: Value, location: Location) = {
+    this(valueToString(value), location)
+  }
+}
 
 final case class GlobalValueNonLiteralException(symbol: Symbol, location: Location)
   extends CompileException("global " + symbol + " has a non-literal initial value", location)
@@ -206,19 +215,24 @@ final case class InvalidBitCastException(value: Value,
                                          tySize: Long,
                                          location: Location)
   extends CompileException("value %s (%d bytes) cannot be bit cast to type %s (%d bytes) because they have different sizes".
-                             format(value, valueSize, ty, tySize),
+                             format(valueToString(value), valueSize, typeToString(ty), tySize),
                            location)
 
 final case class InvalidIndexException(value: String, ty: String, location: Location)
   extends CompileException("the value " + value + 
                              " cannot be used as an index into type " + ty,
                            location)
+{
+  def this(value: Value, ty: Type, location: Location) = {
+    this(valueToString(value), typeToString(ty), location)
+  }
+}
 
 final case class InvalidVirtualMethodIndexException(index: Int,
                                                     ty: Type,
                                                     location: Location)
   extends CompileException("invalid virtual method index %d for type %s".
-                             format(index, ty),
+                             format(index, typeToString(ty)),
                            location)
 
 final case class MainNonEmptyParametersException(location: Location)
@@ -300,13 +314,27 @@ final case class NonLocalBranchException(functionName: Symbol,
 
 final case class NumericExtensionException(fromTy: String, toTy: String, location: Location)
   extends CompileException("cannot extend from type " + fromTy + " to " + toTy, location)
-                        
+{
+  def this(fromTy: Type, toTy: Type, location: Location) = {
+    this(typeToString(fromTy), typeToString(toTy), location)
+  }
+}                       
 
 final case class NumericTruncationException(fromTy: String, toTy: String, location: Location)
   extends CompileException("cannot truncate from type " + fromTy + " to " + toTy, location)
+{
+  def this(fromTy: Type, toTy: Type, location: Location) = {
+    this(typeToString(fromTy), typeToString(toTy), location)
+  }
+}
 
 final case class NumericTypeException(ty: String, location: Location)
   extends CompileException("type " + ty + " must be numeric", location)
+{
+  def this(ty: Type, location: Location) = {
+    this(typeToString(ty), location)
+  }
+}
 
 final case class ParameterizedRootClassException(className: Symbol, location: Location)
   extends CompileException("root class %s must not be parameterized".format(className),
@@ -367,15 +395,21 @@ final case class TypeParameterInvalidBoundException(paramName: Symbol,
 final case class TypeParameterVarianceException(ty: Type,
                                                 variance: Variance,
                                                 location: Location)
-  extends CompileException("type %s used in %s position".format(ty, variance.varianceString),
+  extends CompileException("type %s used in %s position".
+                             format(typeToString(ty), variance.varianceString),
                            location)
 
 final case class UndefinedSymbolException(symbol: Symbol, location: Location)
   extends CompileException(symbol.toString + " is not defined", location)
 
-final case class UnsupportedNumericOperationException(ty: AnyRef, op: AnyRef, location: Location)
+final case class UnsupportedNumericOperationException(ty: String, op: AnyRef, location: Location)
   extends CompileException("the type %s does not support the operation %s".format(ty, op),
                            location)
+{
+  def this(ty: Type, op: AnyRef, location: Location) = {
+    this(typeToString(ty), op, location)
+  }
+}
 
 final case class UpcastException(fromTy: String,
                                  toTy: String,
@@ -383,3 +417,8 @@ final case class UpcastException(fromTy: String,
   extends CompileException("value cannot be upcast from type " +
                              fromTy + " to type " + toTy,
                            location)
+{
+  def this(fromTy: Type, toTy: Type, location: Location) = {
+    this(typeToString(fromTy), typeToString(toTy), location)
+  }
+}

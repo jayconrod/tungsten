@@ -365,7 +365,7 @@ final case class BinaryOperatorInstruction(name: Symbol,
       val lty = left.ty
       val rty = right.ty
       if (!lty.supportsOperator(operator))
-        List(UnsupportedNumericOperationException(lty, operator, getLocation))
+        List(new UnsupportedNumericOperationException(lty, operator.toString, getLocation))
       else if (lty != rty)
         List(TypeMismatchException(rty.toString, lty.toString, getLocation))
       else
@@ -909,7 +909,7 @@ final case class RelationalOperatorInstruction(name: Symbol,
       val lty = left.ty
       val rty = right.ty
       if (!lty.supportsOperator(operator))
-        List(UnsupportedNumericOperationException(lty, operator, getLocation))
+        List(new UnsupportedNumericOperationException(lty, operator, getLocation))
       else if (lty != rty)
         List(TypeMismatchException(rty.toString, lty.toString, getLocation))
       else

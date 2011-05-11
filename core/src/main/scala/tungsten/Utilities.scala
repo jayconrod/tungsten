@@ -197,6 +197,16 @@ object Utilities {
       None
   }
 
+  def typeToString(ty: Type): String = {
+    val writer = new TextModuleWriter(new Module, null)
+    writer.localType(ty, None)
+  }
+
+  def valueToString(value: Value): String = {
+    val writer = new TextModuleWriter(new Module, null)
+    writer.localValue(value, None)
+  }
+
   def wordSize(module: Module) = if (module.is64Bit) 8 else 4
 }
 

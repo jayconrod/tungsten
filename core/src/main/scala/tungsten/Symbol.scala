@@ -106,8 +106,7 @@ final class SymbolFactory(private var currentId: Int) {
   def apply(name: String) = symbol(name)
 
   def complexSymbol(name: List[String]) = {
-    currentId += 1
-    new Symbol(name, currentId)
+    new Symbol(name, nextId)
   }
 
   def symbol(simpleName: String) = {
@@ -115,6 +114,8 @@ final class SymbolFactory(private var currentId: Int) {
   }
 
   def nextId = {
+    if (Integer.MAX_VALUE == currentId)
+      throw new IllegalStateException("largest possible symbol ID already created!")
     currentId += 1
     currentId
   }

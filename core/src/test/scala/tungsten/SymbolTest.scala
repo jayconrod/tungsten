@@ -116,4 +116,10 @@ class SymbolTest {
     assertTrue(Symbol("a").compare(Symbol("a.a")) < 0)
     assertEquals(0, symbolFromString("a.a").compare(symbolFromString("a.a")))
   }
+
+  @Test(expected=classOf[IllegalStateException])
+  def factoryOverflow {
+    val factory = new SymbolFactory(Integer.MAX_VALUE)
+    factory.symbol("foo")
+  }
 }

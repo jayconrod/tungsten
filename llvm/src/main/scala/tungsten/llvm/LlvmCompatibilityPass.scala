@@ -2,7 +2,7 @@ package tungsten.llvm
 
 import scala.collection.immutable.TreeMap
 import tungsten.Utilities._
-import tungsten.Symbol
+import tungsten.{Symbol, SymbolFactory}
 
 class LlvmCompatibilityPass
   extends Function1[tungsten.Module, tungsten.Module] 

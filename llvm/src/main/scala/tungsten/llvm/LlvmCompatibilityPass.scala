@@ -7,9 +7,12 @@ import tungsten.Symbol
 class LlvmCompatibilityPass
   extends Function1[tungsten.Module, tungsten.Module] 
 {
-  val symbolFactory = new tungsten.SymbolFactory
+  private var symbolFactory: SymbolFactory = new SymbolFactory
 
-  def apply(module: tungsten.Module): tungsten.Module = process(module) 
+  def apply(module: tungsten.Module): tungsten.Module = {
+    symbolFactory = new SymbolFactory(module.highestSymbolId + 1)
+    process(module) 
+  }
 
   val process: tungsten.Module => tungsten.Module = {
     addRuntime _            andThen

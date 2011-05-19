@@ -129,6 +129,10 @@ final class Module(val name:         Symbol                      = Symbol("defau
   def getTypeParameter(name: Symbol) = definitions(name).asInstanceOf[TypeParameter]
   def getTypeParameters(names: List[Symbol]) = names.map(getTypeParameter _)
 
+  def highestSymbolId: Int = {
+    definitions.keys.map(_.id).max
+  }
+
   lazy val rootClass: Class = {
     val rootClasses = definitions.values.collect {
       case defn: Class if !defn.superclass.isDefined => defn

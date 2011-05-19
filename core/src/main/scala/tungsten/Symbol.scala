@@ -98,8 +98,8 @@ object Symbol {
   }      
 }
 
-final class SymbolFactory {
-  private var currentId = 0
+final class SymbolFactory(private var currentId: Int) {
+  def this() = this(0)
 
   def apply(name: Symbol) = complexSymbol(name.name)
   def apply(name: List[String]) = complexSymbol(name)

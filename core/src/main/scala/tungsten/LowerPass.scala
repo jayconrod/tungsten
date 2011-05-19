@@ -5,9 +5,10 @@ import Utilities._
 class LowerPass
   extends Function1[Module, Module]
 {
-  val symbolFactory = new SymbolFactory
+  private var symbolFactory: SymbolFactory = new SymbolFactory
 
   def apply(module: Module) = {
+    symbolFactory = new SymbolFactory(module.highestSymbolId + 1)
     var m = module
     m = convertClassesAndInterfaces(m)
     m = convertInstructions(m)

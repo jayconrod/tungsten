@@ -1,4 +1,5 @@
 repositories.remote << 'http://www.ibiblio.org/maven2'
+Buildr.settings.build['scala.version'] = '2.8.1'
 require 'buildr/scala'
 
 ENV['USE_FSC'] = 'yes'

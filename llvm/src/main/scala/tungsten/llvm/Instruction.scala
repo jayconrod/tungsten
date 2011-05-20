@@ -108,13 +108,13 @@ object Comparison {
   val SLE = Comparison("sle")
 }  
 
-final case class AddInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class AddInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "add"
 }
   
-final case class AllocaInstruction(override name: String,
+final case class AllocaInstruction(override val name: String,
                                    elementType: Type)
   extends Instruction
 {
@@ -124,7 +124,7 @@ final case class AllocaInstruction(override name: String,
   override def toString = nameString + " " + elementType
 }
 
-final case class AllocaArrayInstruction(override name: String,
+final case class AllocaArrayInstruction(override val name: String,
                                         elementType: Type,
                                         count: Value)
   extends Instruction
@@ -135,19 +135,19 @@ final case class AllocaArrayInstruction(override name: String,
   override def toString = nameString + " " + elementType + ", " + count
 }
 
-final case class AndInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class AndInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "and"
 }
 
-final case class ArithmeticShiftRightInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class ArithmeticShiftRightInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "asr"
 }
 
-final case class BitCastInstruction(override name: String,
+final case class BitCastInstruction(override val name: String,
                                     value: Value,
                                     ty: Type)
   extends ConversionInstruction
@@ -164,7 +164,7 @@ final case class BranchInstruction(label: Value)
   override def toString = nameString + " " + label.typedToString
 }
 
-final case class CallInstruction(override name: String,
+final case class CallInstruction(override val name: String,
                                  isTailCall: Boolean,
                                  convention: Option[String],
                                  returnAttributes: Set[ParameterAttribute],
@@ -205,7 +205,7 @@ final case class ConditionalBranchInstruction(condition: Value,
   }
 }
 
-final case class ExtractValueInstruction(override name: String,
+final case class ExtractValueInstruction(override val name: String,
                                          value: Value,
                                          indices: List[Value])
   extends ElementInstruction
@@ -220,13 +220,13 @@ final case class ExtractValueInstruction(override name: String,
   }
 }
 
-final case class FloatAddInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class FloatAddInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "fadd"
 }
 
-final case class FloatCompareInstruction(override name: String,
+final case class FloatCompareInstruction(override val name: String,
                                          comparison: Comparison,
                                          ty: Type,
                                          left: Value,
@@ -241,55 +241,55 @@ final case class FloatCompareInstruction(override name: String,
   }
 }
 
-final case class FloatDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class FloatDivideInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "fdiv"
 }
 
-final case class FloatExtendInstruction(override name: String, value: Value, ty: Type)
+final case class FloatExtendInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "fpext"
 }
 
-final case class FloatMultiplyInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class FloatMultiplyInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "fmul"
 }
 
-final case class FloatRemainderInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class FloatRemainderInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "frem"
 }
 
-final case class FloatSubtractInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class FloatSubtractInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "fsub"
 }
 
-final case class FloatToSignedIntegerInstruction(override name: String, value: Value, ty: Type)
+final case class FloatToSignedIntegerInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "fptosi"
 }
 
-final case class FloatToUnsignedIntegerInstruction(override name: String, value: Value, ty: Type)
+final case class FloatToUnsignedIntegerInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "fptoui"
 }
 
-final case class FloatTruncateInstruction(override name: String, value: Value, ty: Type)
+final case class FloatTruncateInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "fptrunc"
 }
 
-final case class GetElementPointerInstruction(override name: String,
+final case class GetElementPointerInstruction(override val name: String,
                                               base: Value,
                                               indices: List[Value])
   extends ElementInstruction
@@ -316,7 +316,7 @@ final case class GetElementPointerInstruction(override name: String,
   }
 }
     
-final case class InsertValueInstruction(override name: String,
+final case class InsertValueInstruction(override val name: String,
                                         base: Value,
                                         value: Value,
                                         indices: List[Value])
@@ -333,7 +333,7 @@ final case class InsertValueInstruction(override name: String,
   }
 }
 
-final case class IntegerCompareInstruction(override name: String,
+final case class IntegerCompareInstruction(override val name: String,
                                            comparison: Comparison,
                                            ty: Type,
                                            left: Value,
@@ -348,31 +348,31 @@ final case class IntegerCompareInstruction(override name: String,
   }
 }
 
-final case class IntegerSignExtendInstruction(override name: String, value: Value, ty: Type)
+final case class IntegerSignExtendInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "sext"
 }
 
-final case class IntegerToPointerInstruction(override name: String, value: Value, ty: Type)
+final case class IntegerToPointerInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "inttoptr"
 }
 
-final case class IntegerTruncateInstruction(override name: String, value: Value, ty: Type)
+final case class IntegerTruncateInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "trunc"
 }
 
-final case class IntegerZeroExtendInstruction(override name: String, value: Value, ty: Type)
+final case class IntegerZeroExtendInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "zext"
 }
 
-final case class LoadInstruction(override name: String,
+final case class LoadInstruction(override val name: String,
                                  address: Value,
                                  alignment: Option[Int])
   extends Instruction
@@ -386,25 +386,25 @@ final case class LoadInstruction(override name: String,
   }
 }
 
-final case class LogicalShiftRightInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class LogicalShiftRightInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "lsr"
 }
 
-final case class MultiplyInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class MultiplyInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "mul"
 }
 
-final case class OrInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class OrInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "or"
 }
 
-final case class PhiInstruction(override name: String,
+final case class PhiInstruction(override val name: String,
                                 ty: Type,
                                 bindings: List[(Value, String)])
   extends Instruction
@@ -420,7 +420,7 @@ final case class PhiInstruction(override name: String,
   }
 }
 
-final case class PointerToIntegerInstruction(override name: String, value: Value, ty: Type)
+final case class PointerToIntegerInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "ptrtoint"
@@ -435,31 +435,31 @@ final case class ReturnInstruction(value: Value)
   override def toString = "ret " + value.typedToString
 }
 
-final case class ShiftLeftInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class ShiftLeftInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "shl"
 }
 
-final case class SignedDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class SignedDivideInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "sdiv"
 }
 
-final case class SignedIntegerToFloatInstruction(override name: String, value: Value, ty: Type)
+final case class SignedIntegerToFloatInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "sitofp"
 }
 
-final case class SignedRemainderInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class SignedRemainderInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "srem"
 }
 
-final case class SignExtendInstruction(override name: String, value: Value, ty: Type)
+final case class SignExtendInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "sext"
@@ -479,13 +479,13 @@ final case class StoreInstruction(value: Value,
   }
 }
 
-final case class SubtractInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class SubtractInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "sub"
 }
 
-final case class TruncateInstruction(override name: String, value: Value, ty: Type)
+final case class TruncateInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "trunc"
@@ -500,31 +500,31 @@ final case object UnreachableInstruction
   override def toString = opname
 }
 
-final case class UnsignedDivideInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class UnsignedDivideInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "udiv"
 }
 
-final case class UnsignedIntegerToFloatInstruction(override name: String, value: Value, ty: Type)
+final case class UnsignedIntegerToFloatInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "uitofp"
 }
 
-final case class UnsignedRemainderInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class UnsignedRemainderInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "urem"
 }
 
-final case class XorInstruction(override name: String, ty: Type, left: Value, right: Value)
+final case class XorInstruction(override val name: String, ty: Type, left: Value, right: Value)
   extends BinaryOperatorInstruction
 {
   def opname = "xor"
 }
 
-final case class ZeroExtendInstruction(override name: String, value: Value, ty: Type)
+final case class ZeroExtendInstruction(override val name: String, value: Value, ty: Type)
   extends ConversionInstruction
 {
   def opname = "zext"

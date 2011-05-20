@@ -2,7 +2,7 @@ package tungsten.llvm
 
 import Utilities._
 
-final case class Function(override name: String,
+final case class Function(override val name: String,
                           returnAttributes: Set[ParameterAttribute],
                           returnType: Type,
                           parameters: List[Parameter],

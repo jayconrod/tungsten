@@ -1,6 +1,6 @@
 package tungsten.llvm
 
-final case class Global(override name: String, value: Either[Value, Type])
+final case class Global(override val name: String, value: Either[Value, Type])
   extends Definition(name)
 {
   override def toString = {

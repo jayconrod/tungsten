@@ -33,10 +33,18 @@ trait Converter[S, T] extends CommandLineProgram {
   }
 
   private final def readSourceFromFile(file: File): Option[S] = {
-    val input = new BufferedInputStream(new FileInputStream(file))
-    val source = readSourceWrapper(file.getName, input)
-    input.close
-    source
+    try {      
+      val input = new BufferedInputStream(new FileInputStream(file))
+      val source = readSourceWrapper(file.getName, input)
+      input.close
+      source
+    } catch {
+      case exn: IOException => {
+        System.err.println(file + ": IO error: " + exn.getMessage)
+        errorOccurred
+        None
+      }
+    }
   }
 
   private final def readSourceWrapper(filename: String, input: InputStream): Option[S] = {

@@ -1,0 +1,58 @@
+Building Tungsten to native code requires several steps. 
+
+==Prerequisites==
+
+You must have successfully run "buildr test" (or another target which
+invokes test) in the root directory of the project. If you are able to
+do this, then you have Java installed, and buildr has installed Scala
+for you.
+
+If you want to be able to compile to native code, you will need to
+install LLVM. LLVM should be available with your distribution, but you
+can also download it from llvm.org. Tungsten has been tested with LLVM
+2.8. No guarantees are made about earlier or later version.
+
+==Setting up your environment==
+
+When you compiled Tungsten with "buildr install", buildr downloaded a
+suitable version of Scala for you. However, in order to run Tungsten
+commands, you'll need it in your classpath. In bash, you can add it
+like this:
+
+ export CLASSPATH=$CLASSPATH:~/.m2/repository/org/scala-lang/scala-library/2.8.1/scala-library-2.8.1.jar
+
+You will also want to add the following directories (run this from the
+project root directory):
+
+ export CLASSPATH=$CLASSPATH:`pwd`/core/target/classes:`pwd`/llvm/target/classes
+
+Some bash driver scripts are provided for your convenience. You can
+add them to your PATH like this (again from the project root):
+
+ PATH=$PATH:`pwd`/core/src/main/resources:`pwd`/llvm/src/main/resources
+
+==Building Tungsten files==
+
+Here are the steps to build a Tungsten assembly file into a native
+program:
+
+w-as (Tungsten assembler) - converts .w (text) to .wo (binary)
+w-link (Tungsten linker) - converts .wo to .wp (program) or .wl (library)
+w-to-llvm (LLVM backend) - converts .wo, .wp, .wl to .ll (LLVM assembly)
+llvm-as (LLVM assembler) - converts .ll to .bc (LLVM bitcode)
+opt (LLVM optimizer) - optimizes .bc, produces new .bc
+llc (LLVM compiler) - converts .bc to .s (native assembly)
+gcc (GNU compiler driver) - builds .s and links with C runtime objects
+
+Automating this with a build system is left as an exercise. :)
+
+Here are all the steps needed to build fac.w:
+
+ w-as fac.w
+ w-link fac.wo -t program -o fac.wp
+ w-to-llvm <fac.wp >fac.ll
+ llvm-as <fac.ll >fac.bc
+ llvm-as <../llvm/runtime/runtime.ll >runtime.bc
+ llc <fac.bc >fac.s
+ llc <runtime.bc >runtime.s
+ gcc fac.s runtime.s -o fac

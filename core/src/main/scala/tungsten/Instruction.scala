@@ -718,13 +718,32 @@ final case class IntegerZeroExtendInstruction(name: Symbol,
   }
 }
 
-case class IntrinsicFunction(number: Int, 
-                             name: String,
+case class IntrinsicFunction(name: String,
                              ty: FunctionType)
 
 object Intrinsic {
-  val EXIT = IntrinsicFunction(1, "exit", FunctionType(UnitType, Nil, List(IntType(32))))
-  val INTRINSICS = List(EXIT)
+  val EXIT = IntrinsicFunction("exit", 
+                               FunctionType(UnitType, Nil, List(IntType(32))))
+  val READ = IntrinsicFunction("read", 
+                               FunctionType(IntType(64), Nil,              // bytes read
+                                            List(IntType(32),              // file descriptor
+                                                 PointerType(IntType(8)),  // buffer
+                                                 IntType(64))))            // buffer capacity
+  val WRITE = IntrinsicFunction("write",
+                                FunctionType(IntType(64), Nil,             // bytes written
+                                             List(IntType(32),             // file descriptor
+                                                  PointerType(IntType(8)), // buffer
+                                                  IntType(64))))           // buffer size
+  val OPEN = IntrinsicFunction("open",
+                               FunctionType(IntType(32), Nil,              // file descriptor
+                                            List(StringType,               // file name
+                                                 IntType(32))))            // flags
+
+  val CLOSE = IntrinsicFunction("close",
+                                FunctionType(UnitType, Nil,
+                                             List(IntType(32))))           // file descriptor
+
+  val INTRINSICS = List(EXIT, READ, WRITE, OPEN, CLOSE)
 }
 
 final case class IntrinsicCallInstruction(name: Symbol,

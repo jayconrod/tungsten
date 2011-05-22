@@ -66,7 +66,11 @@ object BinaryModuleIDs {
   val RELOP_EQUAL_ID: Byte = 24
   val RELOP_NOT_EQUAL_ID: Byte = 25
 
-  val INTRINSIC_EXIT_ID: Byte = 30
+  val INTRINSIC_EXIT_ID: Byte = 1
+  val INTRINSIC_READ_ID: Byte = 3
+  val INTRINSIC_WRITE_ID: Byte = 4
+  val INTRINSIC_OPEN_ID: Byte = 5
+  val INTRINSIC_CLOSE_ID: Byte = 6
 
   val UNIT_TYPE_ID = 1
   val BOOLEAN_TYPE_ID = 2

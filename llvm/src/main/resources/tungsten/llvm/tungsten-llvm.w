@@ -16,3 +16,10 @@ function int8* @tungsten.malloc(int32 %size)
 @tungsten.NoReturn
 function unit @tungsten.exit(int32 %code)
 
+function int64 @tungsten.read(int32 %fd, int8* %buffer, int64 %size)
+
+function int64 @tungsten.write(int32 %fd, int8* %buffer, int64 %size)
+
+function int32 @tungsten.open(struct @tungsten.string %filename, int32 %flags)
+
+function unit @tungsten.close(int32 %fd)

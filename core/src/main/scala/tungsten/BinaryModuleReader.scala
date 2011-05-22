@@ -385,9 +385,14 @@ class BinaryModuleReader(input: DataInputStream) {
 
   def readIntrinsic: IntrinsicFunction = {
     import Intrinsic._
-    input.readByte match {
+    val id = input.readShort
+    id match {
       case INTRINSIC_EXIT_ID => EXIT
-      case _ => throw new IOException("Invalid intrinsic ID")
+      case INTRINSIC_READ_ID => READ
+      case INTRINSIC_WRITE_ID => WRITE
+      case INTRINSIC_OPEN_ID => OPEN
+      case INTRINSIC_CLOSE_ID => CLOSE
+      case _ => throw new IOException("Invalid intrinsic ID: " + id)
     }
   }
 }

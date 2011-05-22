@@ -45,7 +45,7 @@ final case class ArrayValue(elementType: Type, elements: List[Value])
 {
   def ty = ArrayType(elements.size, elementType)
 
-  override def toString = elements.mkString("[", ", ", "]")
+  override def toString = elements.map(_.typedToString).mkString("[", ", ", "]")
 }
 
 final case class StructValue(elementTypes: List[Type], elements: List[Value])

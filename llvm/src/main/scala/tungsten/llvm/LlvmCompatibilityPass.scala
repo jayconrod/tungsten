@@ -24,44 +24,6 @@ class LlvmCompatibilityPass
   }
 
   def addRuntime(module: tungsten.Module): tungsten.Module = {
-    // val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
-
-    // val stringCharacters = tungsten.Field("tungsten.string.characters",
-    //                                       tungsten.PointerType(tungsten.IntType(16)))
-    // val stringLength = tungsten.Field("tungsten.string.length", tungsten.IntType(64))
-    // val string = tungsten.Struct("tungsten.string", 
-    //                              List(stringCharacters.name, stringLength.name))
-
-    // val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
-    // val malloc = tungsten.Function("tungsten.malloc", 
-    //                                tungsten.PointerType(tungsten.IntType(8)), 
-    //                                Nil,
-    //                                List(mallocParam.name), 
-    //                                Nil)
-
-    // val exitParam = tungsten.Parameter("tungsten.exit.code", tungsten.IntType(32))
-    // val exit = tungsten.Function("tungsten.exit", 
-    //                              tungsten.UnitType, 
-    //                              Nil,
-    //                              List(exitParam.name),
-    //                              Nil,
-    //                              List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
-
-    // val definitionList = List(noreturn,
-    //                           stringCharacters, stringLength, string,
-    //                           mallocParam, malloc,
-    //                           exitParam, exit)
-    // val definitions = (TreeMap[Symbol, tungsten.Definition]() /: definitionList) { (map, defn) =>
-    //   map + (defn.name -> defn)
-    // }
-    // val runtime = module.copyWith(definitions=definitions)
-    // tungsten.Linker.linkModules(List(module, runtime),
-    //                             module.name,
-    //                             module.ty,
-    //                             module.version,
-    //                             module.filename,
-    //                             module.dependencies,
-    //                             module.searchPaths)
     val runtime = if (module.is64Bit) runtime64 else runtime32
     tungsten.Linker.linkModules(List(module, runtime),
                                 module.name,
@@ -228,6 +190,10 @@ class LlvmCompatibilityPass
         import tungsten.Intrinsic._
         val cTarget: Symbol = intrinsic match {
           case EXIT => "tungsten.exit"
+          case READ => "tungsten.read"
+          case WRITE => "tungsten.write"
+          case OPEN => "tungsten.open"
+          case CLOSE => "tungsten.close"
           case _ => throw new RuntimeException("Invalid intrinsic: " + intrinsic)
         }
         List(tungsten.StaticCallInstruction(name, ty, cTarget, Nil, arguments, anns))

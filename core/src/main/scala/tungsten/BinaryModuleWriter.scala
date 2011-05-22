@@ -490,8 +490,12 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
     import Intrinsic._
     val id = intrinsic match {
       case EXIT => INTRINSIC_EXIT_ID
+      case READ => INTRINSIC_READ_ID
+      case WRITE => INTRINSIC_WRITE_ID
+      case OPEN => INTRINSIC_OPEN_ID
+      case CLOSE => INTRINSIC_CLOSE_ID
     }
-    output.writeByte(id)
+    output.writeShort(id)
   }
 
   def writeVariance(variance: Variance) = {

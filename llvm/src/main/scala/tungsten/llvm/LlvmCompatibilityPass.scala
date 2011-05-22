@@ -24,37 +24,45 @@ class LlvmCompatibilityPass
   }
 
   def addRuntime(module: tungsten.Module): tungsten.Module = {
-    val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
+    // val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
 
-    val stringCharacters = tungsten.Field("tungsten.string.characters",
-                                          tungsten.PointerType(tungsten.IntType(16)))
-    val stringLength = tungsten.Field("tungsten.string.length", tungsten.IntType(64))
-    val string = tungsten.Struct("tungsten.string", 
-                                 List(stringCharacters.name, stringLength.name))
+    // val stringCharacters = tungsten.Field("tungsten.string.characters",
+    //                                       tungsten.PointerType(tungsten.IntType(16)))
+    // val stringLength = tungsten.Field("tungsten.string.length", tungsten.IntType(64))
+    // val string = tungsten.Struct("tungsten.string", 
+    //                              List(stringCharacters.name, stringLength.name))
 
-    val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
-    val malloc = tungsten.Function("tungsten.malloc", 
-                                   tungsten.PointerType(tungsten.IntType(8)), 
-                                   Nil,
-                                   List(mallocParam.name), 
-                                   Nil)
+    // val mallocParam = tungsten.Parameter("tungsten.malloc.size", tungsten.IntType(32))
+    // val malloc = tungsten.Function("tungsten.malloc", 
+    //                                tungsten.PointerType(tungsten.IntType(8)), 
+    //                                Nil,
+    //                                List(mallocParam.name), 
+    //                                Nil)
 
-    val exitParam = tungsten.Parameter("tungsten.exit.code", tungsten.IntType(32))
-    val exit = tungsten.Function("tungsten.exit", 
-                                 tungsten.UnitType, 
-                                 Nil,
-                                 List(exitParam.name),
-                                 Nil,
-                                 List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
+    // val exitParam = tungsten.Parameter("tungsten.exit.code", tungsten.IntType(32))
+    // val exit = tungsten.Function("tungsten.exit", 
+    //                              tungsten.UnitType, 
+    //                              Nil,
+    //                              List(exitParam.name),
+    //                              Nil,
+    //                              List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
 
-    val definitionList = List(noreturn,
-                              stringCharacters, stringLength, string,
-                              mallocParam, malloc,
-                              exitParam, exit)
-    val definitions = (TreeMap[Symbol, tungsten.Definition]() /: definitionList) { (map, defn) =>
-      map + (defn.name -> defn)
-    }
-    val runtime = module.copyWith(definitions=definitions)
+    // val definitionList = List(noreturn,
+    //                           stringCharacters, stringLength, string,
+    //                           mallocParam, malloc,
+    //                           exitParam, exit)
+    // val definitions = (TreeMap[Symbol, tungsten.Definition]() /: definitionList) { (map, defn) =>
+    //   map + (defn.name -> defn)
+    // }
+    // val runtime = module.copyWith(definitions=definitions)
+    // tungsten.Linker.linkModules(List(module, runtime),
+    //                             module.name,
+    //                             module.ty,
+    //                             module.version,
+    //                             module.filename,
+    //                             module.dependencies,
+    //                             module.searchPaths)
+    val runtime = if (module.is64Bit) runtime64 else runtime32
     tungsten.Linker.linkModules(List(module, runtime),
                                 module.name,
                                 module.ty,
@@ -62,6 +70,7 @@ class LlvmCompatibilityPass
                                 module.filename,
                                 module.dependencies,
                                 module.searchPaths)
+
     // TODO: this will terminate with an error message. It should probably throw an 
     // exception instead.
   }
@@ -276,6 +285,14 @@ class LlvmCompatibilityPass
       case _ => throw new RuntimeException("invalid index: " + word)
     }
   }
+
+  lazy val runtime64 = {
+    val runtimeName = "tungsten-llvm.w"
+    val input = getClass.getResourceAsStream(runtimeName)
+    val reader = new java.io.InputStreamReader(input)
+    tungsten.ModuleIO.readText(reader, runtimeName)
+  }
+  lazy val runtime32 = runtime64.copyWith(is64Bit = false)
 
   private def newName: Symbol = symbolFactory.symbol("llvmCompat")
 

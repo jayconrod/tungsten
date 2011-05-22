@@ -218,7 +218,7 @@ class LlvmCompatibilityPass
       case tungsten.StoreElementInstruction(name, ty, value, base, indices, anns) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
         val address = tungsten.AddressInstruction(newName(name),
-                                                  tungsten.PointerType(ty),
+                                                  tungsten.PointerType(value.ty),
                                                   base,
                                                   cIndices)
         val store = tungsten.StoreInstruction(name, ty, value, address.makeValue, anns)

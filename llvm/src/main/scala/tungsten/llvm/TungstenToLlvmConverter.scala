@@ -275,7 +275,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.DefinedValue(name, ty) => {
         val cTy = convertType(ty)
         module.getDefn(name) match {
-          case Some(_: tungsten.Global) => DefinedValue(globalSymbol(name), cTy)
+          case Some(_: tungsten.Global | _: tungsten.Function) => DefinedValue(globalSymbol(name), cTy)
           case _ => DefinedValue(localSymbol(name, parent), cTy)
         }
       }
@@ -308,7 +308,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         val cParamTypes = parameterTypes.map(convertType _)
         FunctionType(cReturnType, cParamTypes)
       }
-      case _ => throw new UnsupportedOperationException
+      case _ => throw new UnsupportedOperationException(ty.getClass.toString)
     }
   }
 

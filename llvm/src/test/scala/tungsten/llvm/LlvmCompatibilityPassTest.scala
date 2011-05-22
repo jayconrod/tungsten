@@ -143,9 +143,9 @@ class LlvmCompatibilityPassTest {
 
   @Test
   def storeElementInst {
-    val code = "unit %x = storeelement (), [1 x unit]* %a, int64 0, int64 0"
-    val expected = "unit* %llvmCompat#1 = address [1 x unit]* %a, int32 0, int32 0\n" +
-                   "unit %x = store (), unit* %llvmCompat#1"
+    val code = "unit %x = storeelement int64 6, [1 x int64]* %a, int64 0, int64 0"
+    val expected = "int64* %llvmCompat#1 = address [1 x int64]* %a, int32 0, int32 0\n" +
+                   "unit %x = store int64 6, int64* %llvmCompat#1"
     testCode(expected, code)
   }
 

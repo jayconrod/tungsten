@@ -60,6 +60,15 @@ final case class IntValue(value: Long, width: Int)
   }
 }
 
+object IntValue {
+  def word(value: Long, module: Module): IntValue = {
+    if (module.is64Bit)
+      IntValue(value, 64)
+    else
+      IntValue(value, 32)
+  }
+}
+
 final case class FloatValue(value: Double, width: Int) 
   extends Value
 {

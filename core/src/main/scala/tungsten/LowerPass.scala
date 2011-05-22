@@ -127,12 +127,16 @@ class LowerPass
   }    
 
   def createITableEntryStruct(module: Module): Module = {
-    val nameField = Field(itableEntryStructName + "interfaceName", StringType)
-    val ivtablePtrField = Field(itableEntryStructName + "ivtable", 
-                                PointerType(IntType(8)))
-    val fields = List(nameField, ivtablePtrField)
-    val entryStruct = Struct(itableEntryStructName, fields.map(_.name))
-    module.add(fields: _*).add(entryStruct)
+    if (module.definitions.contains(itableEntryStructName))
+      module
+    else {
+      val nameField = Field(itableEntryStructName + "interfaceName", StringType)
+      val ivtablePtrField = Field(itableEntryStructName + "ivtable", 
+                                  PointerType(IntType(8)))
+      val fields = List(nameField, ivtablePtrField)
+      val entryStruct = Struct(itableEntryStructName, fields.map(_.name))
+      module.add(fields: _*).add(entryStruct)
+    }
   }
 
   def createITableGlobal(clas: Class,
@@ -211,13 +215,20 @@ class LowerPass
     val allocInst = HeapAllocateInstruction(instruction.name, 
                                             PointerType(StructType(classStructName(className))),
                                             instruction.annotations)
+    val vtableInst = StoreElementInstruction(symbolFactory(instruction.name.name :+ "init$"),
+                                             UnitType,
+                                             DefinedValue(vtableGlobalName(className),
+                                                          PointerType(StructType(vtableStructName(className)))),
+                                             allocInst.makeValue,
+                                             List(IntValue.word(0, module),
+                                                  IntValue.word(0, module)))
     val initInst = StaticCallInstruction(symbolFactory(instruction.name.name :+ "init$"),
                                          UnitType,
                                          instruction.constructorName,
                                          classType.typeArguments ++ instruction.typeArguments, 
                                          allocInst.makeValue :: instruction.arguments,
                                          instruction.annotations)
-    List(allocInst, initInst)
+    List(allocInst, vtableInst, initInst)
   }
 
   def convertPCallInstruction(instruction: PointerCallInstruction,

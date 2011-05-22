@@ -260,7 +260,8 @@ class LowerPassInstructionConversionTest {
   def testNew {
     val code = "class @R %r = new @R.ctor(int64 2)"
     val expectedCode = "struct @R.data$* %r = heap\n" +
-                       "unit %r.init$#1 = scall @R.ctor(struct @R.data$* %r, int64 2)"
+                       "unit %r.init$#1 = storeelement struct @R.vtable_type$* @R.vtable$, struct @R.data$* %r, int64 0, int64 0\n" +
+                       "unit %r.init$#2 = scall @R.ctor(struct @R.data$* %r, int64 2)"
     testConversion(expectedCode, code)
   }
 

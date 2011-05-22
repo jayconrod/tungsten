@@ -28,6 +28,10 @@ trait Converter[S, T] extends CommandLineProgram {
       System.exit(FAILURE_CODE)
   }
 
+  protected def setErrorOccurred {
+    errorOccurred = true
+  }
+
   private final def readSourceFromStdin: Option[S] = {
     readSourceWrapper("<stdin>", System.in)
   }

@@ -16,6 +16,7 @@ object TungstenToLlvm extends Converter[tungsten.Module, Module] {
     else {
       System.err.println(filename + ": validation errors occurred:")
       errors.foreach(System.err.println _)
+      setErrorOccurred
       None
     }
   }

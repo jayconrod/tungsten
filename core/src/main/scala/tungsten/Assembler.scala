@@ -19,6 +19,7 @@ object Assembler extends Converter[Module, Module]
       case Right(errors) => {
         System.err.println("%s: parse errors occurred\n".format(filename))
         errors.foreach(System.err.println _)
+        setErrorOccurred
         None
       }
     }
@@ -40,6 +41,7 @@ object Assembler extends Converter[Module, Module]
       val filename = linkedModule.filename.map(_.toString + ": ").getOrElse("")
       System.err.println(filename + "validation errors occurred\n")
       errors.foreach(System.err.println _)
+      setErrorOccurred
       None
     }
   }

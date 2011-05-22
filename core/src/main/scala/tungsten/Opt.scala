@@ -33,6 +33,7 @@ object Opt extends Converter[Module, Module]
       System.err.println(filename + ": validation errors occurred")
       errors.foreach(System.err.println _)
       System.err.println()
+      setErrorOccurred
       None
     }
   }

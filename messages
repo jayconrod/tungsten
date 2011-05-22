@@ -1,0 +1,4 @@
+Converter programs now return an error code when they encounter problems
+
+- Added setErrorOccurred method to Converter
+- Subclasses must call this when they find a problem (instead of just returning None, which may be acceptable sometimes)

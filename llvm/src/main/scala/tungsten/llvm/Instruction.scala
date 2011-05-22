@@ -132,7 +132,7 @@ final case class AllocaArrayInstruction(override val name: String,
   def opname = "alloca"
   def ty(module: Module) = PointerType(elementType)
   def operands = List(count)
-  override def toString = nameString + " " + elementType + ", " + count
+  override def toString = nameString + " " + elementType + ", i32 " + count
 }
 
 final case class AndInstruction(override val name: String, ty: Type, left: Value, right: Value)

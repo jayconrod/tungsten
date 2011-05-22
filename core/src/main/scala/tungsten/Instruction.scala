@@ -736,7 +736,7 @@ object Intrinsic {
                                                   IntType(64))))           // buffer size
   val OPEN = IntrinsicFunction("open",
                                FunctionType(IntType(32), Nil,              // file descriptor
-                                            List(StringType,               // file name
+                                            List(PointerType(IntType(8)),  // file name
                                                  IntType(32))))            // flags
 
   val CLOSE = IntrinsicFunction("close",

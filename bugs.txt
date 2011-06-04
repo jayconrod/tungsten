@@ -1,5 +1,0 @@
-Defined unit values cannot be converted to LLVM
-Tungsten treats the unit type and its value as first class; you can have unit variables which can be passed to functions, stored in arrays, etc. Unit translates into void for LLVM, and void is not first class there. Void values cannot be named, so you can't have a defined value of void type.
-
-Runtime conflicts with LLVM
-In core tungsten, there is no runtime. Runtime code is only added when tungsten code is lowered to LLVM. The runtime may be different for other platforms. If something in the Tungsten code conflicts with something in the LLVM runtime, this is an error and should be reported. It is only an error when converting to LLVM though.

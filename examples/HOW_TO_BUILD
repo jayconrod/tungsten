@@ -39,3 +39,17 @@ opt (LLVM optimizer) - optimizes .bc, produces new .bc
 llc (LLVM compiler) - converts .bc to .s (native assembly)
 gcc (GNU compiler driver) - builds .s and links with C runtime objects
 
+==Running the examples==
+
+Since native programs will be generated, you can run them with a
+command like:
+
+ ./hello
+
+Most of the examples produce no output. Some (like factorial) will
+return an error code indicating the result. In bash, you can print the
+value of the error code like this;
+
+ ./fac
+ echo $?
+

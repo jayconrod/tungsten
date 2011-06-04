@@ -50,7 +50,7 @@ trait CommandLine {
                   case Nil => 
                     Right("option %s requires an argument".format(arg))
                   case optArg :: _ if !option.valueFilter(optArg) => 
-                    Right("invalid argument for option %s".format(optArg))
+                    Right("invalid argument for option %s: %s".format(arg, optArg))
                   case optArg :: more => {
                     parseNext(more, 
                               optionValues + (option.longName -> optArg), 

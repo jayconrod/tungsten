@@ -27,9 +27,12 @@ class Module(val targetDataLayout: Option[String],
       case Some(t) => "target triple = %s\n".format(escapeString(t))
       case None    => ""
     }
-    val buffer = new StringBuffer(dataLayoutStr + tripleStr + "\n")
-    for (defn <- definitions.valuesIterator)
-      buffer.append(defn.toString)
+    val buffer = new StringBuilder(dataLayoutStr + tripleStr + "\n")
+
+    definitions.values.collect { case s: Struct => s }.foreach { s => buffer.append(s + "\n\n") }
+    definitions.values.collect { case g: Global => g }.foreach { g => buffer.append(g + "\n\n") }
+    definitions.values.collect { case f: Function => f }.foreach { f => buffer.append(f + "\n\n") }
+    
     buffer.append("\n")
     buffer.toString
   }

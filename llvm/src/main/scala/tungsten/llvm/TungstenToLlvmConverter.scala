@@ -4,7 +4,7 @@ import tungsten.Symbol
 import tungsten.Utilities._
 
 class TungstenToLlvmConverter(module: tungsten.Module) {
-  def convert: Module = {
+  def convert(targetTriple: Option[String] = None): Module = {
     val dataLayoutFmt = "e-p:%s-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64"
     val wordSize = if (module.is64Bit) 64 else 32
     val dataLayout = Some(dataLayoutFmt.format(wordSize + ":" + wordSize + ":" + wordSize))
@@ -20,7 +20,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         case None => defns
       }
     }
-    new Module(dataLayout, None, cDefinitions)
+    new Module(dataLayout, targetTriple, cDefinitions)
   }
 
   def convertGlobal(global: tungsten.Global): Global = {
@@ -362,7 +362,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
 }
 
 object TungstenToLlvmConverter {
-  def apply(module: tungsten.Module): Module = {
-    new TungstenToLlvmConverter(module).convert
+  def apply(module: tungsten.Module, targetTriple: Option[String] = None): Module = {
+    new TungstenToLlvmConverter(module).convert(targetTriple)
   }
 }

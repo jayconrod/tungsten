@@ -1,30 +1,87 @@
 Tungsten is a framework for building compilers. It is currently under
 active development by Jay Conrod.
 
-Build dependencies:
-Scala 2.8.0
-Buildr 1.4.1
-JUnit 4.6
+==Overview==
 
-Run dependencies:
-Scala 2.8.0
-LLVM 2.7 (for LLVM bridge)
+Tungsten provides a high level intermediate language, which a
+compiler can use to represent code. A compiler writer can write a
+front-end which translates source code into Tungsten. Tungsten files
+can then be translated to lower level representations, such as LLVM or
+JVM bytecode, using a backend.
 
+Example workflow:
 
-To build tungsten and the LLVM bridge and run unit tests:
-buildr
++---------------------+
+|int f(int x, int y) {|  Source code
+|  return x + y;      |
+|}                    |
++---------------------+
+  |
+  | C front-end
+  v
++--------------------------------------+
+|function unit @f(int64 %x, int64 %y) {|
+|  block %entry {                      |
+|    int64 %sum = int64 %x + int64 %y  |
+|    return int64 %sum                 |
+|  }                                   |
+|}                                     }
++--------------------------------------+
+  |
+  | LLVM back-end
+  v
++-------------------------------+
+|define i64 @f(i64 %x, i64 %y) {|
+|  %sum = add i64 %x, i64 %y    |
+|  ret i64 %sum                 |
+|}                              |
++-------------------------------+
 
-To assemble a Tungsten source file:
-scala tungsten.Assembler foo.w
+Tungsten is similar in purpose to LLVM, but it does not replace LLVM.
+Tungsten is a higher level representation: it directly supports
+classes, interfaces, virtual methods, type parameterization, and other
+abstractions. This adds interoperability to code written in multiple
+languages, as long as a Tungsten front-end exists in language. 
 
-To disassemble a Tungsten module:
-scala tungsten.Disassembler foo.wo
+See the examples directory for examples of the Tungsten language.
 
-To link a Tungsten module into a program:
-scala tungsten.Linker -t program foo.wo -o foo.wp
+==Building and installing==
 
-To link a Tungsten module into a library:
-scala tungsten.Linker -t library -n foo -v 1.0 foo.wo -o foo.wl
+You'll need Apache Buildr to install Tungsten. You'll also need a
+working JVM. Tungsten has been tested on 32-bit and 64-bit Linux and
+Mac OS X. Other platforms are unsupported. You may also want to
+install LLVM 2.8 to take advantage of the LLVM backend, although
+nothing depends on it directly.
 
-To convert a Tungsten module to LLVM source:
-scala tungsten.llvm.TungstenToLlvm foo.wo
+To install Buildr, follow the instructions at:
+http://buildr.apache.org/installing.html
+
+Once Buildr is installed, run the following command:
+
+ buildr install
+
+This will download all build and runtime dependencies, compile
+Tungsten and the LLVM backend, run unit tests, create .jar files, and
+install them to ~/.m2/repository.
+
+==Running==
+
+Once Tungsten is installed, source the setenv.sh script to set your
+environment variables:
+
+ . setenv.sh
+
+This will set PATH, and CLASSPATH to include necessary tools and
+classes.
+
+To assemble a file:
+ w-as file.w
+
+To disassemble a file:
+ w-dis file.wo
+
+To link files into a program:
+ w-link -t program foo.wo bar.wo -o prog.wp
+
+To convert to LLVM:
+ w-to-llvm file.wo

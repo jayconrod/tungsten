@@ -33,7 +33,7 @@ object TungstenToLlvm extends Converter[tungsten.Module, Module] {
     super.availableOptions ++ 
       List(CommandLineOption(Some('t'), "target", "target triple (cpu-os-vendor)",
                              Some("target"),
-                             _.matches("\\w+-\\w+-\\w+")))
+                             _.matches("[\\w.]+-[\\w.]+-[\\w.]+")))
   }
 
   def readSource(filename: String, input: InputStream): Option[tungsten.Module] = {

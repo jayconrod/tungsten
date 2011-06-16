@@ -1,5 +1,15 @@
 Building Tungsten to native code requires several steps. 
 
+==System Requirements==
+
+Tungsten supports 32- and 64-bit systems UNIX based systems. However,
+the examples here are 64-bit specific, and most will not run on 32-bit
+systems without some modification. The examples have been tested on
+Linux and OS X.
+
+If you have a 32-bit system that can compile and run 64-bit binaries
+(such as OS X on most Macs), you should be fine.
+
 ==Prerequisites==
 
 You must have successfully run "buildr install" in the root directory

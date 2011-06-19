@@ -78,6 +78,10 @@ class LexerTest {
     testToken("-0", IntTok(0L))
     testToken("12", IntTok(12L))
     testToken("-12", IntTok(-12L))
+    testToken("0xFF", IntTok(255L))
+    testToken("-0xFF", IntTok(-255L))
+    testToken("0b1001", IntTok(9L))
+    testToken("-0b1001", IntTok(-9L))
   }
 
   @Test

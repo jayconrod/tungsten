@@ -233,7 +233,7 @@ final case class FunctionType(returnType: Type,
     returnErrors ++ parameterErrors
   }
 
-  def size(module: Module) = throw new UnsupportedOperationException
+  def size(module: Module) = wordSize(module)
 
   def isNumeric = false
 

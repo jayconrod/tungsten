@@ -19,11 +19,14 @@
 
 package tungsten
 
-sealed case class Location(val filename: String,
-                           val beginLine: Int,
-                           val beginColumn: Int,
-                           val endLine: Int,
-                           val endColumn: Int)
+sealed abstract class Location
+
+final case class FileLocation(val filename: String,
+                              val beginLine: Int,
+                              val beginColumn: Int,
+                              val endLine: Int,
+                              val endColumn: Int)
+  extends Location
 {
   if (filename.isEmpty ||
       beginLine < 1 || beginColumn < 1 || endLine < 1 || endColumn < 1 ||
@@ -36,32 +39,51 @@ sealed case class Location(val filename: String,
     this(filename, line, column, line, column)
   }
 
-  def combine(loc: Location) = {
+  def combine(loc: FileLocation) = {
     if (filename != loc.filename)
       throw new IllegalArgumentException
-    new Location(filename, beginLine, beginColumn, loc.endLine, loc.endColumn)
+    new FileLocation(filename, beginLine, beginColumn, loc.endLine, loc.endColumn)
   }
 
-  final override def equals(that: Any) = {
+  override def equals(that: Any): Boolean = {
     that match {
-      case Location(fn, bl, bc, el, ec) if filename == fn &&
-                                           beginLine == bl &&
-                                           beginColumn == bc &&
-                                           endLine == el &&
-                                           endColumn == ec => true
+      case FileLocation(fn, bl, bc, el, ec) if filename == fn &&
+                                               beginLine == bl &&
+                                               beginColumn == bc &&
+                                               endLine == el &&
+                                               endColumn == ec => true
       case _ => false
     }
   }
 
-  final override def hashCode: Int = {
+  override def hashCode: Int = {
     val parts = List[Any](filename, beginLine, beginColumn, endLine, endColumn)
     parts.foldLeft(0)(Utilities.hash _)
   }
 
-  final override def toString = {
+  override def toString = {
     "<" + filename + ":" + beginLine + "." + beginColumn + "-" + endLine + "." + endColumn + ">"
   }
 }
 
-object Nowhere extends Location("NOWHERE", 1, 1, 1, 1)
+final case class SymbolLocation(symbol: Symbol)
+  extends Location
+{
+  override def equals(that: Any): Boolean = {
+    that match {
+      case SymbolLocation(sym) if sym == symbol => true
+      case _ => false
+    }
+  }
+
+  override def hashCode: Int = symbol.hashCode
+
+  override def toString = "<" + symbol + ">"
+}
+
+case object Nowhere
+  extends Location
+{
+  override def toString = "<nowhere>"
+}
 

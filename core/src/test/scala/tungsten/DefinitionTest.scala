@@ -25,7 +25,7 @@ import Utilities._
 
 class DefinitionTest {
   @Test
-  def extractLocation {
+  def extractFileLocation {
     val defn = Global("foo", UnitType, None, 
                       List(AnnotationValue("tungsten.Location",
                                            List(StringValue("foo.w"),
@@ -33,6 +33,13 @@ class DefinitionTest {
                                                 IntValue(2, 32),
                                                 IntValue(3, 32),
                                                 IntValue(4, 32)))))
-    assertEquals(Location("foo.w", 1, 2, 3, 4), defn.getLocation)
+    assertEquals(FileLocation("foo.w", 1, 2, 3, 4), defn.getLocation)
+  }
+
+  @Test
+  def extractSymbolLocation {
+    val sym = Symbol("foo")
+    val defn = Global("foo", UnitType, None)
+    assertEquals(SymbolLocation(sym), defn.getLocation)
   }
 }

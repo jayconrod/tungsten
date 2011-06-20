@@ -57,12 +57,15 @@ function int64 @Counter.next(class @Counter %this) {
     int64 %count = loadelement class @Counter @Counter.next.this, int64 0
     int64 %nextCount = binop int64 %count + int64 1
 
-    ; vcall is used to make a virtual call on a method. The first operand is
-    ; the object we are calling a method on. After this (followed by a colon)
-    ; is the method index. 1 refers to the second method, "set" here. We need 
-    ; to refer to methods by index since we can't always know the actual class
-    ; of an object and what functions implement its methods.
-    vcall class @Counter @Counter.next.this:1(int64 %nextCount)
+    ; In order to make a virtual call on a method, we first need to load the method from
+    ; the class's vtable. This is done with the vlookup instruction, which takes an object
+    ; reference and an index into the vtable.
+    (class @Counter, int64)->unit %set = vlookup class @Counter @Counter.next.this:1
+
+    ; To actually call the method, we use a pcall (pointer call) instruction, which can 
+    ; be used to invoke any function indirectly.
+    pcall (class @Counter, int64)->unit %set(class @Counter @Counter.next.this, int64 %nextCount)
+
     return int64 %count
   }
 }
@@ -85,9 +88,10 @@ function unit @main {
     branch @main.loop(class @Counter %ctr)
   }
   block %loop(class @Counter %ctr) {
-    int64 %next = vcall class @Counter %ctr:0()
-    boolean %cmp = relop int64 %next < int64 10
-    cond boolean %cmp ? @main.loop(class @Counter %ctr) : @main.exit(int64 %next)
+    (class @Counter)->int64 %next = vlookup class @Counter %ctr:0
+    int64 %n = pcall (class @Counter)->int64 %next(class @Counter %ctr)
+    boolean %cmp = relop int64 %n < int64 10
+    cond boolean %cmp ? @main.loop(class @Counter %ctr) : @main.exit(int64 %n)
   }
   block %exit(int64 %final) {
     int32 %code = itruncate int64 %final

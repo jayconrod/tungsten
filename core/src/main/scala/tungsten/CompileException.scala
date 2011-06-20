@@ -395,6 +395,11 @@ final case class TypeMismatchException(given: Any, required: Any, location: Loca
   extends CompileException("type mismatch: %s was given; %s was required".
                              format(given, required),
                            location)
+{
+  def this(given: Type, required: Type, location: Location) {
+    this(typeToString(given), typeToString(required), location)
+  }
+}
 
 final case class TypeParameterBoundsSubtypeException(paramName: Symbol,
                                                      upperBound: Type,

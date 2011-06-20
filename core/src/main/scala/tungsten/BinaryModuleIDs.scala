@@ -22,7 +22,7 @@ package tungsten
 object BinaryModuleIDs {
   val MAGIC = 0x574F626A    // 'WObj' in big-endian
 
-  val VERSION: (Byte, Byte) = (0, 3)
+  val VERSION: (Byte, Byte) = (0, 5)
 
   val ANNOTATION_ID: Byte = 1
   val BLOCK_ID: Byte = 2
@@ -65,6 +65,7 @@ object BinaryModuleIDs {
   val INTEGER_ZERO_EXTEND_INST_ID = 47
   val POINTER_CALL_INST_ID = 48
   val VIRTUAL_CALL_INST_ID = 49
+  val VIRTUAL_LOOKUP_INST_ID = 50
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

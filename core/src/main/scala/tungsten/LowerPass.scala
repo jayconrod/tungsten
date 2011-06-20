@@ -212,6 +212,7 @@ class LowerPass
       case pcallInst: PointerCallInstruction => convertPCallInstruction(pcallInst, module)
       case scallInst: StaticCallInstruction => convertSCallInstruction(scallInst, module)
       case vcallInst: VirtualCallInstruction => convertVCallInstruction(vcallInst, module)
+      case vlookupInst: VirtualLookupInstruction => convertVLookupInstruction(vlookupInst, module)
       case _ => List(instruction)
     }
   }
@@ -338,6 +339,48 @@ class LowerPass
     val retCastInsts = castCallReturn(callInst, methodType.returnType, module)
 
     vtableInst :: methodInst :: (argCastInsts ++ retCastInsts)
+  }
+
+  def convertVLookupInstruction(instruction: VirtualLookupInstruction,
+                                module: Module): List[Instruction] =
+  {
+    val zero = IntValue(0, IntType.wordSize(module))
+    val objectType = instruction.obj.ty.asInstanceOf[ObjectDefinitionType]
+    val defnName = objectType.definitionName
+
+    val vtableInstName = symbolFactory(instruction.name + "vtable$")
+    val vtableType = PointerType(StructType(vtableStructName(defnName)))
+    val vtableInst = objectType match {
+      case _: ClassType => {
+        LoadElementInstruction(vtableInstName,
+                               vtableType,
+                               instruction.obj,
+                               List(zero, zero),
+                               instruction.annotations)
+      }
+      case interfaceType: InterfaceType => {
+        // TODO: need to convert defnName to a string without quoting. This may require
+        // some mangling since symbols may contain special characters.
+        StaticCallInstruction(vtableInstName,
+                              vtableType,
+                              "tungsten.load_ivtable",
+                              Nil,
+                              List(instruction.obj, StringValue(defnName.toString)),
+                              instruction.annotations)
+      }
+    }
+
+    val vtableStruct = module.getStruct(vtableStructName(defnName))
+    val fieldIndex = 2 + instruction.methodIndex
+    val methodType = module.getField(vtableStruct.fields(fieldIndex)).ty.asInstanceOf[FunctionType]
+    val methodInst = LoadElementInstruction(instruction.name,
+                                            methodType,
+                                            vtableInst.makeValue,
+                                            List(zero, 
+                                                 IntValue(fieldIndex, IntType.wordSize(module))),
+                                            instruction.annotations)
+
+    List(vtableInst, methodInst)
   }
 
   def castCallArguments(instruction: Instruction,

@@ -452,6 +452,12 @@ class ParserTest {
   }
 
   @Test
+  def vlookupInst {
+    testInstruction("unit %x = vlookup ():0",
+                    VirtualLookupInstruction("%x", UnitType, UnitValue, 0))
+  }
+
+  @Test
   def parameter {
     testDefinition("@ann unit %p", parser.parameter,
                    Parameter("%p", UnitType, List(AnnotationValue("@ann", Nil))))

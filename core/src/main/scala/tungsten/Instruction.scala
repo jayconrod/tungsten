@@ -1141,3 +1141,38 @@ final case class VirtualCallInstruction(name: Symbol,
     super.validate(module) ++ validateVirtualCall
   }
 }
+
+final case class VirtualLookupInstruction(name: Symbol,
+                                          ty: Type,
+                                          obj: Value,
+                                          methodIndex: Int,
+                                          annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = List(obj)
+
+  override def validate(module: Module) = {
+    def validateLookup = {
+      obj.ty match {
+        case objectType: ObjectDefinitionType => {
+          val definition = objectType.getObjectDefinition(module)
+          definition.methods.lift(methodIndex) match {
+            case Some(methodName) => {
+              val method = module.getFunction(methodName)
+              val methodType = method.ty(module)
+              if (methodType != ty)
+                List(TypeMismatchException(methodType, ty, getLocation))
+              else
+                Nil
+            }
+            case None => List(InvalidVirtualMethodIndexException(methodIndex, objectType, getLocation))
+          }
+        }
+        case _ => List(TypeMismatchException(ty, "class or interface type", getLocation))
+      }
+    }
+
+    super.validate(module) ++ validateLookup
+  }
+}
+

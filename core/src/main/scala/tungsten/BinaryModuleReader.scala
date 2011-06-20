@@ -227,6 +227,9 @@ class BinaryModuleReader(input: DataInputStream) {
         VirtualCallInstruction(name, readType, readValue, readInt, 
                                readList(readType), readList(readValue), readAnnotations)
       }
+      case VIRTUAL_LOOKUP_INST_ID => {
+        VirtualLookupInstruction(name, readType, readValue, readInt, readAnnotations)
+      }
       case _ => throw new IOException("Invalid definition ID: " + id)
     }
   }

@@ -288,6 +288,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case _: StaticCallInstruction => "scall"
       case _: UpcastInstruction => "upcast"
       case _: VirtualCallInstruction => "vcall"
+      case _: VirtualLookupInstruction => "vlookup"
     }
 
     output.write(INDENT + INDENT)
@@ -396,6 +397,9 @@ class TextModuleWriter(module: Module, output: Writer) {
         output.write(localValue(target) + ":" + methodIndex)
         writeTypeArguments(typeArguments, parentName)
         writeArguments(arguments, parentName)
+      }
+      case VirtualLookupInstruction(_, _, obj, methodIndex, _) => {
+        output.write(localValue(obj) + ":" + methodIndex)
       }
     }
   }

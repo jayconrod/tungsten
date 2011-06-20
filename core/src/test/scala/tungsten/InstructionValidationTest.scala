@@ -651,4 +651,38 @@ class InstructionValidationTest
                   "}\n"
     programContainsError[ScopeException](program)
   }
+
+  @Test
+  def vlookupNotObject = {
+    val code = "vlookup ():0"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def vlookupInvalidIndex = {
+    val program = "class @R {\n" +
+                  "  methods { %f }\n" +
+                  "}\n" +
+                  "function unit @R.f(class @R %this) {\n" +
+                  "  block %entry {\n" +
+                  "    (class @R)->unit %f = vlookup class @R @R.f.this:1\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[InvalidVirtualMethodIndexException](program)
+  }
+
+  @Test
+  def vlookupTypeException = {
+    val program = "class @R {\n" +
+                  "  methods { %f }\n" +
+                  "}\n" +
+                  "function unit @R.f(class @R %this) {\n" +
+                  "  block %entry {\n" +
+                  "    unit %x = vlookup class @R @R.f.this:0\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
 }

@@ -229,6 +229,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
           case _: StaticCallInstruction => STATIC_CALL_INST_ID
           case _: UpcastInstruction => UPCAST_INST_ID
           case _: VirtualCallInstruction => VIRTUAL_CALL_INST_ID
+          case _: VirtualLookupInstruction => VIRTUAL_LOOKUP_INST_ID
         }
         output.writeByte(instId)
         writeType(inst.ty)
@@ -348,6 +349,10 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
             writeInt(methodIndex)
             writeList(typeArguments, writeType _)
             writeList(arguments, writeValue _)
+          }
+          case VirtualLookupInstruction(_, _, obj, methodIndex, _) => {
+            writeValue(obj)
+            writeInt(methodIndex)
           }
         }
       }

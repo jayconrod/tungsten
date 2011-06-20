@@ -319,6 +319,24 @@ class LowerPassInstructionConversionTest {
   }
 
   @Test
+  def testVLookupClass {
+    val code = "(class @R)->int64 %m = vlookup class @R %r:0"
+    val expectedCode = "struct @R.vtable_type$* %m.vtable$#1 = loadelement class @R %r, int64 0, int64 0\n" +
+                       "(class @R)->int64 %m = loadelement struct @R.vtable_type$* %m.vtable$#1, int64 0, int64 2\n"
+    testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testVLookupInterface {
+    val code = "interface @I %i = upcast null\n" +
+               "(interface @I)->unit %m = vlookup interface @I %i:1"
+    val expectedCode = "interface @I %i = upcast null\n" +
+                       "struct @I.vtable_type$* %m.vtable$#1 = scall @tungsten.load_ivtable(interface @I %i, \"I\")\n" +
+                       "(interface @I)->unit %m = loadelement struct @I.vtable_type$* %m.vtable$#1, int64 0, int64 3\n"
+    testConversion(expectedCode, code)
+  }                       
+
+  @Test
   def testPCallTypeParameters {
     val code = "class @C %x = upcast null\n" +
                "class @C %y = pcall [@g.T](type @g.T)->type @g.T @g[class @C](class @C %x)\n"

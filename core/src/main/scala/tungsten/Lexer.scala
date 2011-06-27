@@ -104,7 +104,7 @@ object Lexer extends Lexical with RegexParsers {
   def char(except: Set[Char] = Set()): Parser[Char] = {
     def isPrintable(c: Char): Boolean = charIsPrintable(c) && !except(c) && c != '\\'
     val printableChar =  elem("printable character", isPrintable _)
-    val escapedChar = regex("\\\\[0-9A-Fa-f]{1,4}"r) ^^ { (s: String) =>
+    val escapedChar = regex("\\\\[0-9A-Fa-f]{2}"r) ^^ { (s: String) =>
       val digits = s.substring(1)
       val code = (0 /: digits) { (code, digit) => 
         val digitValue = if ('0' <= digit && digit <= '9')

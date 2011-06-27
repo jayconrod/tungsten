@@ -103,11 +103,25 @@ class LexerTest {
 
   @Test
   def chars {
+    val char = Lexer.char(Set('"'))
+    assertEquals(Lexer.test("a", char), 'a')
+    assertEquals(Lexer.test("\\41", char), 'A')
+  }
+
+  @Test
+  def badChar {
+    val char = Lexer.char(Set('"'))
+    val reader = new CharArrayReader("\"".toArray)
+    val result = Lexer.phrase(char)(reader)
+    assertFalse(result.successful)
+  }
+
+  @Test
+  def charTok {
     testToken("'a'", CharTok('a'))
-    testToken("'\\41'", CharTok('A'))
-    testToken("'\\0041'", CharTok('A'))
     testToken("'\"'", CharTok('"'))
-    testFailure("'''")
+    testToken("'\\0a'", CharTok('\n'))
+    testToken("'\\0A'", CharTok('\n'))
   }
 
   @Test
@@ -125,7 +139,6 @@ class LexerTest {
     testToken("%x#12", SymbolTok(Symbol("%x", 12)))
     testToken("%\"x y\"#12", SymbolTok(Symbol("%x y", 12)))
     testToken("%\"multi\\0Aline\"", SymbolTok(Symbol("%multi\nline")))
-    testToken("%\"multi\\000aline\"", SymbolTok(Symbol("%multi\nline")))
   }
 
   @Test

@@ -517,12 +517,17 @@ class Parser extends Parsers with ImplicitConversions {
         case v ~ t => BitCastValue(v, t)
       }
     }
+    def stringValue: Parser[Value] = {
+      string ^^ { s =>
+        ArrayValue(IntType(8),
+                   s.getBytes("UTF-8").toList.map { c => IntValue(c, 8) })
+      }
+    }
 
     ("(" ~ ")"           ^^^ UnitValue)                  |
     ("true"              ^^^ BooleanValue(true))         |
     ("false"             ^^^ BooleanValue(false))        |
     (char                 ^^ { v => CharValue(v) })      |
-    (string               ^^ { v => StringValue(v) })    |
     ("int8" ~> integer    ^^ { v => IntValue(v, 8) })    |
     ("int16" ~> integer   ^^ { v => IntValue(v, 16) })   |
     ("int32" ~> integer   ^^ { v => IntValue(v, 32) })   |
@@ -531,6 +536,7 @@ class Parser extends Parsers with ImplicitConversions {
     ("float64" ~> float   ^^ { v => FloatValue(v, 64) }) |
     ("null"              ^^^ NullValue)                  |
     arrayValue                                           |
+    stringValue                                          |
     structValue                                          |
     bitCastValue                                         |
     (ty ~ symbol          ^^ { case t ~ n => DefinedValue(n, t) })

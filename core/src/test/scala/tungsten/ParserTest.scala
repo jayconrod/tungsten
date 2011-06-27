@@ -190,7 +190,19 @@ class ParserTest {
 
   @Test
   def stringValue {
-    testValue("\"hello\"", StringValue("hello"))
+    testValue("\"hello\"", ArrayValue(IntType(8),
+                                      List(IntValue(104, 8),
+                                           IntValue(101, 8),
+                                           IntValue(108, 8),
+                                           IntValue(108, 8),
+                                           IntValue(111, 8))))
+    testValue("\"a\\0ab\"", ArrayValue(IntType(8),
+                                       List(IntValue(97, 8),
+                                            IntValue(10, 8),
+                                             IntValue(98, 8))))
+    testValue("\"θ\"", ArrayValue(IntType(8),
+                                  List(IntValue(-50, 8),
+                                       IntValue(-72, 8))))
   }
 
   @Test

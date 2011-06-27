@@ -1085,6 +1085,30 @@ final case class StoreElementInstruction(name: Symbol,
   }
 }
 
+final case class ThrowInstruction(name: Symbol,
+                                  ty: Type,
+                                  value: Value,
+                                  annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = List(value)
+
+  override def isTerminating = true
+
+  override def validate(module: Module) = {
+    def validateType = {
+      if (value.ty.isInstanceOf[ObjectDefinitionType])
+        Nil
+      else
+        List(TypeMismatchException(value.ty, "class or interface type", getLocation))
+    }
+
+    super.validate(module) ++
+      validateType ++
+      checkType(ty, UnitType, getLocation)
+  }
+}
+
 final case class UpcastInstruction(name: Symbol,                
                                    ty: Type,
                                    value: Value,

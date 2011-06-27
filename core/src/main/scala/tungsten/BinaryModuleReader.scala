@@ -222,6 +222,7 @@ class BinaryModuleReader(input: DataInputStream) {
         StaticCallInstruction(name, readType, symbol, 
                               readList(readType), readList(readValue), readAnnotations)
       }
+      case THROW_INST_ID => ThrowInstruction(name, readType, readValue, readAnnotations)
       case UPCAST_INST_ID => UpcastInstruction(name, readType, readValue, readAnnotations)
       case VIRTUAL_CALL_INST_ID => {
         VirtualCallInstruction(name, readType, readValue, readInt, 

@@ -440,6 +440,12 @@ class ParserTest {
   }
 
   @Test
+  def throwInst {
+    testInstruction("unit %x = throw ()",
+                    ThrowInstruction("%x", UnitType, UnitValue))
+  }
+
+  @Test
   def upcastInst {
     testInstruction("unit %x = upcast ()",
                     UpcastInstruction("%x", UnitType, UnitValue))

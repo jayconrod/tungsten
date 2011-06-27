@@ -286,6 +286,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case _: StackAllocateInstruction => "stack"
       case _: StackAllocateArrayInstruction => "stackarray"
       case _: StaticCallInstruction => "scall"
+      case _: ThrowInstruction => "throw"
       case _: UpcastInstruction => "upcast"
       case _: VirtualCallInstruction => "vcall"
       case _: VirtualLookupInstruction => "vlookup"
@@ -389,6 +390,9 @@ class TextModuleWriter(module: Module, output: Writer) {
       case StoreElementInstruction(_, _, value, base, indices, _) => {
         output.write(localValue(value) + ", " + localValue(base) + ", " + 
           indices.map(localValue _).mkString(", "))
+      }
+      case ThrowInstruction(_, _, value, _) => {
+        output.write(localValue(value))
       }
       case UpcastInstruction(_, _, value, _) => {
         output.write(localValue(value))

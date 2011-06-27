@@ -685,4 +685,35 @@ class InstructionValidationTest
                   "}\n"
     programContainsError[TypeMismatchException](program)
   }
+
+  @Test
+  def throwNotUnit {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = upcast null\n" +
+                  "    int64 %y = throw class @R %x\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def throwExceptionNotObject {
+    val code = "throw ()"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def throwNotTerminating {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = upcast null\n" +
+                  "    throw class @R %x\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[EarlyTerminationException](program)
+  }
 }

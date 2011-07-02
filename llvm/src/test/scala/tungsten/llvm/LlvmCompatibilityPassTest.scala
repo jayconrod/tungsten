@@ -169,14 +169,6 @@ class LlvmCompatibilityPassTest {
   }
 
   @Test
-  def collectStrings {
-    val program = "global string @s = \"s\""
-    val module = ModuleIO.readText(program)
-    val strings = module.foldValues(Set[String](), pass.collectStrings _)
-    assertEquals(Set("s"), strings)
-  }
-
-  @Test
   def convertString {
     val string = "s"
     val expected = tungsten.Global("llvmCompat#1",

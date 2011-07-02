@@ -45,8 +45,8 @@ class TungstenToLlvmConverterTest {
     assertEquals("x.y", dummyConverter.convertSymbol("x.y"))
     assertEquals("x.y.1", dummyConverter.convertSymbol("x.y#1"))
     assertEquals("\"multi word\"", dummyConverter.convertSymbol("\"multi word\""))
-    assertEquals("\"multi\\0aline\"", dummyConverter.convertSymbol("\"multi\\000aline\""))
-    assertEquals("\"\\12\\34\"", dummyConverter.convertSymbol("\"\\1234\""))
+    assertEquals("\"multi\\0aline\"", dummyConverter.convertSymbol("\"multi\\0aline\""))
+    assertEquals("\"\\124\"", dummyConverter.convertSymbol("\"\\12\\34\""))
   }
 
   @Test

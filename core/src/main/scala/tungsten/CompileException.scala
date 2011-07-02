@@ -302,7 +302,9 @@ final case class MissingMainException()
   extends CompileException("module does not contain a main function", Nowhere)
 
 final case class MissingMethodException(className: Symbol, location: Location)
-  extends CompileException("class %s is missing methods defined in its superclass", location)
+  extends CompileException("class %s is missing methods defined in its superclass".
+                             format(className), 
+                           location)
 
 final case class MultipleRootClassException(className: Symbol, location: Location)
   extends CompileException("multiple root classes are defined; %s is one of them".

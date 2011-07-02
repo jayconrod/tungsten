@@ -43,4 +43,8 @@ final case class Global(name: Symbol,
           validateValueLiteral,
           value.toList.flatMap { v => checkType(v.ty, ty, getLocation) })
   }
+
+  def makeValue: DefinedValue = {
+    DefinedValue(name, PointerType(ty))
+  }
 }

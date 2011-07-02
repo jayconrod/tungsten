@@ -138,6 +138,8 @@ final case class Class(name: Symbol,
     ClassType(name, typeParameters.map { t => VariableType(t) })
   }
 
+  def baseClass(module: Module): Class = this
+
   def isSubclassOf(clas: Class, module: Module): Boolean = {
     if (this == clas)
       true

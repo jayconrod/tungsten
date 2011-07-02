@@ -20,7 +20,7 @@
 package tungsten
 
 import scala.collection.immutable.TreeMap
-import org.junit.{Test, Ignore}
+import org.junit.Test
 import org.junit.Assert._
 import Utilities._
 
@@ -90,14 +90,14 @@ class LowerPassTest {
     val ivtableMap = Map[Symbol, Either[List[Symbol], Symbol]](("I", Left(List("f"))),
                                                                ("J", Right("I")))
 
-    val expectedITableGlobalCode = "global [2 x struct @tungsten.itable_entry$] @C.itable$ =\n" +
-                                   "  [2 x struct @tungsten.itable_entry$] {\n" +
-                                   "    struct @tungsten.itable_entry$ {\n" +
-                                   "      \"I\",\n" +
+    val expectedITableGlobalCode = "global [2 x struct @tungsten.itable_entry] @C.itable$ =\n" +
+                                   "  [2 x struct @tungsten.itable_entry] {\n" +
+                                   "    struct @tungsten.itable_entry {\n" +
+                                   "      struct @tungsten.interface_info* @I.info$,\n" +
                                    "      bitcast struct @I.vtable_type$* @C.ivtable$.I to int8*\n" +
                                    "    },\n" +
-                                   "    struct @tungsten.itable_entry$ {\n" +
-                                   "      \"J\",\n" +
+                                   "    struct @tungsten.itable_entry {\n" +
+                                   "      struct @tungsten.interface_info* @J.info$,\n" +
                                    "      bitcast struct @I.vtable_type$* @C.ivtable$.I to int8*\n" +
                                    "    }\n" +
                                    "  }\n"
@@ -126,8 +126,6 @@ class LowerPassTest {
     val ivtableMap = clas.getIVTables(module)
 
     val expectedIVTableGlobalCode = "global struct @J.vtable_type$ @C.ivtable$.J = struct @J.vtable_type$ {\n" +
-                                    "  bitcast [2 x struct @tungsten.itable_entry$]* @C.itable$ to struct @tungsten.itable_entry$*,\n" +
-                                    "  int64 2,\n" +
                                     "  bitcast (class @C)->unit @C.f to (interface @I)->unit\n" +
                                     "}\n"
     val expectedIVTableGlobal = compileString(expectedIVTableGlobalCode).getGlobal("C.ivtable$.J")
@@ -145,13 +143,13 @@ class LowerPassTest {
     var module = compileString(program)
     val R = module.getClass("R")
     val ivtableMap = R.getIVTables(module)
-    module = pass.createITableEntryStruct(module)
+    module = pass.addDefinitions(module)
     module = pass.createITableGlobal(R, ivtableMap, module)
     module = pass.createVTableStruct(R, module)
     
     val expectedCode = "struct @R.vtable_type$ {\n" +
-                       "  field struct @tungsten.itable_entry$* %itable_ptr$\n" +
-                       "  field int64 %itable_size$\n" +
+                       "  field struct @tungsten.class_info* %info$\n" +
+                       "  field struct @tungsten.array %itable$\n" +
                        "  field (class @R)->unit %f#0\n" +
                        "  field (class @R)->unit %g#1\n" +
                        "}\n"
@@ -175,8 +173,11 @@ class LowerPassTest {
     val module = compileString(program)
     val R = module.getClass("R")
     val expectedCode = "global struct @R.vtable_type$ @R.vtable$ = struct @R.vtable_type$ {\n" +
-                       "  bitcast [0 x struct @tungsten.itable_entry$]* @R.itable$ to struct @tungsten.itable_entry$*,\n" +
-                       "  int64 0,\n" +
+                       "  struct @tungsten.class_info* @R.info$,\n" +
+                       "  struct @tungsten.array {\n" +
+                       "    bitcast [0 x struct @tungsten.itable_entry]* @R.itable$ to int8*,\n" +
+                       "    int64 0\n" +
+                       "  },\n" +
                        "  (class @R)->unit @R.f,\n" +
                        "  (class @R)->unit @R.g\n" +
                        "}\n"
@@ -207,8 +208,76 @@ class LowerPassTest {
     val f = pass.convertFunctions(module).getFunction("f")
     assertEquals(Nil, f.typeParameters)
   }
-}
 
+  @Test
+  def lowerClassWithInterface {
+    val program = "class @R\n" +
+                  "interface @I <: class @R {\n" +
+                  "  methods { %f }\n" +
+                  "}\n" +
+                  "function unit @I.f(interface @I %this)\n" +
+                  "class @C <: class @R {\n" +
+                  "  interface @I { %f }\n" +
+                  "  methods { %f }\n" +
+                  "}\n" +
+                  "function unit @C.f(class @C %this)\n"
+    val module = compileString(program)
+    val loweredModule = pass(module)
+
+    val expectedProgram = "global [1 x int8] @I.name$ = \"I\"\n" +
+                          "global [1 x int8] @C.name$ = \"C\"\n" +
+                          "global struct @tungsten.interface_info @I.info$ = struct @tungsten.interface_info {\n" +
+                          "  struct @tungsten.array {\n" +
+                          "    bitcast [1 x int8]* @I.name$ to int8*,\n" +
+                          "    int64 1\n" +
+                          "  }\n" +
+                          "}\n" +
+                          "global struct @tungsten.class_info @C.info$ = struct @tungsten.class_info {\n" +
+                          "  struct @tungsten.array {\n" +
+                          "    bitcast [1 x int8]* @C.name$ to int8*,\n" +
+                          "    int64 1\n" +
+                          "  }\n" +
+                          "}\n" +
+                          "struct @I.vtable_type$ {\n" +
+                          "  field (struct @R.data$*)->unit %f#0\n" +
+                          "}\n" +
+                          "global struct @I.vtable_type$ @C.ivtable$.I = struct @I.vtable_type$ {\n" +
+                          "  bitcast (struct @C.data$*)->unit @C.f to (struct @R.data$*)->unit\n" +
+                          "}\n" +
+                          "struct @C.vtable_type$ {\n" +
+                          "  field struct @tungsten.class_info* %info$\n" +
+                          "  field struct @tungsten.array %itable$\n" +
+                          "  field (struct @C.data$*)->unit %f#0\n" +
+                          "}\n" +
+                          "global [1 x struct @tungsten.itable_entry] @C.itable$ = [1 x struct @tungsten.itable_entry] {\n" +
+                          "  struct @tungsten.itable_entry {\n" +
+                          "    struct @tungsten.interface_info* @I.info$,\n" +
+                          "    bitcast struct @I.vtable_type$* @C.ivtable$.I to int8*\n" +
+                          "  }\n" +
+                          "}\n" +
+                          "global struct @C.vtable_type$ @C.vtable$ = struct @C.vtable_type$ {\n" +
+                          "  struct @tungsten.class_info* @C.info$,\n" +
+                          "  struct @tungsten.array {\n" +
+                          "    bitcast [1 x struct @tungsten.itable_entry]* @C.itable$ to int8*,\n" +
+                          "    int64 1\n" +
+                          "  },\n" +
+                          "  (struct @C.data$*)->unit @C.f\n" +
+                          "}\n" +
+                          "struct @C.data$ {\n" +
+                          "  field struct @C.vtable_type$* %vtable_ptr$\n" +
+                          "}\n"
+    val expectedModule = pass.addDefinitions(compileString(expectedProgram))
+    expectedModule.definitions.values.foreach { expectedDefn =>
+      System.err.println("checking definition: " + expectedDefn.name)
+      val defn = loweredModule.definitions(expectedDefn.name)
+      if (expectedDefn != defn) {
+        System.err.println("expected: %s\n".format(expectedDefn.toString))
+        System.err.println("but was : %s\n".format(defn.toString))
+      }
+      assertEquals(expectedDefn, defn)
+    }
+  }
+}    
 
 class LowerPassInstructionConversionTest {
   val programTemplate = "class @R {\n" +
@@ -376,7 +445,7 @@ class LowerPassInstructionConversionTest {
     val module = makeModule("return ()")
     val ty = ClassType("C")
     val expectedTy = PointerType(StructType("C.data$"))
-    assertEquals(expectedTy, pass.substituteType(ty, module))
+    assertEquals(expectedTy, pass.substituteType(ty, Map(), module))
   }
 
   @Test
@@ -384,7 +453,8 @@ class LowerPassInstructionConversionTest {
     val module = makeModule("return ()")
     val ty = InterfaceType("I")
     val expectedTy = PointerType(StructType("R.data$"))
-    assertEquals(expectedTy, pass.substituteType(ty, module))
+    val interfaceBaseClassNames = Map((symbolFromString("I"), symbolFromString("R")))
+    assertEquals(expectedTy, pass.substituteType(ty, interfaceBaseClassNames, module))
   }
 
   @Test
@@ -392,7 +462,7 @@ class LowerPassInstructionConversionTest {
     val module = makeModule("return ()")
     val ty = VariableType("g.T")
     val expectedTy = PointerType(StructType("R.data$"))
-    assertEquals(expectedTy, pass.substituteType(ty, module))
+    assertEquals(expectedTy, pass.substituteType(ty, Map(), module))
   }
 
   @Test
@@ -404,6 +474,6 @@ class LowerPassInstructionConversionTest {
     val expectedTy = FunctionType(VariableType("g.T"),
                                   Nil,
                                   List(VariableType("g.T")))
-    assertEquals(expectedTy, pass.substituteType(ty, module))
+    assertEquals(expectedTy, pass.substituteType(ty, Map(), module))
   }
 }

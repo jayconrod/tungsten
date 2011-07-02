@@ -168,6 +168,17 @@ object Linker {
     }
   }
 
+  def linkModules(modules: List[Module]): Module = {
+    val first = modules.head
+    linkModules(modules,
+                first.name,
+                first.ty,
+                first.version,
+                first.filename,
+                first.dependencies,
+                first.searchPaths)
+  }
+
   def linkModules(modules: List[Module],
                   name: Symbol,
                   ty: ModuleType,

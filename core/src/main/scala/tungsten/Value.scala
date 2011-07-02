@@ -112,7 +112,13 @@ final case class ArrayValue(elementType: Type,
   override def validate(module: Module, location: Location) = {
     elements.flatMap { e: Value => checkType(e.ty, elementType, location) }
   }
-}      
+}
+
+object ArrayValue {
+  def fromString(string: String): ArrayValue = {
+    ArrayValue(IntType(8), string.getBytes("UTF-8").toList.map { b => IntValue(b, 8) })
+  }
+}
 
 final case class StructValue(structName: Symbol,
                              fields: List[Value])

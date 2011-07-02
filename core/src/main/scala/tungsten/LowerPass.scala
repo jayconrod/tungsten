@@ -28,13 +28,28 @@ class LowerPass
 
   def apply(module: Module) = {
     symbolFactory = new SymbolFactory(module.highestSymbolId + 1)
+    val interfaceBaseClassNames = findInterfaceBaseClassNames(module)
     var m = module
+    m = addDefinitions(m)
     m = convertClassesAndInterfaces(m)
     m = convertInstructions(m)
     m = convertFunctions(m)
-    m = substituteTypes(m)
     m = removeDefinitions(m)
+    m = substituteTypes(interfaceBaseClassNames, m)
     m
+  }
+
+  def findInterfaceBaseClassNames(module: Module): Map[Symbol, Symbol] = {
+    val interfaces = module.definitions.values.collect { case i: Interface => i }
+    interfaces.map { i => (i.name, i.baseClass(module).name) }.toMap
+  }
+
+  def addDefinitions(module: Module): Module = {
+    val resourceName = if (module.is64Bit) "lower-defns-64.w" else "lower-defns-32.w"
+    val input = getClass.getResourceAsStream(resourceName)
+    val reader = new java.io.InputStreamReader(input)
+    val defns = ModuleIO.readText(reader, resourceName)
+    Linker.linkModules(List(module, defns))
   }
 
   def convertClassesAndInterfaces(module: Module): Module = {
@@ -43,7 +58,6 @@ class LowerPass
     val ivtableMaps = classes.map { c => (c.name, c.getIVTables(module)) }.toMap
 
     var m = module
-    m = createITableEntryStruct(m)
     for (i <- interfaces)
       m = convertInterface(i, m)
     for (c <- classes)
@@ -53,7 +67,8 @@ class LowerPass
 
   def convertInterface(interface: Interface, module: Module): Module = {
     var m = module
-    m = createVTableStruct(interface, module)
+    m = createInterfaceInfo(interface, m)
+    m = createVTableStruct(interface, m)
     m
   }
 
@@ -62,12 +77,47 @@ class LowerPass
                    module: Module): Module = 
   {
     var m = module
+    m = createClassInfo(clas, m)
     m = createIVTableGlobals(clas, ivtableMap, m)
     m = createITableGlobal(clas, ivtableMap, m)
     m = createVTableStruct(clas, m)
     m = createVTableGlobal(clas, ivtableMap.size, m)
     m = createClassStruct(clas, m)
     m
+  }
+
+  def createClassInfo(clas: Class, module: Module): Module = {
+    val nameValue = ArrayValue.fromString(clas.name.toString)
+    val nameGlobal = Global(classNameName(clas.name),
+                            nameValue.ty,
+                            Some(nameValue))
+    val infoValue = StructValue(classInfoStructName,
+                                List(StructValue(arrayStructName,
+                                                 List(BitCastValue(nameGlobal.makeValue,
+                                                                   PointerType(IntType(8))),
+                                                      IntValue.word(nameValue.elements.size, 
+                                                                    module)))))
+    val infoGlobal = Global(classInfoGlobalName(clas.name),
+                            infoValue.ty,
+                            Some(infoValue))
+    module.add(nameGlobal, infoGlobal)
+  }
+
+  def createInterfaceInfo(interface: Interface, module: Module): Module = {
+    val nameValue = ArrayValue.fromString(interface.name.toString)
+    val nameGlobal = Global(interfaceNameName(interface.name),
+                            nameValue.ty,
+                            Some(nameValue))
+    val infoValue = StructValue(interfaceInfoStructName,
+                                List(StructValue(arrayStructName,
+                                                 List(BitCastValue(nameGlobal.makeValue,
+                                                                   PointerType(IntType(8))),
+                                                      IntValue.word(nameValue.elements.size,
+                                                                    module)))))
+    val infoGlobal = Global(interfaceInfoGlobalName(interface.name),
+                            infoValue.ty,
+                            Some(infoValue))
+    module.add(nameGlobal, infoGlobal)
   }
 
   def createClassStruct(clas: Class, module: Module): Module = {
@@ -86,16 +136,23 @@ class LowerPass
       val fieldName = vtableFieldName(vtableName, method.name, methodIndex)
       Field(fieldName, method.ty(module))
     }
-    val itableType = PointerType(StructType(itableEntryStructName))
-    val itableField = Field(itablePtrName(vtableName), itableType)
-    val itableSizeField = Field(itableSizeName(vtableName), IntType.wordType(module))
-    val vtableFields = itableField :: itableSizeField :: methodFields
+    val vtableFields = if (defn.isInstanceOf[Class]) {
+      val infoType = PointerType(StructType(classInfoStructName))
+      val infoField = Field(vtableClassInfoName(vtableName), infoType)
+
+      val itableType = StructType(arrayStructName)
+      val itableField = Field(vtableITableArrayName(vtableName), itableType)
+
+      infoField :: itableField :: methodFields
+    } else
+      methodFields
+
     val vtableStruct = Struct(vtableName, vtableFields.map(_.name))
     module.add(vtableFields: _*).add(vtableStruct)
   }
 
   def createVTableGlobal(clas: Class, itableSize: Int, module: Module): Module = {
-    val itableValues = createITableValuesForVTable(clas.name, itableSize, module)
+    val itableValues = createVTableHeaderValues(clas.name, itableSize, module)
     val methods = module.getFunctions(clas.methods)
     val methodValues = methods.map { m => DefinedValue(m.name, m.ty(module)) }
     val vtableValue = StructValue(vtableStructName(clas.name), 
@@ -110,7 +167,6 @@ class LowerPass
                            ivtableMap: Map[Symbol, Either[List[Symbol], Symbol]],
                            module: Module): Module =
   {
-    val itableValues = createITableValuesForVTable(clas.name, ivtableMap.size, module)
     val realIVTables = ivtableMap.filter { kv => kv._2.isLeft }.mapValues(_.left.get)
     val ivtableGlobals = realIVTables.toList.map { p =>
       val (interfaceName, methodNames) = p
@@ -122,8 +178,7 @@ class LowerPass
         val methodValue = DefinedValue(method.name, method.ty(module))
         BitCastValue(methodValue, methodType)
       }
-      val ivtableValues = itableValues ++ ivtableMethodValues
-      val ivtableValue = StructValue(vtableStructName(interfaceName), ivtableValues)
+      val ivtableValue = StructValue(vtableStructName(interfaceName), ivtableMethodValues)
       Global(ivtableGlobalName(clas.name, interfaceName),
                                StructType(vtableStructName(interfaceName)),
                                Some(ivtableValue))
@@ -131,32 +186,23 @@ class LowerPass
     module.add(ivtableGlobals: _*)
   }
 
-  def createITableValuesForVTable(className: Symbol, 
-                                  itableSize: Int, 
-                                  module: Module): List[Value] = 
+  def createVTableHeaderValues(className: Symbol, 
+                               itableSize: Int, 
+                               module: Module): List[Value] = 
   {
+    val classInfoName = classInfoGlobalName(className)
+    val classInfoValue = DefinedValue(classInfoName, 
+                                      PointerType(StructType(classInfoStructName)))
+
     val itableGlobalType = PointerType(ArrayType(itableSize, StructType(itableEntryStructName)))
-    val itableType = PointerType(StructType(itableEntryStructName))
+    val itableType = PointerType(IntType(8))
     val itableGlobalValue = DefinedValue(itableGlobalName(className), itableGlobalType)
     val itableValue = BitCastValue(itableGlobalValue, itableType)
-
     val itableSizeValue = IntValue(itableSize, IntType.wordSize(module))
+    val itableArrayValue = StructValue(arrayStructName, List(itableValue, itableSizeValue))
 
-    List(itableValue, itableSizeValue)
+    List(classInfoValue, itableArrayValue)
   }    
-
-  def createITableEntryStruct(module: Module): Module = {
-    if (module.definitions.contains(itableEntryStructName))
-      module
-    else {
-      val nameField = Field(itableEntryStructName + "interfaceName", StringType)
-      val ivtablePtrField = Field(itableEntryStructName + "ivtable", 
-                                  PointerType(IntType(8)))
-      val fields = List(nameField, ivtablePtrField)
-      val entryStruct = Struct(itableEntryStructName, fields.map(_.name))
-      module.add(fields: _*).add(entryStruct)
-    }
-  }
 
   def createITableGlobal(clas: Class,
                          ivtableMap: Map[Symbol, Either[List[Symbol], Symbol]],
@@ -170,12 +216,13 @@ class LowerPass
 
     val itableEntries = ivtableMap.toList.map { p =>
       val (interfaceName, ivtable) = p
-      val interfaceNameValue = StringValue(interfaceName.toString)
+      val interfaceInfoValue = DefinedValue(interfaceInfoGlobalName(interfaceName),
+                                            PointerType(StructType(interfaceInfoStructName)))
       val ivtablePtrValue = ivtable match {
         case Left(_) => createIVTablePtr(interfaceName)
         case Right(otherInterfaceName) => createIVTablePtr(otherInterfaceName)
       }
-      StructValue(itableEntryStructName, List(interfaceNameValue, ivtablePtrValue))
+      StructValue(itableEntryStructName, List(interfaceInfoValue, ivtablePtrValue))
     }
     val itableValue = ArrayValue(StructType(itableEntryStructName), itableEntries)
     val itableGlobal = Global(itableGlobalName(clas.name), 
@@ -427,21 +474,20 @@ class LowerPass
     }
   }
 
-  def substituteTypes(module: Module): Module = {
-    module.mapTypes(substituteType(_, module))
+  def substituteTypes(interfaceBaseClassNames: Map[Symbol, Symbol], module: Module): Module = {
+    module.mapTypes(substituteType(_, interfaceBaseClassNames, module))
   }
 
-  def substituteType(ty: Type, module: Module): Type = {
+  def substituteType(ty: Type, interfaceBaseClassNames: Map[Symbol, Symbol], module: Module): Type = {
     ty match {
       case ClassType(className, _) => 
         PointerType(StructType(classStructName(className)))
       case InterfaceType(interfaceName, _) => {
-        val interfaceDefn = module.getInterface(interfaceName)
-        val classDefn = interfaceDefn.getParentClass(module)
-        PointerType(StructType(classStructName(classDefn.name)))
+        val className = interfaceBaseClassNames(interfaceName)
+        PointerType(StructType(classStructName(className)))
       }
       case vty: VariableType => 
-        substituteType(vty.getEffectiveType(module), module)
+        substituteType(vty.getEffectiveType(module), interfaceBaseClassNames, module)
       case FunctionType(returnType, _, parameterTypes) => 
         FunctionType(returnType, Nil, parameterTypes)
       case _ => ty
@@ -457,10 +503,18 @@ class LowerPass
     module.copyWith(definitions = newDefinitions)
   }  
 
+  val arrayStructName = symbolFromString("tungsten.array")
+  val classInfoStructName = symbolFromString("tungsten.class_info")
+  val interfaceInfoStructName = symbolFromString("tungsten.interface_info")
+
+  def classNameName(className: Symbol): Symbol = className + "name$"
   def classStructName(className: Symbol): Symbol = className + "data$"
+  def classInfoGlobalName(className: Symbol): Symbol = className + "info$"
   def vtableStructName(className: Symbol): Symbol = className + "vtable_type$"
   def vtableGlobalName(className: Symbol): Symbol = className + "vtable$"
   def vtablePtrName(className: Symbol): Symbol = classStructName(className) + "vtable_ptr$"
+  def vtableClassInfoName(vtableName: Symbol): Symbol = vtableName + "info$"
+  def vtableITableArrayName(vtableName: Symbol): Symbol = vtableName + "itable$"
   def vtableFieldName(vtableName: Symbol, methodName: Symbol, methodIndex: Int): Symbol = {
     new Symbol(vtableName.name :+ methodName.name.last, methodIndex)
   }
@@ -470,10 +524,11 @@ class LowerPass
     new Symbol(fullName, className.id)
   }
 
+  def interfaceNameName(interfaceName: Symbol): Symbol = interfaceName + "name$"
+  def interfaceInfoGlobalName(interfaceName: Symbol): Symbol = interfaceName + "info$"
   def itableGlobalName(className: Symbol): Symbol = className + "itable$"
-  def itablePtrName(vtableName: Symbol): Symbol = vtableName + "itable_ptr$"
-  def itableSizeName(vtableName: Symbol): Symbol = vtableName + "itable_size$"
-  val itableEntryStructName = symbolFromString("tungsten.itable_entry$")
+  def itableArrayName(vtableName: Symbol): Symbol = vtableName + "itable$"
+  val itableEntryStructName = symbolFromString("tungsten.itable_entry")
 }
 
 object LowerPass

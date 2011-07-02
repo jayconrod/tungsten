@@ -54,6 +54,11 @@ final case class Interface(name: Symbol,
     InterfaceType(name, typeParameters.map { t => VariableType(t) })
   }
 
+  def baseClass(module: Module): Class = {
+    val superDefn = supertype.getObjectDefinition(module)
+    superDefn.baseClass(module)
+  }
+
   def getParentClass(module: Module): Class = {
     supertype.getObjectDefinition(module) match {
       case c: Class => c

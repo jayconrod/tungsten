@@ -43,6 +43,8 @@ trait ObjectDefinition
 
   def selfType: ObjectDefinitionType
 
+  def baseClass(module: Module): Class
+
   def inheritedTypes: List[ObjectDefinitionType] = {
     getSuperType match {
       case Some(superType) => superType :: interfaceTypes

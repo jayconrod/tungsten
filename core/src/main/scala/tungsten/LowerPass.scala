@@ -336,6 +336,7 @@ class LowerPass
       case ty: ObjectType => ty.getEffectiveType(module)
       case _ => throw new RuntimeException("unsupported type: " + instruction.target.ty)
     }
+    val isClass = objectType.isInstanceOf[ClassType]
     val defnName = objectType.definitionName
 
     val vtableInstName = symbolFactory(instruction.name + "vtable$")
@@ -349,19 +350,19 @@ class LowerPass
                                instruction.annotations)
       }
       case interfaceType: InterfaceType => {
-        // TODO: need to convert defnName to a string without quoting. This may require
-        // some mangling since symbols may contain special characters.
+        val infoValue = DefinedValue(interfaceInfoGlobalName(interfaceType.definitionName),
+                                     PointerType(StructType(interfaceInfoStructName)))
         StaticCallInstruction(vtableInstName,
                               vtableType,
                               "tungsten.load_ivtable",
                               Nil,
-                              List(instruction.target, StringValue(defnName.toString)),
+                              List(instruction.target, infoValue),
                               instruction.annotations)
       }
     }
 
     val vtableStruct = module.getStruct(vtableStructName(defnName))
-    val fieldIndex = 2 + instruction.methodIndex
+    val fieldIndex = if (isClass) 2 + instruction.methodIndex else instruction.methodIndex
     val methodType = module.getField(vtableStruct.fields(fieldIndex)).ty.asInstanceOf[FunctionType]
     val methodInst = LoadElementInstruction(symbolFactory(instruction.name + "method$"),
                                             methodType,
@@ -393,6 +394,7 @@ class LowerPass
   {
     val zero = IntValue(0, IntType.wordSize(module))
     val objectType = instruction.obj.ty.asInstanceOf[ObjectDefinitionType]
+    val isClass = objectType.isInstanceOf[ClassType]
     val defnName = objectType.definitionName
 
     val vtableInstName = symbolFactory(instruction.name + "vtable$")
@@ -406,19 +408,19 @@ class LowerPass
                                instruction.annotations)
       }
       case interfaceType: InterfaceType => {
-        // TODO: need to convert defnName to a string without quoting. This may require
-        // some mangling since symbols may contain special characters.
+        val infoValue = DefinedValue(interfaceInfoGlobalName(interfaceType.definitionName),
+                                     PointerType(StructType(interfaceInfoStructName)))
         StaticCallInstruction(vtableInstName,
                               vtableType,
                               "tungsten.load_ivtable",
                               Nil,
-                              List(instruction.obj, StringValue(defnName.toString)),
+                              List(instruction.obj, infoValue),
                               instruction.annotations)
       }
     }
 
     val vtableStruct = module.getStruct(vtableStructName(defnName))
-    val fieldIndex = 2 + instruction.methodIndex
+    val fieldIndex = if (isClass) 2 + instruction.methodIndex else instruction.methodIndex
     val methodType = module.getField(vtableStruct.fields(fieldIndex)).ty.asInstanceOf[FunctionType]
     val methodInst = LoadElementInstruction(instruction.name,
                                             methodType,

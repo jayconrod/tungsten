@@ -381,8 +381,8 @@ class LowerPassInstructionConversionTest {
     val code = "interface @I %i = upcast null\n" +
                "unit %x = vcall interface @I %i:1()"
     val expectedCode = "interface @I %i = upcast null\n" +
-                       "struct @I.vtable_type$* %x.vtable$#1 = scall @tungsten.load_ivtable(interface @I %i, \"I\")\n" +
-                       "(interface @I)->unit %x.method$#2 = loadelement struct @I.vtable_type$* %x.vtable$#1, int64 0, int64 3\n" +
+                       "struct @I.vtable_type$* %x.vtable$#1 = scall @tungsten.load_ivtable(interface @I %i, struct @tungsten.interface_info* @I.info$)\n" +
+                       "(interface @I)->unit %x.method$#2 = loadelement struct @I.vtable_type$* %x.vtable$#1, int64 0, int64 1\n" +
                        "unit %x = pcall (interface @I)->unit %x.method$#2(interface @I %i)"
     testConversion(expectedCode, code)
   }
@@ -400,8 +400,8 @@ class LowerPassInstructionConversionTest {
     val code = "interface @I %i = upcast null\n" +
                "(interface @I)->unit %m = vlookup interface @I %i:1"
     val expectedCode = "interface @I %i = upcast null\n" +
-                       "struct @I.vtable_type$* %m.vtable$#1 = scall @tungsten.load_ivtable(interface @I %i, \"I\")\n" +
-                       "(interface @I)->unit %m = loadelement struct @I.vtable_type$* %m.vtable$#1, int64 0, int64 3\n"
+                       "struct @I.vtable_type$* %m.vtable$#1 = scall @tungsten.load_ivtable(interface @I %i, struct @tungsten.interface_info* @I.info$)\n" +
+                       "(interface @I)->unit %m = loadelement struct @I.vtable_type$* %m.vtable$#1, int64 0, int64 1\n"
     testConversion(expectedCode, code)
   }                       
 

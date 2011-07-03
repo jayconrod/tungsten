@@ -244,6 +244,33 @@ class LlvmCompatibilityPass
         casts ++ List(address, store)
       }
 
+      case tungsten.ThrowInstruction(name, ty, value, anns) => {
+        assert(value.ty.isPointer)
+        val exnAlloc = tungsten.StaticCallInstruction(newName(name),
+                                                      tungsten.PointerType(tungsten.IntType(8)),
+                                                      "__cxa_allocate_exception",
+                                                      Nil,
+                                                      List(tungsten.IntValue(tungsten.IntType.wordSize(module)/8, 64)))
+        val exnCast = tungsten.BitCastInstruction(newName(name),
+                                                  tungsten.PointerType(value.ty),
+                                                  exnAlloc.makeValue)
+        val exnStore = tungsten.StoreInstruction(newName(name),
+                                                 tungsten.UnitType,
+                                                 value,
+                                                 exnCast.makeValue)
+        val rttiValue = tungsten.BitCastValue(tungsten.DefinedValue("_ZTIPv", 
+                                                                    tungsten.PointerType(tungsten.PointerType(tungsten.IntType(8)))),
+                                              tungsten.PointerType(tungsten.IntType(8)))
+        val throwCall = tungsten.StaticCallInstruction(name,
+                                                       tungsten.UnitType,
+                                                       "__cxa_throw",
+                                                       Nil,
+                                                       List(exnAlloc.makeValue,
+                                                            rttiValue,
+                                                            tungsten.NullValue))
+        List(exnAlloc, exnCast, exnStore, throwCall)
+      }
+
       case _ => List(instruction)
     }
   }

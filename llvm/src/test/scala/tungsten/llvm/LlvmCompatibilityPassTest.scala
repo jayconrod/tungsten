@@ -169,6 +169,16 @@ class LlvmCompatibilityPassTest {
   }
 
   @Test
+  def throwInst {
+    val code = "unit %t = throw bitcast null to int64*"
+    val expected = "int8* %llvmCompat#1 = scall @__cxa_allocate_exception(int64 8)\n" +
+                   "int64** %llvmCompat#2 = bitcast int8* %llvmCompat#1\n" +
+                   "unit %llvmCompat#3 = store bitcast null to int64*, int64** %llvmCompat#2\n" +
+                   "unit %t = scall @__cxa_throw(int8* %llvmCompat#1, bitcast int8** @_ZTIPv to int8*, null)"
+    testCode(expected, code)
+  }
+
+  @Test
   def convertString {
     val string = "s"
     val expected = tungsten.Global("llvmCompat#1",

@@ -22,15 +22,19 @@ version: v0.4
 is64bit: true
 safe: true
 
+; Flow control annotations (for LLVM equivalence)
 annotation @tungsten.NoRuntime
 
+; TODO: remove this
 struct @tungsten.string {
   field int16* %characters
   field int64 %length
 }
 
+; Generic memory allocation function
 function int8* @tungsten.malloc(int32 %size)
 
+; Intrinsic functions
 @tungsten.NoReturn
 function unit @tungsten.exit(int32 %code)
 
@@ -41,3 +45,11 @@ function int64 @tungsten.write(int32 %fd, int8* %buffer, int64 %size)
 function int32 @tungsten.open(int8* %filename, int32 %flags)
 
 function unit @tungsten.close(int32 %fd)
+
+; Exception handling definitions
+global int8* @_ZTIPv   ; void pointer type info
+
+function int8* @__cxa_allocate_exception(int64 %size)
+
+@tungsten.NoReturn
+function unit @__cxa_throw(int8* %pexn, int8* %rtti1, int8* %rtti2)

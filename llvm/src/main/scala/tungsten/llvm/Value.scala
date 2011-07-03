@@ -56,7 +56,9 @@ final case class FloatValue(value: Double, width: Int)
 final case class NullValue(ty: Type) 
   extends Value
 {
-  override def toString = ty.toString + " " + null
+  override def toString = "null"
+
+  override def typedToString = ty + "* null"
 }
 
 final case class ArrayValue(elementType: Type, elements: List[Value])

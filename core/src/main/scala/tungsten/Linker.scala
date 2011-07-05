@@ -239,31 +239,35 @@ object Linker {
                 newDefn: (Definition, Module)) = {
       assert(oldDefn._1.name == newDefn._1.name)
 
-      if (oldDefn.getClass != newDefn.getClass)
-        exitWithFailure(conflictMessage(name, "refers to different types of definitions"))
-
-      if (isStrong(oldDefn._1) && isStrong(newDefn._1))
-        exitWithFailure(conflictMessage(name, "refers to multiple strong definitions"))
-
-      (oldDefn, newDefn) match {
-        case ((oldFunction: Function, oldModule), (newFunction: Function, newModule)) => {
-          if (oldFunction.ty(oldModule) != newFunction.ty(newModule))
-            exitWithFailure(conflictMessage(name, "refers to functions with different types"))
-        }
-        case ((oldGlobal: Global, _), (newGlobal: Global, _)) => {
-          if (oldGlobal.ty != newGlobal.ty)
-            exitWithFailure(conflictMessage(name, "refers to globals with different types"))
-        }
-        case ((oldParameter: Parameter, _), (newParameter: Parameter, _)) => {
-          if (oldParameter.ty != newParameter.ty)
-            exitWithFailure(conflictMessage(name, "refers to parameters with different types"))
-        }
-      }
-
-      if (isStrong(oldDefn._1))
+      if (oldDefn._1 == newDefn._1)
         oldDefn
-      else
-        newDefn
+      else {
+        if (oldDefn.getClass != newDefn.getClass)
+          exitWithFailure(conflictMessage(name, "refers to different types of definitions"))
+
+        if (isStrong(oldDefn._1) && isStrong(newDefn._1))
+          exitWithFailure(conflictMessage(name, "refers to multiple strong definitions"))
+
+        (oldDefn, newDefn) match {
+          case ((oldFunction: Function, oldModule), (newFunction: Function, newModule)) => {
+            if (oldFunction.ty(oldModule) != newFunction.ty(newModule))
+              exitWithFailure(conflictMessage(name, "refers to functions with different types"))
+          }
+          case ((oldGlobal: Global, _), (newGlobal: Global, _)) => {
+            if (oldGlobal.ty != newGlobal.ty)
+              exitWithFailure(conflictMessage(name, "refers to globals with different types"))
+          }
+          case ((oldParameter: Parameter, _), (newParameter: Parameter, _)) => {
+            if (oldParameter.ty != newParameter.ty)
+              exitWithFailure(conflictMessage(name, "refers to parameters with different types"))
+          }
+        }
+
+        if (isStrong(oldDefn._1))
+          oldDefn
+        else
+          newDefn
+      }
     }
 
     val combinedDefn = if (definitions.contains(name))

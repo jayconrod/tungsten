@@ -18,10 +18,21 @@
 
 name: @tungsten
 type: intermediate
-version: v0.3
+version: v0.5
 is64bit: true
 safe: true
-class @tungsten.Object
+
+class @tungsten.Object {
+  constructors { %ctor }
+}
+function unit @tungsten.Object.ctor(class @tungsten.Object %this)
+
+class @tungsten.Exception <: class @tungsten.Object {
+  constructors { %ctor }
+}
+function unit @tungsten.Exception.ctor(class @tungsten.Exception %this)
+
+interface @tungsten.RuntimeException <: class @tungsten.Exception
 
 annotation @tungsten.Location(string %filename,
                               int32 %beginLine,

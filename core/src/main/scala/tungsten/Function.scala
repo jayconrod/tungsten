@@ -86,26 +86,33 @@ final case class Function(name: Symbol,
       }
     }
 
-    def validateBranches = {
-      blocks flatMap { blockName =>
+    def validateExceptionHandlers = {
+      blocks.flatMap { blockName =>
         val block = module.getBlock(blockName)
-        block.instructions flatMap { instName =>
-          val inst = module.getInstruction(instName)
-          val blockNames = inst match {
-            case BranchInstruction(_, _, target, _, _) => List(target)
-            case ConditionalBranchInstruction(_, _, _, trueTarget, _, falseTarget, _, _) =>
-              List(trueTarget, falseTarget)
-            case _ => Nil
-          }
-          blockNames flatMap { n =>
-            if (!blocks.contains(n)) {
-              module.getDefn(n) match {
-                case Some(_) => List(NonLocalBranchException(name, n, inst.getLocation))
-                case None => List(UndefinedSymbolException(n, inst.getLocation))
+        block.catchBlock match {
+          case Some((handlerName, arguments)) => {
+            val argumentTypes = arguments.map(_.ty)
+            val handler = module.getBlock(handlerName)
+            val handlerParameterTypes = module.getParameters(handler.parameters).map(_.ty)
+            handlerParameterTypes match {
+              case exnType :: paramTypes => {
+                val exnTypeErrors = if (exnType != ClassType("tungsten.Exception"))
+                  List(InvalidExceptionHandlerException(blockName, handlerName, block.getLocation))
+                else
+                  Nil
+                val paramTypeErrors = if (argumentTypes.size != paramTypes.size)
+                  List(FunctionArgumentCountException(handlerName, argumentTypes.size, paramTypes.size, block.getLocation))
+                else {
+                  (argumentTypes zip paramTypes) flatMap { case ap =>
+                    checkType(ap._1, ap._2, block.getLocation)
+                  }
+                }
+                exnTypeErrors ++ paramTypeErrors
               }
-            } else
-              Nil
+              case Nil => List(InvalidExceptionHandlerException(blockName, handlerName, block.getLocation))
+            }
           }
+          case None => Nil
         }
       }
     }
@@ -141,7 +148,7 @@ final case class Function(name: Symbol,
 
     stage(super.validate(module),
           validateEntryParameters,
-          validateBranches,
+          validateExceptionHandlers,
           validateReturnType,
           validateVariance,
           validateAbstract,

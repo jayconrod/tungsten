@@ -221,6 +221,14 @@ class TextModuleWriter(module: Module, output: Writer) {
     writeSymbol(block.name, parentName)
     writeParameters(block.parameters, parentName)
     writeInstructions(block.instructions, Some(block.name))
+    block.catchBlock match {
+      case Some((blockName, arguments)) => {
+        output.write(" catch ")
+        writeSymbol(blockName, parentName)
+        writeArguments(arguments, Some(block.name))
+      }
+      case None => ()
+    }
   }
 
   def writeField(field: Field, parentName: Option[Symbol]) {

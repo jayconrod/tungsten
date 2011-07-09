@@ -98,7 +98,10 @@ class BinaryModuleReader(input: DataInputStream) {
     val id = input.readByte
     id match {
       case ANNOTATION_ID => Annotation(name, readList(symbol), readAnnotations)
-      case BLOCK_ID => Block(name, readList(symbol), readList(symbol), readAnnotations)
+      case BLOCK_ID => {
+        Block(name, readList(symbol), readList(symbol), 
+              readOption(readCatchBlock), readAnnotations)
+      }
       case FIELD_ID => Field(name, readType, readAnnotations)
       case FUNCTION_ID => {
         Function(name, 
@@ -233,6 +236,10 @@ class BinaryModuleReader(input: DataInputStream) {
       }
       case _ => throw new IOException("Invalid definition ID: " + id)
     }
+  }
+
+  def readCatchBlock: (Symbol, List[Value]) = {
+    (symbol, readList(readValue))
   }
 
   def readAnnotations: List[AnnotationValue] = {

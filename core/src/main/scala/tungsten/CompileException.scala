@@ -237,6 +237,13 @@ final case class InvalidBitCastException(value: Value,
                              format(valueToString(value), valueSize, typeToString(ty), tySize),
                            location)
 
+final case class InvalidExceptionHandlerException(blockName: Symbol,
+                                                  handlerName: Symbol,
+                                                  location: Location)
+  extends CompileException("block %s branches to invalid exception handler %s".
+                             format(blockName, handlerName),
+                           location)
+
 final case class InvalidIndexException(value: String, ty: String, location: Location)
   extends CompileException("the value " + value + 
                              " cannot be used as an index into type " + ty,
@@ -324,13 +331,6 @@ final case class NewConstructorException(instructionName: Symbol,
                                          location: Location)
   extends CompileException("instruction %s calls function %s, which is not a constructor of class %s".
                              format(instructionName, constructorName, className),
-                           location)
-
-final case class NonLocalBranchException(functionName: Symbol,
-                                         blockName: Symbol,
-                                         location: Location)
-  extends CompileException("function " + functionName + 
-                             " branches to non-local block " + blockName,
                            location)
 
 final case class NumericExtensionException(fromTy: String, toTy: String, location: Location)

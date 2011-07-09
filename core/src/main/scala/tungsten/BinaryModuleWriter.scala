@@ -139,10 +139,11 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         output.writeByte(ANNOTATION_ID)
         writeSymbolList(parameters)
       }
-      case Block(_, parameters, instructions, _) => {
+      case Block(_, parameters, instructions, catchBlock, _) => {
         output.writeByte(BLOCK_ID)
         writeSymbolList(parameters)
         writeSymbolList(instructions)
+        writeOption(catchBlock, writeCatchBlock _)
       }
       case Class(_, typeParameters, superclass, interfaceTypes, interfaceMethods, 
                  constructors, methods, fields, _) =>
@@ -362,6 +363,12 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
       }
     }
     writeList(defn.annotations, writeAnnotationValue _)
+  }
+
+  def writeCatchBlock(catchBlock: (Symbol, List[Value])) {
+    val (blockName, arguments) = catchBlock
+    writeInt(symbols(blockName))
+    writeList(arguments, writeValue _)
   }
 
   def writeAnnotationValue(av: AnnotationValue) {

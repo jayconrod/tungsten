@@ -24,6 +24,7 @@ import Utilities._
 final case class Block(name: Symbol,
                        parameters: List[Symbol],
                        instructions: List[Symbol],
+                       catchBlock: Option[(Symbol, List[Value])] = None,
                        annotations: List[AnnotationValue] = Nil)
   extends Definition
 {
@@ -34,13 +35,23 @@ final case class Block(name: Symbol,
 
   def successors(module: Module): Set[Block] = {
     val terminator = module.getInstruction(instructions.last)
-    terminator.successors.map(module.getBlock _)
+    val terminatorBlocks = terminator.successors.map(module.getBlock _)
+    val catchBlocks = catchBlock.map { cb => module.getBlock(cb._1) }.toSet
+    terminatorBlocks ++ catchBlocks
   }
 
   override def validateComponents(module: Module) = {
+    def validateCatchBlockComponents = {
+      catchBlock match {
+        case Some((handlerName, _)) => validateComponentOfClass[Block](module, handlerName)
+        case None => Nil
+      }
+    }
+
     super.validateComponents(module) ++ 
       validateComponentsOfClass[Parameter](module, parameters) ++
-      validateNonEmptyComponentsOfClass[Instruction](module, instructions)
+      validateNonEmptyComponentsOfClass[Instruction](module, instructions) ++
+      validateCatchBlockComponents
   }
 
   override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
@@ -59,8 +70,26 @@ final case class Block(name: Symbol,
       }
     }
 
+    def validateCatchBlock = {
+      val catchScope = scope ++ parameters
+      catchBlock match {
+        case Some((handlerName, arguments)) => {
+          val handlerErrors = if (!catchScope(handlerName))
+            List(ScopeException(handlerName, name, getLocation))
+          else
+            Nil
+          val argumentErrors = arguments flatMap { arg =>
+            arg.foldSymbols(Nil, validateSymbolScope(_: List[CompileException], _: Symbol, scope))
+          }
+          handlerErrors ++ argumentErrors
+        }
+        case None => Nil
+      }
+    }
+
     validateComponentsScope(module, scope, parameters) ++
-      validateInstructions(scope ++ parameters, instructions, Nil)
+      validateInstructions(scope ++ parameters, instructions, Nil) ++
+      validateCatchBlock
   }
 
   override def validate(module: Module) = {

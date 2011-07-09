@@ -71,6 +71,7 @@ trait Mapping[T <: AnyRef]
         case v: Mapping[_] => v.mapFields(mapper _)
         case list: List[_] => list.map { e => mapper(null, e.asInstanceOf[AnyRef]) }
         case opt: Option[_] => opt.map { e => mapper(null, e.asInstanceOf[AnyRef]) }
+        case (a, b) => (mapper(null, a.asInstanceOf[AnyRef]), mapper(null, b.asInstanceOf[AnyRef]))
         case _ => oldValue
       }
       if (SClass.isInstance(mapped))

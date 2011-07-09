@@ -172,9 +172,11 @@ class Parser extends Parsers with ImplicitConversions {
 
   lazy val block: Parser[AstNode] = {
     annotations ~ ("block" ~> symbol) ~ children(parameter, "(", ",", ")") ~ 
-      children(instructionDefn, "{", "", "}") ^^ {
-        case anns ~ n ~ ps ~ is => {
-          val block = Block(n, ps.map(_.name), is.map(_.name), anns)
+      children(instructionDefn, "{", "", "}") ~
+      opt("catch" ~> symbol ~ argumentList) ^^ {
+        case anns ~ n ~ ps ~ is ~ c => {
+          val cb = c map { case b ~ as => (b, as) }
+          val block = Block(n, ps.map(_.name), is.map(_.name), cb, anns)
           AstNode(block, ps ++ is)
         }
     }
@@ -674,7 +676,7 @@ final case class AstNode(definition: Definition, children: List[AstNode]) {
     definition :: children.map(_.toList).flatten
   }
 
-  def globalize(parent: Option[Symbol]): AstNode = {
+  def globalize (parent: Option[Symbol]): AstNode = {
     val globalizedDefn = globalizeDefn(parent)
     AstNode(globalizedDefn, children.map(_.globalize(Some(globalizedDefn.name))))
   }

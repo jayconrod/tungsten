@@ -26,6 +26,13 @@ import Utilities._
 class FunctionValidationTest
   extends ValidationTest
 {
+  override def programContainsError[T <: CompileException](program: String)(implicit m: Manifest[T]) {
+    val module = compileString(program)
+    val moduleWithRuntime = linkRuntime(module)
+    val errors = moduleWithRuntime.validate
+    containsError[T](errors)(m)
+  }
+
   @Test
   def emptyBlockTermination {
     val program = "function unit @main( ) { block %empty }"
@@ -135,5 +142,93 @@ class FunctionValidationTest
                   "  }\n" +
                   "}\n"
     programContainsError[EntryBlockPredecessorException](program)
+  }
+
+  @Test
+  def catchBlockIsSuccessor {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %cb(class @tungsten.Exception %exn) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    val module = linkRuntime(compileString(program))
+    val block = module.getBlock("f.entry")
+    val expected = Set(module.getBlock("f.cb"))
+    assertEquals(expected, block.successors(module))
+  }
+
+  @Test
+  def catchBlockInDifferentFunction {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @tungsten.Exception %exn = upcast null\n" +
+                  "    branch @f.cb(class @tungsten.Exception %exn)\n" +
+                  "  }\n" +
+                  "  block %cb(class @tungsten.Exception %exn) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n" +
+                  "function unit @g {\n" +
+                  "  block %entry {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.entry()\n" +
+                  "}\n"
+    programContainsError[ScopeException](program)
+  }
+
+  @Test
+  def catchBlockReceiveExceptions {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %cb(class @tungsten.Object %exn) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[InvalidExceptionHandlerException](program)
+  }
+
+  @Test
+  def catchBlockArgumentTypeMismatch {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb(())\n" +
+                  "  block %cb(class @tungsten.Exception %exn, int64 %a) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def catchBlockArgumentCount {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb(())\n" +
+                  "  block %cb(class @tungsten.Exception %exn) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[FunctionArgumentCountException](program)
+  }
+
+  @Test
+  def catchArgumentScope {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    int64 %a = binop int64 2 + int64 3\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb(int64 %a)\n" +
+                  "  block %cb(class @tungsten.Exception %exn, int64 %a) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[ScopeException](program)
   }
 }

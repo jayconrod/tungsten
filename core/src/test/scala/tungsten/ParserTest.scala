@@ -514,6 +514,15 @@ class ParserTest {
   }
 
   @Test
+  def blockWithCatch {
+    testDefinition("block %b {\n" +
+                   "  unit %i = return ()\n" +
+                   "} catch @f.c((), ())",
+                   parser.block,
+                   Block("%b", Nil, List("%i"), Some("@f.c", List(UnitValue, UnitValue))))
+  }
+
+  @Test
   def field {
     testDefinition("field unit %a", parser.field,
                    Field("%a", UnitType))

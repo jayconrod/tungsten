@@ -109,6 +109,14 @@ class MappingTest {
   }
 
   @Test
+  def mapCatchBlock {
+    def function(sym: Symbol): Symbol = Symbol(sym.name, 1)
+    val block = Block("b", Nil, Nil, Some(("cb", List(DefinedValue("a", UnitType)))))
+    val expected = Block("b#1", Nil, Nil, Some(("cb#1", List(DefinedValue("a#1", UnitType)))))
+    assertEquals(expected, block.mapSymbols(function _))
+  }
+
+  @Test
   def mapValuesOption {
     val global = Global("a", IntType(64), Some(IntValue(2, 64)))
     val expected = Global("a", IntType(64), Some(IntValue(4, 64)))

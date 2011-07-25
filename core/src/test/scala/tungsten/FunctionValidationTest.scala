@@ -145,22 +145,6 @@ class FunctionValidationTest
   }
 
   @Test
-  def catchBlockIsSuccessor {
-    val program = "function unit @f {\n" +
-                  "  block %entry {\n" +
-                  "    return ()\n" +
-                  "  } catch @f.cb()\n" +
-                  "  block %cb(class @tungsten.Exception %exn) {\n" +
-                  "    return ()\n" +
-                  "  }\n" +
-                  "}"
-    val module = linkRuntime(compileString(program))
-    val block = module.getBlock("f.entry")
-    val expected = Set(module.getBlock("f.cb"))
-    assertEquals(expected, block.successors(module))
-  }
-
-  @Test
   def catchBlockInDifferentFunction {
     val program = "function unit @f {\n" +
                   "  block %entry {\n" +

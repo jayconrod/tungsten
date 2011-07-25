@@ -134,13 +134,14 @@ final case class Function(name: Symbol,
 
     def validatePredecessors = {
       val cfg = controlFlowGraph(module)
-      val paramErrors = for (block <- cfg.nodes.toList;
-                             if !block.parameters.isEmpty && cfg.incident(block).isEmpty)
+      val blockDefns = module.getBlocks(blocks)
+      val paramErrors = for (block <- blockDefns;
+                             if !block.parameters.isEmpty && cfg.incident(block.name).isEmpty)
                           yield BlockPredecessorException(block.name, block.getLocation)
 
       val entryErrors = for (entryName <- blocks.headOption.toList;
                              val entry = module.getBlock(entryName);
-                             if !cfg.incident(entry).isEmpty)
+                             if !cfg.incident(entry.name).isEmpty)
                           yield EntryBlockPredecessorException(name, entry.name, getLocation)
 
       paramErrors ++ entryErrors
@@ -155,11 +156,11 @@ final case class Function(name: Symbol,
           validatePredecessors)
   }
 
-  def controlFlowGraph(module: Module): Graph[Block] = {
+  def controlFlowGraph(module: Module): Graph[Symbol] = {
     val blockDefns = module.getBlocks(blocks)
-    val successorMap = (Map[Block, Set[Block]]() /: blockDefns) { (deps, defn) =>
-      deps + (defn -> defn.successors(module))
+    val successorMap = (Map[Symbol, Set[Symbol]]() /: blockDefns) { (deps, defn) =>
+      deps + (defn.name -> defn.successorNames(module))
     }
-    new Graph(blockDefns, successorMap)
+    new Graph(blocks.toSet, successorMap)
   }
 }

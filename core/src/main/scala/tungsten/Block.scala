@@ -33,11 +33,13 @@ final case class Block(name: Symbol,
     FunctionType(UnitType, Nil, parameterTypes)
   }
 
-  def successors(module: Module): Set[Block] = {
+  def successorNames(module: Module): Set[Symbol] = {
     val terminator = module.getInstruction(instructions.last)
-    val terminatorBlocks = terminator.successors.map(module.getBlock _)
-    val catchBlocks = catchBlock.map { cb => module.getBlock(cb._1) }.toSet
-    terminatorBlocks ++ catchBlocks
+    terminator.successors.toSet
+  }
+
+  def successors(module: Module): Set[Block] = {
+    successorNames(module).map(module.getBlock _)
   }
 
   override def validateComponents(module: Module) = {

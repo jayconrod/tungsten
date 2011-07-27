@@ -28,8 +28,24 @@ import org.junit.Ignore
 import org.junit.Assert._
 
 class CatchBlockOutlinePassTest {
-
   val pass = new CatchBlockOutlinePass
+
+  val testProgram = "function unit @f {\n" +
+                    "  block %entry {\n" +
+                    "    branch @f.a(int64 12)\n" +
+                    "  }\n" +
+                    "  block %a(int64 %x) {\n" +
+                    "    int64 %y = binop int64 %x + int64 34\n" +
+                    "    branch @f.exit(int64 %y)\n" +
+                    "  } catch @f.cb()\n" +
+                    "  block %exit(int64 %y) {\n" +
+                    "    return ()\n" +
+                    "  }\n" +
+                    "  block %cb(class @tungsten.Exception %exn) {\n" +
+                    "    return ()\n" +
+                    "  }\n" +
+                    "}\n"
+  lazy val testModule = linkRuntime(compileString(testProgram))
 
   def makeFunction(blockCode: String): (tungsten.Function, tungsten.Module) = {
     val program = "function unit @f {\n" +
@@ -44,6 +60,10 @@ class CatchBlockOutlinePassTest {
     val module = linkRuntime(compileString(program))
     val function = module.getFunction("f")
     (function, module)
+  }
+
+  def assertSymbolsEqual(expected: Traversable[Symbol], actual: Traversable[Symbol]) {
+    assertEquals(expected.map(_.copy(id = 0)), actual.map(_.copy(id = 0)))
   }
 
   def testFindSuperblock(code: String,
@@ -189,5 +209,54 @@ class CatchBlockOutlinePassTest {
     val superblocks = pass.findSuperblocks(function, module)
     val expected = Superblock("f.a", "f.cb", Set("f.cb"), Set("f.a"), TReturn)
     assertTrue(superblocks.contains(expected))
+  }
+
+  @Test
+  def createPrologueBlock {
+    val parameters = List(tungsten.Parameter("x", tungsten.PointerType(tungsten.IntType(64))))
+    val module = pass.createPrologueBlock("f", "f.a", parameters, testModule)
+    val block = module.getBlock("f.try$.prologue$#1")
+    assertEquals(Nil, block.parameters)
+    assertSymbolsEqual(List("x.load$", "f.try$.prologue$.branch$"),
+                       block.instructions)
+    val loadInst :: branchInst :: Nil = module.getInstructions(block.instructions)
+    assertEquals(tungsten.LoadInstruction("x.load$#2",
+                                          tungsten.IntType(64),
+                                          tungsten.DefinedValue("x", tungsten.PointerType(tungsten.IntType(64)))),
+                 loadInst)
+    assertEquals(tungsten.BranchInstruction("f.try$.prologue$.branch$#3", tungsten.UnitType,
+                                            "f.a",
+                                            List(tungsten.DefinedValue("x.load$#2",
+                                                                       tungsten.IntType(64)))),
+                 branchInst)
+  }
+
+  @Test
+  @Ignore
+  def createEpilogueBlockBranch {
+  }
+
+  @Test
+  @Ignore
+  def createEpilogueBlockCondBranch {
+  }
+
+  @Test
+  @Ignore
+  def createEpilogueBlockReturn {
+  }
+
+  @Test
+  @Ignore
+  def createEpilogueInternal {
+  }
+
+  @Test
+  def createOutlinedFunction {
+    val superblock = Superblock("f.a", "f.cb", Set("f.entry"), Set("f.a"), TBranch("f.exit"))
+    val module = pass.createOutlinedFunction(superblock, "f", testModule)
+    val tryFunction = module.getFunction("f.try$#1")
+    assertSymbolsEqual(List("f.try$.param$"), tryFunction.parameters)
+    assertSymbolsEqual(List("f.try$.prologue$", "f.a"), tryFunction.blocks)
   }
 }

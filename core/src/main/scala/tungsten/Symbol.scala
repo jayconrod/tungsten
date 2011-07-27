@@ -27,6 +27,8 @@ final class Symbol(val name: List[String], val id: Int)
   if (name.isEmpty || !name.forall(!_.isEmpty) || id < 0)
     throw new IllegalArgumentException
 
+  def copy(name: List[String] = name, id: Int = id) = new Symbol(name, id)
+
   def + (right: String) = new Symbol(name ++ List(right), id)
   def + (right: Symbol) = new Symbol(name ++ right.name, right.id)
 

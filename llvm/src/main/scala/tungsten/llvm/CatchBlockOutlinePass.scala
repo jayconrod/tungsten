@@ -220,7 +220,65 @@ class CatchBlockOutlinePass
                         module: tungsten.Module): tungsten.Module =
   {
     module
-  } 
+  }
+
+  def createOutlinedFunction(superblock: Superblock,
+                             functionName: Symbol,
+                             module: tungsten.Module): tungsten.Module =
+  {
+    import SuperblockTerminator._
+
+    val tryName = outlinedFunctionName(functionName)
+    val head = module.getBlock(superblock.head)
+    val parametersIn = head.parameters map { p =>
+      val name = symbolFactory(tryName + "param$")
+      val ty = tungsten.PointerType(module.getParameter(p).ty)
+      tungsten.Parameter(name, ty)
+    }
+    var m = module
+    m = m.add(parametersIn: _*)
+    m = createPrologueBlock(functionName, head.name, parametersIn, m)
+    val prologueName = prologueBlockName(functionName)
+    val blockNames = prologueName :: superblock.head :: 
+      (superblock.blocks - superblock.head).toList
+    val returnType = superblock.terminator match {
+      case TReturn => module.getFunction(functionName).returnType
+      case _ => tungsten.UnitType
+    }
+    val parameterNames = parametersIn.map(_.name)
+    val tryFunction = tungsten.Function(tryName, returnType, Nil, parameterNames, blockNames)
+    m = m.add(tryFunction)
+    m
+  }
+
+  def createPrologueBlock(functionName: Symbol, 
+                          entryName: Symbol,
+                          parameters: List[tungsten.Parameter],
+                          module: tungsten.Module): tungsten.Module = 
+  {
+    val blockName = prologueBlockName(functionName)
+    val loadInsts = parameters map { p =>
+      val name = symbolFactory(p.name + "load$")
+      val ty = p.ty.asInstanceOf[tungsten.PointerType].elementType
+      tungsten.LoadInstruction(name, ty, p.makeValue)
+    }
+    val loadValues = loadInsts.map(_.makeValue)
+    val branchInst = tungsten.BranchInstruction(symbolFactory(blockName + "branch$"),
+                                                tungsten.UnitType,
+                                                entryName,
+                                                loadValues)
+    val instructions = loadInsts :+ branchInst
+    val block = tungsten.Block(blockName, Nil, instructions.map(_.name), None)
+    module.add(instructions: _*).add(block)
+  }
+
+  def outlinedFunctionName(originalFunctionName: Symbol): Symbol = {
+    symbolFactory(originalFunctionName + "try$")
+  }
+
+  def prologueBlockName(functionName: Symbol): Symbol = {
+    symbolFactory(functionName + "try$" + "prologue$")
+  }
 }
 
 case class Superblock(head: Symbol,

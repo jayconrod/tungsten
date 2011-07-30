@@ -235,12 +235,39 @@ class CatchBlockOutlinePass
       val ty = tungsten.PointerType(module.getParameter(p).ty)
       tungsten.Parameter(name, ty)
     }
+    val parametersOut = superblock.terminator match {
+      case TBranch(target) => {
+        val targetBlock = module.getBlock(target)
+        val targetParameters = module.getParameters(targetBlock.parameters)
+        targetParameters map { p =>
+          val name = symbolFactory(tryName + "param$")
+          val ty = tungsten.PointerType(p.ty)
+          tungsten.Parameter(name, ty)
+        }
+      }
+      case TCondBranch(trueTarget, falseTarget) => {
+        val (trueTargetBlock, falseTargetBlock) = (module.getBlock(trueTarget), module.getBlock(falseTarget))
+        val (trueTargetParameters, falseTargetParameters) = (module.getParameters(trueTargetBlock.parameters), module.getParameters(falseTargetBlock.parameters))
+        val paramTypes = tungsten.BooleanType :: trueTargetParameters.map(_.ty) ++ falseTargetParameters.map(_.ty)
+        paramTypes map { ty =>
+          tungsten.Parameter(symbolFactory(tryName + "param$"), ty)
+        }
+      }
+      case _ => Nil
+    }
+    val parameters = parametersIn ++ parametersOut
     var m = module
-    m = m.add(parametersIn: _*)
-    m = createPrologueBlock(functionName, head.name, parametersIn, m)
-    val prologueName = prologueBlockName(functionName)
-    val blockNames = prologueName :: superblock.head :: 
-      (superblock.blocks - superblock.head).toList
+    m = m.add(parameters: _*)
+    val (prologueName, m_1) = createPrologueBlock(functionName, head.name, parametersIn, m)
+    m = m_1
+    val outlinedBlockNames = superblock.head :: (superblock.blocks - superblock.head).toList
+    val blockNames = if (parametersOut.isEmpty)
+      prologueName :: outlinedBlockNames
+    else {
+      val (epilogueName, m_2) = createEpilogueBlock(functionName, parametersOut, m)
+      m = m_2
+      prologueName :: epilogueName :: outlinedBlockNames
+    }
     val returnType = superblock.terminator match {
       case TReturn => module.getFunction(functionName).returnType
       case _ => tungsten.UnitType
@@ -254,7 +281,7 @@ class CatchBlockOutlinePass
   def createPrologueBlock(functionName: Symbol, 
                           entryName: Symbol,
                           parameters: List[tungsten.Parameter],
-                          module: tungsten.Module): tungsten.Module = 
+                          module: tungsten.Module): (Symbol, tungsten.Module) = 
   {
     val blockName = prologueBlockName(functionName)
     val loadInsts = parameters map { p =>
@@ -269,7 +296,34 @@ class CatchBlockOutlinePass
                                                 loadValues)
     val instructions = loadInsts :+ branchInst
     val block = tungsten.Block(blockName, Nil, instructions.map(_.name), None)
-    module.add(instructions: _*).add(block)
+    (blockName, module.add(instructions: _*).add(block))
+  }
+
+  def createEpilogueBlock(functionName: Symbol,
+                          parameters: List[tungsten.Parameter],
+                          module: tungsten.Module): (Symbol, tungsten.Module) =
+  {
+    val blockName = epilogueBlockName(functionName)
+    val blockParameters = parameters map { p =>
+      val name = symbolFactory(blockName + "param$")
+      val ty = p.ty.asInstanceOf[tungsten.PointerType].elementType
+      tungsten.Parameter(name, ty)
+    }
+    val storeInsts = (parameters zip blockParameters) map { i =>
+      val (parameter, blockParameter) = i
+      val name = symbolFactory(blockName + "store$")
+      tungsten.StoreInstruction(name, tungsten.UnitType,
+                                blockParameter.makeValue,
+                                parameter.makeValue)
+    }
+    val returnInst = tungsten.ReturnInstruction(symbolFactory(blockName + "ret$"),
+                                                tungsten.UnitType,
+                                                tungsten.UnitValue)
+    val instructions = storeInsts :+ returnInst
+    val block = tungsten.Block(blockName, 
+                               blockParameters.map(_.name), 
+                               instructions.map(_.name))
+    (blockName, module.add(blockParameters: _*).add(instructions: _*).add(block))
   }
 
   def outlinedFunctionName(originalFunctionName: Symbol): Symbol = {
@@ -278,6 +332,10 @@ class CatchBlockOutlinePass
 
   def prologueBlockName(functionName: Symbol): Symbol = {
     symbolFactory(functionName + "try$" + "prologue$")
+  }
+
+  def epilogueBlockName(functionName: Symbol): Symbol = {
+    symbolFactory(functionName + "try$" + "epilogue$")
   }
 }
 

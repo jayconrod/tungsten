@@ -214,8 +214,8 @@ class CatchBlockOutlinePassTest {
   @Test
   def createPrologueBlock {
     val parameters = List(tungsten.Parameter("x", tungsten.PointerType(tungsten.IntType(64))))
-    val module = pass.createPrologueBlock("f", "f.a", parameters, testModule)
-    val block = module.getBlock("f.try$.prologue$#1")
+    val (blockName, module) = pass.createPrologueBlock("f", "f.a", parameters, testModule)
+    val block = module.getBlock(blockName)
     assertEquals(Nil, block.parameters)
     assertSymbolsEqual(List("x.load$", "f.try$.prologue$.branch$"),
                        block.instructions)
@@ -232,23 +232,24 @@ class CatchBlockOutlinePassTest {
   }
 
   @Test
-  @Ignore
-  def createEpilogueBlockBranch {
-  }
-
-  @Test
-  @Ignore
-  def createEpilogueBlockCondBranch {
-  }
-
-  @Test
-  @Ignore
-  def createEpilogueBlockReturn {
-  }
-
-  @Test
-  @Ignore
-  def createEpilogueInternal {
+  def createEpilogueBlock {
+    val parameters = List(tungsten.Parameter("y", tungsten.PointerType(tungsten.IntType(64))))
+    val (blockName, module) = pass.createEpilogueBlock("f", parameters, testModule)
+    val block = module.getBlock(blockName)
+    assertSymbolsEqual(List("f.try$.epilogue$.param$"), block.parameters)
+    assertSymbolsEqual(List("f.try$.epilogue$.store$", "f.try$.epilogue$.ret$"), block.instructions)
+    val storeInst :: retInst :: Nil = module.getInstructions(block.instructions)
+    assertEquals(tungsten.StoreInstruction("f.try$.epilogue$.store$#3",
+                                           tungsten.UnitType,
+                                           tungsten.DefinedValue("f.try$.epilogue$.param$#2",
+                                                                 tungsten.IntType(64)),
+                                           tungsten.DefinedValue("y",
+                                                                 tungsten.PointerType(tungsten.IntType(64)))),
+                 storeInst)
+    assertEquals(tungsten.ReturnInstruction("f.try$.epilogue$.ret$#4",
+                                            tungsten.UnitType,
+                                            tungsten.UnitValue),
+                 retInst)
   }
 
   @Test
@@ -257,6 +258,6 @@ class CatchBlockOutlinePassTest {
     val module = pass.createOutlinedFunction(superblock, "f", testModule)
     val tryFunction = module.getFunction("f.try$#1")
     assertSymbolsEqual(List("f.try$.param$"), tryFunction.parameters)
-    assertSymbolsEqual(List("f.try$.prologue$", "f.a"), tryFunction.blocks)
+    assertSymbolsEqual(List("f.try$.prologue$", "f.try$.epilogue$", "f.a"), tryFunction.blocks)
   }
 }

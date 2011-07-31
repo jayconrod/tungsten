@@ -36,7 +36,7 @@ class CatchBlockOutlinePassTest {
                     "  }\n" +
                     "  block %a(int64 %x) {\n" +
                     "    int64 %y = binop int64 %x + int64 34\n" +
-                    "    branch @f.exit(int64 %y)\n" +
+                    "    unit %br = branch @f.exit(int64 %y)\n" +
                     "  } catch @f.cb()\n" +
                     "  block %exit(int64 %y) {\n" +
                     "    return ()\n" +
@@ -214,7 +214,7 @@ class CatchBlockOutlinePassTest {
   @Test
   def createPrologueBlock {
     val parameters = List(tungsten.Parameter("x", tungsten.PointerType(tungsten.IntType(64))))
-    val (blockName, module) = pass.createPrologueBlock("f", "f.a", parameters, testModule)
+    val (blockName, module) = pass.createPrologueBlock("f.try$", "f.a", parameters, testModule)
     val block = module.getBlock(blockName)
     assertEquals(Nil, block.parameters)
     assertSymbolsEqual(List("x.load$", "f.try$.prologue$.branch$"),
@@ -234,7 +234,8 @@ class CatchBlockOutlinePassTest {
   @Test
   def createEpilogueBlock {
     val parameters = List(tungsten.Parameter("y", tungsten.PointerType(tungsten.IntType(64))))
-    val (blockName, module) = pass.createEpilogueBlock("f", parameters, testModule)
+    val (blockName, module) = pass.createEpilogueBlock("f.try$", parameters, 
+                                                       tungsten.BooleanValue(true), testModule)
     val block = module.getBlock(blockName)
     assertSymbolsEqual(List("f.try$.epilogue$.param$"), block.parameters)
     assertSymbolsEqual(List("f.try$.epilogue$.store$", "f.try$.epilogue$.ret$"), block.instructions)
@@ -248,16 +249,137 @@ class CatchBlockOutlinePassTest {
                  storeInst)
     assertEquals(tungsten.ReturnInstruction("f.try$.epilogue$.ret$#4",
                                             tungsten.UnitType,
-                                            tungsten.UnitValue),
+                                            tungsten.BooleanValue(true)),
                  retInst)
+  }
+
+  @Test
+  def fixExitBranch {
+    val superblock = Superblock("f.a", "f.cb", Set("f.entry"), Set("f.a"), TBranch("f.exit"))
+    val module = pass.fixBranchInstructions("f.exit", "epilogue$", superblock.blocks, testModule)
+    val termInst = module.getInstruction("f.a.br")
+    val expected = tungsten.BranchInstruction(termInst.name,
+                                              tungsten.UnitType,
+                                              "epilogue$",
+                                              List(tungsten.DefinedValue("f.a.y", tungsten.IntType(64))))
+    assertEquals(expected, termInst)
+  }
+
+  @Test
+  def fixExitHalfBranch {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    unit %br = cond true ? @f.b() : @f.exit(int64 12)\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %b {\n" +
+                  "    branch @f.exit(int64 12)\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %cb {\n" +
+                  "    branch @f.exit(int64 0)\n" +
+                  "  }\n" +
+                  "  block %exit(int64 %x) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    val superblock = Superblock("f.a", "f.cb", Set("f.entry"), Set("f.a", "f.b"), TBranch("f.exit"))
+    val srcModule = linkRuntime(compileString(program))
+    val module = pass.fixBranchInstructions("f.exit", "epilogue$", Set("f.a", "f.b"), srcModule)
+    val termInst = module.getInstruction("f.a.br")
+    val expected = tungsten.ConditionalBranchInstruction(termInst.name,
+                                                         tungsten.UnitType,
+                                                         tungsten.BooleanValue(true),
+                                                         "f.b",
+                                                         Nil,
+                                                         "epilogue$",
+                                                         List(tungsten.IntValue(12, 64)))
+    assertEquals(expected, termInst)
+  }
+
+  @Test
+  def fixExitCondBranch {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    unit %br = cond true ? @f.c(int64 12) : @f.b(int64 34)\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %b(int64 %x) {\n" +
+                  "    branch @f.exit()\n" +
+                  "  }\n" +
+                  "  block %c(int64 %x) {\n" +
+                  "    branch @f.exit()\n" +
+                  "  }\n" +
+                  "  block %cb {\n" +
+                  "    branch @f.exit()\n" +
+                  "  }\n" +
+                  "  block %exit {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    val srcModule = linkRuntime(compileString(program))
+    val module = pass.fixCondBranchInstructions("f.b", "epilogue$#1",
+                                                "f.c", "epilogue$#2",
+                                                Set("f.a"), srcModule)
+    val termInst = module.getInstruction("f.a.br")
+    val expected = tungsten.ConditionalBranchInstruction(termInst.name,
+                                                         tungsten.UnitType,
+                                                         tungsten.BooleanValue(true),
+                                                         "epilogue$#2",
+                                                         List(tungsten.IntValue(12, 64)),
+                                                         "epilogue$#1",
+                                                         List(tungsten.IntValue(34, 64)))
+    assertEquals(expected, termInst)
   }
 
   @Test
   def createOutlinedFunction {
     val superblock = Superblock("f.a", "f.cb", Set("f.entry"), Set("f.a"), TBranch("f.exit"))
-    val module = pass.createOutlinedFunction(superblock, "f", testModule)
-    val tryFunction = module.getFunction("f.try$#1")
-    assertSymbolsEqual(List("f.try$.param$"), tryFunction.parameters)
-    assertSymbolsEqual(List("f.try$.prologue$", "f.try$.epilogue$", "f.a"), tryFunction.blocks)
+    val (tryFunctionName, module) = pass.createOutlinedFunction(superblock, "f", testModule)
+    val tryFunction = module.getFunction(tryFunctionName)
+    assertSymbolsEqual(List("f.try$.param$", "f.try$.param$"), tryFunction.parameters)
+    assertSymbolsEqual(List("f.try$.prologue$", "f.a", "f.try$.epilogue$"), tryFunction.blocks)
+  }
+
+  @Test
+  def createOutlinedFunctionCondBranch {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    unit %br = cond true ? @f.b(int64 12) : @f.c(int64 34)\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %b(int64 %x) {\n" +
+                  "    branch @f.exit()\n" +
+                  "  }\n" +
+                  "  block %c(int64 %x) {\n" +
+                  "    branch @f.exit()\n" +
+                  "  }\n" +
+                  "  block %cb {\n" +
+                  "    branch @f.exit()\n" +
+                  "  }\n" +
+                  "  block %exit {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    val srcModule = linkRuntime(compileString(program))
+    val superblock = Superblock("f.a", "f.cb", Set("f.entry"), Set("f.a"), TCondBranch("f.b", "f.c"))
+    val (tryFunctionName, module) = pass.createOutlinedFunction(superblock, "f", srcModule)
+    val tryFunction = module.getFunction(tryFunctionName)
+    assertEquals(2, tryFunction.parameters.size)
+    val trueEpilogueName = tryFunction.blocks(tryFunction.blocks.size - 2)
+    val trueEpilogue = module.getBlock(trueEpilogueName)
+    val trueReturn = module.getInstruction(trueEpilogue.instructions.last).asInstanceOf[tungsten.ReturnInstruction]
+    assertEquals(tungsten.ReturnInstruction("ret", tungsten.UnitType, tungsten.BooleanValue(true)),
+                 trueReturn.copy(name = "ret"))
+    val falseEpilogueName = tryFunction.blocks(tryFunction.blocks.size - 1)
+    val falseEpilogue = module.getBlock(falseEpilogueName)
+    val falseReturn = module.getInstruction(falseEpilogue.instructions.last).asInstanceOf[tungsten.ReturnInstruction]
+    assertEquals(tungsten.ReturnInstruction("ret", tungsten.UnitType, tungsten.BooleanValue(false)),
+                 falseReturn.copy(name = "ret"))
   }
 }

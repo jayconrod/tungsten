@@ -25,6 +25,8 @@ import tungsten.Graph
 class CatchBlockOutlinePass
   extends Function1[tungsten.Module, tungsten.Module]
 {
+  import SuperblockTerminator._
+
   private var symbolFactory: tungsten.SymbolFactory = new tungsten.SymbolFactory
 
   def apply(module: tungsten.Module): tungsten.Module = {
@@ -60,8 +62,6 @@ class CatchBlockOutlinePass
                       cfg: Graph[Symbol],
                       module: tungsten.Module): (Set[Symbol], Map[Symbol, Superblock]) =
   {
-    import SuperblockTerminator._
-
     if (visited(block.name))
       (visited, superblocks)
     else {
@@ -104,8 +104,6 @@ class CatchBlockOutlinePass
   def simplifySuperblocks(superblock: Superblock,
                           superblockMap: Map[Symbol, Superblock]): Map[Symbol, Superblock] =
   {
-    import SuperblockTerminator._
-
     def isCompatible(other: Superblock) = {
       if (other.head == superblock.head)
         true
@@ -224,66 +222,83 @@ class CatchBlockOutlinePass
 
   def createOutlinedFunction(superblock: Superblock,
                              functionName: Symbol,
-                             module: tungsten.Module): tungsten.Module =
+                             module: tungsten.Module): (Symbol, tungsten.Module) =
   {
-    import SuperblockTerminator._
-
     val tryName = outlinedFunctionName(functionName)
-    val head = module.getBlock(superblock.head)
-    val parametersIn = head.parameters map { p =>
-      val name = symbolFactory(tryName + "param$")
-      val ty = tungsten.PointerType(module.getParameter(p).ty)
-      tungsten.Parameter(name, ty)
-    }
-    val parametersOut = superblock.terminator match {
+    var m = module
+
+    val (parametersIn, m_1) = createParameters(tryName, superblock.head, m)
+    m = m_1
+    val (prologueName, m_2) = createPrologueBlock(tryName, superblock.head, parametersIn, m)
+    m = m_2
+
+    val (parametersOut, epilogueBlockNames) = superblock.terminator match {
       case TBranch(target) => {
-        val targetBlock = module.getBlock(target)
-        val targetParameters = module.getParameters(targetBlock.parameters)
-        targetParameters map { p =>
-          val name = symbolFactory(tryName + "param$")
-          val ty = tungsten.PointerType(p.ty)
-          tungsten.Parameter(name, ty)
-        }
+        val (parametersOut, m_3) = createParameters(tryName, target, m)
+        m = m_3
+        val (epilogueName, m_4) = createEpilogueBlock(tryName, parametersOut, tungsten.UnitValue, m)
+        m = m_4
+
+        m = fixBranchInstructions(target, epilogueName, superblock.blocks, m)
+
+        (parametersOut, List(epilogueName))
       }
       case TCondBranch(trueTarget, falseTarget) => {
-        val (trueTargetBlock, falseTargetBlock) = (module.getBlock(trueTarget), module.getBlock(falseTarget))
-        val (trueTargetParameters, falseTargetParameters) = (module.getParameters(trueTargetBlock.parameters), module.getParameters(falseTargetBlock.parameters))
-        val paramTypes = tungsten.BooleanType :: trueTargetParameters.map(_.ty) ++ falseTargetParameters.map(_.ty)
-        paramTypes map { ty =>
-          tungsten.Parameter(symbolFactory(tryName + "param$"), ty)
-        }
+        val (trueParametersOut, m_5) = createParameters(tryName, trueTarget, m)
+        m = m_5
+        val (falseParametersOut, m_6) = createParameters(tryName, falseTarget, m)
+        m = m_6
+        val (trueEpilogueName, m_7) = createEpilogueBlock(tryName, trueParametersOut,
+                                                          tungsten.BooleanValue(true), m)
+        m = m_7
+        val (falseEpilogueName, m_8) = createEpilogueBlock(tryName, falseParametersOut,
+                                                           tungsten.BooleanValue(false), m)
+        m = m_8
+
+        m = fixCondBranchInstructions(trueTarget, trueEpilogueName,
+                                      falseTarget, falseEpilogueName,
+                                      superblock.blocks, m)
+
+        (trueParametersOut ++ falseParametersOut, List(trueEpilogueName, falseEpilogueName))
       }
-      case _ => Nil
+      case _ => (Nil, Nil)
     }
-    val parameters = parametersIn ++ parametersOut
-    var m = module
-    m = m.add(parameters: _*)
-    val (prologueName, m_1) = createPrologueBlock(functionName, head.name, parametersIn, m)
-    m = m_1
-    val outlinedBlockNames = superblock.head :: (superblock.blocks - superblock.head).toList
-    val blockNames = if (parametersOut.isEmpty)
-      prologueName :: outlinedBlockNames
-    else {
-      val (epilogueName, m_2) = createEpilogueBlock(functionName, parametersOut, m)
-      m = m_2
-      prologueName :: epilogueName :: outlinedBlockNames
-    }
+
+    val parameterNames = (parametersIn ++ parametersOut).map(_.name)
+    val blockNames = prologueName :: superblock.blocks.toList ++ epilogueBlockNames
     val returnType = superblock.terminator match {
       case TReturn => module.getFunction(functionName).returnType
+      case TCondBranch(_, _) => tungsten.BooleanType
       case _ => tungsten.UnitType
     }
-    val parameterNames = parametersIn.map(_.name)
-    val tryFunction = tungsten.Function(tryName, returnType, Nil, parameterNames, blockNames)
+    val tryFunction = tungsten.Function(tryName, returnType,
+                                        Nil, parameterNames,
+                                        blockNames)
     m = m.add(tryFunction)
-    m
+    (tryName, m)
   }
 
-  def createPrologueBlock(functionName: Symbol, 
+  def createParameters(tryName: Symbol,
+                       blockName: Symbol,
+                       module: tungsten.Module): (List[tungsten.Parameter], tungsten.Module) =
+  {
+    val block = module.getBlock(blockName)
+    val parameters = module.getParameters(block.parameters)
+    val ptrParameters = parameters map { p =>
+      val name = symbolFactory(tryName + "param$")
+      val ty = tungsten.PointerType(p.ty)
+      tungsten.Parameter(name, ty)
+    }
+    val m = module.add(ptrParameters: _*)
+    (ptrParameters, m)
+  }
+
+  def createPrologueBlock(tryName: Symbol, 
                           entryName: Symbol,
                           parameters: List[tungsten.Parameter],
                           module: tungsten.Module): (Symbol, tungsten.Module) = 
   {
-    val blockName = prologueBlockName(functionName)
+    val blockName = prologueBlockName(tryName)
     val loadInsts = parameters map { p =>
       val name = symbolFactory(p.name + "load$")
       val ty = p.ty.asInstanceOf[tungsten.PointerType].elementType
@@ -299,11 +314,12 @@ class CatchBlockOutlinePass
     (blockName, module.add(instructions: _*).add(block))
   }
 
-  def createEpilogueBlock(functionName: Symbol,
+  def createEpilogueBlock(tryName: Symbol,
                           parameters: List[tungsten.Parameter],
+                          returnValue: tungsten.Value,
                           module: tungsten.Module): (Symbol, tungsten.Module) =
   {
-    val blockName = epilogueBlockName(functionName)
+    val blockName = epilogueBlockName(tryName)
     val blockParameters = parameters map { p =>
       val name = symbolFactory(blockName + "param$")
       val ty = p.ty.asInstanceOf[tungsten.PointerType].elementType
@@ -318,7 +334,7 @@ class CatchBlockOutlinePass
     }
     val returnInst = tungsten.ReturnInstruction(symbolFactory(blockName + "ret$"),
                                                 tungsten.UnitType,
-                                                tungsten.UnitValue)
+                                                returnValue)
     val instructions = storeInsts :+ returnInst
     val block = tungsten.Block(blockName, 
                                blockParameters.map(_.name), 
@@ -326,16 +342,64 @@ class CatchBlockOutlinePass
     (blockName, module.add(blockParameters: _*).add(instructions: _*).add(block))
   }
 
+  def fixBranchInstructions(oldTarget: Symbol,
+                            newTarget: Symbol,
+                            blockNames: Set[Symbol],
+                            module: tungsten.Module): tungsten.Module =
+  {
+    (module /: blockNames) { (m, blockName) =>
+      val block = m.getBlock(blockName)
+      val termInst = m.getInstruction(block.instructions.last)
+      val newTermInst = termInst match {
+        case b: tungsten.BranchInstruction if b.target == oldTarget =>
+          b.copy(target = newTarget)
+        case c: tungsten.ConditionalBranchInstruction if c.trueTarget == oldTarget =>
+          c.copy(trueTarget = newTarget)
+        case c: tungsten.ConditionalBranchInstruction if c.falseTarget == oldTarget =>
+          c.copy(falseTarget = newTarget)
+        case _ => termInst
+      }
+      m.replace(newTermInst)
+    }
+  }
+
+  def fixCondBranchInstructions(oldTrueTarget: Symbol,
+                                newTrueTarget: Symbol,
+                                oldFalseTarget: Symbol,
+                                newFalseTarget: Symbol,
+                                blockNames: Set[Symbol],
+                                module: tungsten.Module): tungsten.Module =
+  {
+    (module /: blockNames) { (m, blockName) =>
+      val block = m.getBlock(blockName)
+      val termInst = m.getInstruction(block.instructions.last)
+      val newTermInst = termInst match {
+        case c: tungsten.ConditionalBranchInstruction
+          if c.trueTarget == oldTrueTarget && c.falseTarget == oldFalseTarget =>
+        {
+          c.copy(trueTarget = newTrueTarget, falseTarget = newFalseTarget)
+        }
+        case c: tungsten.ConditionalBranchInstruction
+          if c.trueTarget == oldFalseTarget && c.falseTarget == oldTrueTarget =>
+        {
+          c.copy(trueTarget = newFalseTarget, falseTarget = newTrueTarget)
+        }
+        case _ => termInst
+      }
+      m.replace(newTermInst)
+    }
+  }                                
+
   def outlinedFunctionName(originalFunctionName: Symbol): Symbol = {
     symbolFactory(originalFunctionName + "try$")
   }
 
-  def prologueBlockName(functionName: Symbol): Symbol = {
-    symbolFactory(functionName + "try$" + "prologue$")
+  def prologueBlockName(tryName: Symbol): Symbol = {
+    symbolFactory(tryName + "prologue$")
   }
 
-  def epilogueBlockName(functionName: Symbol): Symbol = {
-    symbolFactory(functionName + "try$" + "epilogue$")
+  def epilogueBlockName(tryName: Symbol): Symbol = {
+    symbolFactory(tryName + "epilogue$")
   }
 }
 

@@ -49,7 +49,6 @@ class CatchBlockOutlinePass
   def findSuperblocks(function: tungsten.Function,
                       module: tungsten.Module): Set[Superblock] = 
   {
-    System.err.println("findSuperblocks helper called\n")
     val cfg = function.controlFlowGraph(module)
     val entry = module.getBlock(function.blocks.head)
     val (_, superblockMap) = findSuperblocks(entry, Set(), Map(), cfg, module)
@@ -65,9 +64,6 @@ class CatchBlockOutlinePass
     if (visited(block.name))
       (visited, superblocks)
     else {
-      System.err.println("findSuperblocks(%s)".format(block.name))
-      System.err.println("visited: %s".format(visited))
-
       val successors = cfg.adjacent(block.name).map(module.getBlock _)
       val catchBlocks = block.catchBlock.map { cb => module.getBlock(cb._1) }
       val nextBlocks = successors ++ catchBlocks
@@ -92,7 +88,6 @@ class CatchBlockOutlinePass
           }
           val superblock = Superblock(block.name, catchBlockName, predecessors, 
                                       Set(block.name), terminator)
-          System.err.println("adding %s".format(superblock))
           val simplifiedSuperblocks = simplifySuperblocks(superblock, 
                                                           cSuperblocks + (superblock.head -> superblock))
           (cVisited, simplifiedSuperblocks)
@@ -124,24 +119,19 @@ class CatchBlockOutlinePass
     }
 
     def mergeMap(mergedSuperblock: Superblock): Map[Symbol, Superblock] = {
-      System.err.println("merged: %s".format(mergedSuperblock))
       (superblockMap /: mergedSuperblock.blocks) { (m, b) =>
         m + (b -> mergedSuperblock)
       }
     }
 
-    System.err.println("simplify(%s)".format(superblock.head))
-
     superblock.terminator match {
       case TBranch(targetName) => {
         getTarget(targetName) match {
           case Some(target) if target == superblock => {
-            System.err.println("infinite loop found")
             val merged = superblock.copy(terminator = TInternal)
             mergeMap(merged)
           }
           case Some(target) => {
-            System.err.println("compatible blocks found")
             val merged = superblock.copy(blocks = superblock.blocks ++ target.blocks,
                                          terminator = target.terminator)
             simplifySuperblocks(merged, mergeMap(merged))
@@ -160,7 +150,6 @@ class CatchBlockOutlinePass
       case TCondBranch(targetName1, targetName2) => {
         val (target1, target2) = (getTarget(targetName1), getTarget(targetName2))
         val (term1, term2) = (target1.map(_.terminator), target2.map(_.terminator))
-        System.err.println("targets: %s, %s".format(term1, term2))
         (term1, term2) match {
           case (None, None) if targetName1 == targetName2 => {
             val merged = superblock.copy(terminator = TBranch(targetName1))

@@ -29,6 +29,27 @@ sealed abstract class Value
   def validateComponents(module: Module, location: Location): List[CompileException] = Nil
 
   def validate(module: Module, location: Location): List[CompileException] = Nil
+
+  final def substitute(fromName: Symbol, toName: Symbol): Value = {
+    val s = Map((fromName, toName))
+    substitute(s)
+  }
+
+  final def substitute(fromNames: List[Symbol], toNames: List[Symbol]): Value = {
+    assert(fromNames.size == toNames.size)
+    val s = (fromNames zip toNames).toMap
+    substitute(s)
+  }
+
+  final def substitute(substitution: PartialFunction[Symbol, Symbol]): Value = {
+    def sub(sym: Symbol): Symbol = {
+      if (substitution.isDefinedAt(sym))
+        substitution(sym)
+      else
+        sym
+    }
+    mapSymbols(sub)
+  }
 }
 
 abstract class ExtendedValue extends Value

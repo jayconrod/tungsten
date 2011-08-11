@@ -75,8 +75,8 @@ class CatchBlockOutlinePass
 
       block.catchBlock match {
         case None => (cVisited, cSuperblocks)
-        case Some((catchBlockName, _)) => {
-          val catchBlockName = block.catchBlock.get._1
+        case Some((catchBlock, _)) => {
+          val catchBlock = block.catchBlock.get
           val predecessors = cfg.incident(block.name)
           val terminatorInst = module.getInstruction(block.instructions.last)
           val terminator = terminatorInst match {
@@ -86,7 +86,7 @@ class CatchBlockOutlinePass
               TCondBranch(c.trueTarget, c.falseTarget)
             case _ => TInternal
           }
-          val superblock = Superblock(block.name, catchBlockName, predecessors, 
+          val superblock = Superblock(block.name, catchBlock, predecessors, 
                                       Set(block.name), terminator)
           val simplifiedSuperblocks = simplifySuperblocks(superblock, 
                                                           cSuperblocks + (superblock.head -> superblock))
@@ -103,7 +103,7 @@ class CatchBlockOutlinePass
       if (other.head == superblock.head)
         true
       else {
-        val sameCatchBlock = superblock.catchBlockName == other.catchBlockName 
+        val sameCatchBlock = superblock.catchBlock == other.catchBlock
         val noExternalPredecessors = other.predecessors.forall { pred =>
           superblockMap.get(pred).map(_.head) match {
             case Some(predName) if predName == other.head || predName == superblock.head => true
@@ -206,7 +206,207 @@ class CatchBlockOutlinePass
                         functionName: Symbol,
                         module: tungsten.Module): tungsten.Module =
   {
-    module
+    var m = module
+    val (tryName, m_1) = createOutlinedFunction(superblock, functionName, module)
+    val blockName = symbolFactory(functionName + "tryCall$")
+    m = m_1
+
+    def createAllocInsts(targetName: Symbol, prefix: Symbol, suffix: String, module: tungsten.Module) = {
+      val block = module.getBlock(targetName)
+      val parameterTypes = module.getParameters(block.parameters).map(_.ty)
+      parameterTypes map { pty =>
+        val name = symbolFactory(blockName + suffix)
+        val ty = tungsten.PointerType(pty)
+        tungsten.StackAllocateInstruction(name, ty)
+      }
+    }
+
+    def createLoadAndBranchInsts(slots: List[tungsten.Value],
+                                 target: Symbol,
+                                 prefix: Symbol,
+                                 module: tungsten.Module): List[tungsten.Instruction] =
+    {
+      val loadInsts = slots map { slot =>
+        val name = symbolFactory(prefix + "load$")
+        val ty = slot.ty.asInstanceOf[tungsten.PointerType].elementType
+        tungsten.LoadInstruction(name, ty, slot)
+      }
+      val branchInst = tungsten.BranchInstruction(symbolFactory(prefix + "branch$"),
+                                                  tungsten.UnitType,
+                                                  target,
+                                                  loadInsts.map(_.makeValue))
+      loadInsts :+ branchInst
+    }
+
+    superblock.predecessors foreach { predName =>
+      val pred = m.getBlock(predName)
+      val predInst = m.getInstruction(pred.instructions.last)
+      val newPredInst = predInst match {
+        case b: tungsten.BranchInstruction =>
+          b.copy(target = blockName)
+        case c: tungsten.ConditionalBranchInstruction => {
+          var inst = c
+          if (c.trueTarget == superblock.head)
+            inst = inst.copy(trueTarget = blockName)
+          if (c.falseTarget == superblock.head)
+            inst = inst.copy(falseTarget = blockName)
+          inst
+        }
+        case _ => throw new RuntimeException("unsupported instruction")
+      }
+      m = m.replace(newPredInst)
+    }
+
+    val head = m.getBlock(superblock.head)
+    val (blockParameters, m_2) = createParameters(blockName, superblock.head, m)
+    m = m_2
+
+    val callName = symbolFactory(blockName + "call$")
+    val branchName = symbolFactory(blockName + "branch$")
+    val branchBlockName = symbolFactory(functionName + "tryBranch$")
+    val (instructions, extraBlockNames) = superblock.terminator match {
+      case TInternal => {
+        val callInst = tungsten.StaticCallInstruction(callName, tungsten.UnitType,
+                                                      tryName,
+                                                      Nil, blockParameters.map(_.makeValue))
+        val branchInst = tungsten.BranchInstruction(branchName, tungsten.UnitType,
+                                                    branchBlockName, Nil)
+
+        val branchBlock = tungsten.Block(branchBlockName, Nil, Nil)
+        // TODO: add unreachable instruction and put one here
+        m = m.add(branchBlock)
+
+        val insts = List(callInst, branchInst)
+        (insts, Nil)
+      }
+      case TReturn => {
+        val callInst = tungsten.StaticCallInstruction(callName, tungsten.UnitType,
+                                                      tryName,
+                                                      Nil, blockParameters.map(_.makeValue))
+        val branchInst = tungsten.BranchInstruction(branchName, tungsten.UnitType,
+                                                    branchBlockName,
+                                                    List(callInst.makeValue))
+
+        val branchReturnParam = tungsten.Parameter(symbolFactory(branchBlockName + "param$"),
+                                                   module.getFunction(functionName).returnType)
+        val retInst = tungsten.ReturnInstruction(symbolFactory(branchBlockName + "ret$"),
+                                                 tungsten.UnitType,
+                                                 branchReturnParam.makeValue)
+        val branchBlock = tungsten.Block(branchBlockName,
+                                         List(branchReturnParam.name),
+                                         List(retInst.name))
+        m = m.add(branchReturnParam).add(retInst).add(branchBlock)
+
+        val insts = List(callInst, branchInst)
+        (insts, Nil)
+      }
+      case TBranch(target) => {
+        val parametersOutAllocInsts = createAllocInsts(target, blockName, "tryOut$", m)
+        val callArguments = blockParameters.map(_.makeValue) ++ 
+          parametersOutAllocInsts.map(_.makeValue)
+        val callInst = tungsten.StaticCallInstruction(callName, tungsten.UnitType,
+                                                      tryName,
+                                                      Nil, callArguments)
+        val branchInst = tungsten.BranchInstruction(branchName, tungsten.UnitType,
+                                                    branchBlockName,
+                                                    parametersOutAllocInsts.map(_.makeValue))
+
+        val branchBlockParams = parametersOutAllocInsts.map { p =>
+          tungsten.Parameter(symbolFactory(branchBlockName + "param$"), p.ty)
+        }
+        val parametersOutLoadInsts = createLoadAndBranchInsts(branchBlockParams.map(_.makeValue),
+                                                              target, branchBlockName, m)
+        val branchBlock = tungsten.Block(branchBlockName,
+                                         branchBlockParams.map(_.name),
+                                         parametersOutLoadInsts.map(_.name))
+        m = m.add(branchBlockParams: _*).add(parametersOutLoadInsts: _*).add(branchBlock)
+
+        val insts = parametersOutAllocInsts ++ List(callInst, branchInst)
+        (insts, Nil)
+      }
+      case TCondBranch(trueTarget, falseTarget) => {
+        val trueBlockName = symbolFactory(functionName + "tryTrue$")
+        val parametersOutTrueAllocInsts = createAllocInsts(trueTarget, trueBlockName, "tryOutTrue$", m)
+        val (trueBranchParameters, m_3) = createPtrParameters(trueBlockName, trueTarget, m)
+        m = m_3
+        val trueBranchInsts = createLoadAndBranchInsts(trueBranchParameters.map(_.makeValue),
+                                                       trueTarget, trueBlockName, m)
+        val trueBlock = tungsten.Block(trueBlockName,
+                                       trueBranchParameters.map(_.name),
+                                       trueBranchInsts.map(_.name))
+        m = m.add(trueBranchInsts: _*).add(trueBlock)
+
+        val falseBlockName = symbolFactory(functionName + "tryFalse$")
+        val parametersOutFalseAllocInsts = createAllocInsts(falseTarget, falseBlockName, "tryOutFalse$", m)
+        val (falseBranchParameters, m_4) = createPtrParameters(falseBlockName, falseTarget, m)
+        m = m_4
+        val falseBranchInsts = createLoadAndBranchInsts(falseBranchParameters.map(_.makeValue),
+                                                        falseTarget, falseBlockName, m)
+        val falseBlock = tungsten.Block(falseBlockName,
+                                        falseBranchParameters.map(_.name),
+                                        falseBranchInsts.map(_.name))
+        m = m.add(falseBranchInsts: _*).add(falseBlock)
+
+        val callArguments = blockParameters.map(_.makeValue) ++
+          (parametersOutTrueAllocInsts ++ parametersOutFalseAllocInsts).map(_.makeValue)
+        val callInst = tungsten.StaticCallInstruction(callName, tungsten.BooleanType,
+                                                      tryName,
+                                                      Nil, callArguments)
+        val branchArguments = (callInst :: 
+                               parametersOutTrueAllocInsts ++
+                               parametersOutFalseAllocInsts).map(_.makeValue)
+        val branchInst = tungsten.BranchInstruction(branchName, tungsten.UnitType,
+                                                    branchBlockName,
+                                                    branchArguments)
+        
+        val branchRetParam = tungsten.Parameter(symbolFactory(branchBlockName + "param$"),
+                                                tungsten.BooleanType)
+        val branchTrueParams = parametersOutTrueAllocInsts map { p =>
+          tungsten.Parameter(symbolFactory(branchBlockName + "param$"), p.ty)
+        }
+        val branchFalseParams = parametersOutFalseAllocInsts map { p =>
+          tungsten.Parameter(symbolFactory(branchBlockName + "param$"), p.ty)
+        }
+        val branchParams = branchRetParam :: branchTrueParams ++ branchFalseParams
+        val condInst = tungsten.ConditionalBranchInstruction(symbolFactory(branchBlockName + "cond$"),
+                                                             tungsten.UnitType,
+                                                             branchRetParam.makeValue,
+                                                             trueBlockName,
+                                                             branchTrueParams.map(_.makeValue),
+                                                             falseBlockName,
+                                                             branchFalseParams.map(_.makeValue))
+        val branchBlock = tungsten.Block(branchBlockName,
+                                         branchParams.map(_.name),
+                                         List(condInst.name))
+        m = m.add(branchParams: _*).add(condInst).add(branchBlock)
+
+        val insts = parametersOutTrueAllocInsts ++
+          parametersOutFalseAllocInsts ++
+          List(callInst, branchInst)
+
+        (insts, List(trueBlockName, falseBlockName))
+      }
+    }
+
+    val origParameterNames = module.getBlock(superblock.head).parameters
+    val origCatchBlock = superblock.catchBlock
+    val tryBlockParameterNames = blockParameters.map(_.name)
+    val catchBlockSubstitution = (origParameterNames zip tryBlockParameterNames).toMap
+    val catchBlockArgs = origCatchBlock._2.map(_.substitute(catchBlockSubstitution))
+    val catchBlock = (origCatchBlock._1, catchBlockArgs)
+
+    val block = tungsten.Block(blockName,
+                               tryBlockParameterNames,
+                               instructions.map(_.name),
+                               Some(catchBlock))
+
+    val function = m.getFunction(functionName)
+    val newBlockNames = function.blocks.filterNot(superblock.blocks.contains _) ++
+      (blockName :: branchBlockName :: extraBlockNames)
+    val newFunction = function.copy(blocks = newBlockNames)
+
+    m = m.add(instructions: _*).add(block).replace(newFunction)
+    m
   }
 
   def createOutlinedFunction(superblock: Superblock,
@@ -223,7 +423,7 @@ class CatchBlockOutlinePass
 
     val (parametersOut, epilogueBlockNames) = superblock.terminator match {
       case TBranch(target) => {
-        val (parametersOut, m_3) = createParameters(tryName, target, m)
+        val (parametersOut, m_3) = createPtrParameters(tryName, target, m)
         m = m_3
         val (epilogueName, m_4) = createEpilogueBlock(tryName, parametersOut, tungsten.UnitValue, m)
         m = m_4
@@ -233,9 +433,9 @@ class CatchBlockOutlinePass
         (parametersOut, List(epilogueName))
       }
       case TCondBranch(trueTarget, falseTarget) => {
-        val (trueParametersOut, m_5) = createParameters(tryName, trueTarget, m)
+        val (trueParametersOut, m_5) = createPtrParameters(tryName, trueTarget, m)
         m = m_5
-        val (falseParametersOut, m_6) = createParameters(tryName, falseTarget, m)
+        val (falseParametersOut, m_6) = createPtrParameters(tryName, falseTarget, m)
         m = m_6
         val (trueEpilogueName, m_7) = createEpilogueBlock(tryName, trueParametersOut,
                                                           tungsten.BooleanValue(true), m)
@@ -251,6 +451,11 @@ class CatchBlockOutlinePass
         (trueParametersOut ++ falseParametersOut, List(trueEpilogueName, falseEpilogueName))
       }
       case _ => (Nil, Nil)
+    }
+
+    superblock.blocks.foreach { blockName =>
+      val b = m.getBlock(blockName).copy(catchBlock = None)
+      m = m.replace(b)
     }
 
     val parameterNames = (parametersIn ++ parametersOut).map(_.name)
@@ -273,6 +478,17 @@ class CatchBlockOutlinePass
   {
     val block = module.getBlock(blockName)
     val parameters = module.getParameters(block.parameters)
+    val newParameters = parameters.map(_.copy(name = symbolFactory(tryName + "param$")))
+    val m = module.add(newParameters: _*)
+    (newParameters, m)
+  }
+
+  def createPtrParameters(tryName: Symbol,
+                          blockName: Symbol,
+                          module: tungsten.Module): (List[tungsten.Parameter], tungsten.Module) =
+  {
+    val block = module.getBlock(blockName)
+    val parameters = module.getParameters(block.parameters)
     val ptrParameters = parameters map { p =>
       val name = symbolFactory(tryName + "param$")
       val ty = tungsten.PointerType(p.ty)
@@ -288,19 +504,12 @@ class CatchBlockOutlinePass
                           module: tungsten.Module): (Symbol, tungsten.Module) = 
   {
     val blockName = prologueBlockName(tryName)
-    val loadInsts = parameters map { p =>
-      val name = symbolFactory(p.name + "load$")
-      val ty = p.ty.asInstanceOf[tungsten.PointerType].elementType
-      tungsten.LoadInstruction(name, ty, p.makeValue)
-    }
-    val loadValues = loadInsts.map(_.makeValue)
     val branchInst = tungsten.BranchInstruction(symbolFactory(blockName + "branch$"),
                                                 tungsten.UnitType,
                                                 entryName,
-                                                loadValues)
-    val instructions = loadInsts :+ branchInst
-    val block = tungsten.Block(blockName, Nil, instructions.map(_.name), None)
-    (blockName, module.add(instructions: _*).add(block))
+                                                parameters.map(_.makeValue))
+    val block = tungsten.Block(blockName, Nil, List(branchInst.name))
+    (blockName, module.add(branchInst).add(block))
   }
 
   def createEpilogueBlock(tryName: Symbol,
@@ -393,7 +602,7 @@ class CatchBlockOutlinePass
 }
 
 case class Superblock(head: Symbol,
-                      catchBlockName: Symbol,
+                      catchBlock: (Symbol, List[tungsten.Value]),
                       predecessors: Set[Symbol],
                       blocks: Set[Symbol],
                       terminator: SuperblockTerminator)

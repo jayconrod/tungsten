@@ -84,6 +84,19 @@ class CatchBlockOutlinePassTest {
                           "}\n"
   lazy val condBranchModule = linkRuntime(compileString(condBranchProgram))
 
+  val returnProgram = "function int64 @f {\n" +
+                      "  block %entry {\n" +
+                      "    branch @f.a(int64 12)\n" +
+                      "  }\n" +
+                      "  block %a(int64 %x) {\n" +
+                      "    unit %ret = return int64 %x\n" +
+                      "  } catch @f.cb()\n" +
+                      "  block %cb(class @tungsten.Exception %exn) {\n" +
+                      "    unit %ret = return int64 0\n" +
+                      "  }\n" +
+                      "}\n"
+  lazy val returnModule = linkRuntime(compileString(returnProgram))
+
   def makeFunction(blockCode: String): (tungsten.Function, tungsten.Module) = {
     val program = "function unit @f {\n" +
                   blockCode +
@@ -500,6 +513,29 @@ class CatchBlockOutlinePassTest {
                    "}\n"
     val expectedModule = linkRuntime(compileString(expected))
     val module = pass.outlineFunction(condBranchModule.getFunction("f"), condBranchModule)
+    assertEqualsIgnoreSymbols(expectedModule, module)
+    assertEquals(Nil, module.validate)
+  }
+
+  @Test
+  def outlineReturn {
+    val expected = "function int64 @f {\n" +
+                   "  block %entry {\n" +
+                   "    branch @f.tryCall$(int64 12)\n" +
+                   "  }\n" +
+                   "  block %cb(class @tungsten.Exception %exn) {\n" +
+                   "    unit %ret = return int64 0\n" +
+                   "  }\n" +
+                   "  block %tryCall$(int64 %param$) {\n" +
+                   "    int64 %call$ = scall @f.try$(int64 %param$)\n" +
+                   "    unit %branch$ = branch @f.tryBranch$(int64 %call$)\n" +
+                   "  } catch @f.cb()\n" +
+                   "  block %tryBranch$(int64 %param$) {\n" +
+                   "    unit %ret$ = return int64 %param$\n" +
+                   "  }\n" +
+                   "}\n"
+    val expectedModule = linkRuntime(compileString(expected))
+    val module = pass.outlineFunction(returnModule.getFunction("f"), returnModule)
     assertEqualsIgnoreSymbols(expectedModule, module)
     assertEquals(Nil, module.validate)
   }

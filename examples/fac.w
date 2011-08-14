@@ -74,5 +74,10 @@ function unit @main {
     ; functions are provided by a runtime library which must be linked into the
     ; final program. For the LLVM backend, the runtime is in llvm/runtime.
     intrinsic exit(int32 %p#1)
+
+    ; "unreachable" should be put after instructions that never return, like calls to
+    ; exit, calls to functions which call exit, or functions which always throw. It can
+    ; also be put in dead blocks that are never executed.
+    unreachable
   }
 }

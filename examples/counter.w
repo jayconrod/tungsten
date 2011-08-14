@@ -96,5 +96,10 @@ function unit @main {
   block %exit(int64 %final) {
     int32 %code = itruncate int64 %final
     intrinsic exit(int32 %code)
+
+    ; "unreachable" should be put after instructions that never return, like calls to
+    ; exit, calls to functions which call exit, or functions which always throw. It can
+    ; also be put in dead blocks that are never executed.
+    unreachable
   }
 }

@@ -97,6 +97,20 @@ class CatchBlockOutlinePassTest {
                       "}\n"
   lazy val returnModule = linkRuntime(compileString(returnProgram))
 
+  val internalProgram = "function unit @f {\n" +
+                        "  block %entry {\n" +
+                        "    branch @f.a(int64 12)\n" +
+                        "  }\n" +
+                        "  block %a(int64 %x) {\n" +
+                        "    class @tungsten.Exception %exn = new @tungsten.Exception.ctor()\n" +
+                        "    unit %throw = throw class @tungsten.Exception %exn\n" +
+                        "  } catch @f.cb()\n" +
+                        "  block %cb(class @tungsten.Exception %exn) {\n" +
+                        "    return ()\n" +
+                        "  }\n" +
+                        "}\n"
+  lazy val internalModule = linkRuntime(compileString(internalProgram))
+
   def makeFunction(blockCode: String): (tungsten.Function, tungsten.Module) = {
     val program = "function unit @f {\n" +
                   blockCode +
@@ -536,6 +550,29 @@ class CatchBlockOutlinePassTest {
                    "}\n"
     val expectedModule = linkRuntime(compileString(expected))
     val module = pass.outlineFunction(returnModule.getFunction("f"), returnModule)
+    assertEqualsIgnoreSymbols(expectedModule, module)
+    assertEquals(Nil, module.validate)
+  }
+
+  @Test
+  def outlineInternal {
+    val expected = "function unit @f {\n" +
+                   "  block %entry {\n" +
+                   "    branch @f.tryCall$(int64 12)\n" +
+                   "  }\n" +
+                   "  block %cb(class @tungsten.Exception %exn) {\n" +
+                   "    return ()\n" +
+                   "  }\n" +
+                   "  block %tryCall$(int64 %param$) {\n" +
+                   "    unit %call$ = scall @f.try$(int64 %param$)\n" +
+                   "    unit %branch$ = branch @f.tryBranch$()\n" +
+                   "  } catch @f.cb()\n" +
+                   "  block %tryBranch$ {\n" +
+                   "    unit %unreachable$ = unreachable\n" +
+                   "  }\n" +
+                   "}\n"
+    val expectedModule = linkRuntime(compileString(expected))
+    val module = pass.outlineFunction(internalModule.getFunction("f"), internalModule)
     assertEqualsIgnoreSymbols(expectedModule, module)
     assertEquals(Nil, module.validate)
   }

@@ -272,9 +272,10 @@ class CatchBlockOutlinePass
         val branchInst = tungsten.BranchInstruction(branchName, tungsten.UnitType,
                                                     branchBlockName, Nil)
 
-        val branchBlock = tungsten.Block(branchBlockName, Nil, Nil)
-        // TODO: add unreachable instruction and put one here
-        m = m.add(branchBlock)
+        val unreachableInst = tungsten.UnreachableInstruction(symbolFactory(branchBlockName + "unreachable$"),
+                                                              tungsten.UnitType)
+        val branchBlock = tungsten.Block(branchBlockName, Nil, List(unreachableInst.name))
+        m = m.add(unreachableInst).add(branchBlock)
 
         val insts = List(callInst, branchInst)
         (insts, Nil)

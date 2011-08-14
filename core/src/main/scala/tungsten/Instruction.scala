@@ -1111,6 +1111,20 @@ final case class ThrowInstruction(name: Symbol,
   }
 }
 
+final case class UnreachableInstruction(name: Symbol,
+                                        ty: Type,
+                                        annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = Nil
+
+  override def isTerminating = true
+
+  override def validate(module: Module) = {
+    checkType(ty, UnitType, getLocation)
+  }
+}
+
 final case class UpcastInstruction(name: Symbol,                
                                    ty: Type,
                                    value: Value,

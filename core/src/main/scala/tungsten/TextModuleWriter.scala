@@ -295,6 +295,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case _: StackAllocateArrayInstruction => "stackarray"
       case _: StaticCallInstruction => "scall"
       case _: ThrowInstruction => "throw"
+      case _: UnreachableInstruction => "unreachable"
       case _: UpcastInstruction => "upcast"
       case _: VirtualCallInstruction => "vcall"
       case _: VirtualLookupInstruction => "vlookup"
@@ -402,6 +403,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case ThrowInstruction(_, _, value, _) => {
         output.write(localValue(value))
       }
+      case _: UnreachableInstruction => ()
       case UpcastInstruction(_, _, value, _) => {
         output.write(localValue(value))
       }

@@ -229,6 +229,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
           case _: StackAllocateArrayInstruction => STACK_ALLOCATE_ARRAY_INST_ID
           case _: StaticCallInstruction => STATIC_CALL_INST_ID
           case _: ThrowInstruction => THROW_INST_ID
+          case _: UnreachableInstruction => UNREACHABLE_INST_ID
           case _: UpcastInstruction => UPCAST_INST_ID
           case _: VirtualCallInstruction => VIRTUAL_CALL_INST_ID
           case _: VirtualLookupInstruction => VIRTUAL_LOOKUP_INST_ID
@@ -346,6 +347,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
           case ThrowInstruction(_, _, value, _) => {
             writeValue(value)
           }
+          case _: UnreachableInstruction => ()
           case UpcastInstruction(_, _, value, _) => {
             writeValue(value)
           }

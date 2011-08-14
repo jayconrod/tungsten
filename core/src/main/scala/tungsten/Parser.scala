@@ -264,6 +264,7 @@ class Parser extends Parsers with ImplicitConversions {
     stackInst          |
     stackArrayInst     |
     scallInst          |
+    unreachableInst    |
     upcastInst         |
     throwInst          |
     vcallInst          |
@@ -443,6 +444,12 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val throwInst: Parser[ThrowInstruction] = {
     instName("throw") ~ value ^^ {
       case anns ~ ty ~ n ~ v => ThrowInstruction(n, ty, v, anns)
+    }
+  }
+
+  lazy val unreachableInst: Parser[UnreachableInstruction] = {
+    instName("unreachable") ^^ {
+      case anns ~ ty ~ n => UnreachableInstruction(n, ty, anns)
     }
   }
 

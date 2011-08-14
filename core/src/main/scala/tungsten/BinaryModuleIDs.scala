@@ -67,6 +67,7 @@ object BinaryModuleIDs {
   val VIRTUAL_CALL_INST_ID = 49
   val VIRTUAL_LOOKUP_INST_ID = 50
   val THROW_INST_ID = 51
+  val UNREACHABLE_INST_ID = 52
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

@@ -475,8 +475,10 @@ final case class ConditionalBranchInstruction(name: Symbol,
   }
 
   override def validateComponents(module: Module) = {
-    super.validateComponents(module) ++ 
-      validateComponentsOfClass[Block](module, List(trueTarget, falseTarget))
+    // need to validate these separately because they are allowed to be duplicates
+    super.validateComponents(module) ++
+      validateComponentOfClass[Block](module, trueTarget) ++
+      validateComponentOfClass[Block](module, falseTarget)
   }
 
   override def validate(module: Module) = {

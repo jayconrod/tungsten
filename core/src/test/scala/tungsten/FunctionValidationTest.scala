@@ -26,13 +26,9 @@ import Utilities._
 class FunctionValidationTest
   extends ValidationTest
 {
-  override def programContainsError[T <: CompileException](program: String)(implicit m: Manifest[T]) {
-    val module = compileString(program)
-    val moduleWithRuntime = linkRuntime(module)
-    val errors = moduleWithRuntime.validate
-    containsError[T](errors)(m)
+  override def compileProgram(program: String): Module = {
+    linkRuntime(compileString(program))
   }
-
   @Test
   def emptyBlockTermination {
     val program = "function unit @main( ) { block %empty }"
@@ -214,5 +210,21 @@ class FunctionValidationTest
                   "  }\n" +
                   "}"
     programContainsError[ScopeException](program)
+  }
+
+  @Test
+  def catchArgumentScopeCorrect {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a(int64 12)\n" +
+                  "  }\n" +
+                  "  block %a(int64 %x) {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb(int64 @f.a.x)\n" +
+                  "  block %cb(class @tungsten.Exception %exn, int64 %a) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programIsCorrect(program)
   }
 }

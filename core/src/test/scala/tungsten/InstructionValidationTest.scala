@@ -93,16 +93,6 @@ class InstructionValidationTest
   }
 
   @Test
-  def conditionDuplicateBlock {
-    val program = "function unit @main {\n" +
-                  "  block %entry {\n" +
-                  "    cond true ? %entry( ) : %entry( )\n" +
-                  "  }\n" +
-                  "}\n"
-    programContainsError[DuplicateComponentException](program)
-  }
-
-  @Test
   def staticCallMissingFunction {
     val code = "unit %c = scall @foo( )"
     codeContainsError[UndefinedSymbolException](code)

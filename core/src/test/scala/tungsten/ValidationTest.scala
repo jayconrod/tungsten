@@ -36,8 +36,12 @@ trait ValidationTest {
     "}\n"
   }
 
+  def compileProgram(program: String): Module = {
+    compileString(program)
+  }
+
   def programContainsError[T <: CompileException](program: String)(implicit m: Manifest[T]) = {
-    val errors = compileString(program).validate
+    val errors = compileProgram(program).validate
     containsError[T](errors)
   }
 
@@ -53,8 +57,8 @@ trait ValidationTest {
   }
 
   def programIsCorrect(program: String) = {
-    val errors = compileString(program).validate
-    assertTrue(errors.isEmpty)
+    val errors = compileProgram(program).validate
+    assertEquals(Nil, errors)
   }
 
   def codeIsCorrect(code: String) = {

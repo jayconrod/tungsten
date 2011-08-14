@@ -434,6 +434,7 @@ class CatchBlockOutlinePassTest {
     val expectedModule = linkRuntime(compileString(expected))
     val module = pass.outlineFunction(branchModule.getFunction("f"), branchModule)
     assertEqualsIgnoreSymbols(expectedModule, module)
+    assertEquals(Nil, module.validate)
   }
 
   @Test
@@ -461,6 +462,7 @@ class CatchBlockOutlinePassTest {
     val expectedModule = linkRuntime(compileString(expected))
     val module = pass.outlineFunction(condBranchSameModule.getFunction("f"), condBranchSameModule)
     assertEqualsIgnoreSymbols(expectedModule, module)
+    assertEquals(Nil, module.validate)
   }
 
   @Test
@@ -499,5 +501,6 @@ class CatchBlockOutlinePassTest {
     val expectedModule = linkRuntime(compileString(expected))
     val module = pass.outlineFunction(condBranchModule.getFunction("f"), condBranchModule)
     assertEqualsIgnoreSymbols(expectedModule, module)
+    assertEquals(Nil, module.validate)
   }
 }

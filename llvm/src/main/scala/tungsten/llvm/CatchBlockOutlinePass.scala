@@ -551,10 +551,11 @@ class CatchBlockOutlinePass
       val newTermInst = termInst match {
         case b: tungsten.BranchInstruction if b.target == oldTarget =>
           b.copy(target = newTarget)
-        case c: tungsten.ConditionalBranchInstruction if c.trueTarget == oldTarget =>
-          c.copy(trueTarget = newTarget)
-        case c: tungsten.ConditionalBranchInstruction if c.falseTarget == oldTarget =>
-          c.copy(falseTarget = newTarget)
+        case c: tungsten.ConditionalBranchInstruction => {
+          val tt = if (c.trueTarget == oldTarget) newTarget else c.trueTarget
+          val ft = if (c.falseTarget == oldTarget) newTarget else c.falseTarget
+          c.copy(trueTarget = tt, falseTarget = ft)
+        }
         case _ => termInst
       }
       m.replace(newTermInst)

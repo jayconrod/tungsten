@@ -81,7 +81,8 @@ final case class Block(name: Symbol,
           else
             Nil
           val argumentErrors = arguments flatMap { arg =>
-            arg.foldSymbols(Nil, validateSymbolScope(_: List[CompileException], _: Symbol, scope))
+            val v = validateSymbolScope(_: List[CompileException], _: Symbol, catchScope)
+            arg.foldSymbols(Nil, v)
           }
           handlerErrors ++ argumentErrors
         }

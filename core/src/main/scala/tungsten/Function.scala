@@ -133,7 +133,7 @@ final case class Function(name: Symbol,
     }
 
     def validatePredecessors = {
-      val cfg = controlFlowGraph(module)
+      val cfg = controlFlowGraphWithCatchBlocks(module)
       val blockDefns = module.getBlocks(blocks)
       val paramErrors = for (block <- blockDefns;
                              if !block.parameters.isEmpty && cfg.incident(block.name).isEmpty)
@@ -161,6 +161,15 @@ final case class Function(name: Symbol,
     val successorMap = (Map[Symbol, Set[Symbol]]() /: blockDefns) { (deps, defn) =>
       deps + (defn.name -> defn.successorNames(module))
     }
+    new Graph(blocks.toSet, successorMap)
+  }
+
+  def controlFlowGraphWithCatchBlocks(module: Module): Graph[Symbol] = {
+    val blockDefns = module.getBlocks(blocks)
+    val successorMap = blockDefns.map { block =>
+      val successorNames = block.successorNames(module) ++ block.catchBlock.map(_._1)
+      (block.name, successorNames)
+    }.toMap
     new Graph(blocks.toSet, successorMap)
   }
 }

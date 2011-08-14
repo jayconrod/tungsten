@@ -280,7 +280,8 @@ class CatchBlockOutlinePass
         (insts, Nil)
       }
       case TReturn => {
-        val callInst = tungsten.StaticCallInstruction(callName, tungsten.UnitType,
+        val returnType = module.getFunction(functionName).returnType
+        val callInst = tungsten.StaticCallInstruction(callName, returnType,
                                                       tryName,
                                                       Nil, blockParameters.map(_.makeValue))
         val branchInst = tungsten.BranchInstruction(branchName, tungsten.UnitType,

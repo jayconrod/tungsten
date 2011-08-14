@@ -774,8 +774,6 @@ final case class IntrinsicCallInstruction(name: Symbol,
                                           annotations: List[AnnotationValue] = Nil)
   extends Instruction with CallInstruction
 {
-  override def isTerminating = intrinsic == Intrinsic.EXIT
-
   def operands = arguments
 
   override def validate(module: Module) = {

@@ -55,7 +55,7 @@ class FunctionValidationTest
   @Test
   def exitTermination {
     val program = "function unit @main { block %entry { intrinsic exit(int32 12) } }"
-    programIsCorrect(program)
+    programContainsError[BlockTerminationException](program)
   }
 
   @Test

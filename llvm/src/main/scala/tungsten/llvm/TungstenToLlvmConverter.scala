@@ -241,6 +241,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       }
       case tungsten.StoreInstruction(_, _, value, address, _) =>
         StoreInstruction(convertValue(value, parent), convertValue(address, parent), None)
+      case tungsten.UnreachableInstruction(_, _, _) =>
+        UnreachableInstruction
       case tungsten.UpcastInstruction(_, ty, value, _) =>
         BitCastInstruction(localName, convertValue(value, parent), convertType(ty))
       case TungstenPhiInstruction(_, ty, bindings) => {

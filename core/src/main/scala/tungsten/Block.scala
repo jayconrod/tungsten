@@ -42,6 +42,16 @@ final case class Block(name: Symbol,
     successorNames(module).map(module.getBlock _)
   }
 
+  def liveOutBindings(module: Module): Map[Symbol, List[Value]] = {
+    val terminator = module.getInstruction(instructions.last)
+    val normalLiveOut = terminator.liveOutBindings
+    catchBlock match {
+      case Some((catchBlockName, catchBlockArguments)) => 
+        normalLiveOut + (catchBlockName -> catchBlockArguments)
+      case None => normalLiveOut
+    }
+  }
+
   override def validateComponents(module: Module) = {
     def validateCatchBlockComponents = {
       catchBlock match {
@@ -80,11 +90,22 @@ final case class Block(name: Symbol,
             List(ScopeException(handlerName, name, getLocation))
           else
             Nil
-          val argumentErrors = arguments flatMap { arg =>
+          val cb = module.getBlock(handlerName)
+          val countErrors = if (cb.parameters.size != arguments.size)
+            List(FunctionArgumentCountException(handlerName, arguments.size, cb.parameters.size, getLocation))
+          else
+            Nil
+          val scopeErrors = arguments flatMap { arg =>
             val v = validateSymbolScope(_: List[CompileException], _: Symbol, catchScope)
             arg.foldSymbols(Nil, v)
           }
-          handlerErrors ++ argumentErrors
+          val argumentTypes = arguments.map(_.ty)
+          val parameterTypes = module.getParameters(cb.parameters).map(_.ty)
+          val typeErrors = (argumentTypes zip parameterTypes) flatMap { i =>
+            val (argumentType, parameterType) = i
+            checkType(argumentType, parameterType, getLocation)
+          }
+          handlerErrors ++ countErrors ++ scopeErrors ++ typeErrors
         }
         case None => Nil
       }

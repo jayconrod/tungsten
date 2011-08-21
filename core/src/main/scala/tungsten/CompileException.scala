@@ -237,13 +237,6 @@ final case class InvalidBitCastException(value: Value,
                              format(valueToString(value), valueSize, typeToString(ty), tySize),
                            location)
 
-final case class InvalidExceptionHandlerException(blockName: Symbol,
-                                                  handlerName: Symbol,
-                                                  location: Location)
-  extends CompileException("block %s branches to invalid exception handler %s".
-                             format(blockName, handlerName),
-                           location)
-
 final case class InvalidIndexException(value: String, ty: String, location: Location)
   extends CompileException("the value " + value + 
                              " cannot be used as an index into type " + ty,

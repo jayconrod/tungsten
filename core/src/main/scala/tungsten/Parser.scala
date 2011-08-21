@@ -660,7 +660,8 @@ class Parser extends Parsers with ImplicitConversions {
     ("read"         ^^^ READ)           |
     ("write"        ^^^ WRITE)          |
     ("open"         ^^^ OPEN)           |
-    ("close"        ^^^ CLOSE)
+    ("close"        ^^^ CLOSE)          |
+    ("exception"    ^^^ EXCEPTION)
   }
   lazy val version: Parser[Version] = accept("version", { case VersionTok(v) => v })
   lazy val moduleDependency: Parser[ModuleDependency] = {

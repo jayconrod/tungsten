@@ -17,6 +17,18 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+/* The purpose of the PhiConversion pass is to convert the live-in/live-out notation
+ * from Tungsten style to LLVM style. In Tungsten, live-in variables are described by
+ * parameters for each block. Live-out variables are described by explicit arguments
+ * for each branch. LLVM uses the more standard Phi instructions. If a block receives
+ * two (or more) different values for the same variable from different predecessors,
+ * a Phi instruction is written showing which value is received from each block.
+ *
+ * PhiAnalysis is a data flow analysis which determines which values actually require
+ * Phi instructions. PhiConversion actually inserts the Phi instructions and removes
+ * block parameters and arguments.
+ */
+
 package tungsten.llvm
 
 import tungsten.{DataFlow, Graph, Symbol}
@@ -34,9 +46,7 @@ class PhiAnalysis(module: tungsten.Module)
   /** The initial data set for each branch is the argument list from the original program */
   def bottom(u: Node, v: Node): Data = {
     val predecessor = module.getBlock(u)
-    val terminator = module.getInstruction(predecessor.instructions.last)
-    val arguments = terminator.liveOutBindings(v)
-    arguments
+    predecessor.liveOutBindings(module)(v)
   }
 
   /** This function looks at the argument lists incoming from all predecessors to a block. If
@@ -60,7 +70,7 @@ class PhiAnalysis(module: tungsten.Module)
     /* Finally, we generate the output by updating the arguments to the successors. Any 
      * reference to a constant parameter is replaced by the constant value.
      */
-    val liveOutBindings = module.getInstruction(block.instructions.last).liveOutBindings
+    val liveOutBindings = block.liveOutBindings(module)
     (Map[Node, Data]() /: liveOutBindings) { (outData, kv) =>
       val (blockName, arguments) = kv
       val updatedArgs = arguments.map { v =>
@@ -78,7 +88,7 @@ object PhiConversion
     val functions = module.definitions.valuesIterator.collect { case f: tungsten.Function => f }
     (module /: functions) { (module, function) =>
       val blocks = module.getBlocks(function.blocks)
-      val graph = cfg(function, module)
+      val graph = function.controlFlowGraphWithCatchBlocks(module)
       val analysis = new PhiAnalysis(module)
       val phiData = analysis(graph, function.blocks.headOption)
       (module /: blocks) { (module, block) => 
@@ -88,17 +98,6 @@ object PhiConversion
         rewrite(block, phiBindings, constantMap, module) 
       }
     }
-  }
-
-  def cfg(function: tungsten.Function, module: tungsten.Module): Graph[Symbol] = {
-    val blocks = function.blocks
-    val adjacent = (Map[Symbol, Set[Symbol]]() /: blocks) { (adj, node) =>
-      val block = module.getBlock(node)
-      val terminator = module.getInstruction(block.instructions.last)
-      val out = terminator.liveOutBindings.keys.toSet
-      adj + (node -> out)
-    }
-    new Graph(blocks, adjacent)
   }
 
   def isConstant(bindings: List[(tungsten.Value, Symbol)]): Boolean = {
@@ -133,6 +132,10 @@ object PhiConversion
     }
   }
 
+  /** Returns bindings in the same format as Phi instructions require.
+   *  @param argumentMap map from predecessor name to a list of live-in variables
+   *  @return a list of bindings for each parameter
+   */
   def phiBindingsFromArgumentMap(argumentMap: Map[Symbol, List[tungsten.Value]]): List[List[(tungsten.Value, Symbol)]] =
   {
     if (argumentMap.isEmpty)
@@ -151,6 +154,11 @@ object PhiConversion
     }
   }
 
+  /** Returns a partial map of parameter names to constant values. A parameter has a constant
+   *  value if it receives the same value from all predecessors. The returned map will only
+   *  contain entries for parameters with constant values.
+   *  @phiBindings list of bindings as returned by phiBindingsFromArgumentMap
+   */
   def constantMapFromPhiBindings(parameterNames: List[Symbol],
                                  phiBindings: List[List[(tungsten.Value, Symbol)]]): Map[Symbol, tungsten.Value] = {
     assert(parameterNames.size == phiBindings.size)

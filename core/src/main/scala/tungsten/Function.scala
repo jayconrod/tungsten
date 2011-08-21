@@ -86,37 +86,6 @@ final case class Function(name: Symbol,
       }
     }
 
-    def validateExceptionHandlers = {
-      blocks.flatMap { blockName =>
-        val block = module.getBlock(blockName)
-        block.catchBlock match {
-          case Some((handlerName, arguments)) => {
-            val argumentTypes = arguments.map(_.ty)
-            val handler = module.getBlock(handlerName)
-            val handlerParameterTypes = module.getParameters(handler.parameters).map(_.ty)
-            handlerParameterTypes match {
-              case exnType :: paramTypes => {
-                val exnTypeErrors = if (exnType != ClassType("tungsten.Exception"))
-                  List(InvalidExceptionHandlerException(blockName, handlerName, block.getLocation))
-                else
-                  Nil
-                val paramTypeErrors = if (argumentTypes.size != paramTypes.size)
-                  List(FunctionArgumentCountException(handlerName, argumentTypes.size, paramTypes.size, block.getLocation))
-                else {
-                  (argumentTypes zip paramTypes) flatMap { case ap =>
-                    checkType(ap._1, ap._2, block.getLocation)
-                  }
-                }
-                exnTypeErrors ++ paramTypeErrors
-              }
-              case Nil => List(InvalidExceptionHandlerException(blockName, handlerName, block.getLocation))
-            }
-          }
-          case None => Nil
-        }
-      }
-    }
-
     def validateVariance = {
       val parameterTypes = module.getParameters(parameters).map(_.ty)
       returnType.validateVariance(Variance.COVARIANT, module, getLocation) ++
@@ -149,7 +118,6 @@ final case class Function(name: Symbol,
 
     stage(super.validate(module),
           validateEntryParameters,
-          validateExceptionHandlers,
           validateReturnType,
           validateVariance,
           validateAbstract,

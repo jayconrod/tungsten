@@ -391,6 +391,36 @@ final case class IntegerZeroExtendInstruction(override val name: String, value: 
   def opname = "zext"
 }
 
+final case class InvokeInstruction(override val name: String,
+                                   convention: Option[String],
+                                   returnAttributes: Set[ParameterAttribute],
+                                   ty: Type,
+                                   targetType: Option[Type],
+                                   target: Value,
+                                   arguments: List[Value],
+                                   functionAttributes: Set[FunctionAttribute],
+                                   normalLabel: Value,
+                                   unwindLabel: Value)
+  extends Instruction
+{
+  def opname = "invoke"
+  def ty(module: Module) = ty
+  def operands = target :: normalLabel :: unwindLabel :: arguments
+  override def toString = {
+    "%s %s%s%s %s%s(%s)%s to %s unwind %s".
+      format(if (ty == VoidType) opname else nameString,
+             convention.map(_ + " ").getOrElse(""),
+             if (!returnAttributes.isEmpty) returnAttributes.mkString(" ") + " " else "",
+             ty,
+             targetType.map(_.toString + " ").getOrElse(""),
+             target,
+             arguments.map(_.typedToString).mkString(", "),
+             if (!functionAttributes.isEmpty) " " + functionAttributes.mkString(" ") else "",
+             normalLabel.typedToString,
+             unwindLabel.typedToString)
+  }
+}
+
 final case class LoadInstruction(override val name: String,
                                  address: Value,
                                  alignment: Option[Int])

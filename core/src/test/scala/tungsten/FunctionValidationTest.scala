@@ -144,10 +144,9 @@ class FunctionValidationTest
   def catchBlockInDifferentFunction {
     val program = "function unit @f {\n" +
                   "  block %entry {\n" +
-                  "    class @tungsten.Exception %exn = upcast null\n" +
-                  "    branch @f.cb(class @tungsten.Exception %exn)\n" +
+                  "    branch @f.cb()\n" +
                   "  }\n" +
-                  "  block %cb(class @tungsten.Exception %exn) {\n" +
+                  "  block %cb() {\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n" +
@@ -165,11 +164,11 @@ class FunctionValidationTest
                   "  block %entry {\n" +
                   "    return ()\n" +
                   "  } catch @f.cb()\n" +
-                  "  block %cb(class @tungsten.Object %exn) {\n" +
+                  "  block %cb() {\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
-    programContainsError[InvalidExceptionHandlerException](program)
+    programIsCorrect(program)
   }
 
   @Test
@@ -178,7 +177,7 @@ class FunctionValidationTest
                   "  block %entry {\n" +
                   "    return ()\n" +
                   "  } catch @f.cb(())\n" +
-                  "  block %cb(class @tungsten.Exception %exn, int64 %a) {\n" +
+                  "  block %cb(int64 %a) {\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -191,7 +190,7 @@ class FunctionValidationTest
                   "  block %entry {\n" +
                   "    return ()\n" +
                   "  } catch @f.cb(())\n" +
-                  "  block %cb(class @tungsten.Exception %exn) {\n" +
+                  "  block %cb() {\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -205,7 +204,7 @@ class FunctionValidationTest
                   "    int64 %a = binop int64 2 + int64 3\n" +
                   "    return ()\n" +
                   "  } catch @f.cb(int64 %a)\n" +
-                  "  block %cb(class @tungsten.Exception %exn, int64 %a) {\n" +
+                  "  block %cb(int64 %a) {\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -221,7 +220,7 @@ class FunctionValidationTest
                   "  block %a(int64 %x) {\n" +
                   "    return ()\n" +
                   "  } catch @f.cb(int64 @f.a.x)\n" +
-                  "  block %cb(class @tungsten.Exception %exn, int64 %a) {\n" +
+                  "  block %cb(int64 %a) {\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"

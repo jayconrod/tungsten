@@ -31,7 +31,7 @@ class CatchBlockOutlinePass
 
   def apply(module: tungsten.Module): tungsten.Module = {
     symbolFactory = new tungsten.SymbolFactory(module.highestSymbolId + 1)
-    val functions = module.definitions.values.collect { case f: tungsten.Function => f }
+    val functions = module.definitions.values.collect { case f: tungsten.Function if f.isDefined => f }
     var m = module
     for (f <- functions)
       m = outlineFunction(f, m)
@@ -601,6 +601,15 @@ class CatchBlockOutlinePass
 
   def epilogueBlockName(tryName: Symbol): Symbol = {
     symbolFactory(tryName + "epilogue$")
+  }
+}
+
+object CatchBlockOutlinePass
+  extends Function1[tungsten.Module, tungsten.Module]
+{
+  def apply(module: tungsten.Module): tungsten.Module = {
+    val pass = new CatchBlockOutlinePass
+    pass(module)
   }
 }
 

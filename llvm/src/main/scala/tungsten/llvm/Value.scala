@@ -93,6 +93,13 @@ final case class DefinedValue(name: String, ty: Type)
   extends Value
 {
   override def toString = escapeIdentifier(name)
+
+  override def typedToString = {
+    if (ty eq VoidType)
+      "void"
+    else
+      super.typedToString
+  }
 }
 
 final case class BitCastValue(value: Value, ty: Type)

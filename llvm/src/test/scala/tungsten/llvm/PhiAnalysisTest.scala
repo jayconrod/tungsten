@@ -44,7 +44,7 @@ class PhiAnalysisTest {
   val function = module.getFunction("f")
   val blockNames = List(0, 1, 2, 3).map { i: Int => symbolFromString("f.bb" + i) }
   val blocks = module.getBlocks(blockNames)
-  val graph = PhiConversion.cfg(function, module)
+  val graph = function.controlFlowGraphWithCatchBlocks(module)
   val analysis = new PhiAnalysis(module)
 
   val phiData = Map[(Symbol, Symbol), List[tungsten.Value]]((blockNames(1), blockNames(3)) -> List(tungsten.IntValue(12, 64), tungsten.IntValue(34, 64)),

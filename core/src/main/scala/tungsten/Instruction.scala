@@ -764,6 +764,9 @@ object Intrinsic {
                                 FunctionType(UnitType, Nil,
                                              List(IntType(32))))           // file descriptor
 
+  val EXCEPTION = IntrinsicFunction("exception",
+                                    FunctionType(ClassType("tungsten.Exception"), Nil, Nil))
+
   val INTRINSICS = List(EXIT, READ, WRITE, OPEN, CLOSE)
 }
 

@@ -33,7 +33,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
                    val searchPaths:  List[File]                  = Nil,
                    val is64Bit:      Boolean                     = true,
                    val isSafe:       Boolean                     = false,
-                   val definitions:  TreeMap[Symbol, Definition] = new TreeMap())
+                   val definitions:  Map[Symbol, Definition]     = new TreeMap())
 {
   def copyWith(name: Symbol = name,
                ty: ModuleType = ty,
@@ -42,7 +42,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
                dependencies: List[ModuleDependency] = dependencies,
                searchPaths: List[File] = searchPaths,
                is64Bit: Boolean = is64Bit,
-               definitions: TreeMap[Symbol, Definition] = definitions) =
+               definitions: Map[Symbol, Definition] = definitions) =
   {
     new Module(name, ty, version, filename, dependencies, searchPaths, is64Bit, isSafe, definitions)
   }

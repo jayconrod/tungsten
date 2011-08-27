@@ -19,6 +19,7 @@
 
 package tungsten
 
+import scala.collection.immutable.TreeMap
 import Utilities._
 
 class LowerPass
@@ -34,8 +35,8 @@ class LowerPass
     m = convertClassesAndInterfaces(m)
     m = convertInstructions(m)
     m = convertFunctions(m)
-    m = removeDefinitions(m)
     m = substituteTypes(interfaceBaseClassNames, m)
+    m = removeDefinitions(m)
     m
   }
 
@@ -477,7 +478,13 @@ class LowerPass
   }
 
   def substituteTypes(interfaceBaseClassNames: Map[Symbol, Symbol], module: Module): Module = {
-    module.mapTypes(substituteType(_, interfaceBaseClassNames, module))
+    val newDefinitions = module.definitions.mapValues { defn =>
+      if (defnIsRemovable(defn))
+        defn
+      else
+        defn.mapTypes(substituteType(_, interfaceBaseClassNames, module))
+    }
+    module.copyWith(definitions = newDefinitions)
   }
 
   def substituteType(ty: Type, interfaceBaseClassNames: Map[Symbol, Symbol], module: Module): Type = {
@@ -497,13 +504,15 @@ class LowerPass
   }
 
   def removeDefinitions(module: Module): Module = {
-    val newDefinitions = module.definitions.filterNot { case (_, defn) =>
-      defn.isInstanceOf[Class]         ||
-      defn.isInstanceOf[Interface]     ||
-      defn.isInstanceOf[TypeParameter]
-    }
+    val newDefinitions = module.definitions.filterNot { kv => defnIsRemovable(kv._2) }
     module.copyWith(definitions = newDefinitions)
   }  
+
+  def defnIsRemovable(defn: Definition): Boolean = {
+    defn.isInstanceOf[Class]         ||
+    defn.isInstanceOf[Interface]     ||
+    defn.isInstanceOf[TypeParameter]
+  }
 
   val arrayStructName = symbolFromString("tungsten.array")
   val classInfoStructName = symbolFromString("tungsten.class_info")

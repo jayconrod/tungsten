@@ -12,7 +12,7 @@ else
     ARCH=x86_64
 endif
 
-%.wp: %.wo
+%.wp: %.wo tungsten.wl
 	w-link -t program $^ -o $@
 
 %.ll: %.wp
@@ -22,4 +22,4 @@ endif
 	llvm-as <$< >$@
 
 %.s: %.bc
-	llc <$< >$@
+	llc -unwind-tables <$< >$@

@@ -18,7 +18,7 @@ $(foreach program,$(PROGRAMS),\
     $(eval $(program):$(program).s))
 
 $(PROGRAMS):
-	clang $(LDFLAGS) $^ -o $@
+	clang++ $(LDFLAGS) $^ -o $@
 
 include common.mk
 include 64.mk

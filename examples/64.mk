@@ -8,5 +8,8 @@ $(PROGRAMS): $(RUNTIME_NAME:%.ll=%.s)
 $(RUNTIME_NAME): $(LLVM_RUNTIME_SOURCE)
 	sed -e 's/target triple = "x86_64-linux-gnu"/target triple = "x86_64-$(OS)"/' <$< >$@
 
+tungsten.wl: ../core/runtime/tungsten-64.w
+	w-as <$< >$@
+
 %.wo: %.w
 	w-as <$< >$@

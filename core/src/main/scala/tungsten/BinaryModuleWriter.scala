@@ -406,6 +406,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         output.writeByte(STRUCT_TYPE_ID)
         writeInt(symbols(structName))
       }
+      case VariadicType => output.writeByte(VARIADIC_TYPE_ID)
       case FunctionType(returnType, typeParameters, parameterTypes) => {
         output.writeByte(FUNCTION_TYPE_ID)
         writeType(returnType)

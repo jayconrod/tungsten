@@ -304,4 +304,12 @@ class TypeTest {
     val expected = FunctionType(x, Nil, List(x))
     assertEquals(expected, f.applyTypeArguments(List(x)))
   }
+
+  @Test
+  def variadicTypeNotLastParameterType {
+    val f = FunctionType(UnitType, Nil, List(VariadicType, UnitType))
+    val m = new Module
+    val errors = f.validate(m, Nowhere)
+    assertTrue(errors.head.isInstanceOf[VariadicTypeException])
+  }
 }

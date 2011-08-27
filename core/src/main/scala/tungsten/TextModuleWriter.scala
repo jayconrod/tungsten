@@ -559,6 +559,7 @@ class TextModuleWriter(module: Module, output: Writer) {
         "[%d x %s]".format(length, localType(elementType, parentName))
       }
       case StructType(structName) => "struct " + localSymbol(structName, parentName)
+      case VariadicType => "..."
       case FunctionType(returnType, typeParameters, parameterTypes) => {
         val typeParametersStr = localTypeParameters(typeParameters)
         val parameterTypesStr = localParameterTypes(parameterTypes)

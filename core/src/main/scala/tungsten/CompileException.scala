@@ -441,3 +441,14 @@ final case class UpcastException(fromTy: String,
     this(typeToString(fromTy), typeToString(toTy), location)
   }
 }
+
+final case class VariadicFunctionException(functionName: Symbol, 
+                                           paramName: Symbol, 
+                                           location: Location)
+  extends CompileException("in function %s, parameter %s is variadic but is not the last parameter".
+                             format(functionName, paramName),
+                           location)
+
+final case class VariadicTypeException(location: Location)
+  extends CompileException("only the last parameter in a function type may be variadic",
+                           location)

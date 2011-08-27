@@ -85,17 +85,26 @@ trait CallInstruction extends Instruction {
     }
 
     def validateEverythingElse = {
-      val argumentCountErrors = if (arguments.size != targetType.parameterTypes.size) {
+      val argCount = arguments.size
+      val paramCount = targetType.parameterTypes.size
+      val isVariadic = targetType.isVariadic
+      val argumentCountErrors = if ((isVariadic && argCount < paramCount - 1) ||
+                                    (!isVariadic && argCount != paramCount))
+      {
         List(FunctionArgumentCountException(targetName,
-                                            arguments.size,
-                                            targetType.parameterTypes.size,
+                                            argCount,
+                                            paramCount - 1,
                                             getLocation))
       } else
         Nil
 
       val substitutedTargetType = targetType.applyTypeArguments(typeArguments)
+      val parameterTypes = if (isVariadic)
+        substitutedTargetType.parameterTypes.take(paramCount - 1)
+      else
+        substitutedTargetType.parameterTypes
       val argumentTypes = arguments.map(_.ty)
-      val argumentTypeErrors = (argumentTypes zip substitutedTargetType.parameterTypes) flatMap { p =>
+      val argumentTypeErrors = (argumentTypes zip parameterTypes) flatMap { p =>
         val (argumentType, parameterType) = p
         checkType(argumentType, parameterType, getLocation)
       }
@@ -856,7 +865,8 @@ final case class NewInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     val classType = ty.asInstanceOf[ClassType]
-    val ctorType = module.getFunction(constructorName).ty(module)
+    val ctor = module.getFunction(constructorName)
+    val ctorType = ctor.ty(module)
     val newType = ctorType.copy(returnType = classType)
     val clas = module.getClass(classType.className)
     val thisValue = makeValue

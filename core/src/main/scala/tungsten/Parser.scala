@@ -571,6 +571,7 @@ class Parser extends Parsers with ImplicitConversions {
       ("float32"  ^^^ FloatType(32)) |
       ("float64"  ^^^ FloatType(64)) |
       ("nulltype" ^^^ NullType)      |
+      ("..."      ^^^ VariadicType)  |
       structTy                       |
       arrayTy                        |
       classTy                        |

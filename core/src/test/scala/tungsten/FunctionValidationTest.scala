@@ -141,6 +141,48 @@ class FunctionValidationTest
   }
 
   @Test
+  def variadicArguments {
+    val program = "function unit @f(int64 %x, ... %va)\n" +
+                  "function unit @g {\n" +
+                  "  block %entry {\n" +
+                  "    scall @f(int64 12, int64 34)\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def nonVariadicArgumentsChecked {
+    val program = "function unit @f(int64 %x, ... %va)\n" +
+                  "function unit @g {\n" +
+                  "  block %entry {\n" +
+                  "    scall @f((), ())\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def variadicFewerArguments {
+    val program = "function unit @f(int64 %x, ... %va)\n" +
+                  "function unit @g {\n" +
+                  "  block %entry {\n" +
+                  "    scall @f()\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[FunctionArgumentCountException](program)
+  }
+
+  @Test
+  def variadicFirstParameter {
+    val program = "function unit @f(... %va, int64 %x)"
+    programContainsError[VariadicFunctionException](program)
+  }
+
+  @Test
   def catchBlockInDifferentFunction {
     val program = "function unit @f {\n" +
                   "  block %entry {\n" +

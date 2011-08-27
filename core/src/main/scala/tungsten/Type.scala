@@ -216,6 +216,13 @@ final case class StructType(structName: Symbol)
   def isNumeric = false
 }
 
+final case object VariadicType
+  extends Type
+{
+  def size(module: Module) = wordSize(module)
+  def isNumeric = false
+}
+
 final case class FunctionType(returnType: Type,
                               typeParameters: List[Symbol],
                               parameterTypes: List[Type])
@@ -233,9 +240,19 @@ final case class FunctionType(returnType: Type,
     returnErrors ++ parameterErrors
   }
 
+  override def validate(module: Module, location: Location): List[CompileException] = {
+    val variadicIndex = parameterTypes.indexOf(VariadicType)
+    if (variadicIndex != -1 && variadicIndex < parameterTypes.size - 1)
+      List(VariadicTypeException(location))
+    else
+      Nil
+  }
+
   def size(module: Module) = wordSize(module)
 
   def isNumeric = false
+
+  def isVariadic = !parameterTypes.isEmpty && parameterTypes.last == VariadicType
 
   override def isSubtypeOf(ty: Type, module: Module): Boolean = {
     def isExposedSubtypeOf(s: Type, t: Type): Boolean = {

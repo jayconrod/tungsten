@@ -278,6 +278,7 @@ class BinaryModuleReader(input: DataInputStream) {
         ArrayType(length, readType)
       }
       case STRUCT_TYPE_ID => StructType(symbol)
+      case VARIADIC_TYPE_ID => VariadicType
       case FUNCTION_TYPE_ID => FunctionType(readType, readList(symbol), readList(readType))
       case CLASS_TYPE_ID => ClassType(symbol, readList(readType))
       case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readType))

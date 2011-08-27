@@ -39,6 +39,13 @@ final case class Function(name: Symbol,
 
   def isDefined = !blocks.isEmpty
 
+  def isVariadic(module: Module): Boolean = {
+    if (parameters.isEmpty)
+      false
+    else
+      module.getParameter(parameters.last).ty == VariadicType
+  }
+
   override def validateComponents(module: Module) = {
     super.validateComponents(module) ++ 
       validateComponentsOfClass[TypeParameter](module, typeParameters) ++
@@ -71,6 +78,16 @@ final case class Function(name: Symbol,
           case None => Nil
         }
       }
+    }
+
+    def validateParameters = {
+      val paramTypes = module.getParameters(parameters).map(_.ty)
+      val variadicIndex = paramTypes.indexOf(VariadicType)
+      if (variadicIndex != -1 && variadicIndex < parameters.size - 1) {
+        val parameter = module.getParameter(parameters(variadicIndex))
+        List(VariadicFunctionException(name, parameter.name, parameter.getLocation))
+      } else
+        Nil
     }
 
     def validateEntryParameters = {
@@ -117,6 +134,7 @@ final case class Function(name: Symbol,
     }
 
     stage(super.validate(module),
+          validateParameters,
           validateEntryParameters,
           validateReturnType,
           validateVariance,

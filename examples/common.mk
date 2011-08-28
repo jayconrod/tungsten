@@ -13,7 +13,7 @@ else
 endif
 
 %.wp: %.wo tungsten.wl
-	w-link -t program $^ -o $@
+	w-link $^ -o $@
 
 %.ll: %.wp
 	w-to-llvm <$< >$@

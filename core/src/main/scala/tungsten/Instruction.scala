@@ -459,6 +459,18 @@ final case class BranchInstruction(name: Symbol,
   }
 }
 
+final case class CatchInstruction(name: Symbol,
+                                  ty: Type,
+                                  annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = Nil
+
+  override def validate(module: Module) = {
+    super.validate(module) ++ checkNonNullPointerType(ty, getLocation)
+  }
+}
+
 final case class ConditionalBranchInstruction(name: Symbol,
                                               ty: Type,
                                               condition: Value,
@@ -772,9 +784,6 @@ object Intrinsic {
   val CLOSE = IntrinsicFunction("close",
                                 FunctionType(UnitType, Nil,
                                              List(IntType(32))))           // file descriptor
-
-  val EXCEPTION = IntrinsicFunction("exception",
-                                    FunctionType(ClassType("tungsten.Exception"), Nil, Nil))
 
   val INTRINSICS = List(EXIT, READ, WRITE, OPEN, CLOSE)
 }

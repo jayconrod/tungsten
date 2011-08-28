@@ -33,7 +33,7 @@ final case class Function(override val name: String,
   override def toString = {
     val retAttribStr = if (returnAttributes.isEmpty) "" else " " + returnAttributes.mkString(" ")
     val fnAttribStr = if (functionAttributes.isEmpty) "" else " " + functionAttributes.mkString(" ")
-    val variadicStr = if (isVariadic) ", ..." else ""
+    val variadicStr = if (isVariadic && parameters.isEmpty) "..." else if (isVariadic) ", ..." else ""
     if (blocks.isEmpty) {
       val paramStr = "(" + parameters.map(_.ty).mkString(", ") + variadicStr + ")"
       "declare %s%s %s%s%s".format(retAttribStr, returnType,

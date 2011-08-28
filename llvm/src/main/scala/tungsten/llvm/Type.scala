@@ -81,8 +81,12 @@ final case class FunctionType(returnType: Type,
   extends Type
 {
   override def toString = {
-    "%s (%s%s)".format(returnType,
-                       parameterTypes.mkString(", "),
-                       if (isVariadic) ", ..." else "")
+    if (isVariadic) {
+      if (parameterTypes.isEmpty)
+        "%s (...)".format(returnType)
+      else
+        "%s (%s, ...)".format(returnType, parameterTypes.mkString(", "))
+    } else
+      "%s (%s)".format(returnType, parameterTypes.mkString(", "))
   }
 }

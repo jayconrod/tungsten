@@ -204,6 +204,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
           case _: BinaryOperatorInstruction => BINARY_OPERATOR_INST_ID
           case _: BitCastInstruction => BIT_CAST_INST_ID
           case _: BranchInstruction => BRANCH_INST_ID
+          case _: CatchInstruction => CATCH_INST_ID
           case _: ConditionalBranchInstruction => CONDITIONAL_BRANCH_INST_ID
           case _: ExtractInstruction => EXTRACT_INST_ID
           case _: FloatExtendInstruction => FLOAT_EXTEND_INST_ID
@@ -254,6 +255,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
             writeInt(symbols(target))
             writeList(arguments, writeValue _)
           }
+          case _: CatchInstruction => ()
           case ConditionalBranchInstruction(_, _, condition, trueTarget, trueArgs,
                                             falseTarget, falseArgs, _) =>
           {

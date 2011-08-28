@@ -706,4 +706,10 @@ class InstructionValidationTest
                   "}\n"
     programContainsError[EarlyTerminationException](program)
   }
+
+  @Test
+  def catchNonPointer {
+    val code = "unit %x = catch"
+    codeContainsError[TypeMismatchException](code)
+  }
 }

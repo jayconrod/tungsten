@@ -270,6 +270,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case _: BinaryOperatorInstruction => "binop"
       case _: BitCastInstruction => "bitcast"
       case _: BranchInstruction => "branch"
+      case _: CatchInstruction => "catch"
       case _: ConditionalBranchInstruction => "cond"
       case _: ExtractInstruction => "extract"
       case _: FloatExtendInstruction => "fextend"
@@ -318,6 +319,7 @@ class TextModuleWriter(module: Module, output: Writer) {
         output.write(localSymbol(target))
         writeArguments(arguments, parentName)
       }
+      case _: CatchInstruction => ()
       case ConditionalBranchInstruction(_, _, condition, trueTarget, trueArgs,
                                         falseTarget, falseArgs, _) =>
       {

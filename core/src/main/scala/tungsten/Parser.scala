@@ -240,6 +240,7 @@ class Parser extends Parsers with ImplicitConversions {
     binopInst          |
     bitcastInst        |
     branchInst         |
+    catchInst          |
     condInst           |
     extractInst        |
     fextendInst        |
@@ -292,6 +293,12 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val branchInst: Parser[BranchInstruction] = {
     instName("branch") ~ symbol ~ argumentList ^^ {
       case anns ~ ty ~ n ~ b ~ as => BranchInstruction(n, ty, b, as, anns)
+    }
+  }
+
+  lazy val catchInst: Parser[CatchInstruction] = {
+    instName("catch") ^^ {
+      case anns ~ ty ~ n => CatchInstruction(n, ty, anns)
     }
   }
 
@@ -661,8 +668,7 @@ class Parser extends Parsers with ImplicitConversions {
     ("read"         ^^^ READ)           |
     ("write"        ^^^ WRITE)          |
     ("open"         ^^^ OPEN)           |
-    ("close"        ^^^ CLOSE)          |
-    ("exception"    ^^^ EXCEPTION)
+    ("close"        ^^^ CLOSE)
   }
   lazy val version: Parser[Version] = accept("version", { case VersionTok(v) => v })
   lazy val moduleDependency: Parser[ModuleDependency] = {

@@ -161,6 +161,36 @@ class LlvmCompatibilityPass
         casts :+ cAddress
       }
 
+      case tungsten.CatchInstruction(name, ty, _) => {
+        val getExnPtr = tungsten.StaticCallInstruction(newName(name),
+                                                       tungsten.PointerType(tungsten.IntType(8)),
+                                                       Symbol("llvm.eh.exception"),
+                                                       Nil, Nil)
+        val personality = tungsten.BitCastInstruction(newName(name),
+                                                      tungsten.PointerType(tungsten.IntType(8)),
+                                                      tungsten.DefinedValue("__gxx_personality_v0",
+                                                                            tungsten.PointerType(tungsten.FunctionType(tungsten.IntType(32),
+                                                                                                                       Nil,
+                                                                                                                       List(tungsten.VariadicType)))))
+        val select = tungsten.StaticCallInstruction(newName(name),
+                                                    tungsten.IntType(32),
+                                                    Symbol("llvm.eh.selector"),
+                                                    Nil,
+                                                    List(getExnPtr.makeValue, 
+                                                         personality.makeValue,
+                                                         tungsten.BitCastValue(tungsten.NullValue,
+                                                                               tungsten.PointerType(tungsten.IntType(8)))))
+        val beginCatch = tungsten.StaticCallInstruction(newName(name),
+                                                        tungsten.PointerType(tungsten.IntType(8)),
+                                                        "__cxa_begin_catch",
+                                                        Nil, List(getExnPtr.makeValue))
+        val endCatch = tungsten.StaticCallInstruction(newName(name),
+                                                      tungsten.UnitType,
+                                                      "__cxa_end_catch",
+                                                      Nil, Nil)
+        List(getExnPtr, personality, select, beginCatch, endCatch)
+      }
+
       case tungsten.ExtractInstruction(name, ty, value, indices, _) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
         val cExtract = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]

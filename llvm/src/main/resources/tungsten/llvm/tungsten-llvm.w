@@ -23,7 +23,7 @@ is64bit: true
 safe: true
 
 ; Flow control annotations (for LLVM equivalence)
-annotation @tungsten.NoRuntime
+annotation @tungsten.NoReturn
 
 ; TODO: remove this
 struct @tungsten.string {
@@ -53,3 +53,13 @@ function int8* @__cxa_allocate_exception(int64 %size)
 
 @tungsten.NoReturn
 function unit @__cxa_throw(int8* %pexn, int8* %rtti1, int8* %rtti2)
+
+function int8* @__cxa_begin_catch(int8* %exn)
+
+function unit @__cxa_end_catch
+
+function int32 @__gxx_personality_v0(... %va)
+
+function int8* @"llvm.eh.exception"()
+
+function int32 @"llvm.eh.selector"(int8* %exn, int8* %personality, ... %va)

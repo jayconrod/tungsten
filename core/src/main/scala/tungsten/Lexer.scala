@@ -35,7 +35,7 @@ object Lexer extends Lexical with RegexParsers {
         "*", "?", "x", ",", "=", ":", "to", "<:", ">:",
         "/", "%", "+", "-", "<<", ">>", ">>>", "&", "^", "|",
         "<", "<=", ">", ">=", "==", "!=", "...",
-        "exit", "read", "write", "open", "close", "exception",
+        "exit", "read", "write", "open", "close",
         "name", "type", "intermediate", "library", "program", "version", "filename",
           "dependencies", "searchpaths", "is64bit", "safe",
         "annotation", "block", "class", "interface", "field", "function", "global", "struct",

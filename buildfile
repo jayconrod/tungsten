@@ -6,7 +6,7 @@ ENV['USE_FSC'] = 'yes'
 
 define 'tungsten' do
   puts Scala.version
-  project.version = '0.3'
+  project.version = '0.5'
   project.group = 'tungsten'
 
   define 'core' do

@@ -1,2 +1,2 @@
 PATH=$PATH:`pwd`/core/src/main/resources:`pwd`/llvm/src/main/resources
-export CLASSPATH=~/.m2/repository/org/scala-lang/scala-library/2.8.1/scala-library-2.8.1.jar:~/.m2/repository/tungsten/tungsten-core/0.3/tungsten-core-0.3.jar:~/.m2/repository/tungsten/tungsten-llvm/0.3/tungsten-llvm-0.3.jar:`pwd`/core/target/test/classes:`pwd`/llvm/target/test/classes:~/.m2/repository/junit/junit/4.7/junit-4.7.jar
+export CLASSPATH=~/.m2/repository/org/scala-lang/scala-library/2.8.1/scala-library-2.8.1.jar:~/.m2/repository/tungsten/tungsten-core/0.5/tungsten-core-0.5.jar:~/.m2/repository/tungsten/tungsten-llvm/0.5/tungsten-llvm-0.5.jar:`pwd`/core/target/test/classes:`pwd`/llvm/target/test/classes:~/.m2/repository/junit/junit/4.7/junit-4.7.jar

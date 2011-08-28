@@ -448,7 +448,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def emptyFunction {
-    val expected = Function("@f", Set(), VoidType, Nil, Set(), Nil)
+    val expected = Function("@f", Set(), VoidType, Nil, false, Set(), Nil)
     val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil, Nil)
     assertEquals(expected, dummyConverter.convertFunction(function))
   }
@@ -456,7 +456,7 @@ class TungstenToLlvmConverterTest {
   @Test
   def function {
     val expected = Function("@f", Set(), IntType(64),
-                            List(Parameter("%x", IntType(64), Set())),
+                            List(Parameter("%x", IntType(64), Set())), false,
                             Set(),
                             List(Block("%entry", List(ReturnInstruction(DefinedValue("%x", IntType(64)))))))
     val parameter = tungsten.Parameter("f.x", tungsten.IntType(64))
@@ -474,7 +474,7 @@ class TungstenToLlvmConverterTest {
 
   @Test
   def functionNoReturn {
-    val expected = Function("@f", Set(), VoidType, Nil, Set(FunctionAttribute.NORETURN), Nil)
+    val expected = Function("@f", Set(), VoidType, Nil, false, Set(FunctionAttribute.NORETURN), Nil)
     val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil, Nil,
                                      List(tungsten.AnnotationValue("tungsten.NoReturn", Nil)))
     val definitions = TreeMap(function.name -> function)

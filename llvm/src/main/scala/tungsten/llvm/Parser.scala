@@ -55,7 +55,7 @@ object Parser extends Parsers with ImplicitConversions {
     "define" ~> parameterAttributes ~ ty ~ globalSymbol ~ 
       ("(" ~> repsep(defnParameter, ",") <~ ")") ~ functionAttributes ~
       ("{" ~> rep1(block) <~ "}") ^^ {
-      case ras ~ rty ~ n ~ ps ~ fas ~ bs => Function(n, ras, rty, ps, fas, bs)
+      case ras ~ rty ~ n ~ ps ~ fas ~ bs => Function(n, ras, rty, ps, false, fas, bs)
     }
   }
 

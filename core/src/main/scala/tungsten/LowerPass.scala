@@ -444,6 +444,8 @@ class LowerPass
                  castInstructions: List[Instruction]): (List[Value], List[Instruction]) =
     {
       (parameterTypes, arguments) match {
+        case (VariadicType :: Nil, arg :: as) =>
+          castNext(parameterTypes, as, arg :: castArguments, castInstructions)
         case (paramType :: pts, arg :: as) if paramType != arg.ty => {
           val castInst = BitCastInstruction(symbolFactory(instruction.name + "cast$"),
                                             paramType,
@@ -453,7 +455,8 @@ class LowerPass
         }
         case (_ :: pts, arg :: as) =>
           castNext(pts, as, arg :: castArguments, castInstructions)
-        case (Nil, Nil) => (castArguments.reverse, castInstructions.reverse)
+        case (VariadicType :: Nil, Nil) | (Nil, Nil) =>
+          (castArguments.reverse, castInstructions.reverse)
         case _ => throw new RuntimeException("argument and parameter lists are different lengths")
       }
     }

@@ -198,12 +198,11 @@ final case class CallInstruction(override val name: String,
   def ty(module: Module) = ty
   def operands = target :: arguments
   override def toString = {
-    "%s %s%s%s %s%s(%s)%s".
+    "%s %s%s%s %s(%s)%s".
       format(if (ty == VoidType) opname else nameString,
              convention.map(_ + " ").getOrElse(""),
              if (!returnAttributes.isEmpty) returnAttributes.mkString(" ") + " " else "",
-             ty,
-             targetType.map(_.toString + " ").getOrElse(""),
+             targetType.getOrElse(ty),
              target,
              arguments.map(_.typedToString).mkString(", "),
              if (!functionAttributes.isEmpty) " " + functionAttributes.mkString(" ") else "")

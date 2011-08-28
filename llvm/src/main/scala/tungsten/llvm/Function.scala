@@ -25,6 +25,7 @@ final case class Function(override val name: String,
                           returnAttributes: Set[ParameterAttribute],
                           returnType: Type,
                           parameters: List[Parameter],
+                          isVariadic: Boolean,
                           functionAttributes: Set[FunctionAttribute],
                           blocks: List[Block])
   extends Definition(name)
@@ -32,12 +33,13 @@ final case class Function(override val name: String,
   override def toString = {
     val retAttribStr = if (returnAttributes.isEmpty) "" else " " + returnAttributes.mkString(" ")
     val fnAttribStr = if (functionAttributes.isEmpty) "" else " " + functionAttributes.mkString(" ")
+    val variadicStr = if (isVariadic) ", ..." else ""
     if (blocks.isEmpty) {
-      val paramStr = "(" + parameters.map(_.ty).mkString(", ") + ")"
+      val paramStr = "(" + parameters.map(_.ty).mkString(", ") + variadicStr + ")"
       "declare %s%s %s%s%s".format(retAttribStr, returnType,
                                    escapeIdentifier(name), paramStr, fnAttribStr)
     } else {
-      val paramStr = "(" + parameters.mkString(", ") + ")"
+      val paramStr = "(" + parameters.mkString(", ") + variadicStr + ")"
       val blockStr = blocks.mkString("\n\n")
       "define %s%s %s%s%s {\n%s\n}".format(retAttribStr, returnType,
                                            escapeIdentifier(name), paramStr, fnAttribStr,

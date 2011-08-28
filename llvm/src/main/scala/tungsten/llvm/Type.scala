@@ -75,8 +75,14 @@ final case class NamedStructType(name: String)
   override def toString = name
 }
 
-final case class FunctionType(returnType: Type, parameterTypes: List[Type])
+final case class FunctionType(returnType: Type, 
+                              parameterTypes: List[Type], 
+                              isVariadic: Boolean = false)
   extends Type
 {
-  override def toString = returnType + parameterTypes.mkString(" (", ", ", ")") + "*"
+  override def toString = {
+    "%s (%s%s)".format(returnType,
+                       parameterTypes.mkString(", "),
+                       if (isVariadic) ", ..." else "")
+  }
 }

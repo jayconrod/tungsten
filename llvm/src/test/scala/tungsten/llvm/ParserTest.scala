@@ -421,7 +421,7 @@ class ParserTest {
          "  ret i32 0\n" +
          "}\n",
          Parser.function,
-         Function("@f", Set(), IntType(32), List(Parameter("%n", IntType(32), Set())), 
+         Function("@f", Set(), IntType(32), List(Parameter("%n", IntType(32), Set())), false,  
                   Set(FunctionAttribute.NOUNWIND),
                   List(Block("%entry", List(ReturnInstruction(IntValue(0L, 32)))))))
   }
@@ -442,7 +442,7 @@ class ParserTest {
                   "return:                                           ; preds = %entry\n" +
                   "  ret i32 0\n" +
                   "}\n"
-    val function = Function("@main", Set(), IntType(32), Nil, Set(FunctionAttribute.NOUNWIND),
+    val function = Function("@main", Set(), IntType(32), Nil, false, Set(FunctionAttribute.NOUNWIND),
                             List(Block("%entry",
                                        List(BitCastInstruction("%alloca point",
                                                                IntValue(0L, 32),

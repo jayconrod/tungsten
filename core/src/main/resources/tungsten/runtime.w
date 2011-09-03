@@ -16,6 +16,18 @@
 ; License along with Tungsten.  If not, see 
 ; <http://www.gnu.org/licenses/>.
 
+; This file contains definitions which should be available to programs
+; compiled to Tungsten. The assembler will automatically add these 
+; definitions to code it assembles (unless it is instructed not to).
+; Definitions here are considered "special", and the compiler may 
+; expect them to be present.
+;
+; No code here is 64- or 32-bit specific, so the 64-bit flag can be
+; changed as needed.
+;
+; The implementations of functions declared here can be found in 
+; core/runtime/tungsten-{32,64}.w.
+
 name: @tungsten
 type: intermediate
 version: v0.5
@@ -31,8 +43,6 @@ class @tungsten.Exception <: class @tungsten.Object {
   constructors { %ctor }
 }
 function unit @tungsten.Exception.ctor(class @tungsten.Exception %this)
-
-interface @tungsten.RuntimeException <: class @tungsten.Exception
 
 annotation @tungsten.Location(string %filename,
                               int32 %beginLine,

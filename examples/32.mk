@@ -11,7 +11,7 @@ $(PROGRAMS): $(RUNTIME_NAME:%.ll=%.s)
 $(RUNTIME_NAME): $(LLVM_RUNTIME_SOURCE)
 	sed -e 's/target triple = "i386-linux-gnu"/target triple = "i386-$(OS)"/' <$< >$@
 
-tungsten.wl: ../core/runtime/tungsten-32.w
+tungsten.wl: ../runtime/tungsten-32.w
 	w-as <$< >$@
 
 %.w32: %.w

@@ -33,6 +33,13 @@ final case class Block(name: Symbol,
     FunctionType(UnitType, Nil, parameterTypes)
   }
 
+  def isCatchBlock(module: Module): Boolean = {
+    instructions.headOption match {
+      case Some(i) => module.getInstruction(i).isInstanceOf[CatchInstruction]
+      case None => false
+    }
+  }
+
   def successorNames(module: Module): Set[Symbol] = {
     val terminator = module.getInstruction(instructions.last)
     terminator.successors.toSet
@@ -135,7 +142,32 @@ final case class Block(name: Symbol,
       }
     }
 
+    def validateCatchBlock = {
+      catchBlock match {
+        case Some((handler, _)) 
+          if isCatchBlock(module) || !module.getBlock(handler).isCatchBlock(module) =>
+            List(InvalidCatchBlockException(name, handler, getLocation))
+        case _ => Nil
+      }
+    }
+
+    def validateSuccessors = {
+      for (succ <- successors(module)
+           if succ.isCatchBlock(module))
+        yield CatchBlockBranchException(name, succ.name, getLocation)
+    }
+
+    def validateExtraCatch = {
+      for (instName <- instructions.tail;
+           val instDefn = module.getInstruction(instName);
+           if instDefn.isInstanceOf[CatchInstruction])
+        yield CatchInstructionException(instName, instDefn.getLocation)
+    }
+
     super.validate(module) ++ 
-      checkTermination(module.getInstructions(instructions))
+      checkTermination(module.getInstructions(instructions)) ++
+      validateCatchBlock ++
+      validateExtraCatch ++
+      validateSuccessors
   }
 }

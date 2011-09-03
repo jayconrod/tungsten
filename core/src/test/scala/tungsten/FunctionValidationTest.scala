@@ -186,31 +186,136 @@ class FunctionValidationTest
   def catchBlockInDifferentFunction {
     val program = "function unit @f {\n" +
                   "  block %entry {\n" +
-                  "    branch @f.cb()\n" +
+                  "    branch @f.a()\n" +
                   "  }\n" +
+                  "  block %a {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb()\n" +
                   "  block %cb() {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n" +
                   "function unit @g {\n" +
                   "  block %entry {\n" +
+                  "    branch @g.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
                   "    return ()\n" +
-                  "  } catch @f.entry()\n" +
+                   " } catch @f.cb()\n" +
                   "}\n"
     programContainsError[ScopeException](program)
   }
 
   @Test
-  def catchBlockReceiveExceptions {
+  def catchBlock {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %cb() {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programIsCorrect(program)
+  }
+
+  @Test
+  def catchBlockHasCatchBlock {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a() {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %cb() {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb2()\n" +
+                  "  block %cb2() {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[InvalidCatchBlockException](program)
+  }
+
+  @Test
+  def entryHasCatchBlock {
     val program = "function unit @f {\n" +
                   "  block %entry {\n" +
                   "    return ()\n" +
                   "  } catch @f.cb()\n" +
                   "  block %cb() {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[InvalidCatchBlockException](program)
+  }
+
+  @Test
+  def entryIsCatchBlock {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.entry()\n" +
+                  "}"
+    programContainsError[CatchEntryException](program)
+  }
+
+  @Test
+  def branchToCatchBlock {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    branch @f.cb()\n" +
+                  "  } catch @f.cb() \n" +
+                  "  block %cb {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[CatchBlockBranchException](program)
+  }
+
+  @Test
+  def catchBlockWithoutCatch {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.a()\n" +
+                  "  }\n" +
+                  "  block %a {\n" +
+                  "    return ()\n" +
+                  "  } catch @f.cb()\n" +
+                  "  block %cb {\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
-    programIsCorrect(program)
+    programContainsError[InvalidCatchBlockException](program)
+  }
+
+  @Test
+  def catchInstructionNotFirst {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    unit* %x = stack\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[CatchInstructionException](program)
   }
 
   @Test
@@ -220,6 +325,7 @@ class FunctionValidationTest
                   "    return ()\n" +
                   "  } catch @f.cb(())\n" +
                   "  block %cb(int64 %a) {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -233,6 +339,7 @@ class FunctionValidationTest
                   "    return ()\n" +
                   "  } catch @f.cb(())\n" +
                   "  block %cb() {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -247,6 +354,7 @@ class FunctionValidationTest
                   "    return ()\n" +
                   "  } catch @f.cb(int64 %a)\n" +
                   "  block %cb(int64 %a) {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"
@@ -263,6 +371,7 @@ class FunctionValidationTest
                   "    return ()\n" +
                   "  } catch @f.cb(int64 @f.a.x)\n" +
                   "  block %cb(int64 %a) {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}"

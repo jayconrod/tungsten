@@ -40,6 +40,7 @@ class CatchBlockOutlinePassTest {
                       "    unit %br = branch @f.exit(int64 %y)\n" +
                       "  } catch @f.cb()\n" +
                       "  block %cb() {\n" +
+                      "    class @tungsten.Exception %exn = catch\n" +
                       "    return ()\n" +
                       "  }\n" +
                       "  block %exit(int64 %y) {\n" +
@@ -57,6 +58,7 @@ class CatchBlockOutlinePassTest {
                               "    cond true ? @f.exit(int64 %x) : @f.exit(int64 %y)\n" +
                               "  } catch @f.cb()\n" +
                               "  block %cb() {\n" +
+                              "    class @tungsten.Exception %exn = catch\n" +
                               "    return ()\n" +
                               "  }\n" +
                               "  block %exit(int64 %x) {\n" +
@@ -79,6 +81,7 @@ class CatchBlockOutlinePassTest {
                           "    return ()\n" +
                           "  }\n" +
                           "  block @f.cb() {\n" +
+                          "    class @tungsten.Exception %exn = catch\n" +
                           "    return ()\n" +
                           "  }\n" +
                           "}\n"
@@ -92,6 +95,7 @@ class CatchBlockOutlinePassTest {
                       "    unit %ret = return int64 %x\n" +
                       "  } catch @f.cb()\n" +
                       "  block %cb() {\n" +
+                      "    class @tungsten.Exception %exn = catch\n" +
                       "    unit %ret = return int64 0\n" +
                       "  }\n" +
                       "}\n"
@@ -106,6 +110,7 @@ class CatchBlockOutlinePassTest {
                         "    unit %throw = throw class @tungsten.Exception %exn\n" +
                         "  } catch @f.cb()\n" +
                         "  block %cb() {\n" +
+                        "    class @tungsten.Exception %exn = catch\n" +
                         "    return ()\n" +
                         "  }\n" +
                         "}\n"
@@ -115,6 +120,7 @@ class CatchBlockOutlinePassTest {
     val program = "function unit @f {\n" +
                   blockCode +
                   "  block %cb() {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "  block %exit {\n" +
@@ -258,6 +264,7 @@ class CatchBlockOutlinePassTest {
                   "    return ()\n" +
                   "  } catch @f.cb()\n" +
                   "  block %cb {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    branch @f.a()\n" +
                   "  }\n" +
                   "  block %a {\n" +
@@ -331,6 +338,7 @@ class CatchBlockOutlinePassTest {
                   "    branch @f.exit(int64 12)\n" +
                   "  } catch @f.cb()\n" +
                   "  block %cb {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    branch @f.exit(int64 0)\n" +
                   "  }\n" +
                   "  block %exit(int64 %x) {\n" +
@@ -367,6 +375,7 @@ class CatchBlockOutlinePassTest {
                   "    branch @f.exit()\n" +
                   "  }\n" +
                   "  block %cb {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    branch @f.exit()\n" +
                   "  }\n" +
                   "  block %exit {\n" +
@@ -413,6 +422,7 @@ class CatchBlockOutlinePassTest {
                   "    branch @f.exit()\n" +
                   "  }\n" +
                   "  block %cb {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
                   "    branch @f.exit()\n" +
                   "  }\n" +
                   "  block %exit {\n" +
@@ -443,6 +453,7 @@ class CatchBlockOutlinePassTest {
                    "    branch @f.tryCall$(int64 12)\n" +
                    "  }\n" +
                    "  block %cb() {\n" +
+                   "    class @tungsten.Exception %exn = catch\n" +
                    "    return ()\n" +
                    "  }\n" +
                    "  block %exit(int64 %y) {\n" +
@@ -471,6 +482,7 @@ class CatchBlockOutlinePassTest {
                    "    branch @f.tryCall$(int64 12)\n" +
                    "  }\n" +
                    "  block %cb() {\n" +
+                   "    class @tungsten.Exception %exn = catch\n" +
                    "    return ()\n" +
                    "  }\n" +
                    "  block %exit(int64 %x) {\n" +
@@ -505,6 +517,7 @@ class CatchBlockOutlinePassTest {
                    "    return ()\n" +
                    "  }\n" +
                    "  block @f.cb() {\n" +
+                   "    class @tungsten.Exception %exn = catch\n" +
                    "    return ()\n" +
                    "  }\n" +
                    "  block %tryCall$(int64 %param$) {\n" +
@@ -538,6 +551,7 @@ class CatchBlockOutlinePassTest {
                    "    branch @f.tryCall$(int64 12)\n" +
                    "  }\n" +
                    "  block %cb() {\n" +
+                   "    class @tungsten.Exception %exn = catch\n" +
                    "    unit %ret = return int64 0\n" +
                    "  }\n" +
                    "  block %tryCall$(int64 %param$) {\n" +
@@ -561,6 +575,7 @@ class CatchBlockOutlinePassTest {
                    "    branch @f.tryCall$(int64 12)\n" +
                    "  }\n" +
                    "  block %cb() {\n" +
+                   "    class @tungsten.Exception %exn = catch\n" +
                    "    return ()\n" +
                    "  }\n" +
                    "  block %tryCall$(int64 %param$) {\n" +

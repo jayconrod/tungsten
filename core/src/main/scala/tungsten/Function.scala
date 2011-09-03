@@ -103,6 +103,23 @@ final case class Function(name: Symbol,
       }
     }
 
+    def validateEntryCatch = {
+      var errors = List[CompileException]()
+      blocks.headOption match {
+        case Some(entryName) => {
+          val entry = module.getBlock(blocks.head)
+          entry.catchBlock match {
+            case Some((handler, _)) => errors ::= InvalidCatchBlockException(entry.name, handler, entry.getLocation)
+            case _ => ()
+          }
+          if (entry.isCatchBlock(module))
+            errors ::= CatchEntryException(entry.name, entry.getLocation)
+        }
+        case None => ()
+      }
+      errors
+    }
+
     def validateVariance = {
       val parameterTypes = module.getParameters(parameters).map(_.ty)
       returnType.validateVariance(Variance.COVARIANT, module, getLocation) ++
@@ -136,6 +153,7 @@ final case class Function(name: Symbol,
     stage(super.validate(module),
           validateParameters,
           validateEntryParameters,
+          validateEntryCatch,
           validateReturnType,
           validateVariance,
           validateAbstract,

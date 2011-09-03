@@ -72,6 +72,21 @@ final case class BlockPredecessorException(symbol: Symbol, location: Location)
 final case class BlockTerminationException(symbol: Symbol, location: Location)
   extends CompileException("block " + symbol + " does not terminate", location)
 
+final case class CatchBlockBranchException(blockName: Symbol,
+                                           catchBlockName: Symbol,
+                                           location: Location)
+  extends CompileException("block %s cannot branch directly to catch block %s".
+                             format(blockName, catchBlockName),
+                           location)
+
+final case class CatchEntryException(blockName: Symbol, location: Location)
+  extends CompileException("entry block %s cannot be a catch block".format(blockName),
+                           location)
+
+final case class CatchInstructionException(instName: Symbol, location: Location)
+  extends CompileException("catch instruction %s must be first in its block".format(instName),
+                           location)
+
 final case class ConstructorReturnTypeException(constructorName: Symbol,
                                                 className: Symbol,
                                                 location: Location)
@@ -226,6 +241,13 @@ final case class IntegerRangeException(value: Long, width: Int, location: Locati
 final case class InterfaceTypeMethodMismatchException(definitionName: Symbol, location: Location)
   extends CompileException("class %s has a different number of interface types and method lists".
                              format(definitionName),
+                           location)
+
+final case class InvalidCatchBlockException(catchBlockName: Symbol,
+                                            tryBlockName: Symbol,
+                                            location: Location)
+  extends CompileException("block %s cannot catch exceptions from block %s".
+                             format(catchBlockName, tryBlockName),
                            location)
 
 final case class InvalidBitCastException(value: Value, 

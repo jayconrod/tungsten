@@ -19,7 +19,7 @@
 name: @tungsten
 type: intermediate
 version: v0.5
-is64bit: false
+is64bit: true
 
 ; This file contains definitions needed to convert Tungsten code
 ; into lower level representations, such as LLVM. Lowered code is

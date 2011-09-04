@@ -44,6 +44,14 @@ class @tungsten.Exception <: class @tungsten.Object {
 }
 function unit @tungsten.Exception.ctor(class @tungsten.Exception %this)
 
+interface @tungsten.RuntimeException <: class @tungsten.Exception
+
+class @tungsten.NullPointerException <: class @tungsten.Exception {
+  interface @tungsten.RuntimeException
+  constructors { %ctor }
+}
+function unit @tungsten.NullPointerException.ctor(class @tungsten.NullPointerException %this)
+
 annotation @tungsten.Location(string %filename,
                               int32 %beginLine,
                               int32 %beginColumn,

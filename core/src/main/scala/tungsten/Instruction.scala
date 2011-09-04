@@ -450,6 +450,11 @@ final case class BranchInstruction(name: Symbol,
       validateComponentOfClass[Block](module, target)
   }
 
+  override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
+    val errors = super.validateScope(module, scope)
+    validateSymbolScope(errors, target, scope)
+  }
+
   override def validate(module: Module) = {
     val block = module.getBlock(target)
     val parameters = module.getParameters(block.parameters)
@@ -502,9 +507,16 @@ final case class ConditionalBranchInstruction(name: Symbol,
       validateComponentOfClass[Block](module, falseTarget)
   }
 
+  override def validateScope(module: Module, scope: Set[Symbol]) = {
+    var errors = super.validateScope(module, scope)
+    errors = validateSymbolScope(errors, trueTarget, scope)
+    errors = validateSymbolScope(errors, falseTarget, scope)
+    errors
+  }
+
   override def validate(module: Module) = {
     // We assume that both of the branch targets refer to local blocks and that the block
-    // parameters are validated. This should be done by Block and Function validation
+    // parameters are validated. This should be done by validateScope
 
     def validateBranch(target: Symbol, arguments: List[Value]) = {
       val block = module.getBlock(target)

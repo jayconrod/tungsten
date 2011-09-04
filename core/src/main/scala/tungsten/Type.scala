@@ -33,7 +33,6 @@ abstract sealed class Type
   def isNumeric: Boolean
   def isPointer: Boolean = false
   def isObject: Boolean = false
-  def isAddressable: Boolean = false
   def isSubtypeOf(ty: Type, module: Module): Boolean = ty == this
   def isRootClassType(module: Module): Boolean = false
   def substitute(fromName: Symbol, toType: Type): Type = {
@@ -56,6 +55,13 @@ abstract sealed class Type
     import RelationalOperator._
     List(EQUAL, NOT_EQUAL).contains(op)
   }
+}
+
+sealed trait ReferenceType 
+  extends Type
+{
+  override def isPointer = true
+  def isNullable: Boolean
 }
 
 final case object UnitType 
@@ -140,8 +146,8 @@ final case class FloatType(width: Int)
   override def supportsOperator(op: RelationalOperator) = true
 }
 
-final case class PointerType(elementType: Type)
-  extends Type
+final case class PointerType(elementType: Type, isNullable: Boolean = false)
+  extends ReferenceType
 {
   override def validate(module: Module, location: Location) = {
     elementType.validate(module, location)
@@ -151,10 +157,6 @@ final case class PointerType(elementType: Type)
 
   def isNumeric = false
 
-  override def isPointer = true
-
-  override def isAddressable = true
-
   override def expose(module: Module): PointerType = {
     PointerType(elementType.expose(module))
   }
@@ -162,12 +164,13 @@ final case class PointerType(elementType: Type)
 
 final case object NullType
   extends Type
+  with ReferenceType
 {
   def size(module: Module) = wordSize(module)
 
   def isNumeric = false
 
-  override def isPointer = true
+  def isNullable = true
 
   override def isSubtypeOf(ty: Type, module: Module) = {
     ty == NullType || ty.isPointer
@@ -304,13 +307,11 @@ final case class FunctionType(returnType: Type,
 }
 
 sealed trait ObjectType 
-  extends Type
+  extends ReferenceType
 {
   override def size(module: Module) = wordSize(module)
 
   override def isNumeric = false
-
-  override def isPointer = true
 
   override def isObject = true
 
@@ -330,7 +331,7 @@ sealed trait ObjectType
 
   override def isSubtypeOf(ty: Type, module: Module): Boolean = {
     ty match {
-      case VariableType(variableName) => {
+      case VariableType(variableName, _) => {
         val tyVar = module.getTypeParameter(variableName)
         tyVar.lowerBound match {
           case Some(bound) => isSubtypeOf(bound, module)
@@ -417,7 +418,8 @@ sealed trait ObjectDefinitionType
 }
 
 final case class ClassType(className: Symbol,
-                           typeArguments: List[Type] = Nil)
+                           typeArguments: List[Type] = Nil,
+                           isNullable: Boolean = false)
   extends Type
   with ObjectDefinitionType
 {
@@ -435,8 +437,6 @@ final case class ClassType(className: Symbol,
     !clas.superclass.isDefined
   }
 
-  override def isAddressable = true
-
   override def expose(module: Module): ClassType = {
     ClassType(className, typeArguments.map(_.expose(module)))
   }
@@ -445,7 +445,8 @@ final case class ClassType(className: Symbol,
 }
 
 final case class InterfaceType(interfaceName: Symbol,
-                               typeArguments: List[Type] = Nil)
+                               typeArguments: List[Type] = Nil,
+                               isNullable: Boolean = false)
   extends Type
   with ObjectDefinitionType
 {
@@ -465,9 +466,8 @@ final case class InterfaceType(interfaceName: Symbol,
   def definitionName = interfaceName
 }
 
-final case class VariableType(variableName: Symbol)
-  extends Type
-  with ObjectType
+final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
+  extends ObjectType
 {
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     module.validateName[TypeParameter](variableName, location)

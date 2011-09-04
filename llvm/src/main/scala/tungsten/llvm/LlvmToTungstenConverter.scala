@@ -155,7 +155,7 @@ class LlvmToTungstenConverter(val module: Module) {
       case LoadInstruction(_, address, _) => {
         val cAddress = convertValue(address)
         val cType = cAddress.ty match {
-          case tungsten.PointerType(elementType) => elementType
+          case tungsten.PointerType(elementType, _) => elementType
           case _ => tungsten.UnitType
         }
         tungsten.LoadInstruction(cName, cType, cAddress)

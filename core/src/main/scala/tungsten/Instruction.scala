@@ -240,11 +240,11 @@ trait PointerElementInstruction
     indices match {
       case i :: is => {
         pointerType match {
-          case PointerType(baseType) => {
+          case PointerType(baseType, _) => {
             val elementType = getElementType(module, baseType, is)
             PointerType(elementType)
           }
-          case ClassType(className, typeArguments) => {
+          case ClassType(className, typeArguments, _) => {
             val clas = module.getClass(className)
             val wordSize = IntType.wordSize(module)
             i match {
@@ -280,8 +280,8 @@ trait PointerElementInstruction
       case i :: is => {
         val firstIndexErrors = checkType(i.ty, IntType.wordType(module), getLocation)
         firstIndexErrors ++ (pointerType match {
-          case PointerType(baseType) => validateIndices(module, baseType, is)
-          case ClassType(className, typeArguments) => {
+          case PointerType(baseType, _) => validateIndices(module, baseType, is)
+          case ClassType(className, typeArguments, _) => {
             val wordSize = IntType.wordSize(module)
             val clas = module.getClass(className)
             i match {
@@ -825,7 +825,7 @@ final case class LoadInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def typeIsValid = {
-      val PointerType(elementType) = pointer.ty
+      val PointerType(elementType, _) = pointer.ty
       checkType(elementType, ty, getLocation)
     }
 
@@ -849,7 +849,7 @@ final case class LoadElementInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateType = {
-      val PointerType(elementType) = getPointerType(module, base.ty, indices)
+      val PointerType(elementType, _) = getPointerType(module, base.ty, indices)
       checkType(elementType, ty, getLocation)
     }
 
@@ -1074,7 +1074,7 @@ final case class StoreInstruction(name: Symbol,
     def validateTypes = {
       val pointerType = pointer.ty
       pointerType match {
-        case PointerType(elementType) => {
+        case PointerType(elementType, _) => {
           val valueType = value.ty
           if (valueType != elementType)
             List(TypeMismatchException(valueType.toString, elementType.toString, getLocation))
@@ -1108,7 +1108,7 @@ final case class StoreElementInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     def validateType = {
-      val PointerType(elementType) = getPointerType(module, base.ty, indices)
+      val PointerType(elementType, _) = getPointerType(module, base.ty, indices)
       checkType(value.ty, elementType, getLocation)
     }
 

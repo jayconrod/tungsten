@@ -313,7 +313,7 @@ final class Module(val name:         Symbol                      = Symbol("defau
     def validateTypeParameterCycles = {
       def findDependencies(tyParam: TypeParameter): Set[Symbol] = {
         val types = tyParam.upperBound.toList ++ tyParam.lowerBound.toList
-        types.collect { case VariableType(tyParamName) => tyParamName }.toSet
+        types.collect { case VariableType(tyParamName, _) => tyParamName }.toSet
       }
       val generateError = CyclicTypeParameterException.apply _
       validateCycles(findDependencies, generateError)
@@ -330,11 +330,11 @@ final class Module(val name:         Symbol                      = Symbol("defau
           superclasses
         else {
           interface.supertype match {
-            case ClassType(parentName, _) => {
+            case ClassType(parentName, _, _) => {
               val parent = getClass(parentName)
               superclasses + (interface.name -> parent)
             }
-            case InterfaceType(parentName, _) => {
+            case InterfaceType(parentName, _, _) => {
               val parent = getInterface(parentName)
               val superclassesWithParent = findInterfaceSuperclass(parent, superclasses)
               superclassesWithParent + (interface.name -> superclassesWithParent(parentName))

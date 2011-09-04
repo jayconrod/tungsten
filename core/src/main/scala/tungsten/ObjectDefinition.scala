@@ -276,7 +276,6 @@ trait ObjectDefinition
   def isThisParameterValidForThisClass(method: Function, module: Module): Boolean = {
     getThisParameterTypeForMethod(method, module) match {
       case Some(thisParameterType) if thisParameterType.definitionName == name => {
-        val thisParameterType = getThisParameterTypeForMethod(method, module).get
         val classTypeParameters = module.getTypeParameters(typeParameters)
         val methodTypeParameters = module.getTypeParameters(method.typeParameters)
         val thisTypeArguments = thisParameterType.typeArguments
@@ -287,8 +286,8 @@ trait ObjectDefinition
           (thisTypeArguments zip methodTypeParameters) forall { p =>
             val (thisTypeArgument, methodTypeParameter) = p
             thisTypeArgument match {
-              case VariableType(typeParameterName) if typeParameterName == methodTypeParameter.name =>
-                true
+              case VariableType(typeParameterName, _) 
+                if typeParameterName == methodTypeParameter.name => true
               case _ => false
             }
           }
@@ -363,7 +362,7 @@ trait ObjectDefinition
 
   def validateParentNotFinal(module: Module): List[CompileException] = {
     getSuperType match {
-      case Some(ClassType(superclassName, _)) => {
+      case Some(ClassType(superclassName, _, _)) => {
         val superclass = module.getClass(superclassName)
         if (superclass.isFinal)
           List(FinalClassInheritanceException(name, superclassName, getLocation))

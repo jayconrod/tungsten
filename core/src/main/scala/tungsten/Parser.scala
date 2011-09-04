@@ -559,34 +559,37 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val ty: Parser[Type] = {
-    def makePointerType(elementType: Type, count: Int): Type = {
-      if (count == 0)
-        elementType
-      else
-        makePointerType(PointerType(elementType), count - 1)
-    }
-    def basicTy: Parser[Type] = {
-      functionTy                     |
-      ("unit"     ^^^ UnitType)      |
-      ("boolean"  ^^^ BooleanType)   |
-      ("char"     ^^^ CharType)      |
-      ("string"   ^^^ StringType)    |
-      ("int8"     ^^^ IntType(8))    |
-      ("int16"    ^^^ IntType(16))   |
-      ("int32"    ^^^ IntType(32))   |
-      ("int64"    ^^^ IntType(64))   |
-      ("float32"  ^^^ FloatType(32)) |
-      ("float64"  ^^^ FloatType(64)) |
-      ("nulltype" ^^^ NullType)      |
-      ("..."      ^^^ VariadicType)  |
-      structTy                       |
-      arrayTy                        |
-      classTy                        |
-      interfaceTy                    |
-      variableTy
+    val ptrOp: Parser[Boolean] = "*" ~ opt("?") ^^ { case _ ~ n => n.isDefined }
+
+    def makePointerType(elementType: Type, ops: List[Boolean]): Type = {
+      ops match {
+        case isNullable :: rest => makePointerType(PointerType(elementType, isNullable), rest)
+        case Nil => elementType
+      }
     }
                   
-    basicTy ~ rep("*") ^^ { case ety ~ stars => makePointerType(ety, stars.size) }    
+    basicTy ~ rep(ptrOp) ^^ { case ety ~ ops => makePointerType(ety, ops) }
+  }
+
+  lazy val basicTy: Parser[Type] = {
+    functionTy                     |
+    ("unit"     ^^^ UnitType)      |
+    ("boolean"  ^^^ BooleanType)   |
+    ("char"     ^^^ CharType)      |
+    ("string"   ^^^ StringType)    |
+    ("int8"     ^^^ IntType(8))    |
+    ("int16"    ^^^ IntType(16))   |
+    ("int32"    ^^^ IntType(32))   |
+    ("int64"    ^^^ IntType(64))   |
+    ("float32"  ^^^ FloatType(32)) |
+    ("float64"  ^^^ FloatType(64)) |
+    ("nulltype" ^^^ NullType)      |
+    ("..."      ^^^ VariadicType)  |
+    structTy                       |
+    arrayTy                        |
+    classTy                        |
+    interfaceTy                    |
+    variableTy
   }
 
   lazy val structTy: Parser[StructType] = {
@@ -604,20 +607,22 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val classTy: Parser[ClassType] = {
-    "class" ~> symbol ~ typeArgumentList ^^ {
-      case n ~ as => ClassType(n, as)
+    "class" ~> nullable ~ symbol ~ typeArgumentList ^^ {
+      case nn ~ n ~ as => ClassType(n, as, nn)
     }
   }
 
   lazy val interfaceTy: Parser[InterfaceType] = {
-    "interface" ~> symbol ~ typeArgumentList ^^ {
-      case n ~ as => InterfaceType(n, as)
+    "interface" ~> nullable ~ symbol ~ typeArgumentList ^^ {
+      case nn ~ n ~ as => InterfaceType(n, as, nn)
     }
   }
 
   lazy val variableTy: Parser[VariableType] = {
-    "type" ~> symbol ^^ { case n => VariableType(n) }
+    "type" ~> nullable ~ symbol ^^ { case nn ~ n => VariableType(n, nn) }
   }
+
+  lazy val nullable: Parser[Boolean] = opt("?") ^^ { _.isDefined }
 
   lazy val typeArgumentList: Parser[List[Type]] = {
     opt("[" ~> rep1sep(ty, ",") <~ "]") ^^ {

@@ -53,7 +53,7 @@ final case class Class(name: Symbol,
 
   override def validate(module: Module): List[CompileException] = {
     val parentFieldTypes = superclass match {
-      case Some(ClassType(superclassName, superclassTypeArgs)) => {
+      case Some(ClassType(superclassName, superclassTypeArgs, _)) => {
         val superclassDefn = module.getClass(superclassName)
         val superclassFieldTypes = module.getFields(superclassDefn.fields).map(_.ty)
         superclassFieldTypes.map(superclassDefn.substituteInheritedType(_, superclassTypeArgs))
@@ -146,7 +146,7 @@ final case class Class(name: Symbol,
     else {
       superclass match {
         case None => false
-        case Some(ClassType(superName, _)) => {
+        case Some(ClassType(superName, _, _)) => {
           val supr = module.getClass(superName)
           supr.isSubclassOf(clas, module)
         }

@@ -65,7 +65,7 @@ final case class TypeParameter(name: Symbol,
   def getUpperBoundType(module: Module): ObjectDefinitionType = {
     upperBound match {
       case None => module.rootClassType
-      case Some(VariableType(varName)) => {
+      case Some(VariableType(varName, _)) => {
         val upperBoundParameter = module.getTypeParameter(varName)
         upperBoundParameter.getUpperBoundType(module)
       }

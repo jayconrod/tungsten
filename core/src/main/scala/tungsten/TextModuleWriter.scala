@@ -555,7 +555,9 @@ class TextModuleWriter(module: Module, output: Writer) {
       case StringType => "string"
       case IntType(w) => "int%d".format(w)
       case FloatType(w) => "float%d".format(w)
-      case PointerType(ety) => localType(ety, parentName) + "*"
+      case PointerType(ety, n) => {
+        "%s*%s".format(localType(ety, parentName), if (n) "?" else "")
+      }
       case NullType => "nulltype"
       case ArrayType(length, elementType) => {
         "[%d x %s]".format(length, localType(elementType, parentName))
@@ -568,13 +570,20 @@ class TextModuleWriter(module: Module, output: Writer) {
         val returnTypeStr = localType(returnType, parentName)
         "%s%s->%s".format(typeParametersStr, parameterTypesStr, returnTypeStr)
       }
-      case ClassType(className, tyArgs) => {
-        "class " + localSymbol(className, parentName) + localTypeArguments(tyArgs)
+      case ClassType(className, tyArgs, isNullable) => {
+        "class%s %s%s".format(if (isNullable) "?" else "",
+                              localSymbol(className, parentName),
+                              localTypeArguments(tyArgs))
       }
-      case InterfaceType(interfaceName, tyArgs) => {
-        "interface " + localSymbol(interfaceName, parentName) + localTypeArguments(tyArgs)
+      case InterfaceType(interfaceName, tyArgs, isNullable) => {
+        "interface%s %s%s".format(if (isNullable) "?" else "",
+                                  localSymbol(interfaceName, parentName),
+                                  localTypeArguments(tyArgs))
       }
-      case VariableType(variableName) => "type " + localSymbol(variableName, parentName)
+      case VariableType(variableName, isNullable) => {
+        "type%s %s".format(if (isNullable) "?" else "",
+                           localSymbol(variableName, parentName))
+      }
     }
   }
 }

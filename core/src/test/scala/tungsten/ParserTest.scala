@@ -154,10 +154,20 @@ class ParserTest {
   }
 
   @Test
+  def nullableType {
+    testType("unit*?", PointerType(UnitType, true))
+  }
+
+  @Test
   def classType {
     testType("class @T", ClassType("@T"))
     testType("class @T[unit, unit]",
              ClassType("@T", List(UnitType, UnitType)))
+  }
+
+  @Test
+  def nullableClassType {
+    testType("class? @T", ClassType("@T", isNullable=true))
   }
 
   @Test

@@ -258,11 +258,11 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.ReturnInstruction(_, _, value, _) =>
         ReturnInstruction(convertValue(value, parent))
       case tungsten.StackAllocateInstruction(_, ty, _) => {
-        val tungsten.PointerType(elementType) = ty
+        val tungsten.PointerType(elementType, _) = ty
         AllocaInstruction(localName, convertType(elementType))
       }
       case tungsten.StackAllocateArrayInstruction(_, ty, count, _) => {
-        val tungsten.PointerType(elementType) = ty
+        val tungsten.PointerType(elementType, _) = ty
         AllocaArrayInstruction(localName, convertType(elementType), convertValue(count, parent))
       }        
       case tungsten.StaticCallInstruction(_, ty, target, _, arguments, _) => {
@@ -355,8 +355,8 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.BooleanType => IntType(1)
       case tungsten.IntType(width) => IntType(width)
       case tungsten.FloatType(width) => FloatType(width)
-      case tungsten.PointerType(tungsten.UnitType) => PointerType(IntType(8))
-      case tungsten.PointerType(ety) => PointerType(convertType(ety))
+      case tungsten.PointerType(tungsten.UnitType, _) => PointerType(IntType(8))
+      case tungsten.PointerType(ety, _) => PointerType(convertType(ety))
       case tungsten.NullType => PointerType(IntType(8))
       case tungsten.ArrayType(size, ety) => ArrayType(size, convertType(ety))
       case tungsten.StructType(structName) => {

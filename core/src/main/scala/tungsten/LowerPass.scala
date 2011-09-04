@@ -492,9 +492,9 @@ class LowerPass
 
   def substituteType(ty: Type, interfaceBaseClassNames: Map[Symbol, Symbol], module: Module): Type = {
     ty match {
-      case ClassType(className, _) => 
+      case ClassType(className, _, _) => 
         PointerType(StructType(classStructName(className)))
-      case InterfaceType(interfaceName, _) => {
+      case InterfaceType(interfaceName, _, _) => {
         val className = interfaceBaseClassNames(interfaceName)
         PointerType(StructType(classStructName(className)))
       }

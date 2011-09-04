@@ -394,9 +394,10 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         output.writeByte(FLOAT_TYPE_ID)
         output.writeByte(width)
       }
-      case PointerType(elementType) => {
+      case PointerType(elementType, isNullable) => {
         output.writeByte(POINTER_TYPE_ID)
         writeType(elementType)
+        writeBoolean(isNullable)
       }
       case NullType => output.writeByte(NULL_TYPE_ID)
       case ArrayType(length, elementType) => {
@@ -415,19 +416,22 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         writeSymbolList(typeParameters)
         writeList(parameterTypes, writeType _)
       }
-      case ClassType(className, typeParameters) => {
+      case ClassType(className, typeParameters, isNullable) => {
         output.writeByte(CLASS_TYPE_ID)
         writeInt(symbols(className))
         writeList(typeParameters, writeType _)
+        writeBoolean(isNullable)
       }
-      case InterfaceType(interfaceName, typeParameters) => {
+      case InterfaceType(interfaceName, typeParameters, isNullable) => {
         output.writeByte(INTERFACE_TYPE_ID)
         writeInt(symbols(interfaceName))
         writeList(typeParameters, writeType _)
+        writeBoolean(isNullable)
       }
-      case VariableType(variableName) => {
+      case VariableType(variableName, isNullable) => {
         output.writeByte(VARIABLE_TYPE_ID)
         writeInt(symbols(variableName))
+        writeBoolean(isNullable)
       }
     }
   }

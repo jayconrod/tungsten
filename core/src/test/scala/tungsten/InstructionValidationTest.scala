@@ -609,7 +609,7 @@ class InstructionValidationTest
     val program = "class @R\n" +
                   "function unit @f {\n" +
                   "  block %entry {\n" +
-                  "    class @R %x = upcast null\n" +
+                  "    class? @R %x = upcast null\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"

@@ -33,7 +33,9 @@ abstract sealed class Type
   def isNumeric: Boolean
   def isPointer: Boolean = false
   def isObject: Boolean = false
-  def isSubtypeOf(ty: Type, module: Module): Boolean = ty == this
+  final def isSubtypeOf(ty: Type, module: Module): Boolean = {
+    TypeUtilities.subtype(this, ty, module)
+  }
   def isRootClassType(module: Module): Boolean = false
   def substitute(fromName: Symbol, toType: Type): Type = {
     val fromType = VariableType(fromName)
@@ -181,10 +183,6 @@ final case object NullType
     else
       NullType
   }
-
-  override def isSubtypeOf(ty: Type, module: Module) = {
-    ty == NullType || ty.isPointer
-  }
 }
 
 final case class ArrayType(length: Long, elementType: Type)
@@ -267,41 +265,6 @@ final case class FunctionType(returnType: Type,
 
   def isVariadic = !parameterTypes.isEmpty && parameterTypes.last == VariadicType
 
-  override def isSubtypeOf(ty: Type, module: Module): Boolean = {
-    def isExposedSubtypeOf(s: Type, t: Type): Boolean = {
-      val es = s.expose(module)
-      val et = t.expose(module)
-      es.isSubtypeOf(et, module)
-    }
-
-    ty match {
-      case fty: FunctionType => {
-        if (typeParameters.size != fty.typeParameters.size ||
-            parameterTypes.size != fty.parameterTypes.size)
-        {
-          false
-        } else {
-          val typeParameterDefns = module.getTypeParameters(typeParameters)
-          val otherTypeParameterDefns = module.getTypeParameters(fty.typeParameters)
-          val typeParametersMatch = (typeParameterDefns zip otherTypeParameterDefns) forall { p =>
-            val (typeParameter, otherTypeParameter) = p
-            typeParameter.boundsMatch(otherTypeParameter)
-          }
-
-          val parametersAreSupertypes = (parameterTypes zip fty.parameterTypes) forall { p =>
-            val (parameterType, otherParameterType) = p
-            isExposedSubtypeOf(otherParameterType, parameterType)
-          }
-
-          val returnTypeIsSubtype = isExposedSubtypeOf(returnType, fty.returnType)
-
-          typeParametersMatch && parametersAreSupertypes && returnTypeIsSubtype
-        }
-      }
-      case _ => false
-    }
-  }
-
   override def expose(module: Module): FunctionType = {
     val typeParameterBounds = module.getTypeParameters(typeParameters).map(_.getUpperBoundType(module))
     val substitutedReturnType = returnType.substitute(typeParameters, typeParameterBounds)
@@ -338,38 +301,6 @@ sealed trait ObjectType
   def getObjectDefinition(module: Module): ObjectDefinition
 
   def getEffectiveType(module: Module): ObjectDefinitionType
-
-  override def isSubtypeOf(ty: Type, module: Module): Boolean = {
-    ty match {
-      case VariableType(variableName, _) => {
-        val tyVar = module.getTypeParameter(variableName)
-        tyVar.lowerBound match {
-          case Some(bound) => isSubtypeOf(bound, module)
-          case None => false
-        }
-      }
-      case objTy: ObjectDefinitionType => {
-        val defn = getObjectDefinition(module)
-        if (defn.name == objTy.definitionName) {
-          val tyParams = typeParameters(module)
-          val selfTyArgs = typeArguments(module)
-          val otherTyArgs = objTy.typeArguments(module)
-          (tyParams zip (selfTyArgs zip otherTyArgs)) forall { pa =>
-            val (tyParam, (selfTyArg, otherTyArg)) = pa
-            tyParam.variance match {
-              case Variance.COVARIANT => selfTyArg.isSubtypeOf(otherTyArg, module)
-              case Variance.CONTRAVARIANT => otherTyArg.isSubtypeOf(selfTyArg, module)
-              case Variance.INVARIANT => selfTyArg == otherTyArg
-            }
-          }
-        } else {
-          val inheritedTypes = defn.substitutedInheritedTypes(typeArguments(module))
-          inheritedTypes.exists { _.isSubtypeOf(objTy, module) }
-        }
-      }
-      case _ => false
-    }
-  }
 }
 
 sealed trait ObjectDefinitionType
@@ -525,14 +456,6 @@ final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
     typeParameter.getLowerBoundType(module)
   }
 
-  override def isSubtypeOf(ty: Type, module: Module): Boolean = {
-    val tyParam = module.getTypeParameter(variableName)
-    tyParam.upperBound match {
-      case Some(upper) => upper.isSubtypeOf(ty, module)
-      case None => ty.isRootClassType(module)
-    }
-  }
-
   override def expose(module: Module): ObjectType = {
     getUpperBoundType(module)
   }
@@ -553,5 +476,117 @@ final case class NothingType(isNullable: Boolean = false)
   def getEffectiveType(module: Module): ObjectDefinitionType = {
     throw new UnsupportedOperationException
   }
-} 
+}
 
+object TypeUtilities {
+  /** The subtype relation for the Tungsten type system. If s is a subtype of t in module m,
+   *  then values of s can be upcast and used as values of t with no runtime check.
+   */
+  def subtype(s: Type, t: Type, module: Module): Boolean = {
+    (s, t) match {
+      // Every type is a subtype of itself
+      case _ if s == t => true
+
+      // The null type is a subtype of all nullable reference types
+      case (NullType, rt: ReferenceType) if rt.isNullable => true
+
+      // A non-nullable pointer type is a subtype of a nullable pointer if type if their 
+      // elements types are equal. Note that pointer types are never subtypes if they have
+      // different element types, even if their element types are subtypes. Consider if this
+      // were allowed:
+      //   Assume S <: T
+      //   S* %a = stack
+      //   T* %b = upcast S* %a
+      //   T %t = new ...
+      //   store T %t, T* %b
+      // Now %a points to a value of type T. 
+      case (PointerType(se, snullable), PointerType(te, tnullable)) 
+        if !snullable && tnullable && se == te => true
+
+      // A function type S is a subtype of another function type T if:
+      //   - S's return type is a subtype of T's return type
+      //   - S's parameter types are supertypes of T's parameter types
+      //   - Type parameters of S and T have equal bounds
+      case (FunctionType(rs, tps, ps), FunctionType(rt, tpt, pt)) => {
+        if (tps.size != tpt.size || ps.size != pt.size)
+          false
+        else {
+          val sTypeParameterDefns = module.getTypeParameters(tps)
+          val tTypeParameterDefns = module.getTypeParameters(tpt)
+          val typeParametersMatch = (sTypeParameterDefns zip tTypeParameterDefns) forall { i =>
+            val (sTypeParameter, tTypeParameter) = i
+            sTypeParameter boundsMatch tTypeParameter
+          }
+
+          val parametersAreSupertypes = (ps zip pt) forall { i =>
+            val (sType, tType) = i
+            exposedSubtype(tType, sType, module)
+          }
+
+          val returnTypeIsSubtype = exposedSubtype(rs, rt, module)
+
+          typeParametersMatch && parametersAreSupertypes && returnTypeIsSubtype
+        }
+      }
+
+      // Class or interface type S is a subtype of T if one of the following is true:
+      //   - S and T are of the same class or interface and their type arguments are compatible
+      //     according to the variance the type parameters are defined with
+      //   - One of S's inherited types is a subtype of T
+      case (ss: ObjectDefinitionType, tt: ObjectDefinitionType) 
+        if !ss.isNullable && !tt.isNullable =>
+      {
+        val sDefn = ss.getObjectDefinition(module)
+        if (sDefn.name == tt.definitionName) {
+          val tyParams = sDefn.getTypeParameters(module)
+          val sTyArgs = ss.typeArguments
+          val tTyArgs = tt.typeArguments
+          (tyParams zip (sTyArgs zip tTyArgs)) forall { i =>
+            val (tyParam, (sTyArg, tTyArg)) = i
+            tyParam.variance match {
+              case Variance.COVARIANT => subtype(sTyArg, tTyArg, module)
+              case Variance.CONTRAVARIANT => subtype(tTyArg, sTyArg, module)
+              case Variance.INVARIANT => sTyArg == tTyArg
+            }
+          }
+        } else {
+          val inheritedTypes = sDefn.substitutedInheritedTypes(ss.typeArguments(module))
+          inheritedTypes exists { it => subtype(it, tt, module) }
+        }
+      }
+
+      // A type variable S is a subtype of an object type T if S's upper bound is a subtype
+      // of T
+      case (ss: VariableType, tt: ObjectType) 
+        if !ss.isNullable && !tt.isNullable =>
+      {
+        subtype(ss.getUpperBoundType(module), tt, module)
+      }
+
+      // An object type S is a subtype of a type variable T if S is a subtype of T's lower bound
+      case (ss: ObjectType, tt: VariableType)
+        if !ss.isNullable && !tt.isNullable =>
+      {
+        subtype(ss, tt.getLowerBoundType(module), module)
+      }
+
+      // The Nothing type is a subtype of all object types
+      case (ss: NothingType, tt: ObjectType)
+        if !ss.isNullable && !tt.isNullable => true
+
+      // A non-nullable type is a subtype of its nullable equivalent
+      case (ss: ObjectType, tt: ObjectType) => {
+        if (ss.isNullable && !tt.isNullable)
+          false
+        else
+          subtype(ss.asNullable(false), tt.asNullable(false), module)
+      }
+
+      case _ => false
+    }
+  }
+
+  def exposedSubtype(s: Type, t: Type, module: Module): Boolean = {
+    subtype(s.expose(module), t.expose(module), module)
+  }
+}

@@ -186,6 +186,13 @@ class ClassValidationTest
   }
 
   @Test
+  def nullableThisParameter {
+    val program = "class @A { methods { @f } }\n" +
+                  "function unit @f(class? @A %this)"
+    programContainsError[MethodSelfTypeException](program)
+  }
+
+  @Test
   def invalidThisParameterTypeArgs {
     val program = "class @R\n" +
                   "class @A[type %T] <: class @R\n" +

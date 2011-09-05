@@ -246,7 +246,7 @@ trait ObjectDefinition
 
   def getThisParameterTypeForMethod(method: Function, module: Module): Option[ObjectDefinitionType] = {
     method.parameters.headOption.map(module.getParameter _) collect {
-      case Parameter(_, ty: ObjectDefinitionType, _) => ty
+      case Parameter(_, ty: ObjectDefinitionType, _) if !ty.isNullable => ty
     }
   }
 

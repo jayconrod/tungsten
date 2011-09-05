@@ -500,6 +500,7 @@ class LowerPass
       }
       case vty: VariableType => 
         substituteType(vty.getEffectiveType(module), interfaceBaseClassNames, module)
+      case NothingType(_) => PointerType(IntType(8))
       case FunctionType(returnType, _, parameterTypes) => 
         FunctionType(returnType, Nil, parameterTypes)
       case _ => ty

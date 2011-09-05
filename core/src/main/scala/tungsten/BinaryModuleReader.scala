@@ -286,6 +286,7 @@ class BinaryModuleReader(input: DataInputStream) {
       case CLASS_TYPE_ID => ClassType(symbol, readList(readType), readBoolean)
       case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readType), readBoolean)
       case VARIABLE_TYPE_ID => VariableType(symbol, readBoolean)
+      case NOTHING_TYPE_ID => NothingType(readBoolean)
       case _ => throw new IOException("Invalid type ID")
     }
   }

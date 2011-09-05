@@ -47,7 +47,7 @@ object Lexer extends Lexical with RegexParsers {
           "scall", "stack", "stackarray", "store", "storeelement", "throw", "unreachable", 
           "upcast", "vcall", "vlookup",
         "unit", "boolean", "char", "string", "int8", "int16", "int32", "int64", "float32",
-          "float64", "nulltype", "struct",
+          "float64", "nulltype", "nothing", "struct",
         "true", "false", "null")
   }                            
 

@@ -622,6 +622,10 @@ class Parser extends Parsers with ImplicitConversions {
     "type" ~> nullable ~ symbol ^^ { case nn ~ n => VariableType(n, nn) }
   }
 
+  lazy val nothingTy: Parser[NothingType] = {
+    "nothing" ~> nullable ^^ { case n => NothingType(n) }
+  }
+
   lazy val nullable: Parser[Boolean] = opt("?") ^^ { _.isDefined }
 
   lazy val typeArgumentList: Parser[List[Type]] = {

@@ -74,6 +74,18 @@ final case class TypeParameter(name: Symbol,
     }
   }
 
+  def getLowerBoundType(module: Module): ObjectType = {
+    lowerBound match {
+      case None => NothingType()
+      case Some(VariableType(varName, _)) => {
+        val lowerBoundParameter = module.getTypeParameter(varName)
+        lowerBoundParameter.getLowerBoundType(module)
+      }
+      case Some(ty: ObjectType) => ty
+      case _ => throw new RuntimeException("invalid type parameter")
+    }
+  }
+
   def isArgumentInBounds(ty: Type, module: Module): Boolean = {
     val belowUpperBound = upperBound match {
       case Some(upper) => ty.isSubtypeOf(upper, module)

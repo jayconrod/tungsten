@@ -110,6 +110,7 @@ object BinaryModuleIDs {
   val INTERFACE_TYPE_ID = 13
   val VARIABLE_TYPE_ID = 14
   val VARIADIC_TYPE_ID = 15
+  val NOTHING_TYPE_ID = 16
 
   val UNIT_VALUE_ID = 1
   val BOOLEAN_VALUE_ID = 2

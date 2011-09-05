@@ -62,6 +62,7 @@ sealed trait ReferenceType
 {
   override def isPointer = true
   def isNullable: Boolean
+  def asNullable(nullable: Boolean): ReferenceType
 }
 
 final case object UnitType 
@@ -149,6 +150,8 @@ final case class FloatType(width: Int)
 final case class PointerType(elementType: Type, isNullable: Boolean = false)
   extends ReferenceType
 {
+  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+
   override def validate(module: Module, location: Location) = {
     elementType.validate(module, location)
   }
@@ -171,6 +174,13 @@ final case object NullType
   def isNumeric = false
 
   def isNullable = true
+
+  def asNullable(nullable: Boolean) = {
+    if (!nullable)
+      throw new IllegalArgumentException("NullType can't be made non-nullable")
+    else
+      NullType
+  }
 
   override def isSubtypeOf(ty: Type, module: Module) = {
     ty == NullType || ty.isPointer
@@ -423,6 +433,8 @@ final case class ClassType(className: Symbol,
   extends Type
   with ObjectDefinitionType
 {
+  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     stage(module.validateName[Class](className, location),
           validateTypeArgumentCount(module, location))
@@ -450,6 +462,8 @@ final case class InterfaceType(interfaceName: Symbol,
   extends Type
   with ObjectDefinitionType
 {
+  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     stage(module.validateName[Interface](interfaceName, location),
           validateTypeArgumentCount(module, location))
@@ -469,6 +483,8 @@ final case class InterfaceType(interfaceName: Symbol,
 final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
   extends ObjectType
 {
+  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
     module.validateName[TypeParameter](variableName, location)
   }
@@ -504,6 +520,11 @@ final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
     typeParameter.getUpperBoundType(module)
   }
 
+  def getLowerBoundType(module: Module): ObjectType = {
+    val typeParameter = module.getTypeParameter(variableName)
+    typeParameter.getLowerBoundType(module)
+  }
+
   override def isSubtypeOf(ty: Type, module: Module): Boolean = {
     val tyParam = module.getTypeParameter(variableName)
     tyParam.upperBound match {
@@ -516,3 +537,21 @@ final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
     getUpperBoundType(module)
   }
 }
+
+final case class NothingType(isNullable: Boolean = false)
+  extends Type
+  with ObjectType
+{
+  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+
+  def typeArguments(module: Module) = Nil
+
+  def getObjectDefinition(module: Module): ObjectDefinition = {
+    throw new UnsupportedOperationException
+  }
+
+  def getEffectiveType(module: Module): ObjectDefinitionType = {
+    throw new UnsupportedOperationException
+  }
+} 
+

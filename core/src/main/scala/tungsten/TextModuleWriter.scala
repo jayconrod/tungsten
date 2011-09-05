@@ -584,6 +584,9 @@ class TextModuleWriter(module: Module, output: Writer) {
         "type%s %s".format(if (isNullable) "?" else "",
                            localSymbol(variableName, parentName))
       }
+      case NothingType(isNullable) => {
+        "nothing%s".format(if (isNullable) "?" else "")
+      }
     }
   }
 }

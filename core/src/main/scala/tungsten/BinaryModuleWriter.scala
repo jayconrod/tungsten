@@ -433,6 +433,10 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         writeInt(symbols(variableName))
         writeBoolean(isNullable)
       }
+      case NothingType(isNullable) => {
+        output.writeByte(NOTHING_TYPE_ID)
+        writeBoolean(isNullable)
+      }
     }
   }
 

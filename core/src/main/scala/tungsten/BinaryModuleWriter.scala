@@ -221,6 +221,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
           case _: LoadInstruction => LOAD_INST_ID
           case _: LoadElementInstruction => LOAD_ELEMENT_INST_ID
           case _: NewInstruction => NEW_INST_ID
+          case _: NullCheckInstruction => NULL_CHECK_INST_ID
           case _: PointerCallInstruction => POINTER_CALL_INST_ID
           case _: RelationalOperatorInstruction => RELATIONAL_OPERATOR_INST_ID
           case _: ReturnInstruction => RETURN_INST_ID
@@ -314,6 +315,9 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
             writeInt(symbols(constructor))
             writeList(typeArguments, writeType _)
             writeList(arguments, writeValue _)
+          }
+          case NullCheckInstruction(_, _, value, _) => {
+            writeValue(value)
           }
           case PointerCallInstruction(_, _, target, typeArguments, arguments, _) => {
             writeValue(target)

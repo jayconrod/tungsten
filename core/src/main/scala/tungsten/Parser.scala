@@ -257,6 +257,7 @@ class Parser extends Parsers with ImplicitConversions {
     loadInst           |
     loadElementInst    |
     newInst            |
+    nullcheckInst      |
     pcallInst          |
     relopInst          |
     returnInst         |
@@ -397,6 +398,12 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val newInst: Parser[NewInstruction] = {
     instName("new") ~ symbol ~ typeArgumentList ~ argumentList ^^ {
       case anns ~ ty ~ n ~ c ~ tas ~ as => NewInstruction(n, ty, c, tas, as, anns)
+    }
+  }
+
+  lazy val nullcheckInst: Parser[NullCheckInstruction] = {
+    instName("nullcheck") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => NullCheckInstruction(n, ty, v, anns)
     }
   }
 

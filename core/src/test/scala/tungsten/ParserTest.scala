@@ -405,6 +405,12 @@ class ParserTest {
   }
 
   @Test
+  def nullcheckInst {
+    testInstruction("unit %x = nullcheck ()",
+                    NullCheckInstruction("%x", UnitType, UnitValue))
+  }
+
+  @Test
   def pcallInst {
     testInstruction("unit %x = pcall ()[unit](())",
                     PointerCallInstruction("%x", UnitType, UnitValue, List(UnitType), List(UnitValue)))

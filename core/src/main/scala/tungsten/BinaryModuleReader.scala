@@ -204,6 +204,9 @@ class BinaryModuleReader(input: DataInputStream) {
         NewInstruction(name, readType, symbol, 
                        readList(readType), readList(readValue), readAnnotations)
       }
+      case NULL_CHECK_INST_ID => {
+        NullCheckInstruction(name, readType, readValue, readAnnotations)
+      }
       case POINTER_CALL_INST_ID => {
         PointerCallInstruction(name, readType, readValue,
                                readList(readType), readList(readValue), readAnnotations)

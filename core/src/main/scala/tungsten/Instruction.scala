@@ -918,6 +918,28 @@ final case class NewInstruction(name: Symbol,
   }
 }
 
+final case class NullCheckInstruction(name: Symbol,
+                                      ty: Type,
+                                      value: Value,
+                                      annotations: List[AnnotationValue] = Nil)
+extends Instruction
+{
+  def operands = List(value)
+
+  override def validate(module: Module): List[CompileException] = {
+    ty match {
+      case toTy: ReferenceType if !toTy.isNullable => {
+        val expectedFromTy = toTy.asNullable(true)
+        value.ty match {
+          case fromTy: ReferenceType if fromTy.isNullable && fromTy == expectedFromTy => Nil
+          case _ => List(TypeMismatchException(expectedFromTy, value.ty, getLocation))
+        }
+      }
+      case _ => List(TypeMismatchException("non-nullable reference type", ty, getLocation))
+    }
+  }
+}
+
 final case class PointerCallInstruction(name: Symbol,
                                         ty: Type,
                                         target: Value,

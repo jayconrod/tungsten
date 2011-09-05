@@ -287,6 +287,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case _: LoadInstruction => "load"
       case _: LoadElementInstruction => "loadelement"
       case _: NewInstruction => "new"
+      case _: NullCheckInstruction => "nullcheck"
       case _: PointerCallInstruction => "pcall"
       case _: RelationalOperatorInstruction => "relop"
       case _: ReturnInstruction => "return"
@@ -368,6 +369,9 @@ class TextModuleWriter(module: Module, output: Writer) {
         output.write(localSymbol(constructor))
         writeTypeArguments(typeArguments, parentName)
         writeArguments(arguments, parentName)
+      }
+      case NullCheckInstruction(_, _, value, _) => {
+        output.write(localValue(value))
       }
       case PointerCallInstruction(_, _, target, typeArguments, arguments, _) => {
         output.write(localValue(target))

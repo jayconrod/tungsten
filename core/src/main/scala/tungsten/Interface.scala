@@ -32,10 +32,19 @@ final case class Interface(name: Symbol,
   override def isGlobal = true
 
   override def validateComponents(module: Module): List[CompileException] = {
+    def validateNullable(ty: ObjectDefinitionType): List[CompileException] = {
+      if (ty.isNullable)
+        List(NullableInheritanceException(name, getLocation))
+      else
+        Nil
+    }
+
     super.validateComponents(module) ++
       validateComponentsOfClass[TypeParameter](module, typeParameters) ++
       interfaceMethods.flatMap(validateComponentsOfClass[Function](module, _)) ++
-      validateComponentsOfClass[Function](module, methods)
+      validateComponentsOfClass[Function](module, methods) ++
+      validateNullable(supertype) ++
+      interfaceTypes.flatMap(validateNullable _)
   }
 
   override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {

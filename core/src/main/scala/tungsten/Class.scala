@@ -36,12 +36,21 @@ final case class Class(name: Symbol,
   override def isGlobal = true
 
   override def validateComponents(module: Module): List[CompileException] = {
+    def validateNullable(ty: ObjectDefinitionType): List[CompileException] = {
+      if (ty.isNullable)
+        List(NullableInheritanceException(name, getLocation))
+      else
+        Nil
+    }
+
     super.validateComponents(module) ++
       validateComponentsOfClass[TypeParameter](module, typeParameters) ++
       interfaceMethods.flatMap(validateComponentsOfClass[Function](module, _)) ++
       validateComponentsOfClass[Function](module, constructors) ++
       validateComponentsOfClass[Function](module, methods) ++
-      validateComponentsOfClass[Field](module, fields)
+      validateComponentsOfClass[Field](module, fields) ++
+      superclass.toList.flatMap(validateNullable _) ++
+      interfaceTypes.flatMap(validateNullable _)
   }
 
   override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {

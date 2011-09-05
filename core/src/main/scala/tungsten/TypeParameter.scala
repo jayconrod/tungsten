@@ -32,7 +32,7 @@ final case class TypeParameter(name: Symbol,
     def validateBound(bound: Option[Type], isUpper: Boolean) = {
       bound match {
         case None => Nil
-        case Some(ty: ObjectType) => Nil
+        case Some(ty: ObjectType) if !ty.isNullable => Nil
         case Some(_) => List(TypeParameterInvalidBoundException(name, isUpper, getLocation))
       }
     }

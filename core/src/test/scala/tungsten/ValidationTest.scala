@@ -53,7 +53,10 @@ trait ValidationTest {
   def containsError[T <: CompileException](errors: List[CompileException])
                                           (implicit m: Manifest[T]) =
   {
-    assertTrue(errors.exists(m.erasure.isInstance(_)))
+    val failure = !errors.exists(m.erasure.isInstance(_))
+    if (failure)
+      throw new RuntimeException("expected %s but errors were: %s".
+                                   format(m.erasure.toString, errors))
   }
 
   def programIsCorrect(program: String) = {

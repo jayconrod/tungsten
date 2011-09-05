@@ -348,6 +348,11 @@ final case class NewConstructorException(instructionName: Symbol,
                              format(instructionName, constructorName, className),
                            location)
 
+final case class NullableInheritanceException(defnName: Symbol, location: Location)
+  extends CompileException("class or interface %s cannot inherit a nullable type".
+                             format(defnName),
+                           location)
+
 final case class NumericExtensionException(fromTy: String, toTy: String, location: Location)
   extends CompileException("cannot extend from type " + fromTy + " to " + toTy, location)
 {

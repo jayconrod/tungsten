@@ -120,6 +120,27 @@ class ClassValidationTest
   }
 
   @Test
+  def nullableClassInheritance {
+    val program = "class @R\n" +
+                  "class @A <: class? @R\n"
+    programContainsError[NullableInheritanceException](program)
+  }
+
+  @Test
+  def nullableInterfaceInheritance {
+    val program = "class @R\n" +
+                  "interface @I <: class? @R\n"
+    programContainsError[NullableInheritanceException](program)
+  }
+
+  @Test
+  def nullableTypeParameterBound {
+    val program = "class @R\n" +
+                  "class @A[type %T <: class? @R] <: class @R\n"
+    programContainsError[TypeParameterInvalidBoundException](program)
+  }
+
+  @Test
   def conflictingInheritance {
     val program = "class @R\n" +
                   "class @A <: class @R\n" +

@@ -589,7 +589,8 @@ class Parser extends Parsers with ImplicitConversions {
     arrayTy                        |
     classTy                        |
     interfaceTy                    |
-    variableTy
+    variableTy                     |
+    nothingTy
   }
 
   lazy val structTy: Parser[StructType] = {

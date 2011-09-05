@@ -517,6 +517,13 @@ class InstructionValidationTest
   }
 
   @Test
+  def virtualCallNothing {
+    val code = "nothing %a = bitcast null\n" +
+               "vcall nothing %a:0()\n"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
   def virtualCallInvalidIndex {
     val program = "class @R {\n" +
                   "  constructors { %ctor }\n" +
@@ -645,6 +652,13 @@ class InstructionValidationTest
   @Test
   def vlookupNotObject = {
     val code = "vlookup ():0"
+    codeContainsError[TypeMismatchException](code)
+  }
+
+  @Test
+  def vlookupNothing {
+    val code = "nothing %a = bitcast null\n" +
+               "vlookup nothing %a:0"
     codeContainsError[TypeMismatchException](code)
   }
 

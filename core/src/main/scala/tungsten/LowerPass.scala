@@ -333,10 +333,7 @@ class LowerPass
                               module: Module): List[Instruction] = 
   {
     val zero = IntValue(0, IntType.wordSize(module))
-    val objectType = instruction.target.ty match {
-      case ty: ObjectType => ty.getEffectiveType(module)
-      case _ => throw new RuntimeException("unsupported type: " + instruction.target.ty)
-    }
+    val objectType = instruction.target.ty.asInstanceOf[ObjectDefinitionType]
     val isClass = objectType.isInstanceOf[ClassType]
     val defnName = objectType.definitionName
 
@@ -499,7 +496,7 @@ class LowerPass
         PointerType(StructType(classStructName(className)))
       }
       case vty: VariableType => 
-        substituteType(vty.getEffectiveType(module), interfaceBaseClassNames, module)
+        substituteType(vty.getUpperBoundType(module), interfaceBaseClassNames, module)
       case NothingType(_) => PointerType(IntType(8))
       case FunctionType(returnType, _, parameterTypes) => 
         FunctionType(returnType, Nil, parameterTypes)

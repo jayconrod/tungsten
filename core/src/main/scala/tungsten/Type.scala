@@ -287,20 +287,6 @@ sealed trait ObjectType
   override def isNumeric = false
 
   override def isObject = true
-
-  def typeArguments(module: Module): List[Type]
-
-  def typeParameters(module: Module): List[TypeParameter] = {
-    getObjectDefinition(module).getTypeParameters(module)
-  }
-
-  def supertype(module: Module): Option[ObjectType] = {
-    getObjectDefinition(module).getSuperType
-  }
-
-  def getObjectDefinition(module: Module): ObjectDefinition
-
-  def getEffectiveType(module: Module): ObjectDefinitionType
 }
 
 sealed trait ObjectDefinitionType
@@ -310,28 +296,29 @@ sealed trait ObjectDefinitionType
 
   def typeArguments: List[Type]
 
-  def typeArguments(module: Module): List[Type] = typeArguments
+  def objectDefinitionTypeParameters(module: Module): List[TypeParameter] = {
+    val defn = getObjectDefinition(module)
+    module.getTypeParameters(defn.typeParameters)
+  }
 
   def getObjectDefinition(module: Module): ObjectDefinition = {
     module.getObjectDefinition(definitionName)
   }
 
-  def getEffectiveType(module: Module): ObjectDefinitionType = this
-
   def validateTypeArgumentCount(module: Module, 
                                 location: Location): List[CompileException] = 
   {
-    if (typeArguments(module).size != typeParameters(module).size) {
+    if (typeArguments.size != objectDefinitionTypeParameters(module).size) {
       List(TypeArgumentCountException(definitionName, 
-                                      typeArguments(module).size, 
-                                      typeParameters(module).size,
+                                      typeArguments.size, 
+                                      objectDefinitionTypeParameters(module).size,
                                       location))
     } else
       Nil
   }
 
   def validateTypeArguments(module: Module, location: Location): List[CompileException] = {
-    (typeArguments(module) zip typeParameters(module)) flatMap { ap =>
+    (typeArguments zip objectDefinitionTypeParameters(module)) flatMap { ap =>
       val (argument, parameter) = ap
       if (!parameter.isArgumentInBounds(argument, module))
         List(TypeArgumentBoundsException(argument, parameter, location))
@@ -345,10 +332,9 @@ sealed trait ObjectDefinitionType
                                 location: Location): List[CompileException] =
   {
     import Variance._
-    val defn = module.getObjectDefinition(definitionName)
-    val typeParameters = module.getTypeParameters(defn.typeParameters)
+    val typeParameters = objectDefinitionTypeParameters(module)
     val parameterVariances = typeParameters.map(_.variance)
-    (parameterVariances zip typeArguments(module)) flatMap { case (parameterVariance, typeArgument) =>
+    (parameterVariances zip typeArguments) flatMap { case (parameterVariance, typeArgument) =>
       val parameterPositionVariance = if (parameterVariance == CONTRAVARIANT)
         positionVariance.opposite
       else
@@ -434,18 +420,6 @@ final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
       List(TypeParameterVarianceException(this, positionVariance, location))
   }
 
-  def typeArguments(module: Module): List[Type] = {
-    getUpperBoundType(module).typeArguments(module)
-  }
-
-  def getObjectDefinition(module: Module): ObjectDefinition = {
-    val typeParameter = module.getTypeParameter(variableName)
-    val upperBoundType = typeParameter.getUpperBoundType(module)
-    upperBoundType.getObjectDefinition(module)
-  }
-
-  def getEffectiveType(module: Module): ObjectDefinitionType = getUpperBoundType(module)
-
   def getUpperBoundType(module: Module): ObjectDefinitionType = {
     val typeParameter = module.getTypeParameter(variableName)
     typeParameter.getUpperBoundType(module)
@@ -466,16 +440,6 @@ final case class NothingType(isNullable: Boolean = false)
   with ObjectType
 {
   def asNullable(nullable: Boolean) = copy(isNullable = nullable)
-
-  def typeArguments(module: Module) = Nil
-
-  def getObjectDefinition(module: Module): ObjectDefinition = {
-    throw new UnsupportedOperationException
-  }
-
-  def getEffectiveType(module: Module): ObjectDefinitionType = {
-    throw new UnsupportedOperationException
-  }
 }
 
 object TypeUtilities {
@@ -550,7 +514,7 @@ object TypeUtilities {
             }
           }
         } else {
-          val inheritedTypes = sDefn.substitutedInheritedTypes(ss.typeArguments(module))
+          val inheritedTypes = sDefn.substitutedInheritedTypes(ss.typeArguments)
           inheritedTypes exists { it => subtype(it, tt, module) }
         }
       }

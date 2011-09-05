@@ -1192,7 +1192,7 @@ final case class VirtualCallInstruction(name: Symbol,
   override def validate(module: Module) = {
     def validateVirtualCall = {
       target.ty match {
-        case targetType: ObjectDefinitionType=> {
+        case targetType: ObjectDefinitionType => {
           val fullTypeArguments = targetType.typeArguments ++ typeArguments
           val definition = targetType.getObjectDefinition(module)
           definition.methods.lift(methodIndex) match {

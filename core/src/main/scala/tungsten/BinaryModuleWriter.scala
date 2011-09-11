@@ -398,10 +398,10 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         output.writeByte(FLOAT_TYPE_ID)
         output.writeByte(width)
       }
-      case PointerType(elementType, isNullable) => {
+      case PointerType(elementType, pointerFlags) => {
         output.writeByte(POINTER_TYPE_ID)
         writeType(elementType)
-        writeBoolean(isNullable)
+        writeInt(pointerFlags)
       }
       case NullType => output.writeByte(NULL_TYPE_ID)
       case ArrayType(length, elementType) => {
@@ -420,26 +420,26 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
         writeSymbolList(typeParameters)
         writeList(parameterTypes, writeType _)
       }
-      case ClassType(className, typeParameters, isNullable) => {
+      case ClassType(className, typeParameters, pointerFlags) => {
         output.writeByte(CLASS_TYPE_ID)
         writeInt(symbols(className))
         writeList(typeParameters, writeType _)
-        writeBoolean(isNullable)
+        writeInt(pointerFlags)
       }
-      case InterfaceType(interfaceName, typeParameters, isNullable) => {
+      case InterfaceType(interfaceName, typeParameters, pointerFlags) => {
         output.writeByte(INTERFACE_TYPE_ID)
         writeInt(symbols(interfaceName))
         writeList(typeParameters, writeType _)
-        writeBoolean(isNullable)
+        writeInt(pointerFlags)
       }
-      case VariableType(variableName, isNullable) => {
+      case VariableType(variableName, pointerFlags) => {
         output.writeByte(VARIABLE_TYPE_ID)
         writeInt(symbols(variableName))
-        writeBoolean(isNullable)
+        writeInt(pointerFlags)
       }
-      case NothingType(isNullable) => {
+      case NothingType(pointerFlags) => {
         output.writeByte(NOTHING_TYPE_ID)
-        writeBoolean(isNullable)
+        writeInt(pointerFlags)
       }
     }
   }

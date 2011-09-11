@@ -269,6 +269,11 @@ final case class InvalidIndexException(value: String, ty: String, location: Loca
   }
 }
 
+final case class InvalidPointerFlagsException(ty: ReferenceType, location: Location)
+  extends CompileException("invalid reference type flags %x in type %s".
+                             format(ty.pointerFlags, ty),
+                           location)
+
 final case class InvalidVirtualMethodIndexException(index: Int,
                                                     ty: Type,
                                                     location: Location)

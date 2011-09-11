@@ -469,16 +469,16 @@ class LowerPassInstructionConversionTest {
                           "    struct @tungsten.Object.data$* %b = bitcast struct @tungsten.Object.data$*? %a\n" +
                           "    boolean @f.bb.b.cmp$#16 = relop struct @tungsten.Object.data$*? %a == bitcast null to struct @tungsten.Object.data$*?\n" +
                           "    unit @f.bb.b.cond$#17 = cond boolean @f.bb.b.cmp$#16 ? @f.bb.b.npebb$#14(int64 %m) : @f.bb#6(struct @tungsten.Object.data$* %b, int64 %n, int64 %m)\n" +
-                          "  } catch %cb(int64 %m)\n" +
+                          "  } catch @f.cb(int64 %m)\n" +
                           "  block %bb#6(struct @tungsten.Object.data$* @f.bb.b#9, int64 @f.bb.n#8, int64 @f.bb.m#7) {\n" +
                           "    unit %anon$#2 = branch @f.exit(int64 %n#8, struct @tungsten.Object.data$* %b#9)\n" +
-                          "  } catch %cb(int64 %m#7)\n" +
+                          "  } catch @f.cb(int64 %m#7)\n" +
                           "  block @f.bb.b.npebb$#14(int64 @f.bb.m#15) {\n" +
                           "    struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10 = heap \n" +
                           "    unit @f.bb.b.exn$.init$#11 = storeelement struct @tungsten.NullPointerException.vtable_type$* @tungsten.NullPointerException.vtable$, struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10, int64 0, int64 0\n" +
                           "    unit @f.bb.b.exn$.init$#12 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10)\n" +
                           "    unit @f.bb.b.throw$#13 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10\n" +
-                          "  } catch %cb(int64 @f.bb.m#15)\n" +
+                          "  } catch @f.cb(int64 @f.bb.m#15)\n" +
                           "  block %exit(int64 @f.exit.n, struct @tungsten.Object.data$* @f.exit.b) {\n" +
                           "    unit %anon$#3 = return ()\n" +
                           "  }\n" +

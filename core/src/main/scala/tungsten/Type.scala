@@ -63,8 +63,25 @@ sealed trait ReferenceType
   extends Type
 {
   override def isPointer = true
-  def isNullable: Boolean
-  def asNullable(nullable: Boolean): ReferenceType
+
+  def pointerFlags: Int
+  def withPointerFlags(flags: Int) : ReferenceType
+  def setPointerFlags(flags: Int) = withPointerFlags(pointerFlags | flags)
+  def clearPointerFlags(flags: Int) = withPointerFlags(pointerFlags & ~flags)
+
+  def isNullable = (pointerFlags & ReferenceType.NULLABLE) != 0
+
+  override def validateComponents(module: Module, location: Location): List[CompileException] = {
+    if ((pointerFlags & ~ReferenceType.ALL_FLAGS) != 0)
+      List(InvalidPointerFlagsException(this, location))
+    else
+      Nil
+  }
+}
+
+object ReferenceType {
+  val NULLABLE = 1
+  val ALL_FLAGS = NULLABLE
 }
 
 final case object UnitType 
@@ -149,10 +166,10 @@ final case class FloatType(width: Int)
   override def supportsOperator(op: RelationalOperator) = true
 }
 
-final case class PointerType(elementType: Type, isNullable: Boolean = false)
+final case class PointerType(elementType: Type, pointerFlags: Int = 0)
   extends ReferenceType
 {
-  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+  def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 
   override def validate(module: Module, location: Location) = {
     elementType.validate(module, location)
@@ -175,13 +192,13 @@ final case object NullType
 
   def isNumeric = false
 
-  def isNullable = true
+  def pointerFlags = ReferenceType.NULLABLE
 
-  def asNullable(nullable: Boolean) = {
-    if (!nullable)
+  def withPointerFlags(flags: Int) = {
+    if (flags != pointerFlags)
       throw new IllegalArgumentException("NullType can't be made non-nullable")
     else
-      NullType
+      this
   }
 }
 
@@ -346,14 +363,15 @@ sealed trait ObjectDefinitionType
 
 final case class ClassType(className: Symbol,
                            typeArguments: List[Type] = Nil,
-                           isNullable: Boolean = false)
+                           pointerFlags: Int = 0)
   extends Type
   with ObjectDefinitionType
 {
-  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+  def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
-    stage(module.validateName[Class](className, location),
+    stage(super.validateComponents(module, location),
+          module.validateName[Class](className, location),
           validateTypeArgumentCount(module, location))
   }
 
@@ -375,14 +393,15 @@ final case class ClassType(className: Symbol,
 
 final case class InterfaceType(interfaceName: Symbol,
                                typeArguments: List[Type] = Nil,
-                               isNullable: Boolean = false)
+                               pointerFlags: Int = 0)
   extends Type
   with ObjectDefinitionType
 {
-  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+  def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
-    stage(module.validateName[Interface](interfaceName, location),
+    stage(super.validateComponents(module, location),
+          module.validateName[Interface](interfaceName, location),
           validateTypeArgumentCount(module, location))
   }
 
@@ -397,13 +416,14 @@ final case class InterfaceType(interfaceName: Symbol,
   def definitionName = interfaceName
 }
 
-final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
+final case class VariableType(variableName: Symbol, pointerFlags: Int = 0)
   extends ObjectType
 {
-  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+  def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 
   override def validateComponents(module: Module, location: Location): List[CompileException] = {
-    module.validateName[TypeParameter](variableName, location)
+    super.validateComponents(module, location) ++ 
+      module.validateName[TypeParameter](variableName, location)
   }
 
   override def validateVariance(positionVariance: Variance,
@@ -435,11 +455,11 @@ final case class VariableType(variableName: Symbol, isNullable: Boolean = false)
   }
 }
 
-final case class NothingType(isNullable: Boolean = false)
+final case class NothingType(pointerFlags: Int = 0)
   extends Type
   with ObjectType
 {
-  def asNullable(nullable: Boolean) = copy(isNullable = nullable)
+  def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 }
 
 object TypeUtilities {
@@ -464,8 +484,8 @@ object TypeUtilities {
       //   T %t = new ...
       //   store T %t, T* %b
       // Now %a points to a value of type T. 
-      case (PointerType(se, snullable), PointerType(te, tnullable)) 
-        if !snullable && tnullable && se == te => true
+      case (sp @ PointerType(se, snullable), tp @ PointerType(te, tnullable)) 
+        if !sp.isNullable && tp.isNullable && se == te => true
 
       // A function type S is a subtype of another function type T if:
       //   - S's return type is a subtype of T's return type
@@ -542,8 +562,11 @@ object TypeUtilities {
       case (ss: ObjectType, tt: ObjectType) => {
         if (ss.isNullable && !tt.isNullable)
           false
-        else
-          subtype(ss.asNullable(false), tt.asNullable(false), module)
+        else {
+          subtype(ss.clearPointerFlags(ReferenceType.NULLABLE), 
+                  tt.clearPointerFlags(ReferenceType.NULLABLE), 
+                  module)
+        }
       }
 
       case _ => false

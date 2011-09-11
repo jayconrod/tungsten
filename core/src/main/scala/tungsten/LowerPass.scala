@@ -647,16 +647,16 @@ class LowerPass
 
   def substituteType(ty: Type, interfaceBaseClassNames: Map[Symbol, Symbol], module: Module): Type = {
     ty match {
-      case ClassType(className, _, isNullable) => 
-        PointerType(StructType(classStructName(className)), isNullable)
-      case InterfaceType(interfaceName, _, isNullable) => {
+      case ClassType(className, _, pointerFlags) => 
+        PointerType(StructType(classStructName(className)), pointerFlags)
+      case InterfaceType(interfaceName, _, pointerFlags) => {
         val className = interfaceBaseClassNames(interfaceName)
-        PointerType(StructType(classStructName(className)), isNullable)
+        PointerType(StructType(classStructName(className)), pointerFlags)
       }
       case vty: VariableType => 
-        substituteType(vty.getUpperBoundType(module).asNullable(vty.isNullable), 
+        substituteType(vty.getUpperBoundType(module).setPointerFlags(vty.pointerFlags), 
                        interfaceBaseClassNames, module)
-      case NothingType(isNullable) => PointerType(IntType(8), isNullable)
+      case NothingType(pointerFlags) => PointerType(IntType(8), pointerFlags)
       case FunctionType(returnType, _, parameterTypes) => 
         FunctionType(returnType, Nil, parameterTypes)
       case _ => ty

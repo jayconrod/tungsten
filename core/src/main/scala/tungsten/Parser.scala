@@ -566,16 +566,27 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val ty: Parser[Type] = {
-    val ptrOp: Parser[Boolean] = "*" ~ opt("?") ^^ { case _ ~ n => n.isDefined }
+    import ReferenceType._
+    val ptrOp: Parser[Int] = "*" ~> ptrFlags
 
-    def makePointerType(elementType: Type, ops: List[Boolean]): Type = {
+    def makePointerType(elementType: Type, ops: List[Int]): Type = {
       ops match {
-        case isNullable :: rest => makePointerType(PointerType(elementType, isNullable), rest)
+        case pointerFlags :: rest => 
+          makePointerType(PointerType(elementType, pointerFlags), rest)
         case Nil => elementType
       }
     }
                   
     basicTy ~ rep(ptrOp) ^^ { case ety ~ ops => makePointerType(ety, ops) }
+  }
+
+  lazy val ptrFlags: Parser[Int] = {
+    rep(ptrFlag) ^^ { case fs => (0 /: fs) { _ | _ }}
+  }
+
+  lazy val ptrFlag: Parser[Int] = {
+    import ReferenceType._
+    "?" ^^^ NULLABLE
   }
 
   lazy val basicTy: Parser[Type] = {
@@ -615,26 +626,24 @@ class Parser extends Parsers with ImplicitConversions {
   }
 
   lazy val classTy: Parser[ClassType] = {
-    "class" ~> nullable ~ symbol ~ typeArgumentList ^^ {
-      case nn ~ n ~ as => ClassType(n, as, nn)
+    "class" ~> ptrFlags ~ symbol ~ typeArgumentList ^^ {
+      case fs ~ n ~ as => ClassType(n, as, fs)
     }
   }
 
   lazy val interfaceTy: Parser[InterfaceType] = {
-    "interface" ~> nullable ~ symbol ~ typeArgumentList ^^ {
-      case nn ~ n ~ as => InterfaceType(n, as, nn)
+    "interface" ~> ptrFlags ~ symbol ~ typeArgumentList ^^ {
+      case fs ~ n ~ as => InterfaceType(n, as, fs)
     }
   }
 
   lazy val variableTy: Parser[VariableType] = {
-    "type" ~> nullable ~ symbol ^^ { case nn ~ n => VariableType(n, nn) }
+    "type" ~> ptrFlags ~ symbol ^^ { case fs ~ n => VariableType(n, fs) }
   }
 
   lazy val nothingTy: Parser[NothingType] = {
-    "nothing" ~> nullable ^^ { case n => NothingType(n) }
+    "nothing" ~> ptrFlags ^^ { case fs => NothingType(fs) }
   }
-
-  lazy val nullable: Parser[Boolean] = opt("?") ^^ { _.isDefined }
 
   lazy val typeArgumentList: Parser[List[Type]] = {
     opt("[" ~> rep1sep(ty, ",") <~ "]") ^^ {

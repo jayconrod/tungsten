@@ -559,8 +559,8 @@ class TextModuleWriter(module: Module, output: Writer) {
       case StringType => "string"
       case IntType(w) => "int%d".format(w)
       case FloatType(w) => "float%d".format(w)
-      case PointerType(ety, n) => {
-        "%s*%s".format(localType(ety, parentName), if (n) "?" else "")
+      case PointerType(ety, flags) => {
+        "%s*%s".format(localType(ety, parentName), pointerFlagsStr(flags))
       }
       case NullType => "nulltype"
       case ArrayType(length, elementType) => {
@@ -574,23 +574,29 @@ class TextModuleWriter(module: Module, output: Writer) {
         val returnTypeStr = localType(returnType, parentName)
         "%s%s->%s".format(typeParametersStr, parameterTypesStr, returnTypeStr)
       }
-      case ClassType(className, tyArgs, isNullable) => {
-        "class%s %s%s".format(if (isNullable) "?" else "",
+      case ClassType(className, tyArgs, pointerFlags) => {
+        "class%s %s%s".format(pointerFlagsStr(pointerFlags),
                               localSymbol(className, parentName),
                               localTypeArguments(tyArgs))
       }
-      case InterfaceType(interfaceName, tyArgs, isNullable) => {
-        "interface%s %s%s".format(if (isNullable) "?" else "",
+      case InterfaceType(interfaceName, tyArgs, pointerFlags) => {
+        "interface%s %s%s".format(pointerFlagsStr(pointerFlags),
                                   localSymbol(interfaceName, parentName),
                                   localTypeArguments(tyArgs))
       }
-      case VariableType(variableName, isNullable) => {
-        "type%s %s".format(if (isNullable) "?" else "",
+      case VariableType(variableName, pointerFlags) => {
+        "type%s %s".format(pointerFlagsStr(pointerFlags),
                            localSymbol(variableName, parentName))
       }
-      case NothingType(isNullable) => {
-        "nothing%s".format(if (isNullable) "?" else "")
+      case NothingType(pointerFlags) => {
+        "nothing%s".format(pointerFlagsStr(pointerFlags))
       }
     }
+  }
+
+  def pointerFlagsStr(flags: Int): String = {
+    import ReferenceType._
+    def check(flag: Int, s: String) = if ((flags & flag) != 0) s else ""
+    "%s".format(check(NULLABLE, "?"))
   }
 }

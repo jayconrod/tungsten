@@ -929,7 +929,7 @@ extends Instruction
   override def validate(module: Module): List[CompileException] = {
     ty match {
       case toTy: ReferenceType if !toTy.isNullable => {
-        val expectedFromTy = toTy.asNullable(true)
+        val expectedFromTy = toTy.setPointerFlags(ReferenceType.NULLABLE)
         value.ty match {
           case fromTy: ReferenceType if fromTy.isNullable && fromTy == expectedFromTy => Nil
           case _ => List(TypeMismatchException(expectedFromTy, value.ty, getLocation))

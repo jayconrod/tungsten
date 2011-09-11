@@ -178,7 +178,7 @@ class TypeTest {
   @Test
   def nullSubtypePointer {
     val t1 = NullType
-    val t2 = PointerType(UnitType, true)
+    val t2 = PointerType(UnitType, ReferenceType.NULLABLE)
     assertTrue(t1.isSubtypeOf(t2, module))
   }
 

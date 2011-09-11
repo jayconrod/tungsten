@@ -275,7 +275,7 @@ class BinaryModuleReader(input: DataInputStream) {
           throw new IOException("Invalid float type")
         FloatType(width)
       }
-      case POINTER_TYPE_ID => PointerType(readType, readBoolean)
+      case POINTER_TYPE_ID => PointerType(readType, readInt)
       case NULL_TYPE_ID => NullType
       case ARRAY_TYPE_ID => {
         val length = readLong
@@ -286,10 +286,10 @@ class BinaryModuleReader(input: DataInputStream) {
       case STRUCT_TYPE_ID => StructType(symbol)
       case VARIADIC_TYPE_ID => VariadicType
       case FUNCTION_TYPE_ID => FunctionType(readType, readList(symbol), readList(readType))
-      case CLASS_TYPE_ID => ClassType(symbol, readList(readType), readBoolean)
-      case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readType), readBoolean)
-      case VARIABLE_TYPE_ID => VariableType(symbol, readBoolean)
-      case NOTHING_TYPE_ID => NothingType(readBoolean)
+      case CLASS_TYPE_ID => ClassType(symbol, readList(readType), readInt)
+      case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readType), readInt)
+      case VARIABLE_TYPE_ID => VariableType(symbol, readInt)
+      case NOTHING_TYPE_ID => NothingType(readInt)
       case _ => throw new IOException("Invalid type ID")
     }
   }

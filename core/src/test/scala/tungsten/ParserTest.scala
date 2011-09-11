@@ -155,7 +155,7 @@ class ParserTest {
 
   @Test
   def nullableType {
-    testType("unit*?", PointerType(UnitType, true))
+    testType("unit*?", PointerType(UnitType, ReferenceType.NULLABLE))
   }
 
   @Test
@@ -167,7 +167,7 @@ class ParserTest {
 
   @Test
   def nullableClassType {
-    testType("class? @T", ClassType("@T", isNullable=true))
+    testType("class? @T", ClassType("@T", pointerFlags=ReferenceType.NULLABLE))
   }
 
   @Test

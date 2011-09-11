@@ -86,7 +86,12 @@ trait Mapping[T <: AnyRef]
   def mapValues(function: Value => Value): T = mapRecursively(function)
   def mapTypes(function: Type => Type): T = mapRecursively(function)
 
-  /** Accumulates a value by recursively traversing the given object tree, applying the given
+  def substituteSymbols(pf: PartialFunction[Symbol, Symbol]): T = {
+    def f(sym: Symbol): Symbol = if (pf.isDefinedAt(sym)) pf(sym) else sym
+    mapSymbols(f)
+  }
+
+ /** Accumulates a value by recursively traversing the given object tree, applying the given
    *  function on each field within its domain. Like mapRecursively, this will recurse through
    *  values with this trait as well as lists. The object tree must not be cyclic. The function
    *  is applied in post-traversal order.
@@ -119,4 +124,8 @@ trait Mapping[T <: AnyRef]
   def foldSymbols[V](accum: V, function: (V, Symbol) => V) = foldRecursively(accum, function)
   def foldValues[V](accum: V, function: (V, Value) => V) = foldRecursively(accum, function)
   def foldTypes[V](accum: V, function: (V, Type) => V) = foldRecursively(accum, function)
+
+  def getSymbols: Set[Symbol] = foldSymbols(Set[Symbol](), { (syms: Set[Symbol], sym: Symbol) => 
+    syms + sym 
+  })
 }

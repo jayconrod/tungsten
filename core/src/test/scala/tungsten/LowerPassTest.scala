@@ -23,6 +23,7 @@ import scala.collection.immutable.TreeMap
 import org.junit.Test
 import org.junit.Assert._
 import Utilities._
+import TestUtilities._
 
 class LowerPassTest {
   val pass = new LowerPass
@@ -268,12 +269,7 @@ class LowerPassTest {
                           "}\n"
     val expectedModule = pass.addDefinitions(compileString(expectedProgram))
     expectedModule.definitions.values.foreach { expectedDefn =>
-      System.err.println("checking definition: " + expectedDefn.name)
       val defn = loweredModule.definitions(expectedDefn.name)
-      if (expectedDefn != defn) {
-        System.err.println("expected: %s\n".format(expectedDefn.toString))
-        System.err.println("but was : %s\n".format(defn.toString))
-      }
       assertEquals(expectedDefn, defn)
     }
   }
@@ -321,13 +317,13 @@ class LowerPassInstructionConversionTest {
 
   def testConversion(expectedCode: String, code: String)
   {
-    val module = makeModule(code)
-    var processedModule = module
-    processedModule = pass.convertClassesAndInterfaces(module)
-    processedModule = pass.convertInstructions(processedModule)
-    val instructions = getInstructions(processedModule)
+    var m = makeModule(code)
+    m = pass.convertClassesAndInterfaces(m)
+    val function = m.getFunction("f")
+    m = pass.convertFunction(function, m)
+    val newInstructions = getInstructions(m)
     val expectedInstructions = makeInstructions(expectedCode)
-    assertEquals(expectedInstructions, instructions)
+    assertEquals(expectedInstructions, newInstructions)
   }
 
   @Test
@@ -438,6 +434,62 @@ class LowerPassInstructionConversionTest {
                        "type @C.id.T %y.cast$#4 = pcall [@C.id.T](class @C, type @C.id.T)->type @C.id.T %y.method$#2(class @C %x, type @C.id.T %y.cast$#3)\n" +
                        "class @C %y = bitcast type @C.id.T %y.cast$#4\n"
     testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testNullCheck {
+    val program = "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    branch @f.bb(int64 12)\n" +
+                  "  }\n" +
+                  "  block %bb(int64 %m) {\n" +
+                  "    class? @tungsten.Object %a = upcast null\n" +
+                  "    int64 %n = binop int64 %m + int64 %m\n" +
+                  "    class @tungsten.Object %b = nullcheck class? @tungsten.Object %a\n" +
+                  "    branch @f.exit(int64 %n, class @tungsten.Object %b)\n" +
+                  "  } catch @f.cb(int64 %m)\n" +
+                  "  block %exit(int64 %n, class @tungsten.Object %b) {\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "  block %cb(int64 %m) {\n" +
+                  "    class @tungsten.Exception %exn = catch\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    val module = linkRuntime(compileString(program))
+    val convertedModule = pass(module)
+    
+    val expectedProgram = "function unit @f {\n" +
+                          "  block %entry {\n" +
+                          "    unit %anon$#1 = branch @f.bb(int64 12)\n" +
+                          "  }\n" +
+                          "  block %bb(int64 @f.bb.m) {\n" +
+                          "    struct @tungsten.Object.data$*? %a = upcast null\n" +
+                          "    int64 %n = binop int64 %m + int64 %m\n" +
+                          "    struct @tungsten.Object.data$* %b = bitcast struct @tungsten.Object.data$*? %a\n" +
+                          "    boolean @f.bb.b.cmp$#16 = relop struct @tungsten.Object.data$*? %a == bitcast null to struct @tungsten.Object.data$*?\n" +
+                          "    unit @f.bb.b.cond$#17 = cond boolean @f.bb.b.cmp$#16 ? @f.bb.b.npebb$#14(int64 %m) : @f.bb#6(struct @tungsten.Object.data$* %b, int64 %n, int64 %m)\n" +
+                          "  } catch %cb(int64 %m)\n" +
+                          "  block %bb#6(struct @tungsten.Object.data$* @f.bb.b#9, int64 @f.bb.n#8, int64 @f.bb.m#7) {\n" +
+                          "    unit %anon$#2 = branch @f.exit(int64 %n#8, struct @tungsten.Object.data$* %b#9)\n" +
+                          "  } catch %cb(int64 %m#7)\n" +
+                          "  block @f.bb.b.npebb$#14(int64 @f.bb.m#15) {\n" +
+                          "    struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10 = heap \n" +
+                          "    unit @f.bb.b.exn$.init$#11 = storeelement struct @tungsten.NullPointerException.vtable_type$* @tungsten.NullPointerException.vtable$, struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10, int64 0, int64 0\n" +
+                          "    unit @f.bb.b.exn$.init$#12 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10)\n" +
+                          "    unit @f.bb.b.throw$#13 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10\n" +
+                          "  } catch %cb(int64 @f.bb.m#15)\n" +
+                          "  block %exit(int64 @f.exit.n, struct @tungsten.Object.data$* @f.exit.b) {\n" +
+                          "    unit %anon$#3 = return ()\n" +
+                          "  }\n" +
+                          "  block %cb(int64 @f.cb.m) {\n" +
+                          "    struct @tungsten.Exception.data$* %exn = catch \n" +
+                          "    unit %anon$#4 = return ()\n" +
+                          "  }\n" +
+                          "}"
+
+    val expectedModule = compileString(expectedProgram)
+    assertEqualsIgnoreSymbols(expectedModule, convertedModule)
   }
 
   @Test

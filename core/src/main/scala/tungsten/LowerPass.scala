@@ -33,7 +33,6 @@ class LowerPass
     var m = module
     m = addDefinitions(m)
     m = convertClassesAndInterfaces(m)
-    m = convertInstructions(m)
     m = convertFunctions(m)
     m = substituteTypes(interfaceBaseClassNames, m)
     m = removeDefinitions(m)
@@ -234,34 +233,193 @@ class LowerPass
 
   def convertFunctions(module: Module): Module = {
     var m = module
-    for (f <- module.definitions.values.collect { case f: Function => f }) {
-      val convertedFunction = f.copyWith("typeParameters" -> Nil)
-      m = m.replace(convertedFunction)
-    }
+    for (f <- module.definitions.values.collect { case f: Function => f })
+      m = convertFunction(f, m)
     m
   }
 
-  def convertInstructions(module: Module): Module = {
+  def convertFunction(function: Function, module: Module): Module = {
     var m = module
-    for (b <- module.definitions.values.collect { case b: Block => b }) {
-      val oldInstructions = m.getInstructions(b.instructions)
-      val newInstructions = oldInstructions.flatMap(convertInstruction(_, m))
-      val newBlock = b.copy(instructions = newInstructions.map(_.name))
-      m = m.replace(newBlock).replace(newInstructions: _*)
+    var f = function
+    if (f.isDefined) {
+      val blocks = m.getBlocks(function.blocks)
+      val (newBlocks, m_1) = convertBlocks(blocks.reverse, Nil, m)
+      m = m_1
+      f = f.copy(blocks = newBlocks.map(_.name))
     }
-    m
+    f = f.copy(typeParameters = Nil)
+    m.replace(f)
   }
 
-  def convertInstruction(instruction: Instruction, module: Module): List[Instruction] = {
-    instruction match {
-      case ptrElemInst: PointerElementInstruction if ptrElemInst.base.ty.isInstanceOf[ClassType] =>
-        convertElementInstruction(ptrElemInst, module)
-      case newInst: NewInstruction => convertNewInstruction(newInst, module)
-      case pcallInst: PointerCallInstruction => convertPCallInstruction(pcallInst, module)
-      case scallInst: StaticCallInstruction => convertSCallInstruction(scallInst, module)
-      case vcallInst: VirtualCallInstruction => convertVCallInstruction(vcallInst, module)
-      case vlookupInst: VirtualLookupInstruction => convertVLookupInstruction(vlookupInst, module)
-      case _ => List(instruction)
+  def convertBlocks(reversedBlocks: List[Block],
+                    convertedBlocks: List[Block],
+                    module: Module): (List[Block], Module) = 
+  {
+    reversedBlocks match {
+      case Nil => (convertedBlocks, module)
+      case next :: rest => {
+        val instructions = module.getInstructions(next.instructions)
+        val (converted, newModule) = convertInstructions(instructions.reverse, Nil,
+                                                         next, convertedBlocks, module)
+        convertBlocks(rest, converted, newModule)
+      }
+    }
+  }
+
+  def convertInstructions(reversedInstructions: List[Instruction],
+                          convertedInstructions: List[Instruction],
+                          currentBlock: Block,
+                          convertedBlocks: List[Block],
+                          module: Module): (List[Block], Module) =
+  {
+    /** Creates a new block using the given instruction list based on the current block.
+     *  This is used in cases where the block being converted needs to be split into multiple
+     *  blocks. The catch block of the new block is the same as the current block. The live-in
+     *  symbols in the new block (including those used in the catch block) are replaced with
+     *  new parameters. In addition to the new block and an updated module, a list of arguments
+     *  is returned which should be used to call the new block.
+     */
+    def splitBlock(newBlockName: Symbol,
+                   instructions: List[Instruction],
+                   module: Module): (Block, List[Value], Module) =
+    {
+      val parameterSet = currentBlock.parameters.toSet
+      val catchLive: Set[Symbol] = currentBlock.catchBlock match {
+        case Some((_, arguments)) => {
+          (Set[Symbol]() /: arguments) { (live, arg) =>
+            live ++ arg.getSymbols.filter(parameterSet.contains _)
+          }
+        }
+        case None => Set()
+      }
+      val live = (catchLive /: instructions.reverse) { (live, inst) =>
+        val uses = inst.operandSymbols.filter { sym =>
+          parameterSet.contains(sym) || module.definitions(sym).isInstanceOf[Instruction]
+        }
+        live ++ uses - inst.name
+      }
+      val (newParameters, liveArguments, substitutions) = {
+        ((List[Parameter](), List[Value](), Map[Symbol, Symbol]()) /: live) { (ind, sym) =>
+          val (ps, args, sub) = ind
+          val value = module.definitions(sym) match {
+            case p: Parameter => p.makeValue
+            case i: Instruction => i.makeValue
+            case _ => throw new RuntimeException("illegal live symbol")
+          }
+          val param = Parameter(symbolFactory(sym), value.ty)
+          (param :: ps, value :: args, sub + (sym -> param.name))
+        }
+      }
+      val substitutedInsts = instructions.map(_.substituteSymbols(substitutions))
+      val substitutedCatchBlock = currentBlock.catchBlock match {
+        case Some((catchBlockName, arguments)) => {
+          val substitutedArguments = arguments.map(_.substituteSymbols(substitutions))
+          Some((catchBlockName, substitutedArguments))
+        }
+        case None => None
+      }
+
+      val newBlock = Block(newBlockName,
+                           newParameters.map(_.name),
+                           substitutedInsts.map(_.name),
+                           substitutedCatchBlock,
+                           currentBlock.annotations)
+      val newModule = module.add(newParameters: _*).replace(substitutedInsts: _*).add(newBlock)
+      (newBlock, liveArguments, newModule)
+    }
+
+    reversedInstructions match {
+      case Nil => {
+        val newBlock = currentBlock.copy(instructions = convertedInstructions.map(_.name))
+        (newBlock :: convertedBlocks, module.replace(newBlock))
+      }
+      case instruction :: remainingInstructions => {
+        // Convert the instruction. In simple cases, the instruction will expand to a list
+        // of converted instructions. In cases where we need to change control flow, we 
+        // recurse inside the case and just return the final result.
+        val convertedOrResult = instruction match {
+          case ptrElemInst: PointerElementInstruction if ptrElemInst.base.ty.isInstanceOf[ClassType] =>
+            Left(convertElementInstruction(ptrElemInst, module))
+          case newInst: NewInstruction =>
+            Left(convertNewInstruction(newInst, module))
+          case pcallInst: PointerCallInstruction => 
+            Left(convertPCallInstruction(pcallInst, module))
+          case scallInst: StaticCallInstruction => 
+            Left(convertSCallInstruction(scallInst, module))
+          case vcallInst: VirtualCallInstruction => 
+            Left(convertVCallInstruction(vcallInst, module))
+          case vlookupInst: VirtualLookupInstruction => 
+            Left(convertVLookupInstruction(vlookupInst, module))
+
+          case nullcheckInst: NullCheckInstruction => {
+            // We need to split the block, so first, pack up the instructions we've already
+            // converted. Any variables in the live set become parameters.
+            var m = module
+            val (newBlock, newBlockArgs, m_1) = splitBlock(symbolFactory(currentBlock.name),
+                                                           convertedInstructions, m)
+            m = m_1
+            
+            // Create a new error handling block. We create a new one for every nullcheck
+            // since different nullchecks may have different exception handlers. Hopefully,
+            // we can optimize out redundant ones later.
+            val exnInst = NewInstruction(symbolFactory(nullcheckInst.name + "exn$"),
+                                         ClassType("tungsten.NullPointerException"),
+                                         "tungsten.NullPointerException.ctor",
+                                         Nil, Nil)
+            val cExnInsts = convertNewInstruction(exnInst, m)
+            val throwInst = ThrowInstruction(symbolFactory(nullcheckInst.name + "throw$"),
+                                             UnitType,
+                                             exnInst.makeValue)
+            val errorInsts = cExnInsts :+ throwInst
+            m = m.add(errorInsts: _*)
+            val nullErrorBlockName = symbolFactory(nullcheckInst.name + "npebb$")
+            val (nullErrorBlock, nullErrorBlockArgs, m_2) = splitBlock(nullErrorBlockName,
+                                                                       errorInsts, m)
+            m = m_2
+
+            // Finally, the actual checking code
+            val castInst = BitCastInstruction(nullcheckInst.name,
+                                              nullcheckInst.ty,
+                                              nullcheckInst.value,
+                                              nullcheckInst.annotations)
+            val nullValue = BitCastValue(NullValue, nullcheckInst.value.ty)
+            val checkInst = RelationalOperatorInstruction(symbolFactory(nullcheckInst.name + "cmp$"),
+                                                          BooleanType,
+                                                          RelationalOperator.EQUAL,
+                                                          nullcheckInst.value,
+                                                          nullValue)
+            val branchInst = ConditionalBranchInstruction(symbolFactory(nullcheckInst.name + "cond$"),
+                                                          UnitType,
+                                                          checkInst.makeValue,
+                                                          nullErrorBlock.name,
+                                                          nullErrorBlockArgs,
+                                                          newBlock.name,
+                                                          newBlockArgs)
+            val checkInsts = List(castInst, checkInst, branchInst)
+            m = m.replace(checkInsts: _*)
+
+            // Now recurse to convert the remaining instructions
+            Right(convertInstructions(remainingInstructions,
+                                      checkInsts,
+                                      currentBlock,
+                                      newBlock :: nullErrorBlock :: convertedBlocks,
+                                      m))
+          }
+
+          case _ => Left(List(instruction))
+        }
+
+        convertedOrResult match {
+          case Right((newBlocks, newModule)) => (newBlocks, newModule)
+          case Left(converted) => {
+            convertInstructions(remainingInstructions,
+                                converted ++ convertedInstructions,
+                                currentBlock,
+                                convertedBlocks,
+                                module.replace(converted: _*))
+          }
+        }
+      }
     }
   }
 
@@ -489,15 +647,16 @@ class LowerPass
 
   def substituteType(ty: Type, interfaceBaseClassNames: Map[Symbol, Symbol], module: Module): Type = {
     ty match {
-      case ClassType(className, _, _) => 
-        PointerType(StructType(classStructName(className)))
-      case InterfaceType(interfaceName, _, _) => {
+      case ClassType(className, _, isNullable) => 
+        PointerType(StructType(classStructName(className)), isNullable)
+      case InterfaceType(interfaceName, _, isNullable) => {
         val className = interfaceBaseClassNames(interfaceName)
-        PointerType(StructType(classStructName(className)))
+        PointerType(StructType(classStructName(className)), isNullable)
       }
       case vty: VariableType => 
-        substituteType(vty.getUpperBoundType(module), interfaceBaseClassNames, module)
-      case NothingType(_) => PointerType(IntType(8))
+        substituteType(vty.getUpperBoundType(module).asNullable(vty.isNullable), 
+                       interfaceBaseClassNames, module)
+      case NothingType(isNullable) => PointerType(IntType(8), isNullable)
       case FunctionType(returnType, _, parameterTypes) => 
         FunctionType(returnType, Nil, parameterTypes)
       case _ => ty

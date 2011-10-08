@@ -32,7 +32,7 @@ object Opt extends Converter[Module, Module]
     }
     passes += pass.name -> pass
   }
-  registerPass(LowerPass)
+  registerPass(new LowerPass)
 
   def usageSynopsis = "opt [-pass1 -pass2...] file1 file2..."
 

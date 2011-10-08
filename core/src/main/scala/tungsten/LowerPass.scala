@@ -1,4 +1,4 @@
-/* Copyright 2009-2011 Jay Conrod
+/** Copyright 2009-2011 Jay Conrod
  *
  * This file is part of Tungsten.
  *
@@ -23,12 +23,13 @@ import scala.collection.immutable.TreeMap
 import Utilities._
 
 class LowerPass
-  extends Function1[Module, Module]
+  extends Pass
 {
-  private var symbolFactory: SymbolFactory = new SymbolFactory
+  def name = "lower"
 
-  def apply(module: Module) = {
-    symbolFactory = new SymbolFactory(module.highestSymbolId + 1)
+  def description = "converts code using higher level features (classes, interfaces, type parameters) to a simpler form"
+
+  def processModule(module: Module) = {
     val interfaceBaseClassNames = findInterfaceBaseClassNames(module)
     var m = module
     m = addDefinitions(m)
@@ -700,17 +701,4 @@ class LowerPass
   def itableGlobalName(className: Symbol): Symbol = className + "itable$"
   def itableArrayName(vtableName: Symbol): Symbol = vtableName + "itable$"
   val itableEntryStructName = symbolFromString("tungsten.itable_entry")
-}
-
-object LowerPass
-  extends Pass
-{
-  def name = "lower"
-
-  def description = "converts code using higher level features (classes, interfaces, type parameters) to a simpler form"
-
-  def apply(module: Module) = {
-    val pass = new LowerPass
-    pass(module)
-  }
 }

@@ -210,12 +210,12 @@ trait InstructionRewritePass
         var m = module
         var blocks = outBlocks
         var rewritten = outInstructions
-        var result = rewriteInstruction(next, m)
+        var result = rewriteInstruction(next, inBlock, m)
         var ret: Option[(List[Block], Module)] = None
         while (!ret.isDefined) {
           result match {
-            case SplitBlock(out, newBlocks, module, continuation) => {
-              val (oldBlock, liveOutArguments, m_1) = splitBlock(out ++ rewritten, m)
+            case SplitBlock(out, newBlocks, splitModule, continuation) => {
+              val (oldBlock, liveOutArguments, m_1) = splitBlock(out ++ rewritten, splitModule)
               m = m_1
               blocks = oldBlock :: newBlocks ++ blocks
               rewritten = Nil
@@ -240,6 +240,7 @@ trait InstructionRewritePass
    *  module; they will be added automatically by the caller.
    */
   def rewriteInstruction(instruction: Instruction,
+                         block: Block,
                          module: Module): RewriteResult
 }
 

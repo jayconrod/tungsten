@@ -206,7 +206,7 @@ class LowerPassTest {
     val program = "class @R\n" +
                   "function type %T @f[type %T](type %T %x)"
     val module = compileString(program)
-    val f = pass.convertFunctions(module).getFunction("f")
+    val f = pass.eliminateTypeParameters(module).getFunction("f")
     assertEquals(Nil, f.typeParameters)
   }
 
@@ -299,6 +299,7 @@ class LowerPassInstructionConversionTest {
                         "function unit @f {\n" +
                         "  block %entry {\n"
   val pass = new LowerPass
+  val instPass = new LowerInstructionsPass
 
   def makeModule(code: String): Module = {
     val program = programTemplate + code + "} }"
@@ -319,8 +320,7 @@ class LowerPassInstructionConversionTest {
   {
     var m = makeModule(code)
     m = pass.convertClassesAndInterfaces(m)
-    val function = m.getFunction("f")
-    m = pass.convertFunction(function, m)
+    m = instPass.processModule(m)
     val newInstructions = getInstructions(m)
     val expectedInstructions = makeInstructions(expectedCode)
     assertEquals(expectedInstructions, newInstructions)

@@ -90,7 +90,9 @@ trait InstructionRewritePass
    *  either RewrittenInstructions or SplitBlock. The return value determines how control
    *  flow is reorganized in the block.
    */
-  sealed abstract class RewriteResult
+  sealed abstract class RewriteResult {
+    def getInstructions: List[Instruction]
+  }
 
   /** In the simplest case, rewriteInstruction will return RewrittenInstructions. This allows
    *  the implementor to map an instruction to a (possibly) empty sequence of instructions to
@@ -98,6 +100,9 @@ trait InstructionRewritePass
    */
   case class RewrittenInstructions(rewritten: List[Instruction])
     extends RewriteResult
+  {
+    def getInstructions = rewritten
+  }
 
   /** rewriteInstruction can return SplitBlock when it needs to modify control flow. The
    *  current block will be split after outInstructions is added. Instructions which are
@@ -119,6 +124,9 @@ trait InstructionRewritePass
                         module: Module,
                         continuation: (Symbol, List[Value], Module)=>RewriteResult)
     extends RewriteResult
+  {
+    def getInstructions = outInstructions
+  }
 
   /** Rewrites the instructions in a block. Note that instructions are processed in reverse
    *  order, since this makes it easier to split the block into smaller blocks when needed.

@@ -294,8 +294,18 @@ class LlvmCompatibilityPass
                                                             rttiValue,
                                                             tungsten.NullValue))
         val end = tungsten.UnreachableInstruction(newName(name), tungsten.UnitType)
-
-        RewrittenInstructions(List(exnAlloc, exnCast, exnStore, throwCall, end))
+        if (block.catchBlock.isDefined) {
+          SplitBlock(List(end), Nil, module,
+                     { (splitBlockName, splitBlockArguments, splitModule) =>
+            val branchInst = tungsten.BranchInstruction(newName(name),
+                                                        tungsten.UnitType,
+                                                        splitBlockName,
+                                                        splitBlockArguments)
+            RewrittenInstructions(List(exnAlloc, exnCast, exnStore, throwCall, branchInst))
+          })
+        } else {
+          RewrittenInstructions(List(exnAlloc, exnCast, exnStore, throwCall, end))
+        }
       }
 
       case _ => RewrittenInstructions(List(instruction))

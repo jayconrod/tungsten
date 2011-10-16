@@ -146,7 +146,7 @@ final case class Block(name: Symbol,
       catchBlock match {
         case Some((handler, _)) 
           if isCatchBlock(module) || !module.getBlock(handler).isCatchBlock(module) =>
-            List(InvalidCatchBlockException(name, handler, getLocation))
+            List(InvalidCatchBlockException(handler, name, getLocation))
         case _ => Nil
       }
     }

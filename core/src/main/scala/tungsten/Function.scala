@@ -109,7 +109,7 @@ final case class Function(name: Symbol,
         case Some(entryName) => {
           val entry = module.getBlock(blocks.head)
           entry.catchBlock match {
-            case Some((handler, _)) => errors ::= InvalidCatchBlockException(entry.name, handler, entry.getLocation)
+            case Some((handler, _)) => errors ::= InvalidCatchBlockException(handler, entry.name, entry.getLocation)
             case _ => ()
           }
           if (entry.isCatchBlock(module))

@@ -83,50 +83,48 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
   }
 
   def convertBlock(block: tungsten.Block, parent: Option[Symbol]): Block = {
-    block.catchBlock match {
-      case None => convertNormalBlock(block, parent)
-      case Some(_) => convertTryBlock(block, parent)
-    }
-  }
-
-  def convertNormalBlock(block: tungsten.Block, parent: Option[Symbol]): Block = {
     assert(block.parameters.isEmpty)
     val cName = localSymbol(block.name, parent)
     val instructions = module.getInstructions(block.instructions)
-    var cInstructions = instructions.map(convertInstruction(_, parent))
-    cInstructions = cInstructions.lastOption match {
-      case Some(c: CallInstruction) if c.functionAttributes.exists(_ == FunctionAttribute.NORETURN) =>
-        cInstructions :+ UnreachableInstruction
-      case _ => cInstructions
+    assert(instructions.last.isTerminating)
+    val cInstructions = instructions.takeRight(2) match {
+      // Special case: calls which require error handling will always appear at the end of
+      // the block (LlvmCompatibilityPass does this). We translate them into invokes.
+      case (callInst: tungsten.CallInstruction) ::
+           (branchInst: tungsten.BranchInstruction) :: Nil 
+           if block.catchBlock.isDefined => 
+      {
+        val cRest = instructions.take(instructions.size - 2).map(convertInstruction(_, parent))
+        val catchBlockName = block.catchBlock.get._1
+
+        val (target, arguments) = callInst match {
+          case scallInst: tungsten.StaticCallInstruction => {
+            val functionTy = module.getFunction(scallInst.target).ty(module)
+            val target = tungsten.DefinedValue(scallInst.target, functionTy)
+            (target, scallInst.arguments)
+          }
+          case pcallInst: tungsten.PointerCallInstruction =>
+            (pcallInst.target, pcallInst.arguments)
+          case _ => throw new RuntimeException("invalid call instruction")
+        }            
+        val cName = localSymbol(callInst.name, parent)
+        val cTy = convertType(callInst.ty)
+        val cTarget = convertValue(target, parent)
+        val cArguments = arguments.map(convertValue(_, parent))
+        val normalName = localSymbol(branchInst.target, parent)
+        val cNormalLabel = DefinedValue(normalName, LabelType)
+        val unwindName = localSymbol(catchBlockName, parent)
+        val cUnwindLabel = DefinedValue(unwindName, LabelType)
+        val cInvoke = InvokeInstruction(cName, None, Set(), cTy, None,
+                                        cTarget, cArguments, Set(),
+                                        cNormalLabel, cUnwindLabel)
+
+        cRest :+ cInvoke
+      }
+
+      case _ => instructions.map(convertInstruction(_, parent))
     }
     Block(cName, cInstructions)
-  }
-
-  def convertTryBlock(block: tungsten.Block, parent: Option[Symbol]): Block = {
-    val (catchBlockName, catchArguments) = block.catchBlock.get
-    val cName = localSymbol(block.name, parent)
-    val instructions = module.getInstructions(block.instructions)
-    val stackInstructions = instructions.takeWhile(_.isInstanceOf[tungsten.StackAllocateInstruction])
-    val cStackInstructions = stackInstructions.map(convertInstruction(_, parent))
-    val cInvokeInstruction = instructions.takeRight(2) match {
-      case tungsten.StaticCallInstruction(scallName, ty, targetName, Nil, scallArguments, scallAnns) ::
-        tungsten.BranchInstruction(_, _, tryBranchName, Nil, Nil) :: Nil =>
-      {
-        val invokeName = localSymbol(scallName, parent)
-        val cReturnType = convertType(ty)
-        val cArgumentTypes = scallArguments.map { a: tungsten.Value => convertType(a.ty) }
-        val cTargetType = FunctionType(cReturnType, cArgumentTypes)
-        val cTarget = DefinedValue(globalSymbol(targetName), cTargetType)
-        val cArguments = scallArguments.map(convertValue(_, parent))
-        val cNormalLabel = DefinedValue(localSymbol(tryBranchName, parent), LabelType)
-        val cUnwindLabel = DefinedValue(localSymbol(catchBlockName, parent), LabelType)
-        InvokeInstruction(invokeName, None, Set(), cReturnType, None,
-                          cTarget, cArguments, Set(),
-                          cNormalLabel, cUnwindLabel)
-      }
-      case _ => throw new RuntimeException("malformed try block")
-    }
-    Block(cName, cStackInstructions :+ cInvokeInstruction)
   }
 
   def convertInstruction(instruction: tungsten.Instruction, 

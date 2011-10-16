@@ -59,7 +59,6 @@ object TungstenToLlvm extends Converter[tungsten.Module, Module] {
     val targetTriple = getOption("target").orElse(autoDetectTargetTriple(module.is64Bit))
     var m = module
     m = tungsten.LowerPass(m)
-    m = CatchBlockOutlinePass(m)
     m = LlvmCompatibilityPass(m)
     val converted = TungstenToLlvmConverter(m, targetTriple)
     Some(converted)

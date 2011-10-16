@@ -144,11 +144,11 @@ class LlvmCompatibilityPass
                          block: tungsten.Block,
                          module: tungsten.Module): RewriteResult =
   {
-    val rewritten = instruction match {
+    instruction match {
       case tungsten.AddressInstruction(name, ty, base, indices, _) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
         val cAddress = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]
-        casts :+ cAddress
+        RewrittenInstructions(casts :+ cAddress)
       }
 
       case tungsten.CatchInstruction(name, ty, _) => {
@@ -178,13 +178,13 @@ class LlvmCompatibilityPass
                                                       tungsten.UnitType,
                                                       "__cxa_end_catch",
                                                       Nil, Nil)
-        List(getExnPtr, personality, select, beginCatch, endCatch)
+        RewrittenInstructions(List(getExnPtr, personality, select, beginCatch, endCatch))
       }
 
       case tungsten.ExtractInstruction(name, ty, value, indices, _) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
         val cExtract = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]
-        casts :+ cExtract
+        RewrittenInstructions(casts :+ cExtract)
       }
 
       case tungsten.HeapAllocateInstruction(name, ty, _) => {
@@ -197,7 +197,7 @@ class LlvmCompatibilityPass
         val cast = tungsten.BitCastInstruction(name,
                                                ty,
                                                malloc.makeValue)
-        List(malloc, cast)
+        RewrittenInstructions(List(malloc, cast))
       }
 
       case tungsten.HeapAllocateArrayInstruction(name, ty, count, _) => {
@@ -216,13 +216,13 @@ class LlvmCompatibilityPass
         val cast = tungsten.BitCastInstruction(name,
                                                ty,
                                                malloc.makeValue)
-        List(totalSize, malloc, cast)
+        RewrittenInstructions(List(totalSize, malloc, cast))
       }
 
       case tungsten.InsertInstruction(name, ty, value, base, indices, _) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
         val cInsert = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]
-        casts :+ cInsert
+        RewrittenInstructions(casts :+ cInsert)
       }
 
       case tungsten.IntrinsicCallInstruction(name, ty, intrinsic, arguments, anns) => {
@@ -235,7 +235,8 @@ class LlvmCompatibilityPass
           case CLOSE => "tungsten.close"
           case _ => throw new RuntimeException("Invalid intrinsic: " + intrinsic)
         }
-        List(tungsten.StaticCallInstruction(name, ty, cTarget, Nil, arguments, anns))
+        val scallInst = tungsten.StaticCallInstruction(name, ty, cTarget, Nil, arguments, anns)
+        RewrittenInstructions(List(scallInst))
       }
 
       case tungsten.LoadElementInstruction(name, ty, base, indices, anns) => {
@@ -245,14 +246,18 @@ class LlvmCompatibilityPass
                                                   base,
                                                   cIndices)
         val load = tungsten.LoadInstruction(name, ty, address.makeValue, anns)
-        casts ++ List(address, load)
+        RewrittenInstructions(casts ++ List(address, load))
       }
+
+      case pcallInst: tungsten.PointerCallInstruction => rewriteCall(pcallInst, block, module)
 
       case tungsten.StackAllocateArrayInstruction(name, ty, count, _) => {
         val (cCount, cast) = convertWordTo32Bit(count, name)
         val cStack = instruction.copyWith("count" -> cCount).asInstanceOf[tungsten.Instruction]
-        cast.toList :+ cStack
+        RewrittenInstructions(cast.toList :+ cStack)
       }
+
+      case scallInst: tungsten.StaticCallInstruction => rewriteCall(scallInst, block, module)
 
       case tungsten.StoreElementInstruction(name, ty, value, base, indices, anns) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
@@ -261,7 +266,7 @@ class LlvmCompatibilityPass
                                                   base,
                                                   cIndices)
         val store = tungsten.StoreInstruction(name, ty, value, address.makeValue, anns)
-        casts ++ List(address, store)
+        RewrittenInstructions(casts ++ List(address, store))
       }
 
       case tungsten.ThrowInstruction(name, ty, value, anns) => {
@@ -288,12 +293,35 @@ class LlvmCompatibilityPass
                                                        List(exnAlloc.makeValue,
                                                             rttiValue,
                                                             tungsten.NullValue))
-        List(exnAlloc, exnCast, exnStore, throwCall)
+        val end = tungsten.UnreachableInstruction(newName(name), tungsten.UnitType)
+
+        RewrittenInstructions(List(exnAlloc, exnCast, exnStore, throwCall, end))
       }
 
-      case _ => List(instruction)
+      case _ => RewrittenInstructions(List(instruction))
     }
-    RewrittenInstructions(rewritten)
+  }
+
+  def rewriteCall(callInst: tungsten.CallInstruction,
+                  block: tungsten.Block,
+                  module: tungsten.Module): RewriteResult =
+  {
+    block.catchBlock match {
+      case Some((catchBlockName, catchBlockArguments)) => {
+        // LLVM represents calls where exception handling is needed as invoke instructions,
+        // which must be at the end of the block. For now, we split the block so that the
+        // call will be the last instruction before a branch. TungstenToLlvmConverter will
+        // recognize this and translate to an invoke.
+        SplitBlock(Nil, Nil, module, { (splitBlockName, splitBlockArguments, splitModule) =>
+          val branch = tungsten.BranchInstruction(symbolFactory(block.name + "branch$"),
+                                                  tungsten.UnitType,
+                                                  splitBlockName,
+                                                  splitBlockArguments)
+          RewrittenInstructions(List(callInst, branch))
+        })
+      }
+      case None => RewrittenInstructions(List(callInst))
+    }
   }
 
   def convertIndicesTo32Bit(indices: List[tungsten.Value],

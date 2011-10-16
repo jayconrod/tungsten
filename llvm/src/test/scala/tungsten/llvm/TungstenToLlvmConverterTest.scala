@@ -419,27 +419,6 @@ class TungstenToLlvmConverterTest {
   }
 
   @Test
-  def blockNoReturn {
-    val expected = Block("%bb", List(CallInstruction("%x", false, None, Set(), VoidType, None,
-                                                     DefinedValue("@f", FunctionType(VoidType, Nil)),
-                                                     Nil, Set(FunctionAttribute.NORETURN)),
-                                     UnreachableInstruction))
-    val noreturn = tungsten.Annotation("tungsten.NoReturn", Nil)
-    val function = tungsten.Function("f", tungsten.UnitType, Nil, Nil, Nil,
-                                     List(tungsten.AnnotationValue(noreturn.name, Nil)))
-    val call = tungsten.StaticCallInstruction("foo.x", tungsten.UnitType,
-                                              function.name, Nil, Nil)
-    val block = tungsten.Block("foo.bb", Nil, List(call.name))
-    val definitions = TreeMap(noreturn.name -> noreturn,
-                              function.name -> function,
-                              call.name -> call,
-                              block.name -> block)
-    val module = new tungsten.Module(definitions=definitions)
-    val converter = new TungstenToLlvmConverter(module)
-    assertEquals(expected, converter.convertBlock(block, parent))
-  }
-
-  @Test
   def parameter {
     val expected = Parameter("%x", IntType(64), Set())
     val parameter = tungsten.Parameter("foo.x", tungsten.IntType(64))

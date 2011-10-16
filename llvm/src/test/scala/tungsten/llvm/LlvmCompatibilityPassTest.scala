@@ -46,13 +46,13 @@ class LlvmCompatibilityPassTest {
     val instructions = module.getInstructions(block.instructions)
     assertEquals(2, instructions.size)
     val instruction = instructions.head
-    val converted = pass.convertInstruction(instruction, module)
+    val rewritten = pass.rewriteInstruction(instruction, block, module).getInstructions
 
     val expectedModule = ModuleIO.readText(codeTemplate.format(expected))
     val expectedBlock = expectedModule.getBlock("main.entry")
     val expectedInstructions = expectedModule.getInstructions(expectedBlock.instructions)
 
-    assertEquals(expectedInstructions.take(expectedInstructions.size - 1), converted)
+    assertEquals(expectedInstructions.take(expectedInstructions.size - 1), rewritten)
   }    
 
   def testProgram(expected: String, program: String) {

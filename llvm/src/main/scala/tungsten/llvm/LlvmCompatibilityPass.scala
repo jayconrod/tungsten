@@ -24,22 +24,18 @@ import tungsten.Utilities._
 import tungsten.{Symbol, SymbolFactory}
 
 class LlvmCompatibilityPass
-  extends Function1[tungsten.Module, tungsten.Module] 
+  extends tungsten.InternalPass
+  with tungsten.InstructionRewritePass
 {
-  private var symbolFactory: SymbolFactory = new SymbolFactory
-
-  def apply(module: tungsten.Module): tungsten.Module = {
-    symbolFactory = new SymbolFactory(module.highestSymbolId + 1)
-    process(module) 
-  }
-
-  val process: tungsten.Module => tungsten.Module = {
-    addRuntime _            andThen
-      processStrings _      andThen
-      processChars _        andThen
-      processInstructions _ andThen
-      processMain _         andThen 
-      PhiConversion
+  override def processModule(module: tungsten.Module): tungsten.Module = {
+    val steps = List(addRuntime _,
+                     processStrings _,
+                     processChars _,
+                     processInstructions _,
+                     processMain _,
+                     PhiConversion)
+    val process = steps.reduceLeft(_.andThen(_))
+    process(module)
   }
 
   def addRuntime(module: tungsten.Module): tungsten.Module = {
@@ -71,14 +67,7 @@ class LlvmCompatibilityPass
   }
 
   def processInstructions(module: tungsten.Module): tungsten.Module = {
-    val blocks = module.definitions.values.collect { case b: tungsten.Block => b }
-    (module /: blocks) { (module, block) =>
-      val instructions = module.getInstructions(block.instructions)
-      val processedInstructions = instructions.flatMap(convertInstruction(_, module))
-      val processedBlock = block.copyWith("instructions" -> processedInstructions.map(_.name))
-      module.remove(block.name :: block.instructions).
-        add((processedBlock :: processedInstructions): _*)
-    }
+    super[InstructionRewritePass].processModule(module)
   }
 
   def processStrings(module: tungsten.Module): tungsten.Module = {
@@ -151,10 +140,11 @@ class LlvmCompatibilityPass
     }
   }
 
-  def convertInstruction(instruction: tungsten.Instruction,
-                         module: tungsten.Module): List[tungsten.Instruction] = 
+  def rewriteInstruction(instruction: tungsten.Instruction,
+                         block: tungsten.Block,
+                         module: tungsten.Module): RewriteResult =
   {
-    instruction match {
+    val rewritten = instruction match {
       case tungsten.AddressInstruction(name, ty, base, indices, _) => {
         val (cIndices, casts) = convertIndicesTo32Bit(indices, name)
         val cAddress = instruction.copyWith("indices" -> cIndices).asInstanceOf[tungsten.Instruction]
@@ -303,6 +293,7 @@ class LlvmCompatibilityPass
 
       case _ => List(instruction)
     }
+    RewrittenInstructions(rewritten)
   }
 
   def convertIndicesTo32Bit(indices: List[tungsten.Value],

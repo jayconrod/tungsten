@@ -224,7 +224,7 @@ class TextModuleWriter(module: Module, output: Writer) {
     block.catchBlock match {
       case Some((blockName, arguments)) => {
         output.write(" catch ")
-        writeSymbol(blockName, parentName)
+        writeSymbol(blockName, Some(block.name))
         writeArguments(arguments, Some(block.name))
       }
       case None => ()

@@ -481,12 +481,9 @@ class TextModuleWriter(module: Module, output: Writer) {
   }
 
   def localSymbol(symbol: Symbol, parentName: Option[Symbol]): String = {
-    val simpleName = symbol.name.last
-    parentName match {
-      case Some(parent) if parent.name :+ simpleName == symbol.name => {
-        "%" + Symbol(simpleName, symbol.id).toString
-      }
-      case _ => "@" + symbol.toString
+    parentName.flatMap(symbol.withoutPrefix _) match {
+      case None => "@" + symbol.toString
+      case Some(simple) => "%" + simple.toString
     }
   }
 

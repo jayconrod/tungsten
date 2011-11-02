@@ -41,6 +41,18 @@ final class Symbol(val name: List[String], val id: Int)
     Symbol(name.take(name.size - 1))
   }    
 
+  def withoutPrefix(prefix: Symbol): Option[Symbol] = {
+    def removePrefix(prefixName: List[String], name: List[String]): Option[List[String]] = {
+      (prefixName, name) match {
+        case (Nil, Nil) => None
+        case (Nil, rest) => Some(rest)
+        case (p :: pRest, n :: nRest) if p == n => removePrefix(pRest, nRest)
+        case _ => None
+      }
+    }
+    removePrefix(prefix.name, name).map { n => new Symbol(n, id) }
+  }
+
   def compare(that: Symbol): Int = {
     def compareName(lname: Seq[String], rname: Seq[String]): Int = {
       if (lname.isEmpty) {

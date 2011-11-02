@@ -127,6 +127,20 @@ class SymbolTest {
   }
 
   @Test
+  def withoutPrefix {
+    val abcd = symbolFromString("a.b.c.d#12")
+    val ab = symbolFromString("a.b#34")
+    val cd = symbolFromString("c.d#12")
+    val xy = symbolFromString("x.y#56")
+    val axy = symbolFromString("a.x.y#78")
+    assertEquals(None, abcd.withoutPrefix(abcd))
+    assertEquals(None, abcd.withoutPrefix(xy))
+    assertEquals(None, abcd.withoutPrefix(axy))
+    assertEquals(None, abcd.withoutPrefix(cd))
+    assertEquals(Some(cd), abcd.withoutPrefix(ab))
+  }
+
+  @Test
   def compare {
     assertEquals(0, Symbol("a").compare(Symbol("a")))
     assertTrue(Symbol("a").compare(Symbol("b")) < 0)

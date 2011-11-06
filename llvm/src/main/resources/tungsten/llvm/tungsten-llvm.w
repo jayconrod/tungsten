@@ -16,9 +16,16 @@
 ; License along with Tungsten.  If not, see 
 ; <http://www.gnu.org/licenses/>.
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; This file contains LLVM specific definitions used for lowering
+; Tungsten code. Lowered Tungsten code is very close to the LLVM
+; representation; it may refer to C standard library functions and
+; LLVM intrinsic functions. It is still legal Tungsten code.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 name: @tungsten
 type: intermediate
-version: v0.4
+version: v0.5
 is64bit: true
 safe: true
 
@@ -34,17 +41,9 @@ struct @tungsten.string {
 ; Generic memory allocation function
 function int8* @tungsten.malloc(int32 %size)
 
-; Intrinsic functions
+; Terminate execution with return code
 @tungsten.NoReturn
 function unit @tungsten.exit(int32 %code)
-
-function int64 @tungsten.read(int32 %fd, int8* %buffer, int64 %size)
-
-function int64 @tungsten.write(int32 %fd, int8* %buffer, int64 %size)
-
-function int32 @tungsten.open(int8* %filename, int32 %flags)
-
-function unit @tungsten.close(int32 %fd)
 
 ; Exception handling definitions
 global int8* @_ZTIPv   ; void pointer type info

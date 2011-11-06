@@ -16,15 +16,17 @@
 ; License along with Tungsten.  If not, see 
 ; <http://www.gnu.org/licenses/>.
 
-name: @tungsten
-type: intermediate
-version: v0.5
-is64bit: true
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; This file contains definitions needed to convert Tungsten code
 ; into lower level representations, such as LLVM. Lowered code is
 ; still legal Tungsten code, but it does not contain higher level
 ; constructs such as classes, bounded arrays, or type parameters.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+name: @tungsten
+type: intermediate
+version: v0.5
+is64bit: true
 
 ;
 ; Data structure definitions

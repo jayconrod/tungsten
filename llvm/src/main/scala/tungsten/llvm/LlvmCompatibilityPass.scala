@@ -229,10 +229,6 @@ class LlvmCompatibilityPass
         import tungsten.Intrinsic._
         val cTarget: Symbol = intrinsic match {
           case EXIT => "tungsten.exit"
-          case READ => "tungsten.read"
-          case WRITE => "tungsten.write"
-          case OPEN => "tungsten.open"
-          case CLOSE => "tungsten.close"
           case _ => throw new RuntimeException("Invalid intrinsic: " + intrinsic)
         }
         val scallInst = tungsten.StaticCallInstruction(name, ty, cTarget, Nil, arguments, anns)

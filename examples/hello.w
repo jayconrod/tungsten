@@ -20,6 +20,13 @@ global [14 x int8] @hello = [14 x int8] {
   int8 10
 }
 
+; We need to declare system calls we use. The actual system calls are
+; done by libc, so we can declare and call these like normal functions.
+function int32 @write(int32 %fd, int8* %buffer, int32 %size)
+
+; We define other constants globally as well
+global int32 @STDOUT = int32 1
+
 function unit @main {
   block %entry {
     ; Even though the global string is declared as [14 x int8], it is actually
@@ -33,18 +40,13 @@ function unit @main {
     ; to just print "world!\n", we could use 7 instead of 0 here. 
     int8* %buffer = address [14 x int8]* @hello, int64 0, int64 0
 
-    ; We want to write the string to the STDOUT file descriptor. The Tungsten
-    ; runtime defines this (see core/src/resources/tungsten/runtime.w for other
-    ; global definitions). Again, even though this is defined as int32, we treat
-    ; it as int32*, so we need to load it.
-    int32 %fd = load int32* @tungsten.STDOUT
+    ; We want to write the string to the STDOUT file descriptor. STDOUT is a 
+    ; global variable, so we load it here.
+    int32 %fd = load int32* @STDOUT
 
-    ; The write function is an intrinsic, since we can't write an implementation
-    ; of it in Tungsten. When this code gets lowered to LLVM, intrinsic calls are
-    ; transformed to normal function calls. The actual function is defined in
-    ; llvm/runtime/runtime.ll. It just calls the write function from the C 
-    ; standard library.
-    int64 %bytesWritten = intrinsic write(int32 %fd, int8* %buffer, int64 14)
+    ; To write the string out to the terminal, we call the libc function "write". 
+    ; Tungsten has no built-in way to write data to a file.
+    int32 %bytesWritten = scall @write(int32 %fd, int8* %buffer, int32 14)
 
     return ()
   }

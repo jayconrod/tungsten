@@ -25,8 +25,18 @@ import Utilities._
 trait Converter[S, T] extends CommandLineProgram {
   private var errorOccurred = false
 
+  override def availableOptions: List[CommandLineOption] = {
+    super.availableOptions ++
+      List(CommandLineOption(Some('o'), "output", "write output to a specific file", Some("filename")))
+  }
+
   override def main(args: Array[String]) {
     super.main(args)
+
+    if (optionValues.contains("output") && arguments.size != 1) {
+      System.err.println("error: if output file is specified, exactly one input file must be given")
+      System.exit(1)
+    }
 
     if (arguments.isEmpty) {
       for (source <- readSourceFromStdin;
@@ -38,7 +48,10 @@ trait Converter[S, T] extends CommandLineProgram {
            source <- readSourceFromFile(inputFile);
            target <- convert(source))
       {
-        val outputFile = convertFile(inputFile)
+        val outputFile = optionValues.get("output") match {
+          case Some(filename) => new File(filename)
+          case None => convertFile(inputFile)
+        }
         writeTargetToFile(target, outputFile)
       }
     }
@@ -52,61 +65,64 @@ trait Converter[S, T] extends CommandLineProgram {
   }
 
   private final def readSourceFromStdin: Option[S] = {
-    readSourceWrapper("<stdin>", System.in)
+    val filename = "<stdin>"
+    handleInputErrors(filename) {
+      readSource(filename, System.in)
+    }
   }
 
   private final def readSourceFromFile(file: File): Option[S] = {
-    try {      
+    val filename = file.getName
+    handleInputErrors(filename) {
       val input = new BufferedInputStream(new FileInputStream(file))
-      val source = readSourceWrapper(file.getName, input)
-      input.close
-      source
-    } catch {
-      case exn: IOException => {
-        System.err.println(file + ": IO error: " + exn.getMessage)
-        errorOccurred
-        None
-      }
+      readSource(filename, input)
     }
-  }
-
-  private final def readSourceWrapper(filename: String, input: InputStream): Option[S] = {
-    try {
-      val source = readSource(filename, input)
-      if (!source.isDefined)
-        errorOccurred = true
-      source
-    } catch {
-      case exn: IOException => {
-        System.err.println(filename + ": IO error: " + exn.getMessage)
-        errorOccurred = true
-        None
-      }
-    }
-  }
+  }      
 
   def readSource(filename: String, input: InputStream): Option[S]
 
   private final def writeTargetToStdout(target: T) {
-    writeTargetWrapper(target, "<stdout>", System.out)
+    val filename = "<stdout>"
+    handleOutputErrors(filename) {
+      writeTarget(target, filename, System.out)
+    }
   }
 
   private final def writeTargetToFile(target: T, file: File) {
-    val output = new BufferedOutputStream(new FileOutputStream(file))
-    writeTargetWrapper(target, file.getName, output)
-    output.close
+    val filename = file.getName
+    var output: OutputStream = null
+    handleOutputErrors(filename) {
+      output = new BufferedOutputStream(new FileOutputStream(file))
+      writeTarget(target, filename, output)
+    }
+    if (errorOccurred && output != null) {
+      output.close
+      file.delete
+    }
   }
 
-  private final def writeTargetWrapper(target: T, filename: String, output: OutputStream) {
+  private final def handleInputErrors(filename: String)(code: => Option[S]): Option[S] = {
     try {
-      writeTarget(target, filename, output)
+      code
     } catch {
       case exn: IOException => {
-        System.err.println(filename + ": IO error: " + exn.getMessage)
-        errorOccurred = true
+        System.err.println("%s: IO Error: %s".format(filename, exn.getMessage))
+        setErrorOccurred
+        None
       }
     }
   }
+
+  private final def handleOutputErrors(filename: String)(code: => Unit) {
+    try {
+      code
+    } catch {
+      case exn: IOException => {
+        System.err.println("%s: IO Error: %s".format(filename, exn.getMessage))
+        setErrorOccurred
+      }
+    }
+  }        
 
   def writeTarget(target: T, filename: String, output: OutputStream)
 

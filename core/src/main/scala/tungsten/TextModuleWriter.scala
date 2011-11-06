@@ -27,7 +27,10 @@ class TextModuleWriter(module: Module, output: Writer) {
 
   def write {
     writeHeader
-    for (defn <- module.definitions.values) {
+    val keys = module.definitions.keys.toArray
+    scala.util.Sorting.quickSort(keys)
+    for (name <- keys) {
+      val defn = module.definitions(name)
       defn match {
         case a: Annotation => writeAnnotation(a)
         case c: Class => writeClass(c)

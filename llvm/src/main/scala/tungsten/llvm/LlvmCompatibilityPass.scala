@@ -159,9 +159,9 @@ class LlvmCompatibilityPass
         val personality = tungsten.BitCastInstruction(newName(name),
                                                       tungsten.PointerType(tungsten.IntType(8)),
                                                       tungsten.DefinedValue("__gxx_personality_v0",
-                                                                            tungsten.PointerType(tungsten.FunctionType(tungsten.IntType(32),
-                                                                                                                       Nil,
-                                                                                                                       List(tungsten.VariadicType)))))
+                                                                            tungsten.FunctionType(tungsten.IntType(32),
+                                                                                                  Nil,
+                                                                                                  List(tungsten.VariadicType))))
         val select = tungsten.StaticCallInstruction(newName(name),
                                                     tungsten.IntType(32),
                                                     Symbol("llvm.eh.selector"),

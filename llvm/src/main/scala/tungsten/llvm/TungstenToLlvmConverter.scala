@@ -266,7 +266,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.StaticCallInstruction(_, ty, target, _, arguments, _) => {
         val function = module.getFunction(target)
         val functionType = function.ty(module)
-        val cFunctionType = convertType(functionType).asInstanceOf[FunctionType]
+        val cFunctionType = convertFunctionType(functionType)
         val cRetAttribs = convertParameterAttributes(function.annotations)
         val cReturnType = cFunctionType.returnType
         val cTargetType = if (cFunctionType.isVariadic) Some(PointerType(cFunctionType)) else None
@@ -347,6 +347,17 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
     }
   }
 
+  def convertFunctionType(ty: tungsten.FunctionType): FunctionType = {
+    val cReturnType = convertType(ty.returnType)
+    if (ty.isVariadic) {
+      val cParamTypes = ty.parameterTypes.dropRight(1).map(convertType _)
+      FunctionType(cReturnType, cParamTypes, true)
+    } else {
+      val cParamTypes = ty.parameterTypes.map(convertType _)
+      FunctionType(cReturnType, cParamTypes, false)
+    }
+  }    
+
   def convertType(ty: tungsten.Type): Type = {
     ty match {
       case tungsten.UnitType => VoidType
@@ -362,16 +373,7 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         val localName = "%" + globalName.tail
         NamedStructType(localName)
       }
-      case ft @ tungsten.FunctionType(returnType, _, parameterTypes) => {
-        val cReturnType = convertType(returnType)
-        if (ft.isVariadic) {
-          val cParamTypes = parameterTypes.dropRight(1).map(convertType _)
-          FunctionType(cReturnType, cParamTypes, true)
-        } else {
-          val cParamTypes = parameterTypes.map(convertType _)
-          FunctionType(cReturnType, cParamTypes, false)
-        }
-      }
+      case fty: tungsten.FunctionType => PointerType(convertFunctionType(fty))
       case _ => throw new UnsupportedOperationException(ty.getClass.toString)
     }
   }

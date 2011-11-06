@@ -12,11 +12,11 @@ $(RUNTIME_NAME): $(LLVM_RUNTIME_SOURCE)
 	sed -e 's/target triple = "i386-linux-gnu"/target triple = "i386-$(OS)"/' <$< >$@
 
 tungsten.wl: ../runtime/tungsten-32.w
-	w-as <$< >$@
+	w-as $< -o $@
 
 %.w32: %.w
 	echo "is64bit: false" >$@
 	cat <$< >>$@
 
 %.wo: %.w32
-	w-as <$< >$@
+	w-as $< -o $@

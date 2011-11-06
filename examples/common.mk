@@ -16,10 +16,10 @@ endif
 	w-link $^ -o $@
 
 %.ll: %.wp
-	w-to-llvm <$< >$@
+	w-to-llvm $< -o $@
 
 %.bc: %.ll
-	llvm-as <$< >$@
+	llvm-as $< -o $@
 
 %.s: %.bc
-	llc -unwind-tables <$< >$@
+	llc -unwind-tables $< -o $@

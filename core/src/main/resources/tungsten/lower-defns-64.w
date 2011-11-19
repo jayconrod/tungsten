@@ -48,3 +48,42 @@ struct @tungsten.itable_entry {
   field struct @tungsten.interface_info* %interface
   field int8* %ivtable
 }
+
+;
+; Helper functions
+;
+function int8* @tungsten.load_ivtable(struct @tungsten.Object.data$* %receiver,
+                                      struct @tungsten.interface_info* %interface)
+{
+  block %entry {
+    struct @tungsten.Object.vtable_type$* %vtable = loadelement struct @tungsten.Object.data$* @tungsten.load_ivtable.receiver, int64 0, int64 0
+    int8* %ivt_array = loadelement struct @tungsten.Object.vtable_type$* %vtable, int64 0, int64 1, int64 0
+    struct @tungsten.itable_entry* %ivt_array#1 = bitcast int8* %ivt_array
+    int64 %ivt_count = loadelement struct @tungsten.Object.vtable_type$* %vtable, int64 0, int64 1, int64 1
+    int64 %i = binop int64 %ivt_count - int64 1
+    boolean %cmp = relop int64 %i >= int64 0
+    cond boolean %cmp ? @tungsten.load_ivtable.loop(struct @tungsten.itable_entry* %ivt_array#1,
+                                                    int64 %i)
+                      : @tungsten.load_ivtable.abort()
+  }
+  block %loop(struct @tungsten.itable_entry* %ivt_array, int64 %i) {
+    struct @tungsten.interface_info* %if = loadelement struct @tungsten.itable_entry* %ivt_array, int64 %i, int64 0
+    boolean %cmp = relop struct @tungsten.interface_info* %if == struct @tungsten.interface_info* @tungsten.load_ivtable.interface
+    cond boolean %cmp ? @tungsten.load_ivtable.found(struct @tungsten.itable_entry* %ivt_array, int64 %i)
+                      : @tungsten.load_ivtable.next(struct @tungsten.itable_entry* %ivt_array, int64 %i)
+  }
+  block %next(struct @tungsten.itable_entry* %ivt_array, int64 %i) {
+    int64 %i#1 = binop int64 %i - int64 1
+    boolean %cmp = relop int64 %i#1 >= int64 0
+    cond boolean %cmp ? @tungsten.load_ivtable.loop(struct @tungsten.itable_entry* %ivt_array, int64 %i#1)
+                      : @tungsten.load_ivtable.abort()
+  }
+  block %found(struct @tungsten.itable_entry* %ivt_array, int64 %i) {
+    int8* %ivtable = loadelement struct @tungsten.itable_entry* %ivt_array, int64 %i, int64 1
+    return int8* %ivtable
+  }
+  block %abort {
+    intrinsic exit(int32 -1)
+    unreachable
+  }
+}

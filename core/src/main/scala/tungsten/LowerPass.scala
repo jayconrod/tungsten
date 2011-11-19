@@ -487,32 +487,37 @@ class LowerInstructionsPass
 
     val vtableInstName = symbolFactory(vcallInst.name + "vtable$")
     val vtableType = PointerType(StructType(LowerPass.vtableStructName(defnName)))
-    val vtableInst = objectType match {
+    val vtableInsts = objectType match {
       case _: ClassType => {
-        LoadElementInstruction(vtableInstName,
-                               vtableType,
-                               vcallInst.target,
-                               List(zero, zero),
-                               vcallInst.annotations)
+        List(LoadElementInstruction(vtableInstName,
+                                    vtableType,
+                                    vcallInst.target,
+                                    List(zero, zero),
+                                    vcallInst.annotations))
       }
       case interfaceType: InterfaceType => {
         val infoValue = DefinedValue(interfaceInfoGlobalName(interfaceType.definitionName),
                                      PointerType(StructType(interfaceInfoStructName)))
-        StaticCallInstruction(vtableInstName,
-                              vtableType,
-                              "tungsten.load_ivtable",
-                              Nil,
-                              List(vcallInst.target, infoValue),
-                              vcallInst.annotations)
+        val ivtInst = StaticCallInstruction(vtableInstName,
+                                            PointerType(IntType(8)),
+                                            "tungsten.load_ivtable",
+                                            Nil,
+                                            List(vcallInst.target, infoValue),
+                                            vcallInst.annotations)
+        val castInst = BitCastInstruction(symbolFactory(vtableInstName),
+                                          vtableType,
+                                          ivtInst.makeValue)
+        List(ivtInst, castInst)
       }
     }
+    val vtableValue = vtableInsts.last.makeValue
 
     val vtableStruct = module.getStruct(vtableStructName(defnName))
     val fieldIndex = if (isClass) 2 + vcallInst.methodIndex else vcallInst.methodIndex
     val methodType = module.getField(vtableStruct.fields(fieldIndex)).ty.asInstanceOf[FunctionType]
     val methodInst = LoadElementInstruction(symbolFactory(vcallInst.name + "method$"),
                                             methodType,
-                                            vtableInst.makeValue,
+                                            vtableValue,
                                             List(zero, 
                                                  IntValue(fieldIndex, IntType.wordSize(module))),
                                             vcallInst.annotations)
@@ -531,7 +536,7 @@ class LowerInstructionsPass
 
     val retCastInsts = castCallReturn(callInst, methodType.returnType, module)
 
-    RewrittenInstructions(vtableInst :: methodInst :: (argCastInsts ++ retCastInsts))
+    RewrittenInstructions(vtableInsts ++ (methodInst :: argCastInsts ++ retCastInsts))
   }
 
   def convertVLookupInstruction(vlookupInst: VirtualLookupInstruction,
@@ -544,37 +549,42 @@ class LowerInstructionsPass
 
     val vtableInstName = symbolFactory(vlookupInst.name + "vtable$")
     val vtableType = PointerType(StructType(vtableStructName(defnName)))
-    val vtableInst = objectType match {
+    val vtableInsts = objectType match {
       case _: ClassType => {
-        LoadElementInstruction(vtableInstName,
-                               vtableType,
-                               vlookupInst.obj,
-                               List(zero, zero),
-                               vlookupInst.annotations)
+        List(LoadElementInstruction(vtableInstName,
+                                    vtableType,
+                                    vlookupInst.obj,
+                                    List(zero, zero),
+                                    vlookupInst.annotations))
       }
       case interfaceType: InterfaceType => {
         val infoValue = DefinedValue(interfaceInfoGlobalName(interfaceType.definitionName),
                                      PointerType(StructType(interfaceInfoStructName)))
-        StaticCallInstruction(vtableInstName,
-                              vtableType,
-                              "tungsten.load_ivtable",
-                              Nil,
-                              List(vlookupInst.obj, infoValue),
-                              vlookupInst.annotations)
+        val ivtInst = StaticCallInstruction(vtableInstName,
+                                            PointerType(IntType(8)),
+                                            "tungsten.load_ivtable",
+                                            Nil,
+                                            List(vlookupInst.obj, infoValue),
+                                            vlookupInst.annotations)
+        val castInst = BitCastInstruction(symbolFactory(vtableInstName),
+                                          vtableType,
+                                          ivtInst.makeValue)
+        List(ivtInst, castInst)
       }
     }
+    val vtableValue = vtableInsts.last.makeValue
 
     val vtableStruct = module.getStruct(vtableStructName(defnName))
     val fieldIndex = if (isClass) 2 + vlookupInst.methodIndex else vlookupInst.methodIndex
     val methodType = module.getField(vtableStruct.fields(fieldIndex)).ty.asInstanceOf[FunctionType]
     val methodInst = LoadElementInstruction(vlookupInst.name,
                                             methodType,
-                                            vtableInst.makeValue,
+                                            vtableValue,
                                             List(zero, 
                                                  IntValue(fieldIndex, IntType.wordSize(module))),
                                             vlookupInst.annotations)
 
-    RewrittenInstructions(List(vtableInst, methodInst))
+    RewrittenInstructions(vtableInsts :+ methodInst)
   }
 
   def castCallArguments(instruction: Instruction,

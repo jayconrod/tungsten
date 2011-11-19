@@ -376,7 +376,7 @@ class LowerPassInstructionConversionTest {
   def testVCallInterface {
     val code = "interface @I %i = upcast null\n" +
                "unit %x = vcall interface @I %i:1()"
-    val expectedCode = "interface @I %i = upcast null\n" +
+    val expectedCode = "interface @I %i = bitcast null\n" +
                        "int8* %x.vtable$#1 = scall @tungsten.load_ivtable(interface @I %i, struct @tungsten.interface_info* @I.info$)\n" +
                        "struct @I.vtable_type$* %x.vtable$#2 = bitcast int8* %x.vtable$#1\n" +
                        "(interface @I)->unit %x.method$#3 = loadelement struct @I.vtable_type$* %x.vtable$#2, int64 0, int64 1\n" +
@@ -396,7 +396,7 @@ class LowerPassInstructionConversionTest {
   def testVLookupInterface {
     val code = "interface @I %i = upcast null\n" +
                "(interface @I)->unit %m = vlookup interface @I %i:1"
-    val expectedCode = "interface @I %i = upcast null\n" +
+    val expectedCode = "interface @I %i = bitcast null\n" +
                        "int8* %m.vtable$#1 = scall @tungsten.load_ivtable(interface @I %i, struct @tungsten.interface_info* @I.info$)\n" +
                        "struct @I.vtable_type$* %m.vtable$#2 = bitcast int8* %m.vtable$#1\n" +
                        "(interface @I)->unit %m = loadelement struct @I.vtable_type$* %m.vtable$#2, int64 0, int64 1\n"
@@ -407,7 +407,7 @@ class LowerPassInstructionConversionTest {
   def testPCallTypeParameters {
     val code = "class @C %x = upcast null\n" +
                "class @C %y = pcall [@g.T](type @g.T)->type @g.T @g[class @C](class @C %x)\n"
-    val expectedCode = "class @C %x = upcast null\n" +
+    val expectedCode = "class @C %x = bitcast null\n" +
                        "type @g.T %y.cast$#1 = bitcast class @C %x\n" +
                        "type @g.T %y.cast$#2 = pcall [@g.T](type @g.T)->type @g.T @g(type @g.T %y.cast$#1)\n" +
                        "class @C %y = bitcast type @g.T %y.cast$#2"
@@ -418,7 +418,7 @@ class LowerPassInstructionConversionTest {
   def testSCallTypeParameters {
     val code = "class @C %x = upcast null\n" +
                "class @C %y = scall @g[class @C](class @C %x)\n"
-    val expectedCode = "class @C %x = upcast null\n" +
+    val expectedCode = "class @C %x = bitcast null\n" +
                        "type @g.T %y.cast$#1 = bitcast class @C %x\n" +
                        "type @g.T %y.cast$#2 = scall @g(type @g.T %y.cast$#1)\n" +
                        "class @C %y = bitcast type @g.T %y.cast$#2\n"
@@ -429,7 +429,7 @@ class LowerPassInstructionConversionTest {
   def testVCallTypeParameters {
     val code = "class @C %x = upcast null\n" +
                "class @C %y = vcall class @C %x:2[class @C](class @C %x)\n"
-    val expectedCode = "class @C %x = upcast null\n" +
+    val expectedCode = "class @C %x = bitcast null\n" +
                        "struct @C.vtable_type$* %y.vtable$#1 = loadelement class @C %x, int64 0, int64 0\n" +
                        "[@C.id.T](class @C, type @C.id.T)->type @C.id.T %y.method$#2 = loadelement struct @C.vtable_type$* %y.vtable$#1, int64 0, int64 4\n" +
                        "type @C.id.T %y.cast$#3 = bitcast class @C %x\n" +
@@ -466,7 +466,7 @@ class LowerPassInstructionConversionTest {
                           "    unit %anon$#1 = branch @f.bb(int64 12)\n" +
                           "  }\n" +
                           "  block %bb(int64 @f.bb.m) {\n" +
-                          "    struct @tungsten.Object.data$*? %a = upcast null\n" +
+                          "    struct @tungsten.Object.data$*? %a = bitcast null\n" +
                           "    int64 %n = binop int64 %m + int64 %m\n" +
                           "    struct @tungsten.Object.data$* %b = bitcast struct @tungsten.Object.data$*? %a\n" +
                           "    boolean @f.bb.b.cmp$#16 = relop struct @tungsten.Object.data$*? %a == bitcast null to struct @tungsten.Object.data$*?\n" +

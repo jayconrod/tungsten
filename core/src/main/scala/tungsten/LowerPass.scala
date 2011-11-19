@@ -339,6 +339,8 @@ class LowerInstructionsPass
         convertPCallInstruction(pcallInst, module)
       case scallInst: StaticCallInstruction => 
         convertSCallInstruction(scallInst, module)
+      case upcastInst: UpcastInstruction =>
+        convertUpcastInstruction(upcastInst, module)
       case vcallInst: VirtualCallInstruction => 
         convertVCallInstruction(vcallInst, module)
       case vlookupInst: VirtualLookupInstruction => 
@@ -475,6 +477,16 @@ class LowerInstructionsPass
                                         .asInstanceOf[Instruction]
     val returnInsts = castCallReturn(convertedInst, targetType.returnType, module)
     RewrittenInstructions(argumentInsts ++ returnInsts)
+  }
+
+  def convertUpcastInstruction(upcastInst: UpcastInstruction,
+                               module: Module): RewriteResult =
+  {
+    val bitcast = BitCastInstruction(upcastInst.name,
+                                     upcastInst.ty,
+                                     upcastInst.value,
+                                     upcastInst.annotations)
+    RewrittenInstructions(List(bitcast))
   }
 
   def convertVCallInstruction(vcallInst: VirtualCallInstruction, 

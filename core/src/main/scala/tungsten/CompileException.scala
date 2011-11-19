@@ -259,6 +259,12 @@ final case class InvalidBitCastException(value: Value,
                              format(valueToString(value), valueSize, typeToString(ty), tySize),
                            location)
 
+final case class InvalidDefinedValueException(value: DefinedValue,
+                                              location: Location)
+  extends CompileException("value does not match type of definition %s".
+                             format(value.value),
+                           location)
+
 final case class InvalidIndexException(value: String, ty: String, location: Location)
   extends CompileException("the value " + value + 
                              " cannot be used as an index into type " + ty,

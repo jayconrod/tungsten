@@ -26,10 +26,16 @@ final case class Global(name: Symbol,
                         value: Option[Value],
                         annotations: List[AnnotationValue] = Nil)
   extends Definition
+  with TypedDefinition
 {
   override def isGlobal = true
 
-  def ty(module: Module): Type = ty
+  /** Returns a pointer type to the global type.
+   *
+   *  This is necessary because defined values which refer to globals are pointers.
+   *  Globals could not be modified otherwise since all Tungsten values are immutable.
+   */
+  def ty(module: Module): Type = PointerType(ty)
 
   override def validate(module: Module) = {
     def validateValueLiteral = {

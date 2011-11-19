@@ -164,3 +164,9 @@ abstract class Definition
     foldTypes(Nil, checkType) ++ foldValues(Nil, checkValue)
   }
 }
+
+trait TypedDefinition
+  extends Definition
+{
+  def ty(module: Module): Type
+}

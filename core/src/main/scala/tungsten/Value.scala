@@ -180,10 +180,7 @@ final case class DefinedValue(value: Symbol, ty: Type)
 {
   override def validateComponents(module: Module, location: Location) = {
     module.getDefn(value) match {
-      case Some(_: Function)  | 
-           Some(_: Global)    | 
-           Some(_: Parameter) | 
-           Some(_: Instruction) => Nil
+      case Some(_: TypedDefinition) => Nil
       case Some(defn) => {
         List(InappropriateSymbolException(value, 
                                           defn.getLocation,
@@ -191,6 +188,14 @@ final case class DefinedValue(value: Symbol, ty: Type)
       }
       case None => List(UndefinedSymbolException(value, location))
     }
+  }
+
+  override def validate(module: Module, location: Location) = {
+    val defnTy = module.getDefn(value).get.asInstanceOf[TypedDefinition].ty(module)
+    if (ty != defnTy)
+      List(InvalidDefinedValueException(this, location))
+    else
+      Nil
   }
 }
 

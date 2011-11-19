@@ -28,6 +28,7 @@ final case class Function(name: Symbol,
                           blocks: List[Symbol],
                           annotations: List[AnnotationValue] = Nil)
   extends Definition
+  with TypedDefinition
 {
   override def isGlobal = true
 

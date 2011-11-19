@@ -137,4 +137,14 @@ class MiscDefinitionValidationTest
                   "function unit @f[type @T]\n"
     programContainsError[ScopeException](program)
   }
+
+  @Test
+  def definedValueTypeMatchesDefinition {
+    val program = "function int32 @f(int64 %x) {\n" +
+                  "  block %entry {\n" +
+                  "    return int32 @f.x\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[InvalidDefinedValueException](program)
+  }
 }

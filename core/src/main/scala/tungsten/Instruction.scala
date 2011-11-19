@@ -23,8 +23,10 @@ import Utilities._
 
 sealed abstract class Instruction
   extends Definition
+  with TypedDefinition
 {
   def ty: Type
+  def ty(module: Module): Type = ty
 
   def isTerminating = false
 

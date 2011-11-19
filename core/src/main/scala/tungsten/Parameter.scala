@@ -23,6 +23,9 @@ final case class Parameter(name: Symbol,
                            ty: Type,
                            annotations: List[AnnotationValue] = Nil)
   extends Definition
+  with TypedDefinition
 {
+  def ty(module: Module) = ty
+
   def makeValue = DefinedValue(name, ty)
 }

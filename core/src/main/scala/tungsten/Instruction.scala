@@ -90,12 +90,13 @@ trait CallInstruction extends Instruction {
       val argCount = arguments.size
       val paramCount = targetType.parameterTypes.size
       val isVariadic = targetType.isVariadic
-      val argumentCountErrors = if ((isVariadic && argCount < paramCount - 1) ||
+      val expectedParamCount = if (isVariadic) paramCount - 1 else paramCount
+      val argumentCountErrors = if ((isVariadic && argCount < expectedParamCount) ||
                                     (!isVariadic && argCount != paramCount))
       {
         List(FunctionArgumentCountException(targetName,
                                             argCount,
-                                            paramCount - 1,
+                                            expectedParamCount,
                                             getLocation))
       } else
         Nil

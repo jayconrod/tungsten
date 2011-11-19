@@ -73,6 +73,7 @@ class LowerPass
 
   def convertInterface(interface: Interface, module: Module): Module = {
     var m = module
+    m = createTypeParameterInfo(interface, module)
     m = createInterfaceInfo(interface, m)
     m = createVTableStruct(interface, m)
     m
@@ -83,6 +84,7 @@ class LowerPass
                    module: Module): Module = 
   {
     var m = module
+    m = createTypeParameterInfo(clas, module)
     m = createClassInfo(clas, m)
     m = createIVTableGlobals(clas, ivtableMap, m)
     m = createITableGlobal(clas, ivtableMap, m)
@@ -97,12 +99,15 @@ class LowerPass
     val nameGlobal = Global(classNameName(clas.name),
                             nameValue.ty,
                             Some(nameValue))
+
+    val infoNameValue = StructValue(arrayStructName,
+                                    List(BitCastValue(nameGlobal.makeValue,
+                                                      PointerType(IntType(8))),
+                                         IntValue.word(nameValue.elements.size, 
+                                                       module)))
     val infoValue = StructValue(classInfoStructName,
-                                List(StructValue(arrayStructName,
-                                                 List(BitCastValue(nameGlobal.makeValue,
-                                                                   PointerType(IntType(8))),
-                                                      IntValue.word(nameValue.elements.size, 
-                                                                    module)))))
+                                List(infoNameValue,
+                                     typeParameterInfoValue(clas, module)))
     val infoGlobal = Global(classInfoGlobalName(clas.name),
                             infoValue.ty,
                             Some(infoValue))
@@ -114,16 +119,62 @@ class LowerPass
     val nameGlobal = Global(interfaceNameName(interface.name),
                             nameValue.ty,
                             Some(nameValue))
+
+    val infoNameValue = StructValue(arrayStructName,
+                                    List(BitCastValue(nameGlobal.makeValue,
+                                                      PointerType(IntType(8))),
+                                         IntValue.word(nameValue.elements.size,
+                                                       module)))
+
     val infoValue = StructValue(interfaceInfoStructName,
-                                List(StructValue(arrayStructName,
-                                                 List(BitCastValue(nameGlobal.makeValue,
-                                                                   PointerType(IntType(8))),
-                                                      IntValue.word(nameValue.elements.size,
-                                                                    module)))))
+                                List(infoNameValue,
+                                     typeParameterInfoValue(interface, module)))
     val infoGlobal = Global(interfaceInfoGlobalName(interface.name),
                             infoValue.ty,
                             Some(infoValue))
     module.add(nameGlobal, infoGlobal)
+  }
+
+  def createTypeParameterInfo(defn: ObjectDefinition, module: Module): Module = {
+    if (defn.typeParameters.isEmpty)
+      module
+    else {
+      val typeParameters = module.getTypeParameters(defn.typeParameters)
+      val (nameGlobals, infoValues) = typeParameters.zipWithIndex.map({ ind =>
+        val (tp, i) = ind
+        val nameName = typeParameterNameName(defn.name, i)
+        val nameValue = ArrayValue.fromString(tp.name.toString)
+        val nameGlobal = new Global(nameName, nameValue.ty, Some(nameValue))
+
+        val flagsValue = IntValue.word(tp.variance.code, module)
+        val rawNameValue = BitCastValue(nameGlobal.makeValue, PointerType(IntType(8)))
+        val arrayNameValue = StructValue(arrayStructName,
+                                         List(rawNameValue, 
+                                              IntValue.word(nameValue.elements.size, module)))
+        val infoValue = StructValue(typeParameterInfoStructName, List(flagsValue, arrayNameValue))
+        (nameGlobal, infoValue)
+      }).unzip
+      val infoGlobalValue = ArrayValue(StructType(typeParameterInfoStructName), infoValues)
+      val infoGlobal = new Global(typeParameterInfoGlobalName(defn.name),
+                                  infoGlobalValue.ty,
+                                  Some(infoGlobalValue))
+      module.add(infoGlobal).add(nameGlobals: _*)
+    }
+  }
+
+  def typeParameterInfoValue(defn: ObjectDefinition, module: Module): Value = {
+    if (defn.typeParameters.isEmpty) {
+      StructValue(arrayStructName,
+                  List(BitCastValue(NullValue, PointerType(IntType(8))),
+                       IntValue.word(0, module)))
+    } else {
+      val size = defn.typeParameters.size
+      val arrayType = PointerType(ArrayType(size, StructType(typeParameterInfoStructName)))
+      val array = DefinedValue(typeParameterInfoGlobalName(defn.name), arrayType)
+      StructValue(arrayStructName,
+                  List(BitCastValue(array, PointerType(IntType(8))),
+                       IntValue.word(size, module)))
+    }
   }
 
   def createClassStruct(clas: Class, module: Module): Module = {
@@ -293,6 +344,7 @@ object LowerPass {
   val arrayStructName = symbolFromString("tungsten.array")
   val classInfoStructName = symbolFromString("tungsten.class_info")
   val interfaceInfoStructName = symbolFromString("tungsten.interface_info")
+  val typeParameterInfoStructName = symbolFromString("tungsten.type_parameter_info")
 
   def classNameName(className: Symbol): Symbol = className + "name$"
   def classStructName(className: Symbol): Symbol = className + "data$"
@@ -316,6 +368,11 @@ object LowerPass {
   def itableGlobalName(className: Symbol): Symbol = className + "itable$"
   def itableArrayName(vtableName: Symbol): Symbol = vtableName + "itable$"
   val itableEntryStructName = symbolFromString("tungsten.itable_entry")
+
+  def typeParameterInfoGlobalName(defnName: Symbol): Symbol = defnName + "params$"
+  def typeParameterNameName(defnName: Symbol, index: Int): Symbol = {
+    (defnName + "param_names$").copy(id = index)
+  }
 }
 
 class LowerInstructionsPass

@@ -38,9 +38,16 @@ struct @tungsten.array {
 
 struct @tungsten.class_info {
   field struct @tungsten.array %name
+  field struct @tungsten.array %type_parameters
 }
 
 struct @tungsten.interface_info {
+  field struct @tungsten.array %name
+  field struct @tungsten.array %type_parameters
+}
+
+struct @tungsten.type_parameter_info {
+  field int64 %flags
   field struct @tungsten.array %name
 }
 

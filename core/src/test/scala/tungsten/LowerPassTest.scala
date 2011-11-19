@@ -211,31 +211,49 @@ class LowerPassTest {
   }
 
   @Test
-  def lowerClassWithInterface {
+  def lowerClassWithInterfaceAndParameter {
     val program = "class @R\n" +
                   "interface @I <: class @R {\n" +
                   "  methods { %f }\n" +
                   "}\n" +
                   "function unit @I.f(interface @I %this)\n" +
-                  "class @C <: class @R {\n" +
+                  "class @C[type %T] <: class @R {\n" +
                   "  interface @I { %f }\n" +
                   "  methods { %f }\n" +
                   "}\n" +
-                  "function unit @C.f(class @C %this)\n"
+                  "function unit @C.f[type %T](class @C[type %T] %this)\n"
     val module = compileString(program)
     val loweredModule = pass(module)
 
     val expectedProgram = "global [1 x int8] @I.name$ = \"I\"\n" +
                           "global [1 x int8] @C.name$ = \"C\"\n" +
+                          "global [3 x int8] @C.param_names$#0 = \"C.T\"\n" +
+                          "global [1 x struct @tungsten.type_parameter_info] @C.params$ = [1 x struct @tungsten.type_parameter_info] {\n" +
+                          "  struct @tungsten.type_parameter_info {\n" +
+                          "    int64 3,\n" +
+                          "    struct @tungsten.array {\n" +
+                          "      bitcast [3 x int8]* @C.param_names$#0 to int8*,\n" +
+                          "      int64 3\n" +
+                          "    }\n" +
+                          "  }\n" +
+                          "}\n" +
                           "global struct @tungsten.interface_info @I.info$ = struct @tungsten.interface_info {\n" +
                           "  struct @tungsten.array {\n" +
                           "    bitcast [1 x int8]* @I.name$ to int8*,\n" +
                           "    int64 1\n" +
+                          "  },\n" +
+                          "  struct @tungsten.array {\n" +
+                          "    bitcast null to int8*,\n" +
+                          "    int64 0\n" +
                           "  }\n" +
                           "}\n" +
                           "global struct @tungsten.class_info @C.info$ = struct @tungsten.class_info {\n" +
                           "  struct @tungsten.array {\n" +
                           "    bitcast [1 x int8]* @C.name$ to int8*,\n" +
+                          "    int64 1\n" +
+                          "  },\n" +
+                          "  struct @tungsten.array {\n" +
+                          "    bitcast [1 x struct @tungsten.type_parameter_info]* @C.params$ to int8*,\n" +
                           "    int64 1\n" +
                           "  }\n" +
                           "}\n" +

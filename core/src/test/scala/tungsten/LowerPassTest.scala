@@ -252,6 +252,7 @@ class LowerPassTest {
                           "    bitcast [1 x int8]* @C.name$ to int8*,\n" +
                           "    int64 1\n" +
                           "  },\n" +
+                          "  bitcast struct @tungsten.class_info* @R.info$ to struct @tungsten.class_info*?,\n" +
                           "  struct @tungsten.array {\n" +
                           "    bitcast [1 x struct @tungsten.type_parameter_info]* @C.params$ to int8*,\n" +
                           "    int64 1\n" +

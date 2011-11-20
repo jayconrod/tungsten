@@ -38,6 +38,7 @@ struct @tungsten.array {
 
 struct @tungsten.class_info {
   field struct @tungsten.array %name
+  field struct @tungsten.class_info*? %superclass
   field struct @tungsten.array %type_parameters
 }
 

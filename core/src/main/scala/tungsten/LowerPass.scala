@@ -105,8 +105,20 @@ class LowerPass
                                                       PointerType(IntType(8))),
                                          IntValue.word(nameValue.elements.size, 
                                                        module)))
+
+    val superclassType = PointerType(StructType(classInfoStructName), ReferenceType.NULLABLE)
+    val superclassValue = clas.superclass match {
+      case Some(ClassType(superclassName, _, _)) => {
+        val rawValue = DefinedValue(classInfoGlobalName(superclassName),
+                                    superclassType.clearPointerFlags(ReferenceType.NULLABLE))
+        BitCastValue(rawValue, superclassType)
+      }
+      case None => BitCastValue(NullValue, superclassType)
+    }
+
     val infoValue = StructValue(classInfoStructName,
                                 List(infoNameValue,
+                                     superclassValue,
                                      typeParameterInfoValue(clas, module)))
     val infoGlobal = Global(classInfoGlobalName(clas.name),
                             infoValue.ty,

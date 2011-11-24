@@ -433,23 +433,98 @@ class LowerInstructionsPass
   def convertNewInstruction(newInst: NewInstruction, module: Module): RewriteResult = {
     val classType = newInst.ty.asInstanceOf[ClassType]
     val className = classType.definitionName
-    val allocInst = HeapAllocateInstruction(newInst.name, 
-                                            PointerType(StructType(classStructName(className))),
-                                            newInst.annotations)
-    val vtableInst = StoreElementInstruction(symbolFactory(newInst.name.name :+ "init$"),
+    val clas = module.getClass(className)
+
+    // Every object has extra words at the end corresponding to its type arguments.
+    // The number of words corresponds to the number of type arguments, including
+    // sub-arguments. For example if we are constructing A[B[C, D], E[F, G]], then
+    // we would need 6 additional words for: B, C, D, E, F, G. Objects with no type
+    // arguments require no extra data.
+    def countTypeArgumentWords(tyArgs: List[Type], count: Long = 0): Long = {
+      tyArgs match {
+        case Nil => count
+        case (h: ObjectDefinitionType) :: t => {
+          val newCount = countTypeArgumentWords(h.typeArguments, count + 1)
+          countTypeArgumentWords(t, newCount)
+        }
+        case _ => throw new RuntimeException("invalid type argument")
+      }
+    }
+
+    val wordSize = IntType.wordSize(module)/8
+    val typeArgWords = countTypeArgumentWords(classType.typeArguments)
+    val vtableWord = 1
+    val objectSize = clas.size(module)
+    val totalSize = align(objectSize, wordSize) + (typeArgWords + vtableWord) * wordSize
+
+    val allocInst = HeapAllocateArrayInstruction(symbolFactory(newInst.name + "new$"),
+                                                 PointerType(IntType(8)),
+                                                 IntValue.word(totalSize, module))
+    
+    // We first store a pointer to the object's vtable. This allows us to call methods
+    // on the object, so we have to do it before we call the constructor.
+    val vtBitcastInst = BitCastInstruction(newInst.name,
+                                           PointerType(StructType(classStructName(className))),
+                                           allocInst.makeValue)
+    val vtableInst = StoreElementInstruction(symbolFactory(newInst.name +"new$"),
                                              UnitType,
                                              DefinedValue(vtableGlobalName(className),
                                                           PointerType(StructType(vtableStructName(className)))),
-                                             allocInst.makeValue,
+                                             vtBitcastInst.makeValue,
                                              List(IntValue.word(0, module),
                                                   IntValue.word(0, module)))
-    val initInst = StaticCallInstruction(symbolFactory(newInst.name.name :+ "init$"),
+
+    // We need to store a pointer to the class or interface info for each type
+    // argument at the end of the object.
+    val classInfoInst = BitCastInstruction(symbolFactory(newInst.name + "new$"),
+                                           PointerType(PointerType(StructType(classInfoStructName))),
+                                           allocInst.makeValue)
+    val interfaceInfoInst = BitCastInstruction(symbolFactory(newInst.name + "new$"),
+                                               PointerType(PointerType(StructType(interfaceInfoStructName))),
+                                               allocInst.makeValue)
+    val typeArgumentOffset = align(objectSize + wordSize, wordSize)/wordSize
+    def storeTypeArguments(tyArgs: List[Type],
+                           insts: List[Instruction] = Nil): List[Instruction] = 
+    {
+      tyArgs match {
+        case Nil => insts
+        case (h: ObjectDefinitionType) :: t => {
+          val offset = typeArgumentOffset + insts.size
+          val storeInst = if (h.isInstanceOf[ClassType]) {
+            StoreElementInstruction(symbolFactory(newInst.name + "new$"),
+                                    UnitType,
+                                    DefinedValue(classInfoGlobalName(h.definitionName),
+                                                 PointerType(StructType(classInfoStructName))),
+                                    classInfoInst.makeValue,
+                                    List(IntValue.word(offset, module)))
+          } else if (h.isInstanceOf[InterfaceType]) {
+            StoreElementInstruction(symbolFactory(newInst.name + "new$"),
+                                    UnitType,
+                                    DefinedValue(interfaceInfoGlobalName(h.definitionName),
+                                                 PointerType(StructType(interfaceInfoStructName))),
+                                    interfaceInfoInst.makeValue,
+                                    List(IntValue.word(offset, module)))
+          } else {
+            throw new RuntimeException("invalid argument type")
+          }
+
+          val newInsts = storeTypeArguments(h.typeArguments, storeInst :: insts)
+          storeTypeArguments(t, newInsts)
+        }
+        case _ => throw new RuntimeException("invalid argument type")
+      }
+    }
+    val storeInsts = storeTypeArguments(classType.typeArguments)
+    
+    // Now the object is initialized, and we can actually call the constructor
+    val initInst = StaticCallInstruction(symbolFactory(newInst.name + "new$"),
                                          UnitType,
                                          newInst.constructorName,
-                                         classType.typeArguments ++ newInst.typeArguments, 
-                                         allocInst.makeValue :: newInst.arguments,
-                                         newInst.annotations)
-    RewrittenInstructions(List(allocInst, vtableInst, initInst))
+                                         Nil,
+                                         vtBitcastInst.makeValue :: newInst.arguments)
+    val rewritten = allocInst :: vtBitcastInst :: vtableInst :: 
+      classInfoInst :: interfaceInfoInst :: (storeInsts.reverse :+ initInst)
+    RewrittenInstructions(rewritten)
   }
 
   def convertNullCheckInstruction(nullcheckInst: NullCheckInstruction,

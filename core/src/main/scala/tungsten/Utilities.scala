@@ -25,6 +25,11 @@ object Utilities {
   val ERROR_CODE = 127
   val FAILURE_CODE = 1
 
+  def align(n: Long, alignment: Long): Long = {
+    assert(isPowerOf2(alignment))
+    (n + alignment - 1) & ~(alignment - 1)
+  }
+
   def charIsPrintable(ch: Char): Boolean = {
     val block = Character.UnicodeBlock.of(ch)
     !Character.isISOControl(ch) &&
@@ -85,7 +90,7 @@ object Utilities {
     }).mkString
   }
 
-  def isPowerOf2(x: Int) = (x & (x - 1)) == 0
+  def isPowerOf2(x: Long) = (x & (x - 1)) == 0
 
   def linkRuntime(module: Module): Module = {
     Linker.linkModules(List(module, Runtime.getRuntime(module.is64Bit)),

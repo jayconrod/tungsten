@@ -170,3 +170,14 @@ trait TypedDefinition
 {
   def ty(module: Module): Type
 }
+
+trait AggregateDefinition
+  extends Definition
+{
+  def fields: List[Symbol]
+
+  def size(module: Module): Long = {
+    val fieldSizes = module.getFields(fields).map(_.ty.size(module))
+    fieldSizes.sum
+  }
+}

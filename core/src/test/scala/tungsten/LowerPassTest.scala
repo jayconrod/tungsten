@@ -341,8 +341,13 @@ class LowerPassInstructionConversionTest {
     m = pass.convertClassesAndInterfaces(m)
     m = instPass.processModule(m)
     val newInstructions = getInstructions(m)
-    val expectedInstructions = makeInstructions(expectedCode)
-    assertEquals(expectedInstructions, newInstructions)
+    val expectedModule = makeModule(expectedCode)
+    val expectedEntry = expectedModule.getBlock("f.entry")
+    val expectedInstructions = expectedModule.getInstructions(expectedEntry.instructions)
+    assertEquals(expectedInstructions.size, newInstructions.size)
+    (newInstructions zip expectedInstructions) foreach { ind =>
+      assertEqualsIgnoreSymbols(ind._1, ind._2)
+    }
   }
 
   @Test
@@ -362,10 +367,52 @@ class LowerPassInstructionConversionTest {
   @Test
   def testNew {
     val code = "class @R %r = new @R.ctor(int64 2)"
-    val expectedCode = "struct @R.data$* %r = heap\n" +
-                       "unit %r.init$#1 = storeelement struct @R.vtable_type$* @R.vtable$, struct @R.data$* %r, int64 0, int64 0\n" +
-                       "unit %r.init$#2 = scall @R.ctor(struct @R.data$* %r, int64 2)"
+    val expectedCode = "int8* %r.new$ = heaparray int64 16\n" +
+                       "struct @R.data$* %r = bitcast int8* %r.new$\n" +
+                       "unit %r.new$#1 = storeelement struct @R.vtable_type$* @R.vtable$, struct @R.data$* %r, int64 0, int64 0\n" +
+                       "struct @tungsten.class_info** %r.new$#2 = bitcast int8* %r.new$\n" +
+                       "struct @tungsten.interface_info** %r.new$#3 = bitcast int8* %r.new$\n" +
+                       "unit %r.new$#4 = scall @R.ctor(struct @R.data$* %r, int64 2)\n"
     testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testComplexNew {
+    val program = "class @R\n" +
+                  "class @A <: class @R\n" +
+                  "class @B <: class @R\n" +
+                  "class @C[type %T] <: class @R\n" +
+                  "class @D[type %T] <: class @R\n" +
+                  "class @E[type %S, type %T] <: class @R {\n" +
+                  "  constructors { %ctor }\n" +
+                  "  field int64 %x\n" +
+                  "}\n" +
+                  "function unit @E.ctor[type %S, type %T](class @E[type %S, type %T] %this)\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @E[class @C[class @A], class @D[class @B]] %e = new @E.ctor()\n" +
+                  "  }\n" +
+                  "}\n"
+    val expectedCode = "int8* %e.new$ = heaparray int64 48\n" +
+                       "struct @E.data$* %e = bitcast int8* %e.new$\n" +
+                       "unit %e.new$#1 = storeelement struct @E.vtable_type$* @E.vtable$, struct @E.data$* %e, int64 0, int64 0\n" +
+                       "struct @tungsten.class_info** %e.new$#2 = bitcast int8* %e.new$\n" +
+                       "struct @tungsten.interface_info** %e.new$#3 = bitcast int8* %e.new$\n" +
+                       "unit %e.new$#4 = storeelement struct @tungsten.class_info* @C.info$, struct @tungsten.class_info** %e.new$#2, int64 2\n" +
+                       "unit %e.new$#5 = storeelement struct @tungsten.class_info* @A.info$, struct @tungsten.class_info** %e.new$#2, int64 3\n" +
+                       "unit %e.new$#6 = storeelement struct @tungsten.class_info* @D.info$, struct @tungsten.class_info** %e.new$#2, int64 4\n" +
+                       "unit %e.new$#7 = storeelement struct @tungsten.class_info* @B.info$, struct @tungsten.class_info** %e.new$#2, int64 5\n" +
+                       "unit %e.new$#8 = scall @E.ctor(struct @E.data$* %e)\n"
+    var m = compileString(program)
+    m = pass.convertClassesAndInterfaces(m)
+    m = instPass.processModule(m)
+    val newInstructions = getInstructions(m)
+    val expectedModule = makeModule(expectedCode)
+    val expectedInstructions = expectedModule.getInstructions(expectedModule.getBlock("f.entry").instructions)
+    (newInstructions zip expectedInstructions) foreach { ind =>
+      val (actual, expected) = ind
+      assertEqualsIgnoreSymbols(expected, actual)
+    }
   }
 
   @Test
@@ -495,11 +542,14 @@ class LowerPassInstructionConversionTest {
                           "    unit %anon$#2 = branch @f.exit(int64 %n#8, struct @tungsten.Object.data$* %b#9)\n" +
                           "  } catch @f.cb(int64 %m#7)\n" +
                           "  block @f.bb.b.npebb$#14(int64 @f.bb.m#15) {\n" +
-                          "    struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10 = heap \n" +
-                          "    unit @f.bb.b.exn$.init$#11 = storeelement struct @tungsten.NullPointerException.vtable_type$* @tungsten.NullPointerException.vtable$, struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10, int64 0, int64 0\n" +
-                          "    unit @f.bb.b.exn$.init$#12 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10)\n" +
-                          "    unit @f.bb.b.throw$#13 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#10\n" +
-                          "  } catch @f.cb(int64 @f.bb.m#15)\n" +
+                          "    int8* @f.bb.b.exn$.new$#10 = heaparray int64 8\n" +
+                          "    struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
+                          "    unit @f.bb.b.exn$.new$#12 = storeelement struct @tungsten.NullPointerException.vtable_type$* @tungsten.NullPointerException.vtable$, struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11, int64 0, int64 0\n" +
+                          "    struct @tungsten.class_info** @f.bb.b.exn$.new$#13 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
+                          "    struct @tungsten.interface_info** @f.bb.b.exn$.new$#14 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
+                          "    unit @f.bb.b.exn$.new$#15 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11)\n" +
+                          "    unit @f.bb.b.throw$#16 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11\n" +
+                          "  } catch @f.cb(int64 @f.bb.m#17)\n" +
                           "  block %exit(int64 @f.exit.n, struct @tungsten.Object.data$* @f.exit.b) {\n" +
                           "    unit %anon$#3 = return ()\n" +
                           "  }\n" +

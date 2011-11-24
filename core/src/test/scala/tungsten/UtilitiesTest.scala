@@ -25,6 +25,14 @@ import java.io.File
 import Utilities._
 
 class UtilitiesTest {
+  @Test
+  def testAlign {
+    assertEquals(12, align(12, 4))
+    assertEquals(16, align(13, 4))
+    assertEquals(16, align(15, 4))
+    assertEquals(15, align(15, 1))
+  }
+
   @Test 
   def isPowerOf2Test {
     assertTrue(isPowerOf2(0))

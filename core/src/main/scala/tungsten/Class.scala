@@ -32,6 +32,7 @@ final case class Class(name: Symbol,
                        annotations: List[AnnotationValue] = Nil)
   extends Definition
   with ObjectDefinition
+  with AggregateDefinition
 {
   override def isGlobal = true
 

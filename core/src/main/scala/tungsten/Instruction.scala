@@ -684,6 +684,40 @@ final case class InsertInstruction(name: Symbol,
   }      
 }
 
+final case class InstanceOfInstruction(name: Symbol,
+                                       ty: Type,
+                                       value: Value,
+                                       isa: Type,
+                                       annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = List(value)
+
+  override def validate(module: Module) = {
+    def validateTypes = {
+      List(value.ty, isa).filterNot(_.isInstanceOf[ObjectDefinitionType]).map { t =>
+        TypeMismatchException(t, "class or interface type", getLocation)
+      }
+    }
+
+    def validateNullable = {
+      val refTy = value.ty.asInstanceOf[ReferenceType]
+      val refIsaTy = isa.asInstanceOf[ReferenceType]
+      if (refIsaTy.isNullable && !refTy.isNullable)
+        List(TypeMismatchException(value.ty, "nullable type", getLocation))
+      else if (!refIsaTy.isNullable && refTy.isNullable)
+        List(TypeMismatchException(value.ty, "non-nullable type", getLocation))
+      else
+        Nil
+    }
+
+    super.validate(module) ++
+      checkType(BooleanType, ty, getLocation) ++
+      validateTypes ++?
+      validateNullable
+  }
+}
+
 final case class IntegerToFloatInstruction(name: Symbol,
                                            ty: Type,
                                            value: Value,

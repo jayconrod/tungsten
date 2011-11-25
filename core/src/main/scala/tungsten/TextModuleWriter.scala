@@ -282,6 +282,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case _: HeapAllocateInstruction => "heap"
       case _: HeapAllocateArrayInstruction => "heaparray"
       case _: InsertInstruction => "insert"
+      case _: InstanceOfInstruction => "instanceof"
       case _: IntegerToFloatInstruction => "itof"
       case _: IntegerSignExtendInstruction => "isextend"
       case _: IntegerTruncateInstruction => "itruncate"
@@ -351,6 +352,9 @@ class TextModuleWriter(module: Module, output: Writer) {
       case InsertInstruction(_, _, value, base, indices, _) => {
         output.write(localValue(value) + ", " + localValue(base) + ", " +
                      indices.map(localValue).mkString(", "))
+      }
+      case InstanceOfInstruction(_, _, value, isaTy, _) => {
+        output.write(localValue(value) + ": " + localType(isaTy))
       }
       case IntegerSignExtendInstruction(_, _, value, _) => {
         output.write(localValue(value))

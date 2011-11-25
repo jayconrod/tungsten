@@ -381,6 +381,12 @@ class ParserTest {
   }
 
   @Test
+  def instanceofTest {
+    testInstruction("unit %x = instanceof (): unit",
+                    InstanceOfInstruction("%x", UnitType, UnitValue, UnitType))
+  }
+
+  @Test
   def intrinsicInst {
     testInstruction("unit %x = intrinsic exit(())",
                     IntrinsicCallInstruction("%x", UnitType, Intrinsic.EXIT, List(UnitValue)))

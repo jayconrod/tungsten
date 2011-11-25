@@ -213,6 +213,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
           case _: HeapAllocateInstruction => HEAP_ALLOCATE_INST_ID
           case _: HeapAllocateArrayInstruction => HEAP_ALLOCATE_ARRAY_INST_ID
           case _: InsertInstruction => INSERT_INST_ID
+          case _: InstanceOfInstruction => INSTANCE_OF_INST_ID
           case _: IntegerToFloatInstruction => INTEGER_TO_FLOAT_INST_ID
           case _: IntegerSignExtendInstruction => INTEGER_SIGN_EXTEND_INST_ID
           case _: IntegerTruncateInstruction => INTEGER_TRUNCATE_INST_ID
@@ -287,6 +288,10 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
             writeValue(value)
             writeValue(base)
             writeList(indices, writeValue _)
+          }
+          case InstanceOfInstruction(_, _, value, isaTy, _) => {
+            writeValue(value)
+            writeType(isaTy)
           }
           case IntegerSignExtendInstruction(_, _, value, _) => {
             writeValue(value)

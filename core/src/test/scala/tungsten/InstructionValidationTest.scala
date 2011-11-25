@@ -726,4 +726,52 @@ class InstructionValidationTest
     val code = "unit %x = catch"
     codeContainsError[TypeMismatchException](code)
   }
+
+  @Test
+  def instanceofNotBoolean {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    unit %x = instanceof bitcast null to class @R: class @R\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def instanceofNonClassTarget {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    boolean %x = instanceof (): class @R\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def instanceOfNonClassType {
+    val program = "class @R\n" +
+                  "function unit @f[type %T] {\n" +
+                  "  block %entry {\n" +
+                  "    boolean %x = instanceof bitcast null to class @R: type @f.T\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def instanceOfNullabilityMismatch {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    boolean %x = instanceof bitcast null to class? @R: class @R\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}"
+    programContainsError[TypeMismatchException](program)
+  }
 }

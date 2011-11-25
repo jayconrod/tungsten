@@ -249,6 +249,7 @@ class Parser extends Parsers with ImplicitConversions {
     heapInst           |
     heapArrayInst      |
     insertInst         |
+    instanceofInst     |
     itofInst           |
     isextendInst       |
     itruncateInst      |
@@ -350,6 +351,12 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val insertInst: Parser[InsertInstruction] = {
     instName("insert") ~ (value <~ ",") ~ (value <~ ",") ~ rep1sep(value, ",") ^^ {
       case anns ~ ty ~ n ~ v ~ b ~ is => InsertInstruction(n, ty, v, b, is, anns)
+    }
+  }
+
+  lazy val instanceofInst: Parser[InstanceOfInstruction] = {
+    instName("instanceof") ~ (value <~ ":") ~ ty ^^ {
+      case anns ~ ty ~ n ~ v ~ isa => InstanceOfInstruction(n, ty, v, isa, anns)
     }
   }
 

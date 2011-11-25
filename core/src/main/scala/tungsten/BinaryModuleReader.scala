@@ -180,6 +180,9 @@ class BinaryModuleReader(input: DataInputStream) {
         InsertInstruction(name, readType, readValue, readValue, 
                           readList(readValue), readAnnotations)
       }
+      case INSTANCE_OF_INST_ID => {
+        InstanceOfInstruction(name, readType, readValue, readType, readAnnotations)
+      }
       case INTEGER_SIGN_EXTEND_INST_ID => {
         IntegerSignExtendInstruction(name, readType, readValue, readAnnotations)
       }

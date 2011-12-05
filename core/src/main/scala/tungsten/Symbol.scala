@@ -31,6 +31,7 @@ final class Symbol(val name: List[String], val id: Int)
 
   def + (right: String) = new Symbol(name ++ List(right), id)
   def + (right: Symbol) = new Symbol(name ++ right.name, right.id)
+  def + (id: Int) = new Symbol(name, id)
 
   def simple = Symbol(name.last, id)
 

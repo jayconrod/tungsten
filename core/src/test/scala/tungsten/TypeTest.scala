@@ -312,4 +312,21 @@ class TypeTest {
     val errors = f.validate(m, Nowhere)
     assertTrue(errors.head.isInstanceOf[VariadicTypeException])
   }
+
+  @Test
+  def objectDefnSupertypes {
+    val program = "class @A\n" +
+                  "interface @I <: class @A\n" +
+                  "class @B[type %T] <: class @A {\n" +
+                  "  interface @I\n" +
+                  "}\n" +
+                  "class @C[type %T] <: class @B[type %T]\n"
+    val module = compileString(program)
+    val ty = ClassType("C", List(ClassType("A")))
+    val expectedTypes = List(ClassType("C", List(ClassType("A"))),
+                             ClassType("B", List(ClassType("A"))),
+                             ClassType("A"),
+                             InterfaceType("I"))
+    assertEquals(expectedTypes, ty.supertypes(module))
+  }
 }

@@ -204,7 +204,7 @@ trait ObjectDefinition
    *       be at the beginning of the method type parameter list, and they must have the same
    *       bounds as the corresponding ones in the class.
    *    d) If the object type is not of this class, it must be for a superclass or interface.
-   *  3) if the method's "this" type is of a different class, that class must define the method
+   *  2) if the method's "this" type is of a different class, that class must define the method
    *     in the same position in the method list as this class. This is necessary to make the
    *     vtable work.
    */

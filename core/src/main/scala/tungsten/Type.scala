@@ -313,6 +313,31 @@ sealed trait ObjectDefinitionType
 
   def typeArguments: List[Type]
 
+  /** Returns a list of object definition types inherited by this type (including
+   *  this type). This works by traversing the inheritance graph and replacing type
+   *  parameters with arguments, so it is not a fast method. Types are returned in
+   *  depth first order. Supertypes are visited class first, then interfaces.
+   */
+  def supertypes(module: Module): List[ObjectDefinitionType] = {
+    def visit(ty: ObjectDefinitionType,
+              types: List[ObjectDefinitionType],
+              visited: Set[Symbol]): (List[ObjectDefinitionType], Set[Symbol])  =
+    {
+      val name = ty.definitionName
+      if (visited(name))
+        (types, visited)
+      else {
+        val defn = ty.getObjectDefinition(module)
+        val supertypes = defn.substitutedInheritedTypes(ty.typeArguments)
+        ((ty :: types, visited + name) /: supertypes) { (ind, sty) =>
+          val (types, visited) = ind
+          visit(sty, types, visited)
+        }
+      }
+    }
+    visit(this, Nil, Set())._1.reverse
+  }
+
   def objectDefinitionTypeParameters(module: Module): List[TypeParameter] = {
     val defn = getObjectDefinition(module)
     module.getTypeParameters(defn.typeParameters)

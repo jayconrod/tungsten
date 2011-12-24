@@ -56,7 +56,7 @@ final case class Class(name: Symbol,
 
   override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
     val tpScope = scope ++ typeParameters
-    validateTypeAndValueScope(scope) ++
+    validateTypeAndValueScope(tpScope) ++
       validateComponentsScope(module, tpScope, typeParameters) ++
       validateComponentsScope(module, tpScope, fields)
   }

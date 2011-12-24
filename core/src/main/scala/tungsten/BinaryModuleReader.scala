@@ -289,11 +289,18 @@ class BinaryModuleReader(input: DataInputStream) {
       case STRUCT_TYPE_ID => StructType(symbol)
       case VARIADIC_TYPE_ID => VariadicType
       case FUNCTION_TYPE_ID => FunctionType(readType, readList(symbol), readList(readType))
-      case CLASS_TYPE_ID => ClassType(symbol, readList(readType), readInt)
-      case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readType), readInt)
+      case CLASS_TYPE_ID => ClassType(symbol, readList(readObjectType), readInt)
+      case INTERFACE_TYPE_ID => InterfaceType(symbol, readList(readObjectType), readInt)
       case VARIABLE_TYPE_ID => VariableType(symbol, readInt)
       case NOTHING_TYPE_ID => NothingType(readInt)
       case _ => throw new IOException("Invalid type ID")
+    }
+  }
+
+  def readObjectType: ObjectType = {
+    readType match {
+      case objTy: ObjectType => objTy
+      case _ => throw new IOException("invalid type")
     }
   }
 

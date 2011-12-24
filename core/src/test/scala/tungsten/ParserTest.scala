@@ -161,8 +161,8 @@ class ParserTest {
   @Test
   def classType {
     testType("class @T", ClassType("@T"))
-    testType("class @T[unit, unit]",
-             ClassType("@T", List(UnitType, UnitType)))
+    testType("class @T[nothing, nothing]",
+             ClassType("@T", List(NothingType(), NothingType())))
   }
 
   @Test
@@ -173,8 +173,8 @@ class ParserTest {
   @Test
   def interfaceType {
     testType("interface @I", InterfaceType("@I"))
-    testType("interface @I[unit, unit]",
-             InterfaceType("@I", List(UnitType, UnitType)))
+    testType("interface @I[nothing, nothing]",
+             InterfaceType("@I", List(NothingType(), NothingType())))
   }
 
   @Test
@@ -406,8 +406,8 @@ class ParserTest {
 
   @Test
   def newInst {
-    testInstruction("class @A %x = new @A.ctor[unit](())",
-                    NewInstruction("%x", ClassType("@A"), "@A.ctor", List(UnitType), List(UnitValue)))
+    testInstruction("class @A %x = new @A.ctor[nothing](())",
+                    NewInstruction("%x", ClassType("@A"), "@A.ctor", List(NothingType()), List(UnitValue)))
   }
 
   @Test
@@ -418,8 +418,8 @@ class ParserTest {
 
   @Test
   def pcallInst {
-    testInstruction("unit %x = pcall ()[unit](())",
-                    PointerCallInstruction("%x", UnitType, UnitValue, List(UnitType), List(UnitValue)))
+    testInstruction("unit %x = pcall ()[nothing](())",
+                    PointerCallInstruction("%x", UnitType, UnitValue, List(NothingType()), List(UnitValue)))
   }
 
   @Test
@@ -463,8 +463,8 @@ class ParserTest {
 
   @Test
   def staticCallInst {
-    testInstruction("unit %x = scall @f[unit](())",
-                    StaticCallInstruction("%x", UnitType, "@f", List(UnitType), List(UnitValue)))
+    testInstruction("unit %x = scall @f[nothing](())",
+                    StaticCallInstruction("%x", UnitType, "@f", List(NothingType()), List(UnitValue)))
   }
 
   @Test
@@ -487,8 +487,8 @@ class ParserTest {
 
   @Test
   def vcallInst {
-    testInstruction("unit %x = vcall ():0[unit](())",
-                    VirtualCallInstruction("%x", UnitType, UnitValue, 0, List(UnitType), List(UnitValue)))
+    testInstruction("unit %x = vcall ():0[nothing](())",
+                    VirtualCallInstruction("%x", UnitType, UnitValue, 0, List(NothingType()), List(UnitValue)))
   }
 
   @Test

@@ -185,8 +185,7 @@ final case class PointerType(elementType: Type, pointerFlags: Int = 0)
 }
 
 final case object NullType
-  extends Type
-  with ReferenceType
+  extends ReferenceType
 {
   def size(module: Module) = wordSize(module)
 
@@ -304,6 +303,8 @@ sealed trait ObjectType
   override def isNumeric = false
 
   override def isObject = true
+
+  override def expose(module: Module): ObjectType = this
 }
 
 sealed trait ObjectDefinitionType
@@ -311,7 +312,7 @@ sealed trait ObjectDefinitionType
 {
   def definitionName: Symbol
 
-  def typeArguments: List[Type]
+  def typeArguments: List[ObjectType]
 
   /** Returns a list of object definition types inherited by this type (including
    *  this type). This works by traversing the inheritance graph and replacing type
@@ -387,10 +388,9 @@ sealed trait ObjectDefinitionType
 }
 
 final case class ClassType(className: Symbol,
-                           typeArguments: List[Type] = Nil,
+                           typeArguments: List[ObjectType] = Nil,
                            pointerFlags: Int = 0)
-  extends Type
-  with ObjectDefinitionType
+  extends ObjectDefinitionType
 {
   def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 
@@ -417,10 +417,9 @@ final case class ClassType(className: Symbol,
 }
 
 final case class InterfaceType(interfaceName: Symbol,
-                               typeArguments: List[Type] = Nil,
+                               typeArguments: List[ObjectType] = Nil,
                                pointerFlags: Int = 0)
-  extends Type
-  with ObjectDefinitionType
+  extends ObjectDefinitionType
 {
   def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 
@@ -481,8 +480,7 @@ final case class VariableType(variableName: Symbol, pointerFlags: Int = 0)
 }
 
 final case class NothingType(pointerFlags: Int = 0)
-  extends Type
-  with ObjectType
+  extends ObjectType
 {
   def withPointerFlags(pointerFlags: Int) = copy(pointerFlags = pointerFlags)
 }

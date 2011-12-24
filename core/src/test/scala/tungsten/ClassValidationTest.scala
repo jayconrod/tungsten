@@ -570,4 +570,14 @@ class ClassValidationTest
                   "function class @B @B.f(class @B %this)\n"
     programIsCorrect(program)
   }
+
+  @Test
+  def typeParamInScope {
+    val program = "class @R\n" +
+                  "interface @I[type %T] <: class @R\n" +
+                  "class @C[type %T] <: class @R {\n" +
+                  "  interface @I[type %T]\n" +
+                  "}\n"
+    programIsCorrect(program)
+  }
 }

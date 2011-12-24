@@ -103,7 +103,7 @@ final case class TypeParameter(name: Symbol,
   }
 }
 
-case class Variance(prefix: String, varianceString: String, code: Int) {
+case class Variance(prefix: String, varianceString: String) {
   import Variance._
 
   def opposite: Variance = {
@@ -118,16 +118,7 @@ case class Variance(prefix: String, varianceString: String, code: Int) {
   override def toString = prefix
 }
 object Variance {
-  val COVARIANT = Variance("+", "covariant", 1)
-  val CONTRAVARIANT = Variance("-", "contravariant", 2)
-  val INVARIANT = Variance("", "invariant", 3)
-
-  def fromCode(code: Int): Variance = {
-    code match {
-      case 1 => COVARIANT
-      case 2 => CONTRAVARIANT
-      case 3 => INVARIANT
-      case _ => throw new RuntimeException("invalid variance code")
-    }
-  }
+  val COVARIANT = Variance("+", "covariant")
+  val CONTRAVARIANT = Variance("-", "contravariant")
+  val INVARIANT = Variance("", "invariant")
 }

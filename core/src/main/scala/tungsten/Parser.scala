@@ -652,8 +652,9 @@ class Parser extends Parsers with ImplicitConversions {
     "nothing" ~> ptrFlags ^^ { case fs => NothingType(fs) }
   }
 
-  lazy val typeArgumentList: Parser[List[Type]] = {
-    opt("[" ~> rep1sep(ty, ",") <~ "]") ^^ {
+  lazy val typeArgumentList: Parser[List[ObjectType]] = {
+    val objTy = ty ^? { case t: ObjectType => t }
+    opt("[" ~> rep1sep(objTy, ",") <~ "]") ^^ {
       case Some(as) => as
       case None => Nil
     }

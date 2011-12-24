@@ -48,8 +48,9 @@ final case class Interface(name: Symbol,
   }
 
   override def validateScope(module: Module, scope: Set[Symbol]): List[CompileException] = {
-    validateTypeAndValueScope(scope) ++
-      validateComponentsScope(module, scope ++ typeParameters, typeParameters)
+    val tpScope = scope ++ typeParameters
+    validateTypeAndValueScope(tpScope) ++
+      validateComponentsScope(module, tpScope, typeParameters)
   }
 
   override def validate(module: Module): List[CompileException] = {

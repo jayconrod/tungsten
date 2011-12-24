@@ -225,19 +225,8 @@ class LowerPassTest {
     val module = compileString(program)
     val loweredModule = pass(module)
 
-    val expectedProgram = "global [1 x int8] @I.name$ = \"I\"\n" +
-                          "global [1 x int8] @C.name$ = \"C\"\n" +
-                          "global [3 x int8] @C.param_names$#0 = \"C.T\"\n" +
-                          "global [1 x struct @tungsten.type_parameter_info] @C.params$ = [1 x struct @tungsten.type_parameter_info] {\n" +
-                          "  struct @tungsten.type_parameter_info {\n" +
-                          "    int64 3,\n" +
-                          "    struct @tungsten.array {\n" +
-                          "      bitcast [3 x int8]* @C.param_names$#0 to int8*,\n" +
-                          "      int64 3\n" +
-                          "    }\n" +
-                          "  }\n" +
-                          "}\n" +
-                          "global struct @tungsten.interface_info @I.info$ = struct @tungsten.interface_info {\n" +
+    val expectedProgram = "global struct @tungsten.interface_info @I.info$ = struct @tungsten.interface_info {\n" +
+                          "  int32 0,\n" +
                           "  struct @tungsten.array {\n" +
                           "    bitcast [1 x int8]* @I.name$ to int8*,\n" +
                           "    int64 1\n" +
@@ -248,15 +237,35 @@ class LowerPassTest {
                           "  }\n" +
                           "}\n" +
                           "global struct @tungsten.class_info @C.info$ = struct @tungsten.class_info {\n" +
+                          "  int32 1,\n" +
                           "  struct @tungsten.array {\n" +
                           "    bitcast [1 x int8]* @C.name$ to int8*,\n" +
                           "    int64 1\n" +
                           "  },\n" +
-                          "  bitcast struct @tungsten.class_info* @R.info$ to struct @tungsten.class_info*?,\n" +
                           "  struct @tungsten.array {\n" +
-                          "    bitcast [1 x struct @tungsten.type_parameter_info]* @C.params$ to int8*,\n" +
+                          "    bitcast [1 x struct @tungsten.type_parameter_info]* @C.type_parameter_info$ to int8*,\n" +
                           "    int64 1\n" +
+                          "  },\n" +
+                          "  bitcast struct @tungsten.class_info* @R.info$ to struct @tungsten.class_info*?,\n" +
+                          "  int64 2,\n" +
+                          "  bitcast [2 x struct @tungsten.class_info*]* @C.supertype_info$ to struct @tungsten.class_info**?,\n" +
+                          "  bitcast null to int8*?*?*?\n" +
+                          "}\n" +
+                          "global [1 x int8] @I.name$ = \"I\"\n" +
+                          "global [1 x int8] @C.name$ = \"C\"\n" +
+                          "global [3 x int8] @C.type_parameter_names$#0 = \"C.T\"\n" +
+                          "global [1 x struct @tungsten.type_parameter_info] @C.type_parameter_info$ = [1 x struct @tungsten.type_parameter_info] {\n" +
+                          "  struct @tungsten.type_parameter_info {\n" +
+                          "    int32 0,\n" +
+                          "    struct @tungsten.array {\n" +
+                          "      bitcast [3 x int8]* @C.type_parameter_names$#0 to int8*,\n" +
+                          "      int64 3\n" +
+                          "    }\n" +
                           "  }\n" +
+                          "}\n" +
+                          "global [2 x struct @tungsten.class_info*] @C.supertype_info$ = [2 x struct @tungsten.class_info*] {\n" +
+                          "  struct @tungsten.class_info* @R.info$,\n" +
+                          "  bitcast struct @tungsten.interface_info* @I.info$ to struct @tungsten.class_info*\n" +
                           "}\n" +
                           "struct @I.vtable_type$ {\n" +
                           "  field (struct @R.data$*)->unit %f#0\n" +
@@ -287,10 +296,61 @@ class LowerPassTest {
                           "  field struct @C.vtable_type$* %vtable_ptr$\n" +
                           "}\n"
     val expectedModule = pass.addDefinitions(compileString(expectedProgram))
-    expectedModule.definitions.values.foreach { expectedDefn =>
-      val defn = loweredModule.definitions(expectedDefn.name)
-      assertEquals(expectedDefn, defn)
-    }
+    assertEqualsIgnoreSymbols(expectedModule, loweredModule)
+  }
+
+  @Test
+  def lowerClassTypeInstructions {
+    System.err.println("### lowerClassTypeInstructions")
+    val program = "class @R\n" +
+                  "interface @I[type %T] <: class @R\n" +
+                  "class @C[type %T] <: class @R {\n" +
+                  "  interface @I[class @C[type %T]]\n" +
+                  "}\n"
+    val module = compileString(program)
+    val loweredModule = pass(module)
+
+    val expectedProgram = "global struct @tungsten.class_info @C.info$ = struct @tungsten.class_info {\n" +
+                          "  int32 1,\n" +
+                          "  struct @tungsten.array {\n" +
+                          "    bitcast [1 x int8]* @C.name$ to int8*,\n" +
+                          "    int64 1\n" +
+                          "  },\n" +
+                          "  struct @tungsten.array {\n" +
+                          "    bitcast [1 x struct @tungsten.type_parameter_info]* @C.type_parameter_info$ to int8*,\n" +
+                          "    int64 1\n" +
+                          "  },\n" +
+                          "  bitcast struct @tungsten.class_info* @R.info$ to struct @tungsten.class_info*?,\n" +
+                          "  int64 2,\n" +
+                          "  bitcast [2 x struct @tungsten.class_info*]* @C.supertype_info$ to struct @tungsten.class_info**?,\n" +
+                          "  bitcast [2 x int8*?*?]* @C.supertype_instruction_arrays$ to int8*?*?*?\n" +
+                          "}\n" +
+                          "global [1 x int8] @C.name$ = \"C\"\n" +
+                          "global [1 x struct @tungsten.type_parameter_info] @C.type_parameter_info$ = [1 x struct @tungsten.type_parameter_info] {\n" +
+                          "  struct @tungsten.type_parameter_info {\n" +
+                          "    int32 0,\n" +
+                          "    struct @tungsten.array {\n" +
+                          "      bitcast [3 x int8]* @C.type_parameter_names$ to int8*,\n" +
+                          "      int64 3\n" +
+                          "    }\n" +
+                          "  }\n" +
+                          "}\n" +
+                          "global [3 x int8] @C.type_parameter_names$ = \"C.T\"\n" +
+                          "global [2 x struct @tungsten.class_info*] @C.supertype_info$ = [2 x struct @tungsten.class_info*] {\n" +
+                          "  struct @tungsten.class_info* @R.info$,\n" +
+                          "  bitcast struct @tungsten.interface_info* @I.info$ to struct @tungsten.class_info*\n" +
+                          "}\n" +
+                          "global [2 x int8*?*?] @C.supertype_instruction_arrays$ = [2 x int8*?*?] {\n" +
+                          "  bitcast null to int8*?*?,\n" +
+                          "  bitcast [3 x int8*?]* @C.supertype_instructions$#1 to int8*?*?\n" +
+                          "}\n" +
+                          "global [3 x int8*?] @C.supertype_instructions$#1 = [3 x int8*?] {\n" +
+                          "  bitcast struct @tungsten.class_info* @C.info$ to int8*?,\n" +
+                          "  bitcast int64 1 to int8*?,\n" +
+                          "  bitcast int64 -1 to int8*?\n" +
+                          "}\n"
+    val expectedModule = compileString(expectedProgram)
+    assertEqualsIgnoreSymbols(expectedModule, loweredModule)
   }
 }    
 
@@ -346,7 +406,7 @@ class LowerPassInstructionConversionTest {
     val expectedInstructions = expectedModule.getInstructions(expectedEntry.instructions)
     assertEquals(expectedInstructions.size, newInstructions.size)
     (newInstructions zip expectedInstructions) foreach { ind =>
-      assertEqualsIgnoreSymbols(ind._1, ind._2)
+      assertDefnEqualsIgnoreSymbols(ind._1, ind._2)
     }
   }
 
@@ -411,7 +471,7 @@ class LowerPassInstructionConversionTest {
     val expectedInstructions = expectedModule.getInstructions(expectedModule.getBlock("f.entry").instructions)
     (newInstructions zip expectedInstructions) foreach { ind =>
       val (actual, expected) = ind
-      assertEqualsIgnoreSymbols(expected, actual)
+      assertDefnEqualsIgnoreSymbols(expected, actual)
     }
   }
 

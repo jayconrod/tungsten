@@ -37,18 +37,51 @@ struct @tungsten.array {
 }
 
 struct @tungsten.class_info {
+  ; bit  0: always 1 (is class)
+  ; all other bits reserved
+  field int32 %flags
+
   field struct @tungsten.array %name
-  field struct @tungsten.class_info*? %superclass
   field struct @tungsten.array %type_parameters
+
+  field struct @tungsten.class_info*? %superclass  
+
+  ; Number of supertypes including classes and interface, not including this class
+  field int64 %supertype_count
+
+  ; Pointer to an array of pointers to class/interface info for each supertype. 
+  ; Note that the first field of class/interface info is both flags. The low bit
+  ; of the flags field can be checked to determine whether the target is a class
+  ; or interface.
+  field struct @tungsten.class_info**? %supertype_info 
+
+  ; Pointer to an array of pointers to arrays of instructions for building 
+  ; supertype type arguments out of an instance's type arguments. This will be
+  ; null if no supertypes have reified type arguments. Each entry will be null
+  ; if the corresponding supertype (in %supertype_info) has no reified type
+  ; arguments. Otherwise, each entry points to an array of instructions. Each
+  ; instruction can be one of:
+  ;   - null (no bits set): Nothing type
+  ;   - pointer (low bit not set): pointer to class/interface info
+  ;   - index (low bit set, shift to access): index of instance type argument
+  ;   - end (all bits set): no more instructions
+  ; See @tungsten.instanceof function for how this is used.
+  field int8*?*?*? %supertype_instructions
 }
 
 struct @tungsten.interface_info {
+  ; bit 0: always 0 (is interface)
+  ; all other bits reserved
+  field int32 %flags
+
   field struct @tungsten.array %name
   field struct @tungsten.array %type_parameters
 }
 
 struct @tungsten.type_parameter_info {
-  field int64 %flags
+  ; bit 0: 0 if invariant, 1 if co- or contravariant
+  ; bit 1: 0 if covariant, 1 if contravariant (only meaningful if bit 0 is set)
+  field int32 %flags
   field struct @tungsten.array %name
 }
 

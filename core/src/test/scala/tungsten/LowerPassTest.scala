@@ -296,7 +296,7 @@ class LowerPassTest {
                           "  field struct @C.vtable_type$* %vtable_ptr$\n" +
                           "}\n"
     val expectedModule = pass.addDefinitions(compileString(expectedProgram))
-    assertEqualsIgnoreSymbols(expectedModule, loweredModule)
+    assertModuleEqualsIgnoreSymbols(expectedModule, loweredModule)
   }
 
   @Test
@@ -350,7 +350,7 @@ class LowerPassTest {
                           "  bitcast int64 -1 to int8*?\n" +
                           "}\n"
     val expectedModule = compileString(expectedProgram)
-    assertEqualsIgnoreSymbols(expectedModule, loweredModule)
+    assertModuleEqualsIgnoreSymbols(expectedModule, loweredModule)
   }
 }    
 
@@ -431,8 +431,7 @@ class LowerPassInstructionConversionTest {
                        "struct @R.data$* %r = bitcast int8* %r.new$\n" +
                        "unit %r.new$#1 = storeelement struct @R.vtable_type$* @R.vtable$, struct @R.data$* %r, int64 0, int64 0\n" +
                        "struct @tungsten.class_info** %r.new$#2 = bitcast int8* %r.new$\n" +
-                       "struct @tungsten.interface_info** %r.new$#3 = bitcast int8* %r.new$\n" +
-                       "unit %r.new$#4 = scall @R.ctor(struct @R.data$* %r, int64 2)\n"
+                       "unit %r.new$#3 = scall @R.ctor(struct @R.data$* %r, int64 2)\n"
     testConversion(expectedCode, code)
   }
 
@@ -457,12 +456,11 @@ class LowerPassInstructionConversionTest {
                        "struct @E.data$* %e = bitcast int8* %e.new$\n" +
                        "unit %e.new$#1 = storeelement struct @E.vtable_type$* @E.vtable$, struct @E.data$* %e, int64 0, int64 0\n" +
                        "struct @tungsten.class_info** %e.new$#2 = bitcast int8* %e.new$\n" +
-                       "struct @tungsten.interface_info** %e.new$#3 = bitcast int8* %e.new$\n" +
-                       "unit %e.new$#4 = storeelement struct @tungsten.class_info* @C.info$, struct @tungsten.class_info** %e.new$#2, int64 2\n" +
-                       "unit %e.new$#5 = storeelement struct @tungsten.class_info* @A.info$, struct @tungsten.class_info** %e.new$#2, int64 3\n" +
-                       "unit %e.new$#6 = storeelement struct @tungsten.class_info* @D.info$, struct @tungsten.class_info** %e.new$#2, int64 4\n" +
-                       "unit %e.new$#7 = storeelement struct @tungsten.class_info* @B.info$, struct @tungsten.class_info** %e.new$#2, int64 5\n" +
-                       "unit %e.new$#8 = scall @E.ctor(struct @E.data$* %e)\n"
+                       "unit %e.new$#3 = storeelement struct @tungsten.class_info* @C.info$, struct @tungsten.class_info** %e.new$#2, int64 2\n" +
+                       "unit %e.new$#4 = storeelement struct @tungsten.class_info* @A.info$, struct @tungsten.class_info** %e.new$#2, int64 3\n" +
+                       "unit %e.new$#5 = storeelement struct @tungsten.class_info* @D.info$, struct @tungsten.class_info** %e.new$#2, int64 4\n" +
+                       "unit %e.new$#6 = storeelement struct @tungsten.class_info* @B.info$, struct @tungsten.class_info** %e.new$#2, int64 5\n" +
+                       "unit %e.new$#7 = scall @E.ctor(struct @E.data$* %e)\n"
     var m = compileString(program)
     m = pass.convertClassesAndInterfaces(m)
     m = instPass.processModule(m)
@@ -606,10 +604,9 @@ class LowerPassInstructionConversionTest {
                           "    struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
                           "    unit @f.bb.b.exn$.new$#12 = storeelement struct @tungsten.NullPointerException.vtable_type$* @tungsten.NullPointerException.vtable$, struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11, int64 0, int64 0\n" +
                           "    struct @tungsten.class_info** @f.bb.b.exn$.new$#13 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
-                          "    struct @tungsten.interface_info** @f.bb.b.exn$.new$#14 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
-                          "    unit @f.bb.b.exn$.new$#15 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11)\n" +
-                          "    unit @f.bb.b.throw$#16 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11\n" +
-                          "  } catch @f.cb(int64 @f.bb.m#17)\n" +
+                          "    unit @f.bb.b.exn$.new$#14 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11)\n" +
+                          "    unit @f.bb.b.throw$#15 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11\n" +
+                          "  } catch @f.cb(int64 @f.bb.m#16)\n" +
                           "  block %exit(int64 @f.exit.n, struct @tungsten.Object.data$* @f.exit.b) {\n" +
                           "    unit %anon$#3 = return ()\n" +
                           "  }\n" +
@@ -620,7 +617,37 @@ class LowerPassInstructionConversionTest {
                           "}"
 
     val expectedModule = compileString(expectedProgram)
-    assertEqualsIgnoreSymbols(expectedModule, convertedModule)
+    assertModuleEqualsIgnoreSymbols(expectedModule, convertedModule)
+  }
+
+  @Test
+  def testInstanceOfClassInst {
+    val code = "boolean %isa = instanceof class @R %r: class @C\n"
+    val expectedCode = "struct @R.data$* %isa#1 = bitcast class @R %r\n" +
+                       "boolean %isa = scall @tungsten.instanceof(struct @R.data$* %isa#1, struct @tungsten.class_info* @C.info$, bitcast null to struct @tungsten.class_info**?)"
+    testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testInstanceOfInterfaceInst {
+    val code = "boolean %isa = instanceof class @R %r: interface @I"
+    val expectedCode = "struct @R.data$* %isa#1 = bitcast class @R %r\n" +
+                       "boolean %isa = scall @tungsten.instanceof(struct @R.data$* %isa#1,\n" +
+                       "                                          bitcast struct @tungsten.interface_info* @I.info$ to struct @tungsten.class_info*,\n" +
+                       "                                          bitcast null to struct @tungsten.class_info**?)\n"
+    testConversion(expectedCode, code)
+  }
+
+  @Test
+  def testInstanceofComplexInst {
+    val code = "boolean %isa = instanceof class @R %r: class @C[class @R]"
+    val expectedCode = "struct @R.data$* %isa#1 = bitcast class @R %r\n" +
+                       "struct @tungsten.class_info** %isa#2 = stackarray int64 1\n" +
+                       "unit %isa#3 = storeelement struct @tungsten.class_info* @R.info$, struct @tungsten.class_info** %isa#2,int64 0\n" +
+                       "boolean %isa = scall @tungsten.instanceof(struct @R.data$* %isa#1,\n" +
+                       "                                          struct @tungsten.class_info* @C.info$,\n" +
+                       "                                          bitcast struct @tungsten.class_info** %isa#2 to struct @tungsten.class_info**?)\n"
+    testConversion(expectedCode, code)
   }
 
   @Test

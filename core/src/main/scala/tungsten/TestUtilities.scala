@@ -67,7 +67,7 @@ object TestUtilities {
       }
 
       left match {
-        case _: Int | _: Long | _: Double | _: String | _: Symbol =>
+        case _: Boolean | _: Int | _: Long | _: Double | _: String | _: Symbol =>
           comparePrimitives(left, right)
         case _: List[_] => {
           val l = left.asInstanceOf[List[AnyRef]]
@@ -119,7 +119,7 @@ object TestUtilities {
                      actual.mapSymbols(nullifySymbol _))
   }
 
-  def assertEqualsIgnoreSymbols(expected: Module, actual: Module) {
+  def assertModuleEqualsIgnoreSymbols(expected: Module, actual: Module) {
     expected.definitions.values foreach { expectedDefn =>
       val name = nullifySymbol(expectedDefn.name)
       val matchingDefns = actual.definitions.values.filter { defn =>
@@ -136,6 +136,16 @@ object TestUtilities {
         }
         case Nil => throw new RuntimeException("no matching definitions for symbol: " + expectedDefn.name)
         case _ => ()  // ignore multiple definitions with same name
+      }
+    }
+  }
+
+  def assertModuleEquals(expected: Module, actual: Module) {
+    expected.definitions.values foreach { expectedDefn =>
+      actual.definitions.get(expectedDefn.name) match {
+        case None => throw new RuntimeException("no matching definition for symbol: " + expectedDefn.name)
+        case Some(actualDefn) =>
+          assertDefnEquals(expectedDefn.name, expectedDefn, actualDefn)
       }
     }
   }

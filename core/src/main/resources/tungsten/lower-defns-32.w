@@ -128,3 +128,7 @@ function int8* @tungsten.load_ivtable(struct @tungsten.Object.data$* %receiver,
     unreachable
   }
 }
+
+function boolean @tungsten.instanceof(struct @tungsten.Object.data$* %object,
+                                      struct @tungsten.class_info* %isa_class,
+                                      struct @tungsten.class_info*? %isa_type_args)

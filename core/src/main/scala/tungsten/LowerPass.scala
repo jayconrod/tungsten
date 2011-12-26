@@ -554,6 +554,8 @@ class LowerInstructionsPass
     instruction match {
       case ptrElemInst: PointerElementInstruction if ptrElemInst.base.ty.isInstanceOf[ClassType] =>
         convertElementInstruction(ptrElemInst, module)
+      case instanceofInst: InstanceOfInstruction =>
+        convertInstanceOfInstruction(instanceofInst, module)
       case newInst: NewInstruction =>
         convertNewInstruction(newInst, module)
       case nullcheckInst: NullCheckInstruction =>
@@ -584,6 +586,102 @@ class LowerInstructionsPass
     RewrittenInstructions(List(newInst))
   }
 
+  def countTypeArgumentWords(typeArgs: List[ObjectType]): Long = {
+    def count(typeArgs: List[ObjectType], n: Long): Long = {
+      typeArgs match {
+        case Nil => n
+        case (t: ObjectDefinitionType) :: ts => {
+          val nn = count(t.typeArguments, n + 1)
+          count(ts, nn)
+        }
+        case _ => throw new RuntimeException("invalid type argument")
+      }
+    }
+    count(typeArgs, 0)
+  }
+
+  def storeTypeArgumentWords(base: Value,
+                             offset: Long,
+                             typeArgs: List[ObjectType],
+                             makeName: () => Symbol,
+                             module: Module): List[Instruction] =
+  {
+    def store(typeArgs: List[ObjectType],
+              insts: List[Instruction]): List[Instruction] =
+    {
+      typeArgs match {
+        case Nil => insts
+        case (t: ObjectDefinitionType) :: ts => {
+          val storeOffset = offset + insts.size
+          val defnName = t.definitionName
+          val storeValue = if (t.isInstanceOf[ClassType]) {
+            DefinedValue(LowerPass.definitionInfoGlobalName(defnName),
+                         PointerType(StructType(LowerPass.classInfoStructName)))
+          } else if (t.isInstanceOf[InterfaceType]) {
+            val rawValue = DefinedValue(LowerPass.definitionInfoGlobalName(defnName),
+                                        PointerType(StructType(LowerPass.interfaceInfoStructName)))
+            BitCastValue(rawValue, PointerType(StructType(LowerPass.classInfoStructName)))
+          } else {
+            throw new RuntimeException("invalid type")
+          }
+          val storeInst = StoreElementInstruction(makeName(), UnitType,
+                                                  storeValue, base,
+                                                  List(IntValue.word(storeOffset, module)))
+          val newInsts = store(t.typeArguments, storeInst :: insts)
+          store(ts, newInsts)
+        }
+        case _ => throw new RuntimeException("invalid type argument")
+      }
+    }
+    store(typeArgs, Nil).reverse
+  }
+
+  def convertInstanceOfInstruction(instanceofInst: InstanceOfInstruction,
+                                   module: Module): RewriteResult =
+  {
+    val valueInst = BitCastInstruction(symbolFactory(instanceofInst.name),
+                                       PointerType(StructType(LowerPass.classStructName(module.rootClass.name))),
+                                       instanceofInst.value)
+    val value = valueInst.makeValue
+
+    val isaType = instanceofInst.isa.asInstanceOf[ObjectDefinitionType]
+    val isaValue = if (isaType.isInstanceOf[ClassType]) {
+      DefinedValue(LowerPass.definitionInfoGlobalName(isaType.definitionName),
+                   PointerType(StructType(LowerPass.classInfoStructName)))
+    } else {
+      val rawValue = DefinedValue(LowerPass.definitionInfoGlobalName(isaType.definitionName),
+                                  PointerType(StructType(LowerPass.interfaceInfoStructName)))
+      BitCastValue(rawValue, PointerType(StructType(LowerPass.classInfoStructName)))
+    }
+
+    val typeArgsType = PointerType(PointerType(StructType(LowerPass.classInfoStructName)),
+                                   ReferenceType.NULLABLE)
+    val typeArgs = isaType.typeArguments
+    val (typeArgsInsts, typeArgsValue) = if (typeArgs.isEmpty) {
+      (Nil, BitCastValue(NullValue, typeArgsType))
+    } else {
+      val wordCount = countTypeArgumentWords(typeArgs)
+      val allocInst = StackAllocateArrayInstruction(symbolFactory(instanceofInst.name),
+                                                    PointerType(PointerType(StructType(LowerPass.classInfoStructName))),
+                                                    IntValue.word(wordCount, module))
+      val storeInsts = storeTypeArgumentWords(allocInst.makeValue,
+                                              0,
+                                              typeArgs,
+                                              { () => symbolFactory(instanceofInst.name) },
+                                              module)
+
+      val castValue = BitCastValue(allocInst.makeValue, typeArgsType)
+      (allocInst :: storeInsts, castValue)
+    }
+
+    val callInst = StaticCallInstruction(instanceofInst.name,
+                                         BooleanType,
+                                         "tungsten.instanceof",
+                                         Nil,
+                                         List(value, isaValue, typeArgsValue))
+    RewrittenInstructions(List(valueInst) ++ typeArgsInsts ++ List(callInst))
+  }
+
   def convertNewInstruction(newInst: NewInstruction, module: Module): RewriteResult = {
     val classType = newInst.ty.asInstanceOf[ClassType]
     val className = classType.definitionName
@@ -594,16 +692,6 @@ class LowerInstructionsPass
     // sub-arguments. For example if we are constructing A[B[C, D], E[F, G]], then
     // we would need 6 additional words for: B, C, D, E, F, G. Objects with no type
     // arguments require no extra data.
-    def countTypeArgumentWords(tyArgs: List[Type], count: Long = 0): Long = {
-      tyArgs match {
-        case Nil => count
-        case (h: ObjectDefinitionType) :: t => {
-          val newCount = countTypeArgumentWords(h.typeArguments, count + 1)
-          countTypeArgumentWords(t, newCount)
-        }
-        case _ => throw new RuntimeException("invalid type argument")
-      }
-    }
 
     val wordSize = IntType.wordSize(module)/8
     val typeArgWords = countTypeArgumentWords(classType.typeArguments)
@@ -633,42 +721,12 @@ class LowerInstructionsPass
     val classInfoInst = BitCastInstruction(symbolFactory(newInst.name + "new$"),
                                            PointerType(PointerType(StructType(classInfoStructName))),
                                            allocInst.makeValue)
-    val interfaceInfoInst = BitCastInstruction(symbolFactory(newInst.name + "new$"),
-                                               PointerType(PointerType(StructType(interfaceInfoStructName))),
-                                               allocInst.makeValue)
     val typeArgumentOffset = align(objectSize + wordSize, wordSize)/wordSize
-    def storeTypeArguments(tyArgs: List[Type],
-                           insts: List[Instruction] = Nil): List[Instruction] = 
-    {
-      tyArgs match {
-        case Nil => insts
-        case (h: ObjectDefinitionType) :: t => {
-          val offset = typeArgumentOffset + insts.size
-          val storeInst = if (h.isInstanceOf[ClassType]) {
-            StoreElementInstruction(symbolFactory(newInst.name + "new$"),
-                                    UnitType,
-                                    DefinedValue(definitionInfoGlobalName(h.definitionName),
-                                                 PointerType(StructType(classInfoStructName))),
-                                    classInfoInst.makeValue,
-                                    List(IntValue.word(offset, module)))
-          } else if (h.isInstanceOf[InterfaceType]) {
-            StoreElementInstruction(symbolFactory(newInst.name + "new$"),
-                                    UnitType,
-                                    DefinedValue(definitionInfoGlobalName(h.definitionName),
-                                                 PointerType(StructType(interfaceInfoStructName))),
-                                    interfaceInfoInst.makeValue,
-                                    List(IntValue.word(offset, module)))
-          } else {
-            throw new RuntimeException("invalid argument type")
-          }
-
-          val newInsts = storeTypeArguments(h.typeArguments, storeInst :: insts)
-          storeTypeArguments(t, newInsts)
-        }
-        case _ => throw new RuntimeException("invalid argument type")
-      }
-    }
-    val storeInsts = storeTypeArguments(classType.typeArguments)
+    val storeInsts = storeTypeArgumentWords(classInfoInst.makeValue,
+                                            typeArgumentOffset,
+                                            classType.typeArguments,
+                                            { () => symbolFactory(newInst.name + "new$") },
+                                            module)
     
     // Now the object is initialized, and we can actually call the constructor
     val initInst = StaticCallInstruction(symbolFactory(newInst.name + "new$"),
@@ -676,8 +734,8 @@ class LowerInstructionsPass
                                          newInst.constructorName,
                                          Nil,
                                          vtBitcastInst.makeValue :: newInst.arguments)
-    val rewritten = allocInst :: vtBitcastInst :: vtableInst :: 
-      classInfoInst :: interfaceInfoInst :: (storeInsts.reverse :+ initInst)
+    val rewritten = List(allocInst, vtBitcastInst, vtableInst, classInfoInst) ++
+      storeInsts ++ List(initInst)
     RewrittenInstructions(rewritten)
   }
 

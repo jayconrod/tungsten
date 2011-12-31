@@ -38,9 +38,6 @@ struct @tungsten.string {
   field int64 %length
 }
 
-; Generic memory allocation function
-function int8* @tungsten.malloc(int32 %size)
-
 ; Terminate execution with return code
 @tungsten.NoReturn
 function unit @tungsten.exit(int32 %code)

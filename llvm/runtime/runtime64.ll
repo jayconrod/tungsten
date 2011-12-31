@@ -8,10 +8,9 @@ declare i64 @write(i32, i8*, i64)
 declare i32 @open(i8*, i32)
 declare i32 @close(i32)
 
-define i8* @tungsten.malloc(i32 %size) nounwind {
+define i8* @tungsten.malloc(i64 %size) nounwind {
 entry:
-    %sizeext = zext i32 %size to i64
-    %ptr = call noalias i8* @malloc(i64 %sizeext) nounwind
+    %ptr = call noalias i8* @malloc(i64 %size) nounwind
     ret i8* %ptr
 }
 

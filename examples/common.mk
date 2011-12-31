@@ -12,6 +12,20 @@ else
     ARCH=x86_64
 endif
 
+CC=clang -c
+AR=ar rcs
+
+CFLAGS=-O0 -g
+
+RUNTIME_PATH = ../llvm/runtime
+RUNTIME_SOURCES = runtime.ll instanceof.c
+RUNTIME_OBJECTS = $(addsuffix .o, $(basename $(RUNTIME_SOURCES)))
+
+$(PROGRAMS): $(RUNTIME_OBJECTS)
+
+instanceof.o: $(RUNTIME_PATH)/instanceof.c
+	$(CC) $(CFLAGS) $^ -o $@
+
 %.wp: %.wo tungsten.wl
 	w-link $^ -o $@
 
@@ -23,3 +37,9 @@ endif
 
 %.s: %.bc
 	llc -unwind-tables $< -o $@
+
+%.o: %.s
+	$(CC) $^ -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) $^ -o $@

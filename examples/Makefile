@@ -12,10 +12,10 @@ PROGRAMS = $(SOURCES:%.w=%)
 all: $(PROGRAMS)
 
 clean:
-	rm -f *.ll *.bc *.s *.w32 *.wo *.wl *.wp $(PROGRAMS)
+	rm -f *.a *.o *.ll *.bc *.s *.w32 *.wo *.wl *.wp $(PROGRAMS)
 
 $(foreach program,$(PROGRAMS),\
-    $(eval $(program):$(program).s))
+  $(eval $(program):$(program).o))
 
 $(PROGRAMS):
 	clang++ $(LDFLAGS) $^ -o $@

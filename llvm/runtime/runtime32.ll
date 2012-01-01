@@ -1,12 +1,20 @@
 target datalayout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:32:64-f32:32:32-f64:32:64-v64:64:64-v128:128:128-a0:0:64-f80:128:128-n8:16:32"
 target triple = "i386-linux-gnu"
 
+declare i1 @wrt_instanceof(i8*, i8*, i8*) nounwind
+
 declare noalias i8* @malloc(i64) nounwind
 declare void @exit(i32) noreturn nounwind
 declare i64 @read(i32, i8*, i64)
 declare i64 @write(i32, i8*, i64)
 declare i32 @open(i8*, i32)
 declare i32 @close(i32)
+
+define i1 @tungsten.instanceof(i8* %object, i8* %isa_class, i8* %isa_type_args) nounwind {
+entry:
+    %res = call i1 @wrt_instanceof(i8* %object, i8* %isa_class, i8* %isa_type_args)
+    ret i1 %res
+}
 
 define i8* @tungsten.malloc(i32 %size) nounwind {
 entry:

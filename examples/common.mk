@@ -15,7 +15,7 @@ endif
 CC=clang -c
 AR=ar rcs
 
-CFLAGS=-O0 -g
+CFLAGS=-O0 -g -std=c99 -Wall
 
 RUNTIME_PATH = ../llvm/runtime
 RUNTIME_SOURCES = runtime.ll instanceof.c
@@ -23,8 +23,8 @@ RUNTIME_OBJECTS = $(addsuffix .o, $(basename $(RUNTIME_SOURCES)))
 
 $(PROGRAMS): $(RUNTIME_OBJECTS)
 
-instanceof.o: $(RUNTIME_PATH)/instanceof.c
-	$(CC) $(CFLAGS) $^ -o $@
+instanceof.o: $(RUNTIME_PATH)/instanceof.c $(RUNTIME_PATH)/objects.h
+	$(CC) $(CFLAGS) $< -o $@
 
 %.wp: %.wo tungsten.wl
 	w-link $^ -o $@

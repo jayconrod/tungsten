@@ -188,12 +188,13 @@ class LlvmCompatibilityPass
       }
 
       case tungsten.HeapAllocateInstruction(name, ty, _) => {
-        val size = ty.size(module).toInt
+        val size = ty.asInstanceOf[tungsten.PointerType].elementType.size(module)
+        val sizeValue = tungsten.IntValue.word(size, module)
         val malloc = tungsten.StaticCallInstruction(newName(name),
                                                     tungsten.PointerType(tungsten.IntType(8)),
                                                     "tungsten.malloc",
                                                     Nil,
-                                                    List(tungsten.IntValue(size, 32)))
+                                                    List(sizeValue))
         val cast = tungsten.BitCastInstruction(name,
                                                ty,
                                                malloc.makeValue)
@@ -201,13 +202,13 @@ class LlvmCompatibilityPass
       }
 
       case tungsten.HeapAllocateArrayInstruction(name, ty, count, _) => {
-        val elementSize = ty.size(module)
-        val elementSizeVal = tungsten.IntValue(elementSize, tungsten.IntType.wordSize(module))
+        val elementSize = ty.asInstanceOf[tungsten.PointerType].elementType.size(module)
+        val elementSizeValue = tungsten.IntValue.word(elementSize, module)
         val totalSize = tungsten.BinaryOperatorInstruction(newName(name),
                                                            tungsten.IntType.wordType(module),
                                                            tungsten.BinaryOperator.MULTIPLY,
                                                            count,
-                                                           elementSizeVal)
+                                                           elementSizeValue)
         val malloc = tungsten.StaticCallInstruction(newName(name),
                                                     tungsten.PointerType(tungsten.IntType(8)),
                                                     "tungsten.malloc",

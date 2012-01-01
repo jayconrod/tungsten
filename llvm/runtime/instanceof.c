@@ -30,6 +30,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <alloca.h>
 
 static bool subtypeof(const w_class_info* s_class, 
                       const w_class_info* const* s_type_args,
@@ -79,12 +80,12 @@ bool wrt_instanceof(const w_object* object,
   const w_class_info* const* obj_type_args = object->type_args + obj_type_args_offset;
   intptr_t obj_type_args_size = 
     find_type_args_size(obj_class->type_parameters.size, obj_type_args);
-  intptr_t obj_type_args_index[obj_type_args_size];
+  intptr_t* obj_type_args_index = alloca(obj_type_args_size * sizeof(intptr_t));
   index_type_args(obj_class->type_parameters.size, obj_type_args, obj_type_args_index, NULL);
 
   intptr_t isa_type_args_size = 
     find_type_args_size(isa_class->type_parameters.size, isa_type_args);
-  intptr_t isa_type_args_index[isa_type_args_size];
+  intptr_t* isa_type_args_index = alloca(isa_type_args_size * sizeof(intptr_t));
   index_type_args(isa_class->type_parameters.size, isa_type_args, isa_type_args_index, NULL);
 
   return subtypeof(obj_class, obj_type_args, obj_type_args_index,
@@ -133,7 +134,7 @@ static bool subtypeof(const w_class_info* s_class,
     // type argument so we can easily move whole arguments. We create a new array of type
     // arguments of the appropriate size and execute the instructions.
     intptr_t s_type_arg_count = s_class->type_parameters.size;
-    intptr_t s_type_arg_offsets[s_type_arg_count];
+    intptr_t* s_type_arg_offsets = alloca(s_type_arg_count * sizeof(intptr_t));
     intptr_t current_offset = 0;
     for (intptr_t i = 0; i < s_type_arg_count; i++) {
       current_offset += s_type_args_index[current_offset];
@@ -141,7 +142,7 @@ static bool subtypeof(const w_class_info* s_class,
     }
     intptr_t super_type_args_size = find_super_type_args_size(supertype_instructions,
                                                               s_type_arg_offsets);
-    const w_class_info* super_type_args[super_type_args_size];
+    const w_class_info** super_type_args = alloca(super_type_args_size * sizeof(w_class_info*));
     execute_supertype_instructions(supertype_instructions,
                                    s_type_args,
                                    s_type_arg_offsets,
@@ -149,7 +150,7 @@ static bool subtypeof(const w_class_info* s_class,
 
     // We need to create a new index for the converted type arguments. This can probably
     // be optimized to be done at the same time.
-    intptr_t super_type_args_index[super_type_args_size];
+    intptr_t* super_type_args_index = alloca(super_type_args_size * sizeof(intptr_t));
     index_type_args(t_class->type_parameters.size, super_type_args, super_type_args_index, NULL);
 
     s_class = t_class;

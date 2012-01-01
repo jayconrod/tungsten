@@ -303,6 +303,22 @@ trait PointerElementInstruction
   }
 }
 
+trait ReifiedTypeParameterValidation {
+  def validateReifiedTypeParameters(ty: Type, 
+                                    location: Location,
+                                    module: Module): List[CompileException] = 
+  {
+    def check(errors: List[CompileException], ty: Type): List[CompileException] = {
+      ty match {
+        case vty: VariableType =>
+          NonReifiedTypeParameterException(vty.variableName, location) :: errors
+        case _ => errors
+      }
+    }
+    ty.foldTypes(Nil, check)
+  }
+}
+
 final case class AddressInstruction(name: Symbol,
                                     ty: Type,
                                     base: Value,
@@ -690,6 +706,7 @@ final case class InstanceOfInstruction(name: Symbol,
                                        isa: Type,
                                        annotations: List[AnnotationValue] = Nil)
   extends Instruction
+  with ReifiedTypeParameterValidation
 {
   def operands = List(value)
 
@@ -713,7 +730,8 @@ final case class InstanceOfInstruction(name: Symbol,
 
     super.validate(module) ++
       checkType(BooleanType, ty, getLocation) ++
-      validateTypes ++?
+      validateTypes ++
+      validateReifiedTypeParameters(isa, getLocation, module) ++?
       validateNullable
   }
 }
@@ -884,7 +902,9 @@ final case class NewInstruction(name: Symbol,
                                 typeArguments: List[Type],
                                 arguments: List[Value],
                                 annotations: List[AnnotationValue] = Nil)
-  extends Instruction with CallInstruction
+  extends Instruction 
+  with CallInstruction
+  with ReifiedTypeParameterValidation
 {
   def operands = arguments
 
@@ -928,6 +948,7 @@ final case class NewInstruction(name: Symbol,
     super.validate(module) ++
       stage(validateAbstract,
             validateConstructor,
+            validateReifiedTypeParameters(ty, getLocation, module),
             validateCall(module, 
                          constructorName, 
                          newType, 

@@ -359,6 +359,12 @@ final case class NewConstructorException(instructionName: Symbol,
                              format(instructionName, constructorName, className),
                            location)
 
+final case class NonReifiedTypeParameterException(paramName: Symbol,
+                                         location: Location)
+  extends CompileException("non-reified type parameter %s cannot be used in this context".
+                             format(paramName),
+                           location)
+
 final case class NullableInheritanceException(defnName: Symbol, location: Location)
   extends CompileException("class or interface %s cannot inherit a nullable type".
                              format(defnName),

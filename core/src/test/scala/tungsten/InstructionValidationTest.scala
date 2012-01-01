@@ -511,6 +511,22 @@ class InstructionValidationTest
   }
 
   @Test
+  def newNonReified {
+    val program = "class @R\n" +
+                  "class @A[type %T] <: class @R {\n" +
+                  "  constructors { %ctor }\n" +
+                  "}\n" +
+                  "function unit @A.ctor[type %T](class @A[type %T] %this)\n" +
+                  "function unit @f[type %T] {\n" +
+                  "  block %entry {\n" +
+                  "    class @A[type @f.T] %x = new @A.ctor()\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[NonReifiedTypeParameterException](program)
+  }
+
+  @Test
   def virtualCallNonClass {
     val code = "vcall int64 0:0()\n"
     codeContainsError[TypeMismatchException](code)
@@ -773,5 +789,17 @@ class InstructionValidationTest
                   "  }\n" +
                   "}"
     programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def instanceOfNonReified {
+    val program = "class @R\n" +
+                  "function unit @f[type %T] {\n" +
+                  "  block %entry {\n" +
+                  "    boolean %x = instanceof bitcast null to class @R: type @f.T\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[NonReifiedTypeParameterException](program)
   }
 }

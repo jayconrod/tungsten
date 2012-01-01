@@ -31,11 +31,14 @@ is64bit: false
 ;
 ; Data structure definitions
 ;
+
+; Describes a variable length array of any type
 struct @tungsten.array {
   field int8* %data
   field int32 %size
 }
 
+; Describes a class
 struct @tungsten.class_info {
   ; bit  0: always 1 (is class)
   ; all other bits reserved
@@ -67,8 +70,16 @@ struct @tungsten.class_info {
   ;   - end (all bits set): no more instructions
   ; See @tungsten.instanceof function for how this is used.
   field int8*?*?*? %supertype_instructions
+
+  ; Minimum size in bytes of an instance of this class. This includes the vtable
+  ; pointer and all fields. It does not include extra words for type arguments at
+  ; the end.
+  field int32 %instance_size
 }
 
+; Describes an interface. The first several fields are intended to overlap with those
+; of class_info, since class_info and interface_info pointers are used interchangably.
+; The flags can be used to determine what kind of info you actually have.
 struct @tungsten.interface_info {
   ; bit 0: always 0 (is interface)
   ; all other bits reserved
@@ -76,6 +87,10 @@ struct @tungsten.interface_info {
 
   field struct @tungsten.array %name
   field struct @tungsten.array %type_parameters
+  field struct @tungsten.class_info* %supertype
+  field int32 %supertype_count
+  field struct @tungsten.class_info** %supertype_info
+  field int8*?*?*? %supertype_instructions
 }
 
 struct @tungsten.type_parameter_info {
@@ -131,4 +146,11 @@ function int8* @tungsten.load_ivtable(struct @tungsten.Object.data$* %receiver,
 
 function boolean @tungsten.instanceof(struct @tungsten.Object.data$* %object,
                                       struct @tungsten.class_info* %isa_class,
-                                      struct @tungsten.class_info*? %isa_type_args)
+                                      struct @tungsten.class_info**? %isa_type_args)
+
+function int8* @tungsten.malloc(int32 %size)
+function unit @tungsten.exit(int32 %code)
+function int64 @tungsten.read(int32 %fd, int8* %buffer, int32 %size)
+function int64 @tungsten.write(int32 %fd, int8* %buffer, int32 %size)
+function int32 @tungsten.open(int8* %filename, int32 %flags)
+function int32 @tungsten.close(int32 %fd)

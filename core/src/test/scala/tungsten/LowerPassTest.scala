@@ -234,7 +234,11 @@ class LowerPassTest {
                           "  struct @tungsten.array {\n" +
                           "    bitcast null to int8*,\n" +
                           "    int64 0\n" +
-                          "  }\n" +
+                          "  },\n" +
+                          "  struct @tungsten.class_info* @R.info$,\n" +
+                          "  int64 1,\n" +
+                          "  bitcast [1 x struct @tungsten.class_info*]* @I.supertype_info$ to struct @tungsten.class_info**,\n" +
+                          "  bitcast null to int8*?*?*?\n" +
                           "}\n" +
                           "global struct @tungsten.class_info @C.info$ = struct @tungsten.class_info {\n" +
                           "  int32 1,\n" +
@@ -249,7 +253,8 @@ class LowerPassTest {
                           "  bitcast struct @tungsten.class_info* @R.info$ to struct @tungsten.class_info*?,\n" +
                           "  int64 2,\n" +
                           "  bitcast [2 x struct @tungsten.class_info*]* @C.supertype_info$ to struct @tungsten.class_info**?,\n" +
-                          "  bitcast null to int8*?*?*?\n" +
+                          "  bitcast null to int8*?*?*?,\n" +
+                          "  int64 8\n" +
                           "}\n" +
                           "global [1 x int8] @I.name$ = \"I\"\n" +
                           "global [1 x int8] @C.name$ = \"C\"\n" +
@@ -262,6 +267,9 @@ class LowerPassTest {
                           "      int64 3\n" +
                           "    }\n" +
                           "  }\n" +
+                          "}\n" +
+                          "global [1 x struct @tungsten.class_info*] @I.supertype_info$ = [1 x struct @tungsten.class_info*] {\n" +
+                          "  struct @tungsten.class_info* @R.info$\n" +
                           "}\n" +
                           "global [2 x struct @tungsten.class_info*] @C.supertype_info$ = [2 x struct @tungsten.class_info*] {\n" +
                           "  struct @tungsten.class_info* @R.info$,\n" +
@@ -301,7 +309,6 @@ class LowerPassTest {
 
   @Test
   def lowerClassTypeInstructions {
-    System.err.println("### lowerClassTypeInstructions")
     val program = "class @R\n" +
                   "interface @I[type %T] <: class @R\n" +
                   "class @C[type %T] <: class @R {\n" +
@@ -323,7 +330,8 @@ class LowerPassTest {
                           "  bitcast struct @tungsten.class_info* @R.info$ to struct @tungsten.class_info*?,\n" +
                           "  int64 2,\n" +
                           "  bitcast [2 x struct @tungsten.class_info*]* @C.supertype_info$ to struct @tungsten.class_info**?,\n" +
-                          "  bitcast [2 x int8*?*?]* @C.supertype_instruction_arrays$ to int8*?*?*?\n" +
+                          "  bitcast [2 x int8*?*?]* @C.supertype_instruction_arrays$ to int8*?*?*?,\n" +
+                          "  int64 8\n" +
                           "}\n" +
                           "global [1 x int8] @C.name$ = \"C\"\n" +
                           "global [1 x struct @tungsten.type_parameter_info] @C.type_parameter_info$ = [1 x struct @tungsten.type_parameter_info] {\n" +

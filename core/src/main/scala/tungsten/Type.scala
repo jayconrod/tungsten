@@ -30,6 +30,7 @@ abstract sealed class Type
                        module: Module,
                        location: Location): List[CompileException] = Nil
   def size(module: Module): Long
+  def alignment(module: Module): Int
   def isNumeric: Boolean
   def isPointer: Boolean = false
   def isObject: Boolean = false
@@ -62,7 +63,10 @@ abstract sealed class Type
 sealed trait ReferenceType 
   extends Type
 {
+  def size(module: Module): Long = wordSize(module)
+  def alignment(module: Module): Int = wordSize(module)
   override def isPointer = true
+  def isNumeric = false
 
   def pointerFlags: Int
   def withPointerFlags(flags: Int) : ReferenceType
@@ -88,12 +92,14 @@ final case object UnitType
   extends Type 
 {
   def size(module: Module) = 0L
+  def alignment(module: Module) = 0
 
   def isNumeric = false
 }
 
 final case object BooleanType extends Type {
   def size(module: Module) = 1L
+  def alignment(module: Module) = 1
 
   def isNumeric = false
 
@@ -107,6 +113,7 @@ final case object CharType
   extends Type
 {
   def size(module: Module) = 2L
+  def alignment(module: Module) = 2
 
   def isNumeric = false
 
@@ -117,6 +124,7 @@ final case object StringType
   extends Type
 {
   def size(module: Module) = wordSize(module)
+  def alignment(module: Module) = wordSize(module)
 
   def isNumeric = false
 
@@ -133,7 +141,8 @@ final case class IntType(width: Int)
 
   def minValue: Long = -1L << width - 1
 
-  def size(module: Module) = width / 8
+  def size(module: Module): Long = width / 8
+  def alignment(module: Module): Int = size(module).toInt
 
   def isNumeric = true
 
@@ -154,7 +163,8 @@ final case class FloatType(width: Int)
   if (width != 32 && width != 64)
     throw new IllegalArgumentException
 
-  def size(module: Module) = width / 8
+  def size(module: Module): Long = width / 8
+  def alignment(module: Module): Int = size(module).toInt
 
   def isNumeric = true
 
@@ -175,10 +185,6 @@ final case class PointerType(elementType: Type, pointerFlags: Int = 0)
     elementType.validate(module, location)
   }
 
-  def size(module: Module) = wordSize(module)
-
-  def isNumeric = false
-
   override def expose(module: Module): PointerType = {
     PointerType(elementType.expose(module))
   }
@@ -187,10 +193,6 @@ final case class PointerType(elementType: Type, pointerFlags: Int = 0)
 final case object NullType
   extends ReferenceType
 {
-  def size(module: Module) = wordSize(module)
-
-  def isNumeric = false
-
   def pointerFlags = ReferenceType.NULLABLE
 
   def withPointerFlags(flags: Int) = {
@@ -220,6 +222,7 @@ final case class ArrayType(length: Long, elementType: Type)
   }
 
   def size(module: Module) = length * elementType.size(module)
+  def alignment(module: Module) = elementType.alignment(module)
 
   def isNumeric = false
 
@@ -240,6 +243,13 @@ final case class StructType(structName: Symbol)
     struct.size(module)
   }
 
+  def alignment(module: Module): Int = {
+    module.getStruct(structName).fields.headOption match {
+      case None => 1
+      case Some(first) => module.getField(first).ty.alignment(module)
+    }
+  }
+
   def isNumeric = false
 }
 
@@ -247,6 +257,7 @@ final case object VariadicType
   extends Type
 {
   def size(module: Module) = wordSize(module)
+  def alignment(module: Module) = wordSize(module)
   def isNumeric = false
 }
 
@@ -277,6 +288,8 @@ final case class FunctionType(returnType: Type,
 
   def size(module: Module) = wordSize(module)
 
+  def alignment(module: Module) = wordSize(module)
+
   def isNumeric = false
 
   def isVariadic = !parameterTypes.isEmpty && parameterTypes.last == VariadicType
@@ -298,10 +311,6 @@ final case class FunctionType(returnType: Type,
 sealed trait ObjectType 
   extends ReferenceType
 {
-  override def size(module: Module) = wordSize(module)
-
-  override def isNumeric = false
-
   override def isObject = true
 
   override def expose(module: Module): ObjectType = this

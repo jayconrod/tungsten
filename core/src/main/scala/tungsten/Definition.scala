@@ -177,7 +177,9 @@ trait AggregateDefinition
   def fields: List[Symbol]
 
   def size(module: Module): Long = {
-    val fieldSizes = module.getFields(fields).map(_.ty.size(module))
-    fieldSizes.sum
+    (0L /: fields) { (objSize, fieldName) =>
+      val fieldType = module.getField(fieldName).ty
+      align(objSize, fieldType.alignment(module)) + fieldType.size(module)
+    }
   }
 }

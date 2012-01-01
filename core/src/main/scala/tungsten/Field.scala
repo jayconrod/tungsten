@@ -29,5 +29,3 @@ final case class Field(name: Symbol,
       ty.validateVariance(Variance.INVARIANT, module, getLocation)
   }
 }
-
-                  

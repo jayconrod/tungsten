@@ -116,6 +116,8 @@ class LowerPass
     m = createSupertypeInfo(clas, supertypes, m)
     m = createSupertypeInstructions(clas, supertypes, m)
 
+    val sizeValue = IntValue.word(clas.size(module), module)
+
     val infoValue = StructValue(classInfoStructName,
                                 List(flagsValue,
                                      definitionNameValue(clas, m),
@@ -123,7 +125,8 @@ class LowerPass
                                      superclassValue,
                                      supertypeCountValue,
                                      supertypeInfoValue(clas, m),
-                                     supertypeInstructionsValue(clas, m)))
+                                     supertypeInstructionsValue(clas, m),
+                                     sizeValue))
     val infoGlobal = Global(definitionInfoGlobalName(clas.name),
                             infoValue.ty,
                             Some(infoValue))
@@ -140,10 +143,31 @@ class LowerPass
     m = createDefinitionName(interface, m)
     m = createTypeParameterInfo(interface, m)
 
+    val supertypeType = PointerType(StructType(classInfoStructName))
+    val supertypeValue = interface.supertype match {
+      case cty: ClassType =>
+        DefinedValue(definitionInfoGlobalName(cty.definitionName), supertypeType)
+      case ity: InterfaceType => {
+        val rawValue = DefinedValue(definitionInfoGlobalName(ity.definitionName),
+                                    PointerType(StructType(interfaceInfoStructName)))
+        BitCastValue(rawValue, supertypeType)
+      }
+    }
+
+    val supertypes = interface.selfType.supertypes(module).tail // drop self type
+    val supertypeCountValue = IntValue.word(supertypes.size, module)
+
+    m = createSupertypeInfo(interface, supertypes, m)
+    m = createSupertypeInstructions(interface, supertypes, m)
+
     val infoValue = StructValue(interfaceInfoStructName,
                                 List(flagsValue,
                                      definitionNameValue(interface, m),
-                                     typeParameterInfoValue(interface, m)))
+                                     typeParameterInfoValue(interface, m),
+                                     supertypeValue,
+                                     supertypeCountValue,
+                                     supertypeInfoValue(interface, m),
+                                     supertypeInstructionsValue(interface, m)))
     val infoGlobal = Global(definitionInfoGlobalName(interface.name),
                             infoValue.ty,
                             Some(infoValue))
@@ -212,7 +236,7 @@ class LowerPass
     }
   }
 
-  def createSupertypeInfo(clas: Class, 
+  def createSupertypeInfo(defn: ObjectDefinition,
                           supertypes: List[ObjectDefinitionType], 
                           module: Module): Module = 
   {
@@ -236,26 +260,26 @@ class LowerPass
       }
       val infoType = ArrayType(supertypes.size, elemType)
       val infoValue = ArrayValue(elemType, supertypeValues)
-      val infoGlobal = Global(classSupertypeInfoGlobalName(clas.name), infoType, Some(infoValue))
+      val infoGlobal = Global(classSupertypeInfoGlobalName(defn.name), infoType, Some(infoValue))
       module.add(infoGlobal)
     }
   }
 
-  def supertypeInfoValue(clas: Class, module: Module): Value = {
-    val infoType = PointerType(PointerType(StructType(classInfoStructName)), 
-                               ReferenceType.NULLABLE)
-    module.definitions.get(classSupertypeInfoGlobalName(clas.name)) match {
+  def supertypeInfoValue(defn: ObjectDefinition, module: Module): Value = {
+    val infoTypeFlags = if (defn.isInstanceOf[Class]) ReferenceType.NULLABLE else 0
+    val infoType = PointerType(PointerType(StructType(classInfoStructName)), infoTypeFlags)
+    module.definitions.get(classSupertypeInfoGlobalName(defn.name)) match {
       case None => BitCastValue(NullValue, infoType)
       case Some(g: Global) => BitCastValue(g.makeValue, infoType)
       case _ => throw new RuntimeException("invalid definition")
     }
   }
 
-  def createSupertypeInstructions(clas: Class, 
+  def createSupertypeInstructions(defn: ObjectDefinition, 
                                   supertypes: List[ObjectDefinitionType],
                                   module: Module): Module = 
   {
-    val tyParamMap = clas.typeParameters.zipWithIndex.toMap
+    val tyParamMap = defn.typeParameters.zipWithIndex.toMap
 
     val instType = PointerType(IntType(8), ReferenceType.NULLABLE)
     def createInstructionList(ty: ObjectDefinitionType,
@@ -297,7 +321,7 @@ class LowerPass
       } else {
         val lastInst = BitCastValue(IntValue.word(-1, module), instType)
         val instValues = (lastInst :: instList).reverse
-        val defnName = classSupertypeInstructionsName(clas.name, index)
+        val defnName = classSupertypeInstructionsName(defn.name, index)
         val defnValue = ArrayValue(instType, instValues)
         Some(Global(defnName, defnValue.ty, Some(defnValue)))
       }
@@ -306,7 +330,7 @@ class LowerPass
     val instArrayArrayDefn = if (!instArrayDefns.exists(_.isDefined)) {
       None
     } else {
-      val instArrayArrayName = classSupertypeInstructionArraysName(clas.name)
+      val instArrayArrayName = classSupertypeInstructionArraysName(defn.name)
       val instArrayArrayElemType = PointerType(instType, ReferenceType.NULLABLE)
       val instArrayArrayType = ArrayType(instArrayDefns.size, instArrayArrayElemType)
       val instArrayArrayValue = ArrayValue(instArrayArrayElemType, instArrayDefns map {
@@ -320,10 +344,10 @@ class LowerPass
     module.add(newDefns: _*)
   }
 
-  def supertypeInstructionsValue(clas: Class, module: Module): Value = {
+  def supertypeInstructionsValue(defn: ObjectDefinition, module: Module): Value = {
     val tyFlags = ReferenceType.NULLABLE
     val ty = PointerType(PointerType(PointerType(IntType(8), tyFlags), tyFlags), tyFlags)
-    module.definitions.get(classSupertypeInstructionArraysName(clas.name)) match {
+    module.definitions.get(classSupertypeInstructionArraysName(defn.name)) match {
       case None => BitCastValue(NullValue, ty)
       case Some(g: Global) => BitCastValue(g.makeValue, ty)
       case _ => throw new RuntimeException("invalid definition")
@@ -534,11 +558,10 @@ object LowerPass {
   val CLASS_INFO_CLASS_FLAG = 0x1
   val CLASS_INFO_INTERFACE_FLAG = 0x0
 
-  val TYPE_PARAMETER_INFO_KIND_MASK = 0x3
+  val TYPE_PARAMETER_INFO_VARIANCE_MASK = 0x3
   val TYPE_PARAMETER_INFO_INVARIANT_FLAG = 0x0
-  val TYPE_PARAMETER_INFO_VARIANT_FLAG = 0x1
-  val TYPE_PARAMETER_INFO_COVARIANT_FLAG = 0x2
-  val TYPE_PARAMETER_INFO_CONTRAVARIANT_FLAG = 0x3
+  val TYPE_PARAMETER_INFO_COVARIANT_FLAG = 0x1
+  val TYPE_PARAMETER_INFO_CONTRAVARIANT_FLAG = 0x2
 }
 
 class LowerInstructionsPass
@@ -594,6 +617,7 @@ class LowerInstructionsPass
           val nn = count(t.typeArguments, n + 1)
           count(ts, nn)
         }
+        case (t: NothingType) :: ts => count(ts, n + 1)          
         case _ => throw new RuntimeException("invalid type argument")
       }
     }
@@ -611,26 +635,32 @@ class LowerInstructionsPass
     {
       typeArgs match {
         case Nil => insts
-        case (t: ObjectDefinitionType) :: ts => {
+        case t :: ts => {
           val storeOffset = offset + insts.size
-          val defnName = t.definitionName
-          val storeValue = if (t.isInstanceOf[ClassType]) {
-            DefinedValue(LowerPass.definitionInfoGlobalName(defnName),
-                         PointerType(StructType(LowerPass.classInfoStructName)))
-          } else if (t.isInstanceOf[InterfaceType]) {
-            val rawValue = DefinedValue(LowerPass.definitionInfoGlobalName(defnName),
-                                        PointerType(StructType(LowerPass.interfaceInfoStructName)))
-            BitCastValue(rawValue, PointerType(StructType(LowerPass.classInfoStructName)))
-          } else {
-            throw new RuntimeException("invalid type")
+          val storeType = PointerType(StructType(LowerPass.classInfoStructName))
+          val storeValue = t match {
+            case ct: ClassType =>
+              DefinedValue(LowerPass.definitionInfoGlobalName(ct.definitionName), storeType)
+            case it: InterfaceType => {
+              val rawValue = DefinedValue(LowerPass.definitionInfoGlobalName(it.definitionName),
+                                          PointerType(StructType(LowerPass.interfaceInfoStructName)))
+              BitCastValue(rawValue, storeType)
+            }
+            case _: NothingType =>
+              BitCastValue(NullValue, storeType)
+            case _ => throw new RuntimeException("invalid type")
           }
           val storeInst = StoreElementInstruction(makeName(), UnitType,
                                                   storeValue, base,
                                                   List(IntValue.word(storeOffset, module)))
-          val newInsts = store(t.typeArguments, storeInst :: insts)
+
+          val typeArgs = t match {
+            case oty: ObjectDefinitionType => oty.typeArguments
+            case _ => Nil
+          }
+          val newInsts = store(typeArgs, storeInst :: insts)
           store(ts, newInsts)
         }
-        case _ => throw new RuntimeException("invalid type argument")
       }
     }
     store(typeArgs, Nil).reverse
@@ -695,9 +725,8 @@ class LowerInstructionsPass
 
     val wordSize = IntType.wordSize(module)/8
     val typeArgWords = countTypeArgumentWords(classType.typeArguments)
-    val vtableWord = 1
     val objectSize = clas.size(module)
-    val totalSize = align(objectSize, wordSize) + (typeArgWords + vtableWord) * wordSize
+    val totalSize = align(objectSize, wordSize) + typeArgWords * wordSize
 
     val allocInst = HeapAllocateArrayInstruction(symbolFactory(newInst.name + "new$"),
                                                  PointerType(IntType(8)),
@@ -721,7 +750,7 @@ class LowerInstructionsPass
     val classInfoInst = BitCastInstruction(symbolFactory(newInst.name + "new$"),
                                            PointerType(PointerType(StructType(classInfoStructName))),
                                            allocInst.makeValue)
-    val typeArgumentOffset = align(objectSize + wordSize, wordSize)/wordSize
+    val typeArgumentOffset = align(objectSize, wordSize)/wordSize
     val storeInsts = storeTypeArgumentWords(classInfoInst.makeValue,
                                             typeArgumentOffset,
                                             classType.typeArguments,

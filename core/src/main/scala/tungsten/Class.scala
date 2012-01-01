@@ -36,6 +36,10 @@ final case class Class(name: Symbol,
 {
   override def isGlobal = true
 
+  override def size(module: Module): Long = {
+    super.size(module) + wordSize(module)   // add word for vtable
+  }
+
   override def validateComponents(module: Module): List[CompileException] = {
     def validateNullable(ty: ObjectDefinitionType): List[CompileException] = {
       if (ty.isNullable)

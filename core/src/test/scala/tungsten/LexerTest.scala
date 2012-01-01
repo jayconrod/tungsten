@@ -79,9 +79,8 @@ class LexerTest {
     testToken("12", IntTok(12L))
     testToken("-12", IntTok(-12L))
     testToken("0xFF", IntTok(255L))
-    testToken("-0xFF", IntTok(-255L))
+    testToken("0xFFFFFFFFFFFFFFFF", IntTok(-1L))
     testToken("0b1001", IntTok(9L))
-    testToken("-0b1001", IntTok(-9L))
   }
 
   @Test

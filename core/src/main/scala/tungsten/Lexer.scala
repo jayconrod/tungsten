@@ -68,15 +68,17 @@ object Lexer extends Lexical with RegexParsers {
   }      
 
   lazy val integer: Parser[Long] = {
-    val binRegex = "(-?)0b([01]+)".r
+    val binRegex = "0b([01]+)".r
     val decRegex = "(-?)([1-9]\\d*|0)".r
-    val hexRegex = "(-?)0x([A-Fa-f0-9]+)".r
+    val hexRegex = "0x([A-Fa-f0-9]+)".r
 
-    def parseLong(str: String, base: Int): Long = java.lang.Long.parseLong(str, base).longValue
+    def parseLong(str: String, base: Int): Long = {
+      new java.math.BigInteger(str, base).longValue
+    }
 
-    val bin = binRegex ^^ { case binRegex(sign, digits) => parseLong(sign + digits, 2) }
+    val bin = binRegex ^^ { case binRegex(digits) => parseLong(digits, 2) }
     val dec = decRegex ^^ { case decRegex(sign, digits) => parseLong(sign + digits, 10) }
-    val hex = hexRegex ^^ { case hexRegex(sign, digits) => parseLong(sign + digits, 16) }
+    val hex = hexRegex ^^ { case hexRegex(digits) => parseLong(digits, 16) }
 
     bin | hex | dec
   }

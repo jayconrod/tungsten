@@ -350,7 +350,9 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.BitCastValue(value, ty) => {
         val cValue = convertValue(value, parent)
         val cTy = convertType(ty)
-        if (value.ty.isPointer && ty.isNumeric) {
+        if (cValue.ty == cTy) {
+          cValue   // can't bitcast a value to its own type
+        } else if (value.ty.isPointer && ty.isNumeric) {
           PointerToIntegerValue(cValue, cTy)
         } else if (value.ty.isNumeric && ty.isPointer) {
           IntegerToPointerValue(cValue, cTy)

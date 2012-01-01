@@ -107,3 +107,16 @@ final case class BitCastValue(value: Value, ty: Type)
 {
   override def toString = "bitcast (%s to %s)".format(value.typedToString, ty)
 }
+
+final case class IntegerToPointerValue(value: Value, ty: Type)
+  extends Value
+{
+  override def toString = "inttoptr (%s to %s)".format(value.typedToString, ty)
+}
+
+final case class PointerToIntegerValue(value: Value, ty: Type)
+  extends Value
+{
+  override def toString = "ptrtoint (%s to %s)".format(value.typedToString, ty)
+}
+

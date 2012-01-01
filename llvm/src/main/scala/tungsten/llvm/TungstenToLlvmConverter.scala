@@ -169,8 +169,17 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
         }
         instCtor(localName, cTy, cLeft, cRight)
       }
-      case tungsten.BitCastInstruction(_, ty, value, _) =>
-        BitCastInstruction(localName, convertValue(value, parent), convertType(ty))
+      case tungsten.BitCastInstruction(_, ty, value, _) => {
+        val cValue = convertValue(value, parent)
+        val cTy = convertType(ty)
+        if (ty.isPointer && !value.ty.isPointer) {
+          IntegerToPointerInstruction(localName, cValue, cTy)
+        } else if (!ty.isPointer && value.ty.isPointer) {
+          PointerToIntegerInstruction(localName, cValue, cTy)
+        } else {
+          BitCastInstruction(localName, cValue, cTy)
+        }
+      }
       case tungsten.BranchInstruction(_, _, target, arguments, _) => {
         assert(arguments.isEmpty)
         val cTargetName = localSymbol(target, parent)
@@ -341,7 +350,13 @@ class TungstenToLlvmConverter(module: tungsten.Module) {
       case tungsten.BitCastValue(value, ty) => {
         val cValue = convertValue(value, parent)
         val cTy = convertType(ty)
-        BitCastValue(cValue, cTy)
+        if (value.ty.isPointer && ty.isNumeric) {
+          PointerToIntegerValue(cValue, cTy)
+        } else if (value.ty.isNumeric && ty.isPointer) {
+          IntegerToPointerValue(cValue, cTy)
+        } else {          
+          BitCastValue(cValue, cTy)
+        }
       }
       case _ => throw new UnsupportedOperationException("cannot convert un-lowered value: " + value)
     }

@@ -45,17 +45,21 @@ typedef struct w_class_info {
   uint32_t flags;
   w_array name;
   w_array type_parameters;
-  intptr_t instance_size;
   const struct w_class_info* superclass;
   intptr_t supertype_count;
   const struct w_class_info* const* supertype_info;
   const int8_t* const* const* supertype_instructions;
+  intptr_t instance_size;
 } w_class_info;
 
 typedef struct w_interface_info {
   uint32_t flags;
   w_array name;
   w_array type_parameters;
+  const struct w_class_info* superclass;
+  intptr_t supertype_count;
+  const struct w_class_info* const* supertype_info;
+  const int8_t* const* const* supertype_instructions;
 } w_interface_info;
 
 const uint32_t TYPE_PARAMETER_INFO_VARIANCE_MASK = 0x3;

@@ -44,6 +44,31 @@ object Utilities {
       Nil
   }
 
+  def checkObjectType(given: Type, location: Location): List[CompileException] = {
+    if (!given.isInstanceOf[ObjectType])
+      List(TypeMismatchException(given.toString, "object type", location))
+    else
+      Nil
+  }
+
+  def checkObjectDefinitionType(given: Type, location: Location): List[CompileException] = {
+    if (!given.isInstanceOf[ObjectDefinitionType])
+      List(TypeMismatchException(given.toString, "class or interface type", location))
+    else
+      Nil
+  }
+
+  def checkReifiedTypeParameters(given: Type, location: Location): List[CompileException] = {
+    def check(errors: List[CompileException], ty: Type): List[CompileException] = {
+      ty match {
+        case vty: VariableType =>
+          NonReifiedTypeParameterException(vty.variableName, location) :: errors
+        case _ => errors
+      }
+    }
+    given.foldTypes(Nil, check)
+  }
+
   def checkType(given: Type, expected: Type, location: Location): List[CompileException] = {
     if (given != expected)
       List(TypeMismatchException(given.toString, expected.toString, location))

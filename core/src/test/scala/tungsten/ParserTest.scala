@@ -303,6 +303,12 @@ class ParserTest {
   }
 
   @Test
+  def checkedcastInst {
+    testInstruction("unit %x = checkedcast ()",
+                    CheckedCastInstruction("%x", UnitType, UnitValue))
+  }
+
+  @Test
   def condInst {
     testInstruction("unit %x = cond true ? %a(()) : %b(())",
                     ConditionalBranchInstruction("%x",

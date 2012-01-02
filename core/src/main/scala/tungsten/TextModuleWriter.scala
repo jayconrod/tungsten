@@ -274,6 +274,7 @@ class TextModuleWriter(module: Module, output: Writer) {
       case _: BitCastInstruction => "bitcast"
       case _: BranchInstruction => "branch"
       case _: CatchInstruction => "catch"
+      case _: CheckedCastInstruction => "checkedcast"
       case _: ConditionalBranchInstruction => "cond"
       case _: ExtractInstruction => "extract"
       case _: FloatExtendInstruction => "fextend"
@@ -325,6 +326,9 @@ class TextModuleWriter(module: Module, output: Writer) {
         writeArguments(arguments, parentName)
       }
       case _: CatchInstruction => ()
+      case CheckedCastInstruction(_, _, value, _) => {
+        output.write(localValue(value))
+      }
       case ConditionalBranchInstruction(_, _, condition, trueTarget, trueArgs,
                                         falseTarget, falseArgs, _) =>
       {

@@ -205,6 +205,7 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
           case _: BitCastInstruction => BIT_CAST_INST_ID
           case _: BranchInstruction => BRANCH_INST_ID
           case _: CatchInstruction => CATCH_INST_ID
+          case _: CheckedCastInstruction => CHECKED_CAST_INST_ID
           case _: ConditionalBranchInstruction => CONDITIONAL_BRANCH_INST_ID
           case _: ExtractInstruction => EXTRACT_INST_ID
           case _: FloatExtendInstruction => FLOAT_EXTEND_INST_ID
@@ -258,6 +259,9 @@ class BinaryModuleWriter(module: Module, output: DataOutputStream) {
             writeList(arguments, writeValue _)
           }
           case _: CatchInstruction => ()
+          case CheckedCastInstruction(_, _, value, _) => {
+            writeValue(value)
+          }
           case ConditionalBranchInstruction(_, _, condition, trueTarget, trueArgs,
                                             falseTarget, falseArgs, _) =>
           {

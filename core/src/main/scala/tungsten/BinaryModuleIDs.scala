@@ -71,6 +71,7 @@ object BinaryModuleIDs {
   val CATCH_INST_ID = 53
   val NULL_CHECK_INST_ID = 54
   val INSTANCE_OF_INST_ID = 55
+  val CHECKED_CAST_INST_ID = 56
 
   val BINOP_MULTIPLY_ID: Byte = 1
   val BINOP_DIVIDE_ID: Byte = 2

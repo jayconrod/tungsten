@@ -770,9 +770,9 @@ class InstructionValidationTest
   @Test
   def instanceOfNonClassType {
     val program = "class @R\n" +
-                  "function unit @f[type %T] {\n" +
+                  "function unit @f {\n" +
                   "  block %entry {\n" +
-                  "    boolean %x = instanceof bitcast null to class @R: type @f.T\n" +
+                  "    boolean %x = instanceof bitcast null to class @R: int64\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"
@@ -797,6 +797,42 @@ class InstructionValidationTest
                   "function unit @f[type %T] {\n" +
                   "  block %entry {\n" +
                   "    boolean %x = instanceof bitcast null to class @R: type @f.T\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[NonReifiedTypeParameterException](program)
+  }
+
+  @Test
+  def checkedCastFromNonObject {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @R %x = checkedcast int64 12\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def checkedCastToNonObject {
+    val program = "class @R\n" +
+                  "function unit @f {\n" +
+                  "  block %entry {\n" +
+                  "    int64 %x = checkedcast bitcast null to class @R\n" +
+                  "    return ()\n" +
+                  "  }\n" +
+                  "}\n"
+    programContainsError[TypeMismatchException](program)
+  }
+
+  @Test
+  def checkedCastToNonReified {
+    val program = "class @R\n" +
+                  "function unit @f[type %T] {\n" +
+                  "  block %entry {\n" +
+                  "    type @f.T %x = checkedcast bitcast null to class @R\n" +
                   "    return ()\n" +
                   "  }\n" +
                   "}\n"

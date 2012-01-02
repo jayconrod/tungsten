@@ -154,6 +154,9 @@ class BinaryModuleReader(input: DataInputStream) {
       case CATCH_INST_ID => {
         CatchInstruction(name, readType, readAnnotations)
       }
+      case CHECKED_CAST_INST_ID => {
+        CheckedCastInstruction(name, readType, readValue, readAnnotations)
+      }
       case CONDITIONAL_BRANCH_INST_ID => {
         ConditionalBranchInstruction(name, readType, readValue, symbol, readList(readValue),
                                      symbol, readList(readValue), readAnnotations)

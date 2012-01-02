@@ -303,22 +303,6 @@ trait PointerElementInstruction
   }
 }
 
-trait ReifiedTypeParameterValidation {
-  def validateReifiedTypeParameters(ty: Type, 
-                                    location: Location,
-                                    module: Module): List[CompileException] = 
-  {
-    def check(errors: List[CompileException], ty: Type): List[CompileException] = {
-      ty match {
-        case vty: VariableType =>
-          NonReifiedTypeParameterException(vty.variableName, location) :: errors
-        case _ => errors
-      }
-    }
-    ty.foldTypes(Nil, check)
-  }
-}
-
 final case class AddressInstruction(name: Symbol,
                                     ty: Type,
                                     base: Value,
@@ -492,6 +476,22 @@ final case class CatchInstruction(name: Symbol,
 
   override def validate(module: Module) = {
     super.validate(module) ++ checkNonNullPointerType(ty, getLocation)
+  }
+}
+
+final case class CheckedCastInstruction(name: Symbol,
+                                        ty: Type,
+                                        value: Value,
+                                        annotations: List[AnnotationValue] = Nil)
+  extends Instruction
+{
+  def operands = List(value)
+
+  override def validate(module: Module) = {
+    super.validate(module) ++
+      checkObjectType(ty, getLocation) ++
+      checkObjectType(value.ty, getLocation) ++
+      checkReifiedTypeParameters(ty, getLocation)
   }
 }
 
@@ -706,15 +706,13 @@ final case class InstanceOfInstruction(name: Symbol,
                                        isa: Type,
                                        annotations: List[AnnotationValue] = Nil)
   extends Instruction
-  with ReifiedTypeParameterValidation
 {
   def operands = List(value)
 
   override def validate(module: Module) = {
     def validateTypes = {
-      List(value.ty, isa).filterNot(_.isInstanceOf[ObjectDefinitionType]).map { t =>
-        TypeMismatchException(t, "class or interface type", getLocation)
-      }
+      checkObjectDefinitionType(value.ty, getLocation) ++
+        checkObjectType(isa, getLocation)
     }
 
     def validateNullable = {
@@ -730,8 +728,8 @@ final case class InstanceOfInstruction(name: Symbol,
 
     super.validate(module) ++
       checkType(BooleanType, ty, getLocation) ++
-      validateTypes ++
-      validateReifiedTypeParameters(isa, getLocation, module) ++?
+      validateTypes ++?
+      checkReifiedTypeParameters(isa, getLocation) ++?
       validateNullable
   }
 }
@@ -904,7 +902,6 @@ final case class NewInstruction(name: Symbol,
                                 annotations: List[AnnotationValue] = Nil)
   extends Instruction 
   with CallInstruction
-  with ReifiedTypeParameterValidation
 {
   def operands = arguments
 
@@ -948,7 +945,7 @@ final case class NewInstruction(name: Symbol,
     super.validate(module) ++
       stage(validateAbstract,
             validateConstructor,
-            validateReifiedTypeParameters(ty, getLocation, module),
+            checkReifiedTypeParameters(ty, getLocation),
             validateCall(module, 
                          constructorName, 
                          newType, 

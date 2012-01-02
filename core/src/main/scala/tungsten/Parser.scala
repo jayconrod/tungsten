@@ -241,6 +241,7 @@ class Parser extends Parsers with ImplicitConversions {
     bitcastInst        |
     branchInst         |
     catchInst          |
+    checkedcastInst    |
     condInst           |
     extractInst        |
     fextendInst        |
@@ -301,6 +302,12 @@ class Parser extends Parsers with ImplicitConversions {
   lazy val catchInst: Parser[CatchInstruction] = {
     instName("catch") ^^ {
       case anns ~ ty ~ n => CatchInstruction(n, ty, anns)
+    }
+  }
+
+  lazy val checkedcastInst: Parser[CheckedCastInstruction] = {
+    instName("checkedcast") ~ value ^^ {
+      case anns ~ ty ~ n ~ v => CheckedCastInstruction(n, ty, v, anns)
     }
   }
 

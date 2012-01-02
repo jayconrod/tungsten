@@ -577,6 +577,8 @@ class LowerInstructionsPass
     instruction match {
       case ptrElemInst: PointerElementInstruction if ptrElemInst.base.ty.isInstanceOf[ClassType] =>
         convertElementInstruction(ptrElemInst, module)
+      case checkedcastInst: CheckedCastInstruction =>
+        convertCheckedCastInstruction(checkedcastInst, block, module)
       case instanceofInst: InstanceOfInstruction =>
         convertInstanceOfInstruction(instanceofInst, module)
       case newInst: NewInstruction =>
@@ -666,8 +668,91 @@ class LowerInstructionsPass
     store(typeArgs, Nil).reverse
   }
 
+  def createErrorBlock(newName: () => Symbol,
+                       errorClassName: Symbol,
+                       errorCtorName: Symbol,
+                       errorArguments: List[Value],
+                       block: Block,
+                       module: Module): (Block, List[Value], Module) =
+  {
+    val newInst = NewInstruction(newName(),
+                                 ClassType(errorClassName),
+                                 errorCtorName,
+                                 Nil, errorArguments)
+    val loweredNewInsts = convertNewInstruction(newInst, module).rewritten
+    val throwInst = ThrowInstruction(newName(), UnitType, newInst.makeValue)
+    val errorInsts = loweredNewInsts :+ throwInst
+
+    val catchArguments = block.catchBlock.map(_._2).getOrElse(Nil)
+    val catchLiveInParameters = catchArguments flatMap { arg =>
+      arg.getSymbols.filter(block.parameters.contains _).map(module.getParameter _)
+    }
+    val errorBlockParameters = catchLiveInParameters.map { p =>
+      p.copy(name = symbolFactory(p.name))
+    }
+    val errorBlockArguments = catchLiveInParameters.map(_.makeValue)
+    val errorBlockSubstitutions =
+     (catchLiveInParameters.map(_.name) zip errorBlockParameters.map(_.name)).toMap
+    val errorBlockCatchArguments = catchArguments.map(_.substitute(catchLiveInParameters.map(_.name),
+                                                                   errorBlockParameters.map(_.name)))
+    val errorBlockCatchBlock = block.catchBlock.map(_.copy(_2 = errorBlockCatchArguments))
+
+    val errorBlock = Block(newName() + "error$",
+                           errorBlockParameters.map(_.name),
+                           errorInsts.map(_.name),
+                           errorBlockCatchBlock,
+                           block.annotations)
+    val errorModule = module.add(errorBlock)
+                            .add(errorInsts: _*)
+                            .add(errorBlockParameters: _*)
+    (errorBlock, errorBlockArguments, errorModule)
+  }
+
+  def convertCheckedCastInstruction(checkedcastInst: CheckedCastInstruction,
+                                    block: Block,
+                                    module: Module): SplitBlock =
+  {
+    def newName = symbolFactory(checkedcastInst.name + "cast$")
+
+    // Create a new error handling block. We create a new one for every checked cast
+    // since different casts may have different exception handlers. Maybe we can 
+    // optimize redundant ones later.
+    val (errorBlock, errorArgs, errorModule) = createErrorBlock(newName _,
+                                                                "tungsten.CastException",
+                                                                "tungsten.CastException.ctor",
+                                                                Nil,
+                                                                block, module)
+
+    // Create the successful case code. If the check succeeds, we just bitcast the 
+    // old value to the new type.
+    val castInst = BitCastInstruction(checkedcastInst.name, 
+                                      checkedcastInst.ty,
+                                      checkedcastInst.value)
+
+    // Split the block. We need to add the checking code in a separate block which 
+    // can call the error block.
+    SplitBlock(List(castInst), List(errorBlock), errorModule,
+               { (splitBlockName, splitBlockArguments, splitModule) =>
+      // Check the type using instanceof
+      val instanceOfInst = InstanceOfInstruction(newName, BooleanType,
+                                                 checkedcastInst.value, checkedcastInst.ty)
+      val loweredInstanceOfInst = 
+        convertInstanceOfInstruction(instanceOfInst, splitModule).rewritten
+      
+      // Branch to the split block or error block depending on result
+      val condInst = ConditionalBranchInstruction(newName,
+                                                  UnitType,
+                                                  instanceOfInst.makeValue,
+                                                  errorBlock.name,
+                                                  errorArgs,
+                                                  splitBlockName,
+                                                  splitBlockArguments)
+      RewrittenInstructions(loweredInstanceOfInst :+ condInst)
+    })
+  }
+
   def convertInstanceOfInstruction(instanceofInst: InstanceOfInstruction,
-                                   module: Module): RewriteResult =
+                                   module: Module): RewrittenInstructions =
   {
     val valueInst = BitCastInstruction(symbolFactory(instanceofInst.name),
                                        PointerType(StructType(LowerPass.classStructName(module.rootClass.name))),
@@ -712,7 +797,7 @@ class LowerInstructionsPass
     RewrittenInstructions(List(valueInst) ++ typeArgsInsts ++ List(callInst))
   }
 
-  def convertNewInstruction(newInst: NewInstruction, module: Module): RewriteResult = {
+  def convertNewInstruction(newInst: NewInstruction, module: Module): RewrittenInstructions = {
     val classType = newInst.ty.asInstanceOf[ClassType]
     val className = classType.definitionName
     val clas = module.getClass(className)
@@ -772,41 +857,16 @@ class LowerInstructionsPass
                                   block: Block,
                                   module: Module): SplitBlock =
   {
+    def newName = symbolFactory(nullcheckInst.name + "nullcheck$")
+
     // Create a new error handling block. We create a new one for every nullcheck
     // since different nullchecks may have different exception handlers. Hopefully,
     // we can optimize out redundant ones later.
-    val exnInst = NewInstruction(symbolFactory(nullcheckInst.name + "exn$"),
-                                 ClassType("tungsten.NullPointerException"),
-                                 "tungsten.NullPointerException.ctor",
-                                 Nil, Nil)
-    val RewrittenInstructions(cExnInsts) = convertNewInstruction(exnInst, module)
-    val throwInst = ThrowInstruction(symbolFactory(nullcheckInst.name + "throw$"),
-                                     UnitType,
-                                     exnInst.makeValue)
-    val errorInsts = cExnInsts :+ throwInst
-
-    val catchArguments = block.catchBlock.map(_._2).getOrElse(Nil)
-    val catchLiveInParameters = catchArguments flatMap { arg =>
-      arg.getSymbols.filter(block.parameters.contains _).map(module.getParameter _)
-    }
-    val errorBlockParameters = catchLiveInParameters.map { p =>
-      p.copy(name = symbolFactory(p.name))
-    }
-    val errorBlockArguments = catchLiveInParameters.map(_.makeValue)
-    val errorBlockSubstitutions =
-     (catchLiveInParameters.map(_.name) zip errorBlockParameters.map(_.name)).toMap
-    val errorBlockCatchArguments = catchArguments.map(_.substitute(catchLiveInParameters.map(_.name),
-                                                                   errorBlockParameters.map(_.name)))
-    val errorBlockCatchBlock = block.catchBlock.map(_.copy(_2 = errorBlockCatchArguments))
-
-    val errorBlock = Block(symbolFactory(nullcheckInst.name + "npebb$"),
-                           errorBlockParameters.map(_.name),
-                           errorInsts.map(_.name),
-                           errorBlockCatchBlock,
-                           block.annotations)
-    val errorModule = module.add(errorBlock)
-                            .add(errorInsts: _*)
-                            .add(errorBlockParameters: _*)
+    val (errorBlock, errorArgs, errorModule) = 
+      createErrorBlock(newName _,
+                       "tungsten.NullPointerException",
+                       "tungsten.NullPointerException.ctor",
+                       Nil, block, module)
 
     // Split the block we were processing. The instructions we have already processed
     // will form a new block, and any live-in values will become parameters.
@@ -818,16 +878,16 @@ class LowerInstructionsPass
                                         nullcheckInst.value,
                                         nullcheckInst.annotations)
       val nullValue = BitCastValue(NullValue, nullcheckInst.value.ty)
-      val checkInst = RelationalOperatorInstruction(symbolFactory(nullcheckInst.name + "cmp$"),
+      val checkInst = RelationalOperatorInstruction(newName,
                                                     BooleanType,
                                                     RelationalOperator.EQUAL,
                                                     nullcheckInst.value,
                                                     nullValue)
-      val branchInst = ConditionalBranchInstruction(symbolFactory(nullcheckInst.name + "cond$"),
+      val branchInst = ConditionalBranchInstruction(newName,
                                                     UnitType,
                                                     checkInst.makeValue,
                                                     errorBlock.name,
-                                                    errorBlockArguments,
+                                                    errorArgs,
                                                     splitBlockName,
                                                     splitBlockArguments)
       RewrittenInstructions(List(castInst, checkInst, branchInst))

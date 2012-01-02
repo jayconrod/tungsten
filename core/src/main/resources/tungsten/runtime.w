@@ -48,6 +48,12 @@ function unit @tungsten.Exception.ctor(class @tungsten.Exception %this)
 
 interface @tungsten.RuntimeException <: class @tungsten.Exception
 
+class @tungsten.CastException <: class @tungsten.Exception {
+  interface @tungsten.RuntimeException
+  constructors { %ctor }
+}
+function unit @tungsten.CastException.ctor(class @tungsten.CastException %this)
+
 class @tungsten.NullPointerException <: class @tungsten.Exception {
   interface @tungsten.RuntimeException
   constructors { %ctor }

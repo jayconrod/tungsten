@@ -601,19 +601,19 @@ class LowerPassInstructionConversionTest {
                           "    struct @tungsten.Object.data$*? %a = bitcast null\n" +
                           "    int64 %n = binop int64 %m + int64 %m\n" +
                           "    struct @tungsten.Object.data$* %b = bitcast struct @tungsten.Object.data$*? %a\n" +
-                          "    boolean @f.bb.b.cmp$#16 = relop struct @tungsten.Object.data$*? %a == bitcast null to struct @tungsten.Object.data$*?\n" +
-                          "    unit @f.bb.b.cond$#17 = cond boolean @f.bb.b.cmp$#16 ? @f.bb.b.npebb$#14(int64 %m) : @f.bb#6(struct @tungsten.Object.data$* %b, int64 %n, int64 %m)\n" +
+                          "    boolean @f.bb.b.nullcheck$#16 = relop struct @tungsten.Object.data$*? %a == bitcast null to struct @tungsten.Object.data$*?\n" +
+                          "    unit @f.bb.b.nullcheck$#17 = cond boolean @f.bb.b.nullcheck$#16 ? @f.bb.b.nullcheck$.error$#14(int64 %m) : @f.bb#6(struct @tungsten.Object.data$* %b, int64 %n, int64 %m)\n" +
                           "  } catch @f.cb(int64 %m)\n" +
                           "  block %bb#6(struct @tungsten.Object.data$* @f.bb.b#9, int64 @f.bb.n#8, int64 @f.bb.m#7) {\n" +
                           "    unit %anon$#2 = branch @f.exit(int64 %n#8, struct @tungsten.Object.data$* %b#9)\n" +
                           "  } catch @f.cb(int64 %m#7)\n" +
-                          "  block @f.bb.b.npebb$#14(int64 @f.bb.m#15) {\n" +
-                          "    int8* @f.bb.b.exn$.new$#10 = heaparray int64 8\n" +
-                          "    struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
-                          "    unit @f.bb.b.exn$.new$#12 = storeelement struct @tungsten.NullPointerException.vtable_type$* @tungsten.NullPointerException.vtable$, struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11, int64 0, int64 0\n" +
-                          "    struct @tungsten.class_info** @f.bb.b.exn$.new$#13 = bitcast int8* @f.bb.b.exn$.new$#10\n" +
-                          "    unit @f.bb.b.exn$.new$#14 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11)\n" +
-                          "    unit @f.bb.b.throw$#15 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.exn$#11\n" +
+                          "  block @f.bb.b.nullcheck$.error$#14(int64 @f.bb.m#15) {\n" +
+                          "    int8* @f.bb.b.nullcheck$.new$#10 = heaparray int64 8\n" +
+                          "    struct @tungsten.NullPointerException.data$* @f.bb.b.nullcheck$#11 = bitcast int8* @f.bb.b.nullcheck$.new$#10\n" +
+                          "    unit @f.bb.b.nullcheck$.new$#12 = storeelement struct @tungsten.NullPointerException.vtable_type$* @tungsten.NullPointerException.vtable$, struct @tungsten.NullPointerException.data$* @f.bb.b.nullcheck$#11, int64 0, int64 0\n" +
+                          "    struct @tungsten.class_info** @f.bb.b.nullcheck$.new$#13 = bitcast int8* @f.bb.b.nullcheck$.new$#10\n" +
+                          "    unit @f.bb.b.nullcheck$.new$#14 = scall @tungsten.NullPointerException.ctor(struct @tungsten.NullPointerException.data$* @f.bb.b.nullcheck$#11)\n" +
+                          "    unit @f.bb.b.nullcheck$#15 = throw struct @tungsten.NullPointerException.data$* @f.bb.b.nullcheck$#11\n" +
                           "  } catch @f.cb(int64 @f.bb.m#16)\n" +
                           "  block %exit(int64 @f.exit.n, struct @tungsten.Object.data$* @f.exit.b) {\n" +
                           "    unit %anon$#3 = return ()\n" +
@@ -657,6 +657,50 @@ class LowerPassInstructionConversionTest {
                        "                                          bitcast struct @tungsten.class_info** %isa#2 to struct @tungsten.class_info**?)\n"
     testConversion(expectedCode, code)
   }
+
+  @Test
+  def testCheckedCastInst {
+    val program = "class @C[type %T] <: class @tungsten.Object\n" +
+                  "function class @C[class @tungsten.Object] @f {\n" +
+                  "  block %entry {\n" +
+                  "    class @tungsten.Object %x = bitcast null\n" +
+                  "    class @C[class @tungsten.Object] %y = checkedcast class @tungsten.Object %x\n" +
+                  "    unit %ret = return class @C[class @tungsten.Object] %y\n" +
+                  "  }\n" +
+                  "}\n"
+    val module = linkRuntime(compileString(program))
+    val loweredModule = pass(module)
+    assertTrue(loweredModule.definitions.contains("f"))
+
+    val expectedProgram = "function struct @C.data$* @f {\n" +
+                          "  block %entry {\n" +
+                          "    struct @tungsten.Object.data$* %x = bitcast null\n" +
+                          "    struct @tungsten.Object.data$* %y.cast$#1 = bitcast struct @tungsten.Object.data$* %x\n" +
+                          "    struct @tungsten.class_info** %y.cast$#2 = stackarray int64 1\n" +
+                          "    unit %y.cast$#3 = storeelement struct @tungsten.class_info* @tungsten.Object.info$, struct @tungsten.class_info** %y.cast$#2, int64 0\n" +
+                          "    struct @tungsten.class_info**? %y.cast$#4 = bitcast struct @tungsten.class_info** %y.cast$#2\n" +
+                          "    boolean %y.cast$#5 = scall @tungsten.instanceof(struct @tungsten.Object.data$* %y.cast$#1, struct @tungsten.class_info* @C.info$, struct @tungsten.class_info**? %y.cast$#4)\n" +
+                          "    unit %y.cast$#6 = cond boolean %y.cast$#5 ? @f.entry#7(struct @tungsten.Object.data$* %x)\n" +
+                          "                                              : @f.entry.y.cast$.error$#8()\n" +
+                          "  }\n" +
+                          "  block %entry#7(struct @tungsten.Object.data$* %x#14) {\n" +
+                          "    struct @C.data$* %y = bitcast struct @tungsten.Object.data$* %x#14\n" +
+                          "    unit %ret = return struct @C.data$* %y\n" +
+                          "  }\n" +
+                          "  block %entry.y.cast$.error$#8 {\n" +
+                          "    int8* @f.entry.y.cast$.new$#9 = heaparray int64 8\n" +
+                          "    struct @tungsten.CastException.data$* @f.entry.y.cast$#10 = bitcast int8* @f.entry.y.cast$.new$#9\n" +
+                          "    unit @f.entry.y.cast$.new$#11 = storeelement struct @tungsten.CastException.vtable_type$* @tungsten.CastException.vtable$, struct @tungsten.CastException.data$* @f.entry.y.cast$#10, int64 0, int64 0\n" +
+                          "    struct @tungsten.class_info** @f.entry.y.cast$.new$#12 = bitcast struct @tungsten.CastException.data$* @f.entry.y.cast$#10\n" +
+                          "    unit @f.entry.y.cast$.new$#13 = scall @tungsten.CastException.ctor(struct @tungsten.CastException.data$* @f.entry.y.cast$#10)\n" +
+                          "    unit @f.entry.y.cast$ = throw struct @tungsten.CastException.data$* @f.entry.y.cast$#10\n" +
+                          "  }\n" +
+                          "}\n"
+    val expectedModule = compileString(expectedProgram)
+    assertTrue(expectedModule.definitions.contains("f"))
+    assertModuleEqualsIgnoreSymbols(expectedModule, loweredModule)
+  }
+
 
   @Test
   def substituteClassType {
